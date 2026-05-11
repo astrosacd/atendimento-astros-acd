@@ -49,9 +49,31 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    const apiKey = config?.elevenlabs_api_key;
+    const apiKey = overrideKey || config?.elevenlabs_api_key;
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "Chave da ElevenLabs não configurada" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // List voices action
+    if (action === 'list_voices') {
+      const vRes = await fetch("https://api.elevenlabs.io/v2/voices?page_size=100", {
+        headers: { "xi-api-key": apiKey },
+      });
+      if (!vRes.ok) {
+        const errText = await vRes.text();
+        return new Response(JSON.stringify({ error: `ElevenLabs: ${errText}` }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const vJson = await vRes.json();
+      const voices = (vJson.voices || []).map((v: any) => ({
+        voice_id: v.voice_id,
+        name: v.name,
+        category: v.category,
+        labels: v.labels || {},
+        preview_url: v.preview_url,
+      }));
+      return new Response(JSON.stringify({ voices }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Generate TTS
