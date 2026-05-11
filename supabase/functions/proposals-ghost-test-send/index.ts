@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { phone, mediaType } = await req.json().catch(() => ({}));
+    const { phone, mediaType, clientName } = await req.json().catch(() => ({}));
     const phoneStr = String(phone || "").replace(/\D/g, "");
     const type = mediaType === "video" ? "video" : "audio";
 
@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
 
     const { data: config } = await supabase
       .from("proposal_send_config")
-      .select("evolution_api_url, evolution_api_key, evolution_instance_name, ghost_audio_url, ghost_video_url")
+      .select("evolution_api_url, evolution_api_key, evolution_instance_name, ghost_audio_url, ghost_video_url, ghost_mode_type, tts_text, elevenlabs_voice_id")
       .limit(1)
       .maybeSingle();
 
@@ -47,7 +47,24 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Evolution API não configurada" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const mediaUrl = type === "audio" ? config.ghost_audio_url : config.ghost_video_url;
+    let mediaUrl = type === "audio" ? config.ghost_audio_url : config.ghost_video_url;
+    const isDynamic = type === "audio" && (config as any).ghost_mode_type === 'dynamic';
+
+    if (isDynamic) {
+      // Generate audio on the fly
+      const { data: ttsData, error: ttsError } = await supabase.functions.invoke('proposals-elevenlabs-tts', {
+        body: { 
+          text: (config as any).tts_text?.replace('{{nome_cliente}}', clientName || 'Cliente'),
+          voiceId: (config as any).elevenlabs_voice_id,
+          save: true 
+        }
+      });
+      if (ttsError || ttsData?.error) {
+        return new Response(JSON.stringify({ error: `TTS: ${ttsError?.message || ttsData?.error}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      mediaUrl = ttsData.url;
+    }
+
     if (!mediaUrl) {
       return new Response(JSON.stringify({ error: `Nenhum ${type} configurado no Modo Ghost` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
