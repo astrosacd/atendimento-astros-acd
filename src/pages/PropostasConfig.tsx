@@ -582,13 +582,78 @@ export default function PropostasConfig() {
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label>URL do Áudio (.mp3, .ogg)</Label>
-                          <Input placeholder="https://..." value={ghostAudioUrl} onChange={(e) => setGhostAudioUrl(e.target.value)} />
+                          <Label>Áudio (.mp3, .ogg, .opus)</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              type="file"
+                              accept="audio/*"
+                              disabled={uploadingGhost === 'audio'}
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                setUploadingGhost('audio');
+                                try {
+                                  const ext = file.name.split('.').pop() || 'mp3';
+                                  const path = `ghost/audio-${Date.now()}.${ext}`;
+                                  const { error: upErr } = await supabase.storage.from('proposal-images').upload(path, file, { upsert: true, contentType: file.type });
+                                  if (upErr) throw upErr;
+                                  const { data } = supabase.storage.from('proposal-images').getPublicUrl(path);
+                                  setGhostAudioUrl(data.publicUrl);
+                                  toast.success('Áudio enviado!');
+                                } catch (err: any) {
+                                  toast.error('Erro no upload: ' + err.message);
+                                } finally {
+                                  setUploadingGhost(null);
+                                }
+                              }}
+                            />
+                            {uploadingGhost === 'audio' && <Loader2 className="h-5 w-5 animate-spin self-center" />}
+                          </div>
+                          {ghostAudioUrl && (
+                            <div className="flex items-center gap-2">
+                              <audio controls src={ghostAudioUrl} className="h-8 flex-1" />
+                              <Button type="button" variant="ghost" size="icon" onClick={() => setGhostAudioUrl('')}><Trash2 className="h-4 w-4" /></Button>
+                            </div>
+                          )}
                         </div>
                         <div className="space-y-2">
-                          <Label>URL do Vídeo (.mp4)</Label>
-                          <Input placeholder="https://..." value={ghostVideoUrl} onChange={(e) => setGhostVideoUrl(e.target.value)} />
-                          <p className="text-xs text-muted-foreground">Cole o link de um áudio ou vídeo. Se preencher os dois, o vídeo tem prioridade.</p>
+                          <Label>Vídeo (.mp4)</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              type="file"
+                              accept="video/mp4"
+                              disabled={uploadingGhost === 'video'}
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                if (file.size > 16 * 1024 * 1024) {
+                                  toast.error('Vídeo deve ter no máximo 16MB (limite do WhatsApp)');
+                                  return;
+                                }
+                                setUploadingGhost('video');
+                                try {
+                                  const path = `ghost/video-${Date.now()}.mp4`;
+                                  const { error: upErr } = await supabase.storage.from('proposal-images').upload(path, file, { upsert: true, contentType: file.type });
+                                  if (upErr) throw upErr;
+                                  const { data } = supabase.storage.from('proposal-images').getPublicUrl(path);
+                                  setGhostVideoUrl(data.publicUrl);
+                                  toast.success('Vídeo enviado!');
+                                } catch (err: any) {
+                                  toast.error('Erro no upload: ' + err.message);
+                                } finally {
+                                  setUploadingGhost(null);
+                                }
+                              }}
+                            />
+                            {uploadingGhost === 'video' && <Loader2 className="h-5 w-5 animate-spin self-center" />}
+                          </div>
+                          {ghostVideoUrl && (
+                            <div className="flex items-center gap-2">
+                              <video controls src={ghostVideoUrl} className="h-20 flex-1 rounded" />
+                              <Button type="button" variant="ghost" size="icon" onClick={() => setGhostVideoUrl('')}><Trash2 className="h-4 w-4" /></Button>
+                            </div>
+                          )}
+                          <p className="text-xs text-muted-foreground">⚠️ O Modo Ghost envia <strong>somente pelo WhatsApp</strong>, mesmo que o canal esteja como "Ambos". Se enviar áudio e vídeo, o vídeo tem prioridade.</p>
                         </div>
                       </div>
                     )}
