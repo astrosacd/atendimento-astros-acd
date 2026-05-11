@@ -1294,6 +1294,7 @@ function NumeroActionsMenu({
     const extraObs = `${nomeCliente.trim()} - CHIP PRO ${tipoSeguro} - ${numero.numero}`;
     proceedWithSave(extraObs);
     setConfirmVendaOpen(false);
+    setIsChangingToVendido(false);
   };
 
   const handleDelete = () => {
