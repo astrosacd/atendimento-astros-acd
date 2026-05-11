@@ -1573,7 +1573,7 @@ function NumeroActionsMenu({
             <div className="p-3 bg-muted rounded-md text-xs space-y-1">
               <p className="font-medium">Formato da observação automática:</p>
               <p className="text-muted-foreground italic">
-                {nomeCliente || '[Cliente]'} - CHIP PRO {tipoSeguro} - {numero.numero}
+                {nomeCliente || '[Cliente]'} - CHIP PRO {tipoSeguro} - {whatsappCliente || '[WhatsApp Cliente]'}
               </p>
             </div>
           </div>
@@ -1581,7 +1581,7 @@ function NumeroActionsMenu({
             <Button variant="outline" onClick={() => setConfirmVendaOpen(false)}>
               Voltar
             </Button>
-            <Button onClick={handleConfirmVenda} disabled={!nomeCliente.trim()}>
+            <Button onClick={handleConfirmVenda} disabled={!nomeCliente.trim() || !whatsappCliente.trim()}>
               Confirmar Venda
             </Button>
           </DialogFooter>
