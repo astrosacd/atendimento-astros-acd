@@ -1228,6 +1228,7 @@ function NumeroActionsMenu({
   const [nomeCliente, setNomeCliente] = useState('');
   const [tipoSeguro, setTipoSeguro] = useState<'COM SEGURO' | 'SEM SEGURO'>('COM SEGURO');
   const [confirmVendaOpen, setConfirmVendaOpen] = useState(false);
+  const [isChangingToVendido, setIsChangingToVendido] = useState(false);
   
   // Fetch observation history for this number
   const { data: obsHistory = [] } = useNumeroHistory(numero.id);
