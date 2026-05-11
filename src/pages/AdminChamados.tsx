@@ -126,7 +126,7 @@ const AdminChamados = () => {
     motivo: "",
     prioridade: "media" as ChamadoPrioridade,
     setor: "TI",
-    cliente_id: ""
+    cliente_id: "none"
   });
 
   const { data: clients } = useQuery({
@@ -206,6 +206,7 @@ const AdminChamados = () => {
         method: 'POST',
         body: {
           ...newChamado,
+          cliente_id: newChamado.cliente_id === 'none' ? null : newChamado.cliente_id,
           is_internal: true,
           criado_por: user?.id
         }
@@ -223,7 +224,7 @@ const AdminChamados = () => {
         motivo: "",
         prioridade: "media",
         setor: "TI",
-        cliente_id: ""
+        cliente_id: "none"
       });
       toast.success('Chamado interno criado com sucesso');
       logActivity(`Criou um novo chamado interno para ${newChamado.nome}`, 'duvida');
@@ -561,7 +562,7 @@ const AdminChamados = () => {
                 <Select value={newChamado.cliente_id} onValueChange={v => setNewChamado({...newChamado, cliente_id: v})}>
                   <SelectTrigger><SelectValue placeholder="Selecione um cliente" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {clients?.map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                     ))}
