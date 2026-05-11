@@ -1228,6 +1228,7 @@ function NumeroActionsMenu({
   const [nomeCliente, setNomeCliente] = useState('');
   const [tipoSeguro, setTipoSeguro] = useState<'COM SEGURO' | 'SEM SEGURO'>('COM SEGURO');
   const [confirmVendaOpen, setConfirmVendaOpen] = useState(false);
+  const [isChangingToVendido, setIsChangingToVendido] = useState(false);
   
   // Fetch observation history for this number
   const { data: obsHistory = [] } = useNumeroHistory(numero.id);
@@ -1243,10 +1244,7 @@ function NumeroActionsMenu({
       return;
     }
 
-    const vendidoStatusId = statusList.find((s) => s.nome === 'Vendido')?.id;
-    
-    // Se mudou para Vendido, abre modal de confirmação de venda
-    if (statusId === vendidoStatusId && numero.status_id !== vendidoStatusId) {
+    if (isChangingToVendido) {
       setConfirmVendaOpen(true);
       return;
     }
@@ -1296,6 +1294,7 @@ function NumeroActionsMenu({
     const extraObs = `${nomeCliente.trim()} - CHIP PRO ${tipoSeguro} - ${numero.numero}`;
     proceedWithSave(extraObs);
     setConfirmVendaOpen(false);
+    setIsChangingToVendido(false);
   };
 
   const handleDelete = () => {
@@ -1405,7 +1404,14 @@ function NumeroActionsMenu({
             {canChangeStatus && (
               <div>
                 <Label>Status</Label>
-                <Select value={statusId} onValueChange={setStatusId}>
+                <Select 
+                  value={statusId} 
+                  onValueChange={(v) => {
+                    setStatusId(v);
+                    const vendidoStatusId = statusList.find((s) => s.nome === 'Vendido')?.id;
+                    setIsChangingToVendido(v === vendidoStatusId && numero.status_id !== vendidoStatusId);
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o status" />
                   </SelectTrigger>
