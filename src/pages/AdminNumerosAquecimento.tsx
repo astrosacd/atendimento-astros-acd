@@ -1221,6 +1221,7 @@ function NumeroActionsMenu({
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [confirmBanOpen, setConfirmBanOpen] = useState(false);
+  const [confirmVoltarEstoqueOpen, setConfirmVoltarEstoqueOpen] = useState(false);
   const [deleteMotivo, setDeleteMotivo] = useState('');
   const [modeloId, setModeloId] = useState(numero.modelo_id || '');
   const [statusId, setStatusId] = useState(numero.status_id || '');
@@ -1305,6 +1306,21 @@ function NumeroActionsMenu({
     setConfirmVendaOpen(false);
   };
 
+  const handleVoltarEstoque = () => {
+    const ativoStatusId = statusList.find(s => s.nome === 'Ativo')?.id;
+    if (!ativoStatusId) {
+      toast.error('Status "Ativo" não encontrado. Verifique as configurações de status.');
+      return;
+    }
+
+    onUpdate({
+      status_id: ativoStatusId,
+      observacoes: '', // Limpa os dados do cliente anterior ao voltar para o estoque
+    });
+    setConfirmVoltarEstoqueOpen(false);
+    toast.success('Número voltou para o estoque com sucesso');
+  };
+
   const handleDelete = () => {
     if (!deleteMotivo.trim()) {
       toast.error('Informe o motivo da exclusão');
@@ -1343,6 +1359,15 @@ function NumeroActionsMenu({
             <DropdownMenuItem disabled className="text-muted-foreground">
               <Lock className="h-4 w-4 mr-2" />
               Bloqueado (Vendido)
+            </DropdownMenuItem>
+          )}
+          {isVendido && (canEdit || canChangeStatus) && (
+            <DropdownMenuItem 
+              onClick={() => setConfirmVoltarEstoqueOpen(true)}
+              className="text-blue-600 dark:text-blue-400"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Voltar para o estoque
             </DropdownMenuItem>
           )}
           {canDeleteThisNumber && (
@@ -1613,6 +1638,33 @@ function NumeroActionsMenu({
               }}
             >
               Confirmar Banimento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Voltar para o estoque Confirmation Dialog */}
+      <Dialog open={confirmVoltarEstoqueOpen} onOpenChange={setConfirmVoltarEstoqueOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5 text-blue-600" />
+              Retornar ao Estoque
+            </DialogTitle>
+            <DialogDescription>
+              Deseja realmente retornar o número <strong>{numero.numero}</strong> para o estoque? 
+              Isso limpará as observações atuais do cliente e mudará o status para "Ativo".
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setConfirmVoltarEstoqueOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={handleVoltarEstoque}
+            >
+              Confirmar Retorno
             </Button>
           </DialogFooter>
         </DialogContent>
