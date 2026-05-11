@@ -117,9 +117,29 @@ const AdminChamados = () => {
   const [selectedChamado, setSelectedChamado] = useState<Chamado | null>(null);
   const [newComment, setNewComment] = useState("");
   const [commentType, setCommentType] = useState<"publico" | "interno">("publico");
+  const [typeFilter, setTypeFilter] = useState<string>("all"); // all, internal, public
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newChamado, setNewChamado] = useState({
+    nome: "",
+    email: "",
+    contato: "",
+    motivo: "",
+    prioridade: "media" as ChamadoPrioridade,
+    setor: "TI",
+    cliente_id: ""
+  });
+
+  const { data: clients } = useQuery({
+    queryKey: ['clients-for-tickets'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('clientes').select('id, nome').order('nome');
+      if (error) throw error;
+      return data;
+    }
+  });
 
   const { data: chamados, isLoading, refetch } = useQuery({
-    queryKey: ['chamados', statusFilter],
+    queryKey: ['chamados', statusFilter, typeFilter],
     queryFn: async () => {
       let query = supabase
         .from('chamados')
@@ -131,6 +151,12 @@ const AdminChamados = () => {
 
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter as ChamadoStatus);
+      }
+
+      if (typeFilter === 'internal') {
+        query = query.eq('is_internal', true);
+      } else if (typeFilter === 'public') {
+        query = query.eq('is_internal', false);
       }
 
       const { data, error } = await query;
