@@ -644,7 +644,7 @@ const AdminChamados = () => {
                                 className={cn(
                                   "mr-2 h-4 w-4",
                                   newChamado.cliente_id === client.id ? "opacity-100" : "opacity-0"
-                                )ix
+                                )}
                               />
                               <div className="flex flex-col">
                                 <span>{client.nome}</span>
