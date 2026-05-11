@@ -33,8 +33,8 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action || 'generate');
-    const text = String(body?.text || "").trim();
-    const voiceId = String(body?.voiceId || "JBFqnCBsd6RMkjVDRZzb");
+    let text = String(body?.text || "").trim();
+    const voiceId = String(body?.voiceId || ""); // Optional if using config default
     const save = Boolean(body?.save);
     const overrideKey = typeof body?.apiKey === 'string' ? body.apiKey.trim() : '';
 
@@ -45,13 +45,21 @@ Deno.serve(async (req) => {
     // Read API key from proposal_send_config
     const { data: config } = await supabase
       .from("proposal_send_config")
-      .select("elevenlabs_api_key")
+      .select("elevenlabs_api_key, tts_text, elevenlabs_voice_id")
       .limit(1)
       .maybeSingle();
 
     const apiKey = overrideKey || config?.elevenlabs_api_key;
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "Chave da ElevenLabs não configurada" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Resolve voice and text for generation
+    const finalVoiceId = voiceId || config?.elevenlabs_voice_id || "JBFqnCBsd6RMkjVDRZzb";
+    const finalText = text || config?.tts_text || "";
+
+    if (action === 'generate' && (!finalText || finalText.length > 5000)) {
+      return new Response(JSON.stringify({ error: "Texto inválido (1-5000 caracteres)" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // List voices action
@@ -78,12 +86,12 @@ Deno.serve(async (req) => {
 
     // Generate TTS
     const ttsRes = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${finalVoiceId}?output_format=mp3_44100_128`,
       {
         method: "POST",
         headers: { "xi-api-key": apiKey, "Content-Type": "application/json" },
         body: JSON.stringify({
-          text,
+          text: finalText,
           model_id: "eleven_multilingual_v2",
           voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0.4, use_speaker_boost: true },
         }),
