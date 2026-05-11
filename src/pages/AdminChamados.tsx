@@ -255,11 +255,15 @@ const AdminChamados = () => {
     return last && last.tipo === 'publico' && !last.autor_nome?.includes('Astros');
   };
 
-  const filteredChamados = chamados?.filter(c => 
-    c.codigo.toLowerCase().includes(search.toLowerCase()) ||
-    c.nome.toLowerCase().includes(search.toLowerCase()) ||
-    c.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredChamados = chamados?.filter(c => {
+    const term = search.toLowerCase();
+    return (
+      c.codigo.toLowerCase().includes(term) ||
+      c.nome.toLowerCase().includes(term) ||
+      c.email.toLowerCase().includes(term) ||
+      (c.setor && c.setor.toLowerCase().includes(term))
+    );
+  });
 
   const stats = {
     total: chamados?.length || 0,
