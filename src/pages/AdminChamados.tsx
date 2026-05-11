@@ -77,6 +77,10 @@ interface Chamado {
   created_at: string;
   updated_at: string;
   closed_at: string | null;
+  is_internal: boolean;
+  setor: string | null;
+  cliente_id: string | null;
+  criado_por: string | null;
   chamados_comentarios?: Array<{
     id: string;
     autor_nome: string;
@@ -95,11 +99,13 @@ const statusConfig: Record<ChamadoStatus, { label: string; color: string; icon: 
 };
 
 const prioridadeConfig: Record<ChamadoPrioridade, { label: string; color: string; indicator: string }> = {
-  baixa: { label: 'Baixa', color: 'bg-slate-100 text-slate-600', indicator: 'bg-slate-400' },
-  media: { label: 'Média', color: 'bg-blue-100 text-blue-600', indicator: 'bg-blue-500' },
-  alta: { label: 'Alta', color: 'bg-orange-100 text-orange-600', indicator: 'bg-orange-500' },
-  urgente: { label: 'Urgente', color: 'bg-red-100 text-red-600', indicator: 'bg-red-500' },
+  baixa: { label: 'Baixa', color: 'bg-slate-500/10 text-slate-400', indicator: 'bg-slate-400' },
+  media: { label: 'Média', color: 'bg-blue-500/10 text-blue-400', indicator: 'bg-blue-500' },
+  alta: { label: 'Alta', color: 'bg-orange-500/10 text-orange-400', indicator: 'bg-orange-500' },
+  urgente: { label: 'Urgente', color: 'bg-red-500/10 text-red-400', indicator: 'bg-red-500' },
 };
+
+const setoresInternal = ['TI', 'Financeiro', 'Suporte', 'Vendas', 'Outros'];
 
 const AdminChamados = () => {
   const navigate = useNavigate();
