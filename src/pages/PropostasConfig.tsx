@@ -50,6 +50,7 @@ export default function PropostasConfig() {
   const [ghostModeDay, setGhostModeDay] = useState(3);
   const [ghostAudioUrl, setGhostAudioUrl] = useState('');
   const [ghostVideoUrl, setGhostVideoUrl] = useState('');
+  const [uploadingGhost, setUploadingGhost] = useState<'audio' | 'video' | null>(null);
 
   // Status notifications
   const [statusNotifEnabled, setStatusNotifEnabled] = useState(false);
