@@ -618,27 +618,41 @@ const AdminChamados = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Vincular Cliente (Opcional)</Label>
+                {newChamado.cliente_id !== "none" && (() => {
+                  const selectedClient = clients?.find((c) => c.id === newChamado.cliente_id);
+                  return selectedClient ? (
+                    <div className="flex items-center gap-2 rounded-lg border border-border/40 bg-background/40 px-3 py-2 text-xs">
+                      <span className="text-muted-foreground">Tipo no banco:</span>
+                      <Badge className={cn("text-[9px] font-bold uppercase border-none", getClientBillingClasses(selectedClient))}>
+                        {getClientBillingLabel(selectedClient)}
+                      </Badge>
+                    </div>
+                  ) : null;
+                })()}
                 <Popover open={openClientSearch} onOpenChange={setOpenClientSearch}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
+                      type="button"
                       role="combobox"
                       aria-expanded={openClientSearch}
-                      className="w-full justify-between font-normal bg-background/50 border-border/40"
+                      className="w-full h-auto min-h-11 justify-between font-normal bg-background/50 border-border/40 text-left"
                     >
-                      <span className="truncate">
+                      <span className="min-w-0 flex-1 truncate">
                         {newChamado.cliente_id !== "none"
                           ? clients?.find((c) => c.id === newChamado.cliente_id)?.nome
-                          : "Selecione um cliente..."}
+                          : "Pesquisar/selecionar cliente..."}
                       </span>
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border" align="start">
+                  <PopoverContent className="w-[min(92vw,560px)] p-0 bg-popover border-border" align="start">
                     <Command shouldFilter={false}>
                       <CommandInput 
                         placeholder="Pesquisar cliente por nome..." 
-                        onValueChange={(v) => setSearch(v)}
+                        value={clientSearch}
+                        onValueChange={setClientSearch}
+                        className="h-12"
                       />
                       <CommandList className="max-h-[280px] overflow-y-auto">
                         <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
@@ -656,16 +670,15 @@ const AdminChamados = () => {
                             <span className="text-muted-foreground italic">Nenhum cliente vinculado</span>
                           </CommandItem>
                           {clients?.filter(client => 
-                            client.nome.toLowerCase().includes(search.toLowerCase()) || 
-                            client.email?.toLowerCase().includes(search.toLowerCase())
-                          ).map((client) => {
-                            const isMensal = client.ciclo_cobranca === 'mensal' || client.ciclo_cobranca === 'anual';
-                            return (
+                            client.nome.toLowerCase().includes(clientSearch.toLowerCase()) || 
+                            client.email?.toLowerCase().includes(clientSearch.toLowerCase()) ||
+                            client.numero?.toLowerCase().includes(clientSearch.toLowerCase())
+                          ).map((client) => (
                               <CommandItem
                                 key={client.id}
                                 value={client.id}
                                 onSelect={() => handleClientSelect(client.id)}
-                                className="flex items-center gap-2"
+                                className="flex items-center gap-3 py-3"
                               >
                                 <Check
                                   className={cn(
@@ -682,16 +695,13 @@ const AdminChamados = () => {
                                 <Badge
                                   className={cn(
                                     "text-[9px] font-bold uppercase shrink-0 border-none",
-                                    isMensal
-                                      ? "bg-emerald-500/15 text-emerald-500"
-                                      : "bg-blue-500/15 text-blue-500"
+                                    getClientBillingClasses(client)
                                   )}
                                 >
-                                  {isMensal ? 'Mensal' : 'Registro'}
+                                  {getClientBillingLabel(client)}
                                 </Badge>
                               </CommandItem>
-                            );
-                          })}
+                          ))}
                         </CommandGroup>
                       </CommandList>
                     </Command>
