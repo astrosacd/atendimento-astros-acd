@@ -263,26 +263,45 @@ serve(async (req: Request) => {
                 cleanNumber = '55' + cleanNumber;
               }
 
-              const message = generateRemarketingWhatsAppMessage(
-                clientName,
-                proposal.title,
-                proposalLink,
-                senderName,
-                dayNumber
-              );
+              const urlBase = `${config.evolution_api_url}/message`;
+              let endpoint = `/sendText/${config.evolution_instance_name}`;
+              let body: any = { number: cleanNumber };
 
-              const url = `${config.evolution_api_url}/message/sendText/${config.evolution_instance_name}`;
+              if (isGhostMode && (config.ghost_audio_url || config.ghost_video_url)) {
+                const mediaUrl = config.ghost_audio_url || config.ghost_video_url;
+                const mediaType = config.ghost_audio_url ? 'audio' : 'video';
+                
+                endpoint = mediaType === 'audio' 
+                  ? `/sendWhatsAppAudio/${config.evolution_instance_name}`
+                  : `/sendMedia/${config.evolution_instance_name}`;
+                
+                body = {
+                  number: cleanNumber,
+                  [mediaType === 'audio' ? 'audio' : 'media']: mediaUrl,
+                  ...(mediaType === 'video' ? { mediaType: 'video', caption: `Vi que você olhou a proposta várias vezes! Ficou com alguma dúvida?` } : {}),
+                  delay: 1200,
+                  encoding: true
+                };
+                
+                console.log(`👻 GHOST MODE: Sending ${mediaType} to ${cleanNumber}`);
+              } else {
+                const message = generateRemarketingWhatsAppMessage(
+                  clientName,
+                  proposal.title,
+                  proposalLink,
+                  senderName,
+                  dayNumber
+                );
+                body.text = message;
+              }
 
-              const response = await fetch(url, {
+              const response = await fetch(urlBase + endpoint, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                   'apikey': config.evolution_api_key,
                 },
-                body: JSON.stringify({
-                  number: cleanNumber,
-                  text: message,
-                }),
+                body: JSON.stringify(body),
               });
 
               if (!response.ok) {
@@ -291,7 +310,7 @@ serve(async (req: Request) => {
               }
 
               whatsappSent = true;
-              console.log(`✅ Auto-remarketing WhatsApp sent for ${proposal.id} (day ${dayNumber})`);
+              console.log(`✅ WhatsApp sent for ${proposal.id} (day ${dayNumber}${isGhostMode ? ' - GHOST' : ''})`);
             }
           } catch (e: any) {
             console.error(`❌ WhatsApp error for ${proposal.id}:`, e.message);
