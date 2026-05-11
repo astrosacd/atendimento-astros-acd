@@ -803,7 +803,6 @@ export default function PropostasConfig() {
                               )}
                             </div>
                           </div>
-                        )}
                         </div>
                         <div className="space-y-2">
                           <Label>Vídeo (.mp4)</Label>
