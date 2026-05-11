@@ -368,6 +368,12 @@ const AdminChamados = () => {
                                 <div>
                                   <div className="flex items-center gap-2 mb-1.5">
                                     <span className="text-[10px] font-bold text-muted-foreground font-mono">#{c.codigo}</span>
+                                    {c.is_internal && (
+                                      <Badge className="bg-amber-500/20 text-amber-500 border-none font-bold text-[9px] uppercase px-2 flex items-center gap-1">
+                                        <Lock className="h-2 w-2" /> Interno
+                                      </Badge>
+                                    )}
+                                    {c.setor && <Badge variant="outline" className="text-[9px] uppercase font-bold border-primary/20 text-primary">{c.setor}</Badge>}
                                     <Badge className={`${conf.bg} ${conf.color} border-none font-bold text-[9px] uppercase px-2`}>{conf.label}</Badge>
                                     {hasClientResponse(c) && <Badge className="bg-orange-500 text-white animate-pulse text-[9px]">NOVA RESPOSTA</Badge>}
                                   </div>
