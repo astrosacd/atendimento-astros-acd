@@ -93,16 +93,16 @@ export default function AdminRelatorios() {
     const dataInicio = subMonths(new Date(), mesesAtras).toISOString();
 
     try {
-      // Busca clientes recorrentes, clientes registro e histórico de compras
-      // Excluindo cadastros marcados como administrativo/parceiro/outros (não contam em métricas)
+      // Busca clientes recorrentes, clientes registro, histórico de compras e gastos de marketing
       const naoExcluido = 'excluir_metricas.is.null,excluir_metricas.eq.false';
-      const [clientesRecorrentesRes, clientesRegistroRes, clientesSemValorRes, purchasesRes, ordersRes, eventsRes] = await Promise.all([
+      const [clientesRecorrentesRes, clientesRegistroRes, clientesSemValorRes, purchasesRes, ordersRes, eventsRes, marketingRes] = await Promise.all([
         supabase.from('clientes').select('id, nome, cpf, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', true).or(naoExcluido),
         supabase.from('clientes').select('id, nome, cpf, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', false).gt('valor', 0).or(naoExcluido),
         supabase.from('clientes').select('id', { count: 'exact', head: true }).eq('cobranca_ativa', false).or('valor.is.null,valor.eq.0').or(naoExcluido),
         supabase.from('client_purchases').select('valor, moeda, cliente_id'),
         supabase.from('gateway_orders').select('id, created_at, status, total, currency').gte('created_at', dataInicio),
         supabase.from('gateway_events').select('id, event_type, created_at, slug').gte('created_at', dataInicio),
+        supabase.from('marketing_expenses').select('*')
       ]);
 
       if (clientesRecorrentesRes.data) setClientes(clientesRecorrentesRes.data);
@@ -111,12 +111,88 @@ export default function AdminRelatorios() {
       if (purchasesRes.data) setPurchases(purchasesRes.data);
       if (ordersRes.data) setOrders(ordersRes.data);
       if (eventsRes.data) setEvents(eventsRes.data);
+      if (marketingRes.data) setMarketingExpenses(marketingRes.data);
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  const handleSaveMarketingExpense = async () => {
+    if (!newExpenseValue || isNaN(parseFloat(newExpenseValue))) {
+      toast.error('Insira um valor válido');
+      return;
+    }
+
+    const today = new Date();
+    const mes = getMonth(today) + 1;
+    const ano = getYear(today);
+
+    try {
+      const { error } = await supabase
+        .from('marketing_expenses')
+        .upsert({ 
+          mes, 
+          ano, 
+          valor: parseFloat(newExpenseValue),
+          descricao: `Gasto de marketing de ${format(today, 'MMMM/yyyy', { locale: ptBR })}`
+        }, { onConflict: 'mes,ano' });
+
+      if (error) throw error;
+      
+      toast.success('Gasto de marketing atualizado!');
+      setNewExpenseValue('');
+      fetchData();
+    } catch (error: any) {
+      toast.error('Erro ao salvar: ' + error.message);
+    }
+  };
+
+  // Métricas Profissionais (Business Intelligence)
+  const biMetrics = useMemo(() => {
+    const mesesAtras = parseInt(periodoMeses);
+    const today = new Date();
+    const currentMonth = getMonth(today) + 1;
+    const currentYear = getYear(today);
+
+    // Gasto do mês atual
+    const currentMarketingSpend = marketingExpenses.find(e => e.mes === currentMonth && e.ano === currentYear)?.valor || 0;
+    
+    // Novos clientes do mês atual
+    const startOfThisMonth = startOfMonth(today);
+    const endOfThisMonth = endOfMonth(today);
+    const newClientsThisMonth = clientes.filter(c => {
+      const createdAt = parseISO(c.created_at);
+      return createdAt >= startOfThisMonth && createdAt <= endOfThisMonth;
+    }).length + clientesRegistro.filter(c => {
+      const createdAt = parseISO(c.created_at);
+      return createdAt >= startOfThisMonth && createdAt <= endOfThisMonth;
+    }).length;
+
+    // CAC = Gasto / Novos Clientes
+    const cac = newClientsThisMonth > 0 ? currentMarketingSpend / newClientsThisMonth : 0;
+
+    // MRR e ARPU (Average Revenue Per User)
+    const activeClientsCount = clientes.length; // Assumindo 'clientes' com cobranca_ativa=true
+    const totalMRRBRL = ltvMetrics.mrrBRL;
+    const arpu = activeClientsCount > 0 ? totalMRRBRL / activeClientsCount : 0;
+
+    // LTV / CAC
+    const ltvCacRatio = cac > 0 ? ltvMetrics.ltvBRL / cac : 0;
+
+    // Payback = CAC / Ticket Médio Mensal
+    const payback = ltvMetrics.ticketMedioBRL > 0 ? cac / ltvMetrics.ticketMedioBRL : 0;
+
+    return {
+      cac,
+      arpu,
+      ltvCacRatio,
+      payback,
+      newClientsThisMonth,
+      currentMarketingSpend
+    };
+  }, [marketingExpenses, clientes, clientesRegistro, ltvMetrics, periodoMeses]);
 
   // Métricas de Vendas Únicas (Clientes Registro + Histórico de Compras)
   const vendasUnicasMetrics = useMemo(() => {
