@@ -737,15 +737,15 @@ export default function PropostasConfig() {
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-4">
                           <div className="p-4 border rounded-lg bg-background/50 space-y-4">
-                            <div className="flex items-center justify-between">
-                              <Label className="font-semibold flex items-center gap-2">
-                                <Search className="h-4 w-4" /> Configurar ElevenLabs
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <Label className="font-semibold flex items-center gap-2 min-w-0">
+                                <Search className="h-4 w-4 shrink-0" /> <span className="truncate">Configurar ElevenLabs</span>
                               </Label>
                               <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className="h-8"
+                                className="h-8 shrink-0 whitespace-nowrap"
                                 disabled={loadingVoices || !elevenlabsApiKey.trim()}
                                 onClick={async () => {
                                   setLoadingVoices(true);
@@ -762,7 +762,7 @@ export default function PropostasConfig() {
                                 }}
                               >
                                 {loadingVoices ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <RefreshCcw className="h-3 w-3 mr-2" />}
-                                Sincronizar Vozes
+                                Sincronizar
                               </Button>
                             </div>
                             
