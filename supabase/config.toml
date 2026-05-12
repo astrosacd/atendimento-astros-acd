@@ -156,3 +156,6 @@ verify_jwt = false
 
 [functions.proposal-ai]
 verify_jwt = false
+
+[functions.proposals-elevenlabs-tts]
+verify_jwt = false
