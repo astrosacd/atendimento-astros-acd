@@ -649,10 +649,11 @@ export default function PropostasConfig() {
                   <Tabs defaultValue="geral" className="w-full">
                     <TabsList className="flex flex-wrap h-auto w-full gap-1 bg-muted p-1 mb-8">
                       <TabsTrigger value="geral" className="flex-1 min-w-[120px] gap-2"><Clock className="h-4 w-4" /> Geral</TabsTrigger>
-                      <TabsTrigger value="vozes" className="flex-1 min-w-[120px] gap-2"><Mic className="h-4 w-4" /> Vozes IA</TabsTrigger>
-                      <TabsTrigger value="ghost" className="flex-1 min-w-[120px] gap-2">👻 Modo Ghost</TabsTrigger>
+                      {canViewVoices && <TabsTrigger value="vozes" className="flex-1 min-w-[120px] gap-2"><Mic className="h-4 w-4" /> Vozes IA</TabsTrigger>}
+                      {canViewGhost && <TabsTrigger value="ghost" className="flex-1 min-w-[120px] gap-2">👻 Modo Ghost</TabsTrigger>}
                       <TabsTrigger value="logs" className="flex-1 min-w-[120px] gap-2"><Database className="h-4 w-4" /> Logs</TabsTrigger>
                     </TabsList>
+
 
                     <TabsContent value="geral" className="space-y-6 animate-in fade-in-50 duration-300">
                       <div className="flex items-start gap-3 text-sm text-blue-600 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200/50">
