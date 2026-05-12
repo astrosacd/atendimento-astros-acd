@@ -974,9 +974,9 @@ export default function PropostasConfig() {
                           </div>
                         </div>
                       </div>
-                    </TabsContent>
+                    </TabsContent>}
 
-                    <TabsContent value="ghost" className="space-y-6 animate-in fade-in-50 duration-300">
+                    {canViewGhost && <TabsContent value="ghost" className="space-y-6 animate-in fade-in-50 duration-300">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-4">
                           <div className="p-5 border-2 border-purple-500/30 bg-purple-500/5 rounded-xl space-y-5">
