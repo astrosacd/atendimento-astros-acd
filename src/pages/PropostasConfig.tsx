@@ -1114,8 +1114,8 @@ export default function PropostasConfig() {
                           </div>
                         </div>
 
-                        <div className="space-y-4">
-                          <div className="p-5 border-2 border-primary/30 bg-primary/5 rounded-xl space-y-4">
+                        <div className="space-y-4 flex flex-col">
+                          <div className="p-5 border-2 border-primary/30 bg-primary/5 rounded-xl space-y-4 flex-1">
                             <h3 className="font-bold flex items-center gap-2"><RefreshCcw className="h-4 w-4" /> Laboratório de Testes</h3>
                             <p className="text-xs text-muted-foreground">Simule o envio exatamente como o cliente receberá.</p>
                             
