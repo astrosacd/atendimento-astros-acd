@@ -65,6 +65,7 @@ export default function PropostasConfig() {
   const [voiceSearch, setVoiceSearch] = useState('');
   const [loadingVoices, setLoadingVoices] = useState(false);
   const [testPhone, setTestPhone] = useState('');
+  const [testClientName, setTestClientName] = useState('João Silva');
   const [testSending, setTestSending] = useState<'audio' | 'video' | null>(null);
   const [ttsLogs, setTtsLogs] = useState<any[]>([]);
   const [loadingTtsLogs, setLoadingTtsLogs] = useState(false);
