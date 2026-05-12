@@ -746,6 +746,9 @@ export default function PropostasConfig() {
                                         const data = await callElevenLabsFunction({ action: 'list_voices', apiKey: elevenlabsApiKey, voiceType: 'non-community' });
                                         const list = data.voices || [];
                                         setVoicesList(list);
+                                        if (list.length > 0 && !list.some((voice: any) => voice.voice_id === elevenlabsVoiceId)) {
+                                          setElevenlabsVoiceId(list[0].voice_id);
+                                        }
                                         toast.success(`${list.length} vozes carregadas`);
                                       } catch (err: any) {
                                         toast.error('Erro ao listar vozes: ' + (err.message || err));
