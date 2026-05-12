@@ -1066,7 +1066,7 @@ export default function PropostasConfig() {
                                       const data = await callGhostTestSendFunction({ 
                                         phone: testPhone, 
                                         mediaType: 'audio', 
-                                        clientName: testClientName, 
+                                        clientName: testClientName || 'Cliente', 
                                         mediaUrl: ghostModeType === 'fixed' ? ghostAudioUrl : undefined 
                                       });
                                       toast.success(`Áudio enviado com sucesso!`);
