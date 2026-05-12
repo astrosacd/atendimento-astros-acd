@@ -719,7 +719,7 @@ export default function PropostasConfig() {
                                     onClick={async () => {
                                       setLoadingVoices(true);
                                       try {
-                                        const data = await callElevenLabsFunction({ action: 'list_voices', apiKey: elevenlabsApiKey });
+                                        const data = await callElevenLabsFunction({ action: 'list_voices', apiKey: elevenlabsApiKey, voiceType: 'non-community' });
                                         const list = data.voices || [];
                                         setVoicesList(list);
                                         toast.success(`${list.length} vozes carregadas`);
@@ -742,7 +742,8 @@ export default function PropostasConfig() {
                                     {voicesList.map((v) => (
                                       <SelectItem key={v.voice_id} value={v.voice_id}>
                                         {v.name}
-                                        {v.category ? ` · ${v.category === 'cloned' ? 'Clonada' : v.category === 'professional' ? 'Pro' : v.category === 'premade' ? 'Padrão' : v.category}` : ''}
+                                        {v.category ? ` · ${v.category === 'cloned' ? 'Clonada' : v.category === 'professional' ? 'Profissional' : v.category === 'premade' ? 'Padrão/free' : v.category}` : ''}
+                                        {v.voice_type === 'default' ? ' · free' : v.voice_type === 'personal' || v.voice_type === 'workspace' ? ' · sua conta' : ''}
                                         {v.labels?.gender ? ` · ${v.labels.gender}` : ''}
                                       </SelectItem>
                                     ))}
@@ -752,8 +753,8 @@ export default function PropostasConfig() {
                                   {!elevenlabsApiKey.trim()
                                     ? '⚠️ Cole a chave da API acima para habilitar a listagem de vozes.'
                                     : voicesList.length === 0
-                                    ? 'Clique em "Atualizar lista" para puxar suas vozes (free + clonadas + pro).'
-                                    : `${voicesList.length} vozes disponíveis na sua conta.`}
+                                    ? 'Clique em "Atualizar lista" para puxar apenas vozes disponíveis na sua conta (sem vozes da biblioteca que exigem plano pago).'
+                                    : `${voicesList.length} vozes disponíveis. Use “Padrão/free” no plano gratuito; “Profissional” ou biblioteca pode exigir plano pago.`}
                                 </p>
                               </div>
                             </div>
