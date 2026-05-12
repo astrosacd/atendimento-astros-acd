@@ -833,12 +833,11 @@ export default function PropostasConfig() {
                                 </div>
                               </div>
 
-                              <div className="flex flex-wrap gap-2 pt-1">
-                                <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                              <div className={`grid ${ttsPreviewUrl ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-2 pt-1 w-full`}>
                                   <Button
                                     type="button"
                                     size="sm"
-                                    className="flex-1 h-10"
+                                    className="w-full h-10 min-w-0"
                                     variant="secondary"
                                     disabled={ttsGenerating || !ttsText.trim() || !elevenlabsApiKey.trim() || !elevenlabsVoiceId || !selectedVoice}
                                     onClick={async () => {
@@ -895,7 +894,7 @@ export default function PropostasConfig() {
                                     </Button>
                                   )}
                                 </div>
-                              </div>
+
                               {ttsPreviewUrl && <audio controls src={ttsPreviewUrl} className="h-8 w-full mt-2" />}
                             </div>
                           </div>
