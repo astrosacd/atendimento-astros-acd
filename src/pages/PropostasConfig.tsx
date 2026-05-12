@@ -802,14 +802,34 @@ export default function PropostasConfig() {
                                     <SelectValue placeholder={voicesList.length === 0 ? 'Cole sua chave e clique em "Atualizar lista"' : 'Selecione uma voz'} />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {voicesList.map((v) => (
-                                      <SelectItem key={v.voice_id} value={v.voice_id}>
-                                        {v.name}
-                                        {v.category ? ` · ${v.category === 'cloned' ? 'Clonada' : v.category === 'professional' ? 'Profissional' : v.category === 'premade' ? 'Padrão/free' : v.category}` : ''}
-                                        {v.voice_type === 'default' ? ' · free' : v.voice_type === 'personal' || v.voice_type === 'workspace' ? ' · sua conta' : ''}
-                                        {v.labels?.gender ? ` · ${v.labels.gender}` : ''}
-                                      </SelectItem>
-                                    ))}
+                                    {voicesList.map((v) => {
+                                      const isFree = v.voice_type === 'default';
+                                      const isCloned = v.category === 'cloned';
+                                      const isProfessional = v.category === 'professional';
+                                      
+                                      return (
+                                        <SelectItem key={v.voice_id} value={v.voice_id}>
+                                          <div className="flex items-center gap-2">
+                                            <span>{v.name}</span>
+                                            <Badge 
+                                              variant="outline" 
+                                              className={cn(
+                                                "text-[9px] px-1 py-0 h-4 uppercase",
+                                                isFree && "border-green-500 text-green-600 bg-green-50",
+                                                isProfessional && "border-blue-500 text-blue-600 bg-blue-50",
+                                                isCloned && "border-purple-500 text-purple-600 bg-purple-50",
+                                                !isFree && !isProfessional && !isCloned && "border-gray-300 text-gray-500"
+                                              )}
+                                            >
+                                              {isFree ? 'Free' : isCloned ? 'Clonada' : isProfessional ? 'Pro' : 'Outra'}
+                                            </Badge>
+                                            <span className="text-[10px] text-muted-foreground ml-auto opacity-70">
+                                              {v.labels?.gender || ''}
+                                            </span>
+                                          </div>
+                                        </SelectItem>
+                                      );
+                                    })}
                                   </SelectContent>
                                 </Select>
                                 <p className="text-[10px] text-muted-foreground">
