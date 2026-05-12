@@ -821,7 +821,7 @@ export default function PropostasConfig() {
 
                               {/* Variável de teste sincronizada com o Laboratório */}
                               <div className="p-3 bg-blue-500/5 border border-blue-500/10 rounded-lg space-y-2">
-                                <Label className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400">Variável {{nome_cliente}}</Label>
+                                <Label className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400">Variável {"{{nome_cliente}}"}</Label>
                                 <div className="flex items-center gap-2">
                                   <Input
                                     placeholder="Ex: João Silva"
