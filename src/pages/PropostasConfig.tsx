@@ -1025,6 +1025,8 @@ export default function PropostasConfig() {
                               onClick={async () => {
                                 setTestSending('video');
                                 try {
+                                  // Salvar as configurações localmente primeiro para garantir que o Edge Function as veja
+                                  await handleSave();
                                   const data = await callGhostTestSendFunction({ phone: testPhone, mediaType: 'video' });
                                   toast.success(`Vídeo enviado para ${data.sentTo}`);
                                 } catch (err: any) {
