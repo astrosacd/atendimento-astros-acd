@@ -800,9 +800,9 @@ export default function PropostasConfig() {
                                 </div>
                                 <p className="text-[10px] text-muted-foreground">Pegue em elevenlabs.io → Profile → API Keys. Lembre de salvar.</p>
                               </div>
-                              <div className="space-y-1">
+                              <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                  <Label className="text-xs">Voz</Label>
+                                  <Label className="text-xs">Voz ElevenLabs</Label>
                                   <Button
                                     type="button"
                                     variant="ghost"
@@ -821,57 +821,84 @@ export default function PropostasConfig() {
                                         toast.success(`${list.length} vozes carregadas`);
                                       } catch (err: any) {
                                         toast.error('Erro ao listar vozes: ' + (err.message || err));
-                                        } finally {
-                                          setLoadingVoices(false);
-                                          fetchTtsLogs();
-                                        }
+                                      } finally {
+                                        setLoadingVoices(false);
+                                        fetchTtsLogs();
+                                      }
                                     }}
                                   >
                                     {loadingVoices ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCcw className="h-3 w-3 mr-1" />}
                                     Atualizar lista
                                   </Button>
                                 </div>
-                                <Select value={voicesList.length > 0 ? elevenlabsVoiceId : ''} onValueChange={setElevenlabsVoiceId} disabled={voicesList.length === 0}>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder={voicesList.length === 0 ? 'Cole sua chave e clique em "Atualizar lista"' : 'Selecione uma voz'} />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {voicesList.map((v) => {
-                                      const isFree = v.voice_type === 'default';
-                                      const isCloned = v.category === 'cloned';
-                                      const isProfessional = v.category === 'professional';
-                                      
+
+                                {selectedVoice ? (
+                                  <div className="rounded-md border border-border bg-background/70 p-2">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="min-w-0">
+                                        <p className="truncate text-sm font-medium text-foreground" title={selectedVoice.name}>{selectedVoice.name}</p>
+                                        <p className="truncate text-[10px] text-muted-foreground" title={selectedVoice.voice_id}>{selectedVoice.voice_id}</p>
+                                      </div>
+                                      <Badge variant="outline" className={cn('shrink-0 text-[10px]', getVoicePlanInfo(selectedVoice).className)}>
+                                        {getVoicePlanInfo(selectedVoice).label}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                ) : null}
+
+                                <Input
+                                  value={voiceSearch}
+                                  onChange={(e) => setVoiceSearch(e.target.value)}
+                                  disabled={voicesList.length === 0}
+                                  placeholder={voicesList.length === 0 ? 'Atualize a lista para buscar vozes' : 'Buscar por nome, idioma, tipo...'}
+                                  className="h-8 text-xs"
+                                />
+
+                                <div className="max-h-56 space-y-1 overflow-y-auto rounded-md border border-border bg-background/60 p-1">
+                                  {voicesList.length === 0 ? (
+                                    <div className="p-3 text-xs text-muted-foreground">
+                                      Cole a chave e clique em “Atualizar lista” para ver as vozes disponíveis na sua conta.
+                                    </div>
+                                  ) : filteredVoices.length === 0 ? (
+                                    <div className="p-3 text-xs text-muted-foreground">Nenhuma voz encontrada para essa busca.</div>
+                                  ) : (
+                                    filteredVoices.map((voice) => {
+                                      const plan = getVoicePlanInfo(voice);
                                       return (
-                                        <SelectItem key={v.voice_id} value={v.voice_id}>
-                                          <div className="flex items-center gap-2">
-                                            <span>{v.name}</span>
-                                            <Badge 
-                                              variant="outline" 
-                                              className={cn(
-                                                "text-[9px] px-1 py-0 h-4 uppercase",
-                                                isFree && "border-green-500 text-green-600 bg-green-50",
-                                                isProfessional && "border-blue-500 text-blue-600 bg-blue-50",
-                                                isCloned && "border-purple-500 text-purple-600 bg-purple-50",
-                                                !isFree && !isProfessional && !isCloned && "border-gray-300 text-gray-500"
-                                              )}
-                                            >
-                                              {isFree ? 'Free' : isCloned ? 'Clonada' : isProfessional ? 'Pro' : 'Outra'}
-                                            </Badge>
-                                            <span className="text-[10px] text-muted-foreground ml-auto opacity-70">
-                                              {v.labels?.gender || ''}
-                                            </span>
+                                        <button
+                                          key={voice.voice_id}
+                                          type="button"
+                                          onClick={() => setElevenlabsVoiceId(voice.voice_id)}
+                                          className={cn(
+                                            'w-full rounded-md border p-2 text-left transition-colors hover:bg-muted/70',
+                                            voice.voice_id === elevenlabsVoiceId ? 'border-primary bg-primary/10' : 'border-transparent bg-transparent'
+                                          )}
+                                        >
+                                          <div className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0 flex-1">
+                                              <div className="flex items-center gap-2">
+                                                <span className="truncate text-sm font-medium text-foreground" title={voice.name}>{voice.name}</span>
+                                                {voice.voice_id === elevenlabsVoiceId && <Badge className="h-4 text-[9px]">Atual</Badge>}
+                                              </div>
+                                              <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-muted-foreground">
+                                                {voice.labels?.gender && <span>{voice.labels.gender}</span>}
+                                                {voice.labels?.language && <span>• {voice.labels.language}</span>}
+                                                {voice.category && <span>• {voice.category}</span>}
+                                              </div>
+                                            </div>
+                                            <Badge variant="outline" className={cn('shrink-0 text-[10px]', plan.className)}>{plan.label}</Badge>
                                           </div>
-                                        </SelectItem>
+                                        </button>
                                       );
-                                    })}
-                                  </SelectContent>
-                                </Select>
+                                    })
+                                  )}
+                                </div>
                                 <p className="text-[10px] text-muted-foreground">
                                   {!elevenlabsApiKey.trim()
                                     ? '⚠️ Cole a chave da API acima para habilitar a listagem de vozes.'
                                     : voicesList.length === 0
-                                    ? 'Clique em "Atualizar lista" para puxar apenas vozes disponíveis na sua conta (sem vozes da biblioteca que exigem plano pago).'
-                                    : `${voicesList.length} vozes disponíveis. Use “Padrão/free” no plano gratuito; “Profissional” ou biblioteca pode exigir plano pago.`}
+                                    ? 'Clique em “Atualizar lista” para carregar suas vozes.'
+                                    : `${filteredVoices.length}/${voicesList.length} vozes exibidas. Prefira “Free / padrão” no plano gratuito; “Profissional” e “Biblioteca / pago” podem exigir assinatura.`}
                                 </p>
                               </div>
                           </div>
