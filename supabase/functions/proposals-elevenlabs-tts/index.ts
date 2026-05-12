@@ -8,6 +8,33 @@ const corsHeaders = {
   "Access-Control-Max-Age": "86400",
 };
 
+const safeJson = (value: string) => {
+  try { return JSON.parse(value); } catch { return null; }
+};
+
+const describeElevenLabsError = (raw: string, status: number) => {
+  const parsed = safeJson(raw);
+  const detail = parsed?.detail || parsed;
+  const code = detail?.code || detail?.status || detail?.type || '';
+  const message = detail?.message || raw || `Erro da ElevenLabs (${status})`;
+
+  if (code === 'paid_plan_required' || code === 'payment_required' || message.includes('Free users cannot use library voices')) {
+    return {
+      code: 'ELEVENLABS_PAID_VOICE',
+      message: 'Essa voz da biblioteca da ElevenLabs exige plano pago para uso via API. Selecione uma voz marcada como “Padrão / free” ou use uma conta paga da ElevenLabs.',
+    };
+  }
+
+  if (code === 'detected_unusual_activity' || message.includes('Unusual activity detected')) {
+    return {
+      code: 'ELEVENLABS_FREE_TIER_BLOCKED',
+      message: 'A ElevenLabs bloqueou temporariamente essa chave no plano gratuito por atividade incomum. Use uma chave de plano pago ou aguarde/libere direto na ElevenLabs.',
+    };
+  }
+
+  return { code: 'ELEVENLABS_ERROR', message: `ElevenLabs: ${message}` };
+};
+
 Deno.serve(async (req) => {
   console.log(`Request received: ${req.method} ${new URL(req.url).pathname}`);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -67,18 +94,21 @@ Deno.serve(async (req) => {
 
     // List voices action
     if (action === 'list_voices') {
-      const vRes = await fetch("https://api.elevenlabs.io/v2/voices?page_size=100", {
+      const voiceType = String(body?.voiceType || 'non-community');
+      const vRes = await fetch(`https://api.elevenlabs.io/v2/voices?page_size=100&voice_type=${encodeURIComponent(voiceType)}`, {
         headers: { "xi-api-key": apiKey },
       });
       if (!vRes.ok) {
         const errText = await vRes.text();
-        return new Response(JSON.stringify({ error: `ElevenLabs: ${errText}` }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        const err = describeElevenLabsError(errText, vRes.status);
+        return new Response(JSON.stringify({ error: err.message, code: err.code }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       const vJson = await vRes.json();
       const voices = (vJson.voices || []).map((v: any) => ({
         voice_id: v.voice_id,
         name: v.name,
         category: v.category,
+        voice_type: v.voice_type,
         labels: v.labels || {},
         preview_url: v.preview_url,
       }));
@@ -103,7 +133,8 @@ Deno.serve(async (req) => {
 
     if (!ttsRes.ok) {
       const errText = await ttsRes.text();
-      return new Response(JSON.stringify({ error: `ElevenLabs: ${errText}` }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const err = describeElevenLabsError(errText, ttsRes.status);
+      return new Response(JSON.stringify({ error: err.message, code: err.code }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const audioBuf = await ttsRes.arrayBuffer();

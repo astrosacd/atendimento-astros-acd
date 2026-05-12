@@ -60,7 +60,7 @@ export default function PropostasConfig() {
   const [ttsPreviewUrl, setTtsPreviewUrl] = useState<string | null>(null);
   const [ttsGenerating, setTtsGenerating] = useState(false);
   const [ttsSaving, setTtsSaving] = useState(false);
-  const [voicesList, setVoicesList] = useState<Array<{ voice_id: string; name: string; category?: string; labels?: any; preview_url?: string }>>([]);
+  const [voicesList, setVoicesList] = useState<Array<{ voice_id: string; name: string; category?: string; voice_type?: string; labels?: any; preview_url?: string }>>([]);
   const [loadingVoices, setLoadingVoices] = useState(false);
   const [testPhone, setTestPhone] = useState('');
   const [testSending, setTestSending] = useState<'audio' | 'video' | null>(null);
@@ -365,6 +365,30 @@ export default function PropostasConfig() {
     const data = text ? JSON.parse(text) : {};
     if (!response.ok || data?.error) {
       throw new Error(data?.error || `Falha ao chamar ElevenLabs (${response.status})`);
+    }
+    return data;
+  };
+
+  const callGhostTestSendFunction = async (body: Record<string, unknown>) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error('Sessão expirada. Faça login novamente e tente de novo.');
+    }
+
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proposals-ghost-test-send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : {};
+    if (!response.ok || data?.error) {
+      throw new Error(data?.error || `Falha no teste de envio (${response.status})`);
     }
     return data;
   };
@@ -719,9 +743,12 @@ export default function PropostasConfig() {
                                     onClick={async () => {
                                       setLoadingVoices(true);
                                       try {
-                                        const data = await callElevenLabsFunction({ action: 'list_voices', apiKey: elevenlabsApiKey });
+                                        const data = await callElevenLabsFunction({ action: 'list_voices', apiKey: elevenlabsApiKey, voiceType: 'non-community' });
                                         const list = data.voices || [];
                                         setVoicesList(list);
+                                        if (list.length > 0 && !list.some((voice: any) => voice.voice_id === elevenlabsVoiceId)) {
+                                          setElevenlabsVoiceId(list[0].voice_id);
+                                        }
                                         toast.success(`${list.length} vozes carregadas`);
                                       } catch (err: any) {
                                         toast.error('Erro ao listar vozes: ' + (err.message || err));
@@ -742,7 +769,8 @@ export default function PropostasConfig() {
                                     {voicesList.map((v) => (
                                       <SelectItem key={v.voice_id} value={v.voice_id}>
                                         {v.name}
-                                        {v.category ? ` · ${v.category === 'cloned' ? 'Clonada' : v.category === 'professional' ? 'Pro' : v.category === 'premade' ? 'Padrão' : v.category}` : ''}
+                                        {v.category ? ` · ${v.category === 'cloned' ? 'Clonada' : v.category === 'professional' ? 'Profissional' : v.category === 'premade' ? 'Padrão/free' : v.category}` : ''}
+                                        {v.voice_type === 'default' ? ' · free' : v.voice_type === 'personal' || v.voice_type === 'workspace' ? ' · sua conta' : ''}
                                         {v.labels?.gender ? ` · ${v.labels.gender}` : ''}
                                       </SelectItem>
                                     ))}
@@ -752,8 +780,8 @@ export default function PropostasConfig() {
                                   {!elevenlabsApiKey.trim()
                                     ? '⚠️ Cole a chave da API acima para habilitar a listagem de vozes.'
                                     : voicesList.length === 0
-                                    ? 'Clique em "Atualizar lista" para puxar suas vozes (free + clonadas + pro).'
-                                    : `${voicesList.length} vozes disponíveis na sua conta.`}
+                                    ? 'Clique em "Atualizar lista" para puxar apenas vozes disponíveis na sua conta (sem vozes da biblioteca que exigem plano pago).'
+                                    : `${voicesList.length} vozes disponíveis. Use “Padrão/free” no plano gratuito; “Profissional” ou biblioteca pode exigir plano pago.`}
                                 </p>
                               </div>
                             </div>
@@ -874,12 +902,8 @@ export default function PropostasConfig() {
                                 onClick={async () => {
                                   setTestSending('audio');
                                   try {
-                                    const { data, error } = await supabase.functions.invoke('proposals-ghost-test-send', {
-                                      body: { phone: testPhone, mediaType: 'audio', clientName: 'João Silva' },
-                                    });
-                                  if (error) throw error;
-                                  if ((data as any)?.error) throw new Error((data as any).error);
-                                  toast.success(`Áudio enviado para ${(data as any).sentTo}`);
+                                    const data = await callGhostTestSendFunction({ phone: testPhone, mediaType: 'audio', clientName: 'João Silva' });
+                                  toast.success(`Áudio enviado para ${data.sentTo}`);
                                 } catch (err: any) {
                                   toast.error('Erro: ' + (err.message || err));
                                 } finally {
@@ -898,12 +922,8 @@ export default function PropostasConfig() {
                               onClick={async () => {
                                 setTestSending('video');
                                 try {
-                                  const { data, error } = await supabase.functions.invoke('proposals-ghost-test-send', {
-                                    body: { phone: testPhone, mediaType: 'video' },
-                                  });
-                                  if (error) throw error;
-                                  if ((data as any)?.error) throw new Error((data as any).error);
-                                  toast.success(`Vídeo enviado para ${(data as any).sentTo}`);
+                                  const data = await callGhostTestSendFunction({ phone: testPhone, mediaType: 'video' });
+                                  toast.success(`Vídeo enviado para ${data.sentTo}`);
                                 } catch (err: any) {
                                   toast.error('Erro: ' + (err.message || err));
                                 } finally {
