@@ -810,6 +810,64 @@ export default function AdminRelatorios() {
                       </Label>
                     </div>
                   </div>
+
+                  {newExpenseValue && !isNaN(parseFloat(newExpenseValue)) && parseFloat(newExpenseValue) > 0 && (
+                    <div className="p-4 rounded-lg border bg-gradient-to-br from-muted/40 to-muted/10 space-y-3">
+                      <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+                        <Calculator className="h-3 w-3" /> Pré-visualização do impacto no CAC
+                      </p>
+                      {newExpenseDivide12 ? (
+                        <>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="p-3 bg-info/10 border border-info/30 rounded-md">
+                              <p className="text-[10px] uppercase text-muted-foreground">Por mês (12x)</p>
+                              <p className="text-lg font-bold text-info">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(newExpenseValue) / 12)}
+                              </p>
+                            </div>
+                            <div className="p-3 bg-muted/40 rounded-md">
+                              <p className="text-[10px] uppercase text-muted-foreground">Total anual</p>
+                              <p className="text-lg font-bold text-foreground">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(newExpenseValue))}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="border-t border-border/40 pt-2 space-y-1 max-h-40 overflow-y-auto">
+                            <p className="text-[10px] uppercase text-muted-foreground mb-1">Cronograma de diluição:</p>
+                            {Array.from({ length: 12 }, (_, i) => {
+                              const date = new Date();
+                              date.setMonth(date.getMonth() + i);
+                              const parcela = parseFloat(newExpenseValue) / 12;
+                              return (
+                                <div key={i} className="flex justify-between text-xs">
+                                  <span className="text-muted-foreground capitalize">
+                                    {i + 1}ª · {format(date, 'MMM/yyyy', { locale: ptBR })}
+                                  </span>
+                                  <span className="font-mono font-medium">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parcela)}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-3 bg-warning/10 border border-warning/30 rounded-md">
+                            <p className="text-[10px] uppercase text-muted-foreground">Impacto neste mês</p>
+                            <p className="text-lg font-bold text-warning">
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(newExpenseValue))}
+                            </p>
+                          </div>
+                          <div className="p-3 bg-muted/40 rounded-md">
+                            <p className="text-[10px] uppercase text-muted-foreground">Próximos meses</p>
+                            <p className="text-lg font-bold text-foreground">R$ 0,00</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <Button 
                     className="w-full md:w-auto"
                     onClick={handleRequestSave}
