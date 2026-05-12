@@ -61,11 +61,36 @@ export default function PropostasConfig() {
   const [ttsGenerating, setTtsGenerating] = useState(false);
   const [ttsSaving, setTtsSaving] = useState(false);
   const [voicesList, setVoicesList] = useState<Array<{ voice_id: string; name: string; category?: string; voice_type?: string; labels?: any; preview_url?: string }>>([]);
+  const [voiceSearch, setVoiceSearch] = useState('');
   const [loadingVoices, setLoadingVoices] = useState(false);
   const [testPhone, setTestPhone] = useState('');
   const [testSending, setTestSending] = useState<'audio' | 'video' | null>(null);
   const [ttsLogs, setTtsLogs] = useState<any[]>([]);
   const [loadingTtsLogs, setLoadingTtsLogs] = useState(false);
+
+  const getVoicePlanInfo = (voice: { category?: string; voice_type?: string; labels?: any }) => {
+    const category = String(voice.category || '').toLowerCase();
+    const voiceType = String(voice.voice_type || '').toLowerCase();
+    const labelsText = JSON.stringify(voice.labels || {}).toLowerCase();
+
+    if (voiceType === 'default' || category === 'premade' || category === 'generated') {
+      return { label: 'Free / padrão', className: 'border-primary/40 bg-primary/10 text-primary' };
+    }
+
+    if (category.includes('professional') || voiceType.includes('professional') || labelsText.includes('professional')) {
+      return { label: 'Profissional', className: 'border-destructive/40 bg-destructive/10 text-destructive' };
+    }
+
+    if (category.includes('cloned') || voiceType.includes('cloned')) {
+      return { label: 'Clonada', className: 'border-accent/40 bg-accent/10 text-accent-foreground' };
+    }
+
+    if (category.includes('library')) {
+      return { label: 'Biblioteca / pago', className: 'border-destructive/40 bg-destructive/10 text-destructive' };
+    }
+
+    return { label: 'Verificar plano', className: 'border-muted-foreground/30 bg-muted text-muted-foreground' };
+  };
 
   // Status notifications
   const [statusNotifEnabled, setStatusNotifEnabled] = useState(false);
@@ -336,7 +361,7 @@ export default function PropostasConfig() {
   };
 
   const handleSave = async () => {
-    updateConfig.mutate({
+    await updateConfig.mutateAsync({
       gmail_user: gmailUser || null,
       gmail_app_password: gmailAppPassword || null,
       gmail_sender_name: gmailSenderName || null,
@@ -421,6 +446,14 @@ export default function PropostasConfig() {
 
   const cronHourUTC = ((autoRemarketingCronHour + 3) % 24);
   const cronDisplayBRT = `${String(autoRemarketingCronHour).padStart(2, '0')}:00`;
+  const selectedVoice = voicesList.find((voice) => voice.voice_id === elevenlabsVoiceId);
+  const filteredVoices = voicesList.filter((voice) => {
+    const query = voiceSearch.trim().toLowerCase();
+    if (!query) return true;
+    return [voice.name, voice.voice_id, voice.category, voice.voice_type, voice.labels?.gender, voice.labels?.accent, voice.labels?.language]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(query));
+  });
 
   if (isLoading) {
     return (
@@ -767,9 +800,9 @@ export default function PropostasConfig() {
                                 </div>
                                 <p className="text-[10px] text-muted-foreground">Pegue em elevenlabs.io → Profile → API Keys. Lembre de salvar.</p>
                               </div>
-                              <div className="space-y-1">
+                              <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                  <Label className="text-xs">Voz</Label>
+                                  <Label className="text-xs">Voz ElevenLabs</Label>
                                   <Button
                                     type="button"
                                     variant="ghost"
@@ -788,57 +821,84 @@ export default function PropostasConfig() {
                                         toast.success(`${list.length} vozes carregadas`);
                                       } catch (err: any) {
                                         toast.error('Erro ao listar vozes: ' + (err.message || err));
-                                        } finally {
-                                          setLoadingVoices(false);
-                                          fetchTtsLogs();
-                                        }
+                                      } finally {
+                                        setLoadingVoices(false);
+                                        fetchTtsLogs();
+                                      }
                                     }}
                                   >
                                     {loadingVoices ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCcw className="h-3 w-3 mr-1" />}
                                     Atualizar lista
                                   </Button>
                                 </div>
-                                <Select value={voicesList.length > 0 ? elevenlabsVoiceId : ''} onValueChange={setElevenlabsVoiceId} disabled={voicesList.length === 0}>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder={voicesList.length === 0 ? 'Cole sua chave e clique em "Atualizar lista"' : 'Selecione uma voz'} />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {voicesList.map((v) => {
-                                      const isFree = v.voice_type === 'default';
-                                      const isCloned = v.category === 'cloned';
-                                      const isProfessional = v.category === 'professional';
-                                      
+
+                                {selectedVoice ? (
+                                  <div className="rounded-md border border-border bg-background/70 p-2">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="min-w-0">
+                                        <p className="truncate text-sm font-medium text-foreground" title={selectedVoice.name}>{selectedVoice.name}</p>
+                                        <p className="truncate text-[10px] text-muted-foreground" title={selectedVoice.voice_id}>{selectedVoice.voice_id}</p>
+                                      </div>
+                                      <Badge variant="outline" className={cn('shrink-0 text-[10px]', getVoicePlanInfo(selectedVoice).className)}>
+                                        {getVoicePlanInfo(selectedVoice).label}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                ) : null}
+
+                                <Input
+                                  value={voiceSearch}
+                                  onChange={(e) => setVoiceSearch(e.target.value)}
+                                  disabled={voicesList.length === 0}
+                                  placeholder={voicesList.length === 0 ? 'Atualize a lista para buscar vozes' : 'Buscar por nome, idioma, tipo...'}
+                                  className="h-8 text-xs"
+                                />
+
+                                <div className="max-h-56 space-y-1 overflow-y-auto rounded-md border border-border bg-background/60 p-1">
+                                  {voicesList.length === 0 ? (
+                                    <div className="p-3 text-xs text-muted-foreground">
+                                      Cole a chave e clique em “Atualizar lista” para ver as vozes disponíveis na sua conta.
+                                    </div>
+                                  ) : filteredVoices.length === 0 ? (
+                                    <div className="p-3 text-xs text-muted-foreground">Nenhuma voz encontrada para essa busca.</div>
+                                  ) : (
+                                    filteredVoices.map((voice) => {
+                                      const plan = getVoicePlanInfo(voice);
                                       return (
-                                        <SelectItem key={v.voice_id} value={v.voice_id}>
-                                          <div className="flex items-center gap-2">
-                                            <span>{v.name}</span>
-                                            <Badge 
-                                              variant="outline" 
-                                              className={cn(
-                                                "text-[9px] px-1 py-0 h-4 uppercase",
-                                                isFree && "border-green-500 text-green-600 bg-green-50",
-                                                isProfessional && "border-blue-500 text-blue-600 bg-blue-50",
-                                                isCloned && "border-purple-500 text-purple-600 bg-purple-50",
-                                                !isFree && !isProfessional && !isCloned && "border-gray-300 text-gray-500"
-                                              )}
-                                            >
-                                              {isFree ? 'Free' : isCloned ? 'Clonada' : isProfessional ? 'Pro' : 'Outra'}
-                                            </Badge>
-                                            <span className="text-[10px] text-muted-foreground ml-auto opacity-70">
-                                              {v.labels?.gender || ''}
-                                            </span>
+                                        <button
+                                          key={voice.voice_id}
+                                          type="button"
+                                          onClick={() => setElevenlabsVoiceId(voice.voice_id)}
+                                          className={cn(
+                                            'w-full rounded-md border p-2 text-left transition-colors hover:bg-muted/70',
+                                            voice.voice_id === elevenlabsVoiceId ? 'border-primary bg-primary/10' : 'border-transparent bg-transparent'
+                                          )}
+                                        >
+                                          <div className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0 flex-1">
+                                              <div className="flex items-center gap-2">
+                                                <span className="truncate text-sm font-medium text-foreground" title={voice.name}>{voice.name}</span>
+                                                {voice.voice_id === elevenlabsVoiceId && <Badge className="h-4 text-[9px]">Atual</Badge>}
+                                              </div>
+                                              <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-muted-foreground">
+                                                {voice.labels?.gender && <span>{voice.labels.gender}</span>}
+                                                {voice.labels?.language && <span>• {voice.labels.language}</span>}
+                                                {voice.category && <span>• {voice.category}</span>}
+                                              </div>
+                                            </div>
+                                            <Badge variant="outline" className={cn('shrink-0 text-[10px]', plan.className)}>{plan.label}</Badge>
                                           </div>
-                                        </SelectItem>
+                                        </button>
                                       );
-                                    })}
-                                  </SelectContent>
-                                </Select>
+                                    })
+                                  )}
+                                </div>
                                 <p className="text-[10px] text-muted-foreground">
                                   {!elevenlabsApiKey.trim()
                                     ? '⚠️ Cole a chave da API acima para habilitar a listagem de vozes.'
                                     : voicesList.length === 0
-                                    ? 'Clique em "Atualizar lista" para puxar apenas vozes disponíveis na sua conta (sem vozes da biblioteca que exigem plano pago).'
-                                    : `${voicesList.length} vozes disponíveis. Use “Padrão/free” no plano gratuito; “Profissional” ou biblioteca pode exigir plano pago.`}
+                                    ? 'Clique em “Atualizar lista” para carregar suas vozes.'
+                                    : `${filteredVoices.length}/${voicesList.length} vozes exibidas. Prefira “Free / padrão” no plano gratuito; “Profissional” e “Biblioteca / pago” podem exigir assinatura.`}
                                 </p>
                               </div>
                           </div>
@@ -1005,7 +1065,7 @@ export default function PropostasConfig() {
                                   try {
                                     // Salvar as configurações localmente primeiro para garantir que o Edge Function as veja
                                     await handleSave();
-                                    const data = await callGhostTestSendFunction({ phone: testPhone, mediaType: 'audio', clientName: 'João Silva' });
+                                    const data = await callGhostTestSendFunction({ phone: testPhone, mediaType: 'audio', clientName: 'João Silva', mediaUrl: ghostModeType === 'fixed' ? ghostAudioUrl : undefined });
                                     toast.success(`Áudio enviado para ${data.sentTo}`);
                                 } catch (err: any) {
                                   toast.error('Erro: ' + (err.message || err));
@@ -1027,7 +1087,7 @@ export default function PropostasConfig() {
                                 try {
                                   // Salvar as configurações localmente primeiro para garantir que o Edge Function as veja
                                   await handleSave();
-                                  const data = await callGhostTestSendFunction({ phone: testPhone, mediaType: 'video' });
+                                  const data = await callGhostTestSendFunction({ phone: testPhone, mediaType: 'video', mediaUrl: ghostVideoUrl });
                                   toast.success(`Vídeo enviado para ${data.sentTo}`);
                                 } catch (err: any) {
                                   toast.error('Erro: ' + (err.message || err));
