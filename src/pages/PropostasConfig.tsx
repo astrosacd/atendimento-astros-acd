@@ -446,6 +446,14 @@ export default function PropostasConfig() {
 
   const cronHourUTC = ((autoRemarketingCronHour + 3) % 24);
   const cronDisplayBRT = `${String(autoRemarketingCronHour).padStart(2, '0')}:00`;
+  const selectedVoice = voicesList.find((voice) => voice.voice_id === elevenlabsVoiceId);
+  const filteredVoices = voicesList.filter((voice) => {
+    const query = voiceSearch.trim().toLowerCase();
+    if (!query) return true;
+    return [voice.name, voice.voice_id, voice.category, voice.voice_type, voice.labels?.gender, voice.labels?.accent, voice.labels?.language]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(query));
+  });
 
   if (isLoading) {
     return (
