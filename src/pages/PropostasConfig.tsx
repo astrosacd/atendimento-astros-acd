@@ -940,18 +940,19 @@ export default function PropostasConfig() {
                                         : "border-border bg-transparent hover:bg-muted/50"
                                     )}
                                   >
-                                    <div className="flex items-start justify-between">
+                                    <div className="flex items-start justify-between gap-2">
                                       <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2">
-                                          <p className="font-medium text-sm truncate">{voice.name}</p>
-                                          {voice.voice_id === elevenlabsVoiceId && <Badge className="h-4 text-[8px] uppercase">Atual</Badge>}
+                                          <p className="font-bold text-sm truncate">{voice.name}</p>
+                                          {voice.voice_id === elevenlabsVoiceId && <Badge className="h-4 text-[8px] uppercase bg-primary hover:bg-primary">Atual</Badge>}
                                         </div>
                                         <div className="flex flex-wrap gap-1 mt-1">
-                                          {voice.labels?.language && <Badge variant="secondary" className="text-[8px] h-3 px-1">{voice.labels.language}</Badge>}
+                                          <Badge variant="secondary" className="text-[7px] h-3 px-1 bg-muted/50 border-none uppercase font-bold">{voice.category || 'N/A'}</Badge>
+                                          {voice.labels?.language && <Badge variant="outline" className="text-[8px] h-3 px-1">{voice.labels.language}</Badge>}
                                           {voice.labels?.gender && <span className="text-[9px] text-muted-foreground">{voice.labels.gender}</span>}
                                         </div>
                                       </div>
-                                      <Badge variant="outline" className={cn('text-[8px] px-1', getVoicePlanInfo(voice).className)}>
+                                      <Badge variant="outline" className={cn('text-[8px] px-1 whitespace-nowrap', getVoicePlanInfo(voice).className)}>
                                         {getVoicePlanInfo(voice).label}
                                       </Badge>
                                     </div>
