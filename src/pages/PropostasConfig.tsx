@@ -719,12 +719,8 @@ export default function PropostasConfig() {
                                     onClick={async () => {
                                       setLoadingVoices(true);
                                       try {
-                                        const { data, error } = await supabase.functions.invoke('proposals-elevenlabs-tts', {
-                                          body: { action: 'list_voices', apiKey: elevenlabsApiKey },
-                                        });
-                                        if (error) throw error;
-                                        if ((data as any)?.error) throw new Error((data as any).error);
-                                        const list = (data as any).voices || [];
+                                        const data = await callElevenLabsFunction({ action: 'list_voices', apiKey: elevenlabsApiKey });
+                                        const list = data.voices || [];
                                         setVoicesList(list);
                                         toast.success(`${list.length} vozes carregadas`);
                                       } catch (err: any) {
