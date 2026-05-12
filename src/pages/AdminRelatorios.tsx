@@ -120,6 +120,8 @@ export default function AdminRelatorios() {
     }
   };
 
+  const [newExpenseDesc, setNewExpenseDesc] = useState('');
+
   const handleSaveMarketingExpense = async () => {
     if (!newExpenseValue || isNaN(parseFloat(newExpenseValue))) {
       toast.error('Insira um valor válido');
@@ -137,13 +139,14 @@ export default function AdminRelatorios() {
           mes, 
           ano, 
           valor: parseFloat(newExpenseValue),
-          descricao: `Gasto de marketing de ${format(today, 'MMMM/yyyy', { locale: ptBR })}`
+          descricao: newExpenseDesc || `Gasto de marketing de ${format(today, 'MMMM/yyyy', { locale: ptBR })}`
         }, { onConflict: 'mes,ano' });
 
       if (error) throw error;
       
       toast.success('Gasto de marketing atualizado!');
       setNewExpenseValue('');
+      setNewExpenseDesc('');
       fetchData();
     } catch (error: any) {
       toast.error('Erro ao salvar: ' + error.message);
