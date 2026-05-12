@@ -8,6 +8,33 @@ const corsHeaders = {
   "Access-Control-Max-Age": "86400",
 };
 
+const safeJson = (value: string) => {
+  try { return JSON.parse(value); } catch { return null; }
+};
+
+const describeElevenLabsError = (raw: string, status: number) => {
+  const parsed = safeJson(raw);
+  const detail = parsed?.detail || parsed;
+  const code = detail?.code || detail?.status || detail?.type || '';
+  const message = detail?.message || raw || `Erro da ElevenLabs (${status})`;
+
+  if (code === 'paid_plan_required' || code === 'payment_required' || message.includes('Free users cannot use library voices')) {
+    return {
+      code: 'ELEVENLABS_PAID_VOICE',
+      message: 'Essa voz da biblioteca da ElevenLabs exige plano pago para uso via API. Selecione uma voz marcada como “Padrão / free” ou use uma conta paga da ElevenLabs.',
+    };
+  }
+
+  if (code === 'detected_unusual_activity' || message.includes('Unusual activity detected')) {
+    return {
+      code: 'ELEVENLABS_FREE_TIER_BLOCKED',
+      message: 'A ElevenLabs bloqueou temporariamente essa chave no plano gratuito por atividade incomum. Use uma chave de plano pago ou aguarde/libere direto na ElevenLabs.',
+    };
+  }
+
+  return { code: 'ELEVENLABS_ERROR', message: `ElevenLabs: ${message}` };
+};
+
 Deno.serve(async (req) => {
   console.log(`Request received: ${req.method} ${new URL(req.url).pathname}`);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
