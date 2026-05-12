@@ -788,9 +788,10 @@ export default function PropostasConfig() {
                                         toast.success(`${list.length} vozes carregadas`);
                                       } catch (err: any) {
                                         toast.error('Erro ao listar vozes: ' + (err.message || err));
-                                      } finally {
-                                        setLoadingVoices(false);
-                                      }
+                                        } finally {
+                                          setLoadingVoices(false);
+                                          fetchTtsLogs();
+                                        }
                                     }}
                                   >
                                     {loadingVoices ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCcw className="h-3 w-3 mr-1" />}
