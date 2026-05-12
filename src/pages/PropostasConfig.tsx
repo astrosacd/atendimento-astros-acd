@@ -979,25 +979,25 @@ export default function PropostasConfig() {
                     {canViewGhost && <TabsContent value="ghost" className="space-y-6 animate-in fade-in-50 duration-300">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-4">
-                          <div className="p-5 border-2 border-purple-500/30 bg-purple-500/5 rounded-xl space-y-5">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-full bg-purple-500/20 flex items-center justify-center text-xl">
+                          <div className="p-5 border-2 border-purple-500/30 bg-purple-500/5 rounded-xl space-y-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="h-10 w-10 rounded-full bg-purple-500/20 flex items-center justify-center text-xl shrink-0">
                                   👻
                                 </div>
-                                <div>
-                                  <h3 className="font-bold text-purple-700 dark:text-purple-400">Status do Modo Ghost</h3>
-                                  <p className="text-xs text-muted-foreground">Envio de áudio/vídeo surpresa</p>
+                                <div className="min-w-0">
+                                  <h3 className="font-bold text-purple-700 dark:text-purple-400 truncate">Status do Modo Ghost</h3>
+                                  <p className="text-xs text-muted-foreground truncate">Envio de áudio/vídeo surpresa</p>
                                 </div>
                               </div>
-                              <Switch checked={ghostModeEnabled} onCheckedChange={setGhostModeEnabled} className="data-[state=checked]:bg-purple-600" />
+                              <Switch checked={ghostModeEnabled} onCheckedChange={setGhostModeEnabled} className="data-[state=checked]:bg-purple-600 shrink-0" />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 border-t border-purple-200/50 pt-4">
-                              <div className="space-y-2">
-                                <Label className="text-xs font-semibold">Gatilho por Dia</Label>
+                            <div className="space-y-3 border-t border-purple-200/50 pt-4">
+                              <div className="space-y-1.5">
+                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Gatilho por Dia</Label>
                                 <Select value={String(ghostModeDay)} onValueChange={(v) => setGhostModeDay(Number(v))}>
-                                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                                  <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
                                   <SelectContent>
                                     {Array.from({ length: autoRemarketingMaxDays }, (_, i) => (
                                       <SelectItem key={i + 1} value={String(i + 1)}>Dia {i + 1}</SelectItem>
@@ -1005,21 +1005,20 @@ export default function PropostasConfig() {
                                   </SelectContent>
                                 </Select>
                               </div>
-                              <div className="space-y-2">
-                                <Label className="text-xs font-semibold">Gatilho por Visualização</Label>
-                                <Input type="number" min={0} value={ghostViewThreshold} onChange={(e) => setGhostViewThreshold(Number(e.target.value))} className="h-9" />
+                              <div className="space-y-1.5">
+                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Gatilho por Visualização</Label>
+                                <Input type="number" min={0} value={ghostViewThreshold} onChange={(e) => setGhostViewThreshold(Number(e.target.value))} className="h-10" />
                               </div>
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label className="text-xs font-semibold">Formato do Ghost</Label>
-                              <Select value={ghostModeType} onValueChange={(v: any) => setGhostModeType(v)}>
-                                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="fixed">Fixo (Upload ou IA Salva)</SelectItem>
-                                  <SelectItem value="dynamic">Dinâmico (IA gera na hora)</SelectItem>
-                                </SelectContent>
-                              </Select>
+                              <div className="space-y-1.5">
+                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Formato do Ghost</Label>
+                                <Select value={ghostModeType} onValueChange={(v: any) => setGhostModeType(v)}>
+                                  <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="fixed">Fixo (Upload ou IA Salva)</SelectItem>
+                                    <SelectItem value="dynamic">Dinâmico (IA gera na hora)</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             </div>
                           </div>
 
