@@ -834,65 +834,67 @@ export default function PropostasConfig() {
                               </div>
 
                               <div className="flex flex-wrap gap-2 pt-1">
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  className="flex-1"
-                                  variant="secondary"
-                                  disabled={ttsGenerating || !ttsText.trim() || !elevenlabsApiKey.trim() || !elevenlabsVoiceId || !selectedVoice}
-                                  onClick={async () => {
-                                    if (!testClientName.trim()) {
-                                      toast.error('Digite um nome para testar a variável {{nome_cliente}}');
-                                      return;
-                                    }
-                                    setTtsGenerating(true);
-                                      try {
-                                        const data = await callElevenLabsFunction({ 
-                                          text: ttsText.replace(/\{\{\s*nome_cliente\s*\}\}/gi, testClientName), 
-                                          voiceId: elevenlabsVoiceId, 
-                                          save: false, 
-                                          apiKey: elevenlabsApiKey 
-                                        });
-                                        setTtsPreviewUrl(`data:audio/mpeg;base64,${data.audioContent}`);
-                                        toast.success('Prévia gerada!');
-                                      } catch (err: any) {
-                                      toast.error('Erro: ' + err.message);
-                                    } finally {
-                                      setTtsGenerating(false);
-                                    }
-                                  }}
-                                >
-                                  {ttsGenerating ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <Mic className="h-3 w-3 mr-2" />}
-                                  Gerar Prévia
-                                </Button>
-                                {ttsPreviewUrl && (
+                                <div className="flex flex-col sm:flex-row gap-2 pt-1">
                                   <Button
                                     type="button"
                                     size="sm"
-                                    variant="default"
-                                    className="flex-1 whitespace-nowrap"
-                                    disabled={ttsSaving || !elevenlabsVoiceId || !selectedVoice}
+                                    className="flex-1 h-10"
+                                    variant="secondary"
+                                    disabled={ttsGenerating || !ttsText.trim() || !elevenlabsApiKey.trim() || !elevenlabsVoiceId || !selectedVoice}
                                     onClick={async () => {
-                                      setTtsSaving(true);
-                                      try {
-                                        const data = await callElevenLabsFunction({ 
-                                          text: ttsText.replace(/\{\{\s*nome_cliente\s*\}\}/gi, testClientName || 'Cliente'), 
-                                          voiceId: elevenlabsVoiceId, 
-                                          save: true, 
-                                          apiKey: elevenlabsApiKey 
-                                        });
-                                        setGhostAudioUrl(data.url);
-                                        toast.success('Áudio salvo no Modo Ghost!');
-                                      } catch (err: any) {
+                                      if (!testClientName.trim()) {
+                                        toast.error('Digite um nome para testar a variável {{nome_cliente}}');
+                                        return;
+                                      }
+                                      setTtsGenerating(true);
+                                        try {
+                                          const data = await callElevenLabsFunction({ 
+                                            text: ttsText.replace(/\{\{\s*nome_cliente\s*\}\}/gi, testClientName), 
+                                            voiceId: elevenlabsVoiceId, 
+                                            save: false, 
+                                            apiKey: elevenlabsApiKey 
+                                          });
+                                          setTtsPreviewUrl(`data:audio/mpeg;base64,${data.audioContent}`);
+                                          toast.success('Prévia gerada!');
+                                        } catch (err: any) {
                                         toast.error('Erro: ' + err.message);
                                       } finally {
-                                        setTtsSaving(false);
+                                        setTtsGenerating(false);
                                       }
                                     }}
                                   >
-                                    Usar no Ghost
+                                    {ttsGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mic className="h-4 w-4 mr-2" />}
+                                    Gerar Prévia
                                   </Button>
-                                )}
+                                  {ttsPreviewUrl && (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="default"
+                                      className="flex-1 h-10 whitespace-nowrap bg-primary hover:bg-primary/90"
+                                      disabled={ttsSaving || !elevenlabsVoiceId || !selectedVoice}
+                                      onClick={async () => {
+                                        setTtsSaving(true);
+                                        try {
+                                          const data = await callElevenLabsFunction({ 
+                                            text: ttsText.replace(/\{\{\s*nome_cliente\s*\}\}/gi, testClientName || 'Cliente'), 
+                                            voiceId: elevenlabsVoiceId, 
+                                            save: true, 
+                                            apiKey: elevenlabsApiKey 
+                                          });
+                                          setGhostAudioUrl(data.url);
+                                          toast.success('Áudio salvo no Modo Ghost!');
+                                        } catch (err: any) {
+                                          toast.error('Erro: ' + err.message);
+                                        } finally {
+                                          setTtsSaving(false);
+                                        }
+                                      }}
+                                    >
+                                      Usar no Ghost
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
                               {ttsPreviewUrl && <audio controls src={ttsPreviewUrl} className="h-8 w-full mt-2" />}
                             </div>
