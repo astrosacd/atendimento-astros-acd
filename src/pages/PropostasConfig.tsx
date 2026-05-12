@@ -738,7 +738,7 @@ export default function PropostasConfig() {
                       </div>
                     </TabsContent>
 
-                    <TabsContent value="vozes" className="space-y-6 animate-in fade-in-50 duration-300">
+                    {canViewVoices && <TabsContent value="vozes" className="space-y-6 animate-in fade-in-50 duration-300">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-4">
                           <div className="p-4 border rounded-lg bg-background/50 space-y-4">
