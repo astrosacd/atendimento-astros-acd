@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
 interface ClienteData {
@@ -36,6 +37,7 @@ interface MarketingExpense {
   ano: number;
   valor: number;
   descricao: string | null;
+  dividir_12?: boolean;
 }
 
 interface GatewayOrder {
@@ -122,6 +124,8 @@ export default function AdminRelatorios() {
 
   const [newExpenseDesc, setNewExpenseDesc] = useState('');
 
+  const [newExpenseDivide12, setNewExpenseDivide12] = useState(false);
+
   const handleSaveMarketingExpense = async () => {
     if (!newExpenseValue || isNaN(parseFloat(newExpenseValue))) {
       toast.error('Insira um valor válido');
@@ -139,6 +143,7 @@ export default function AdminRelatorios() {
           mes, 
           ano, 
           valor: parseFloat(newExpenseValue),
+          dividir_12: newExpenseDivide12,
           descricao: newExpenseDesc || `Gasto de marketing de ${format(today, 'MMMM/yyyy', { locale: ptBR })}`
         }, { onConflict: 'mes,ano' });
 
@@ -147,6 +152,7 @@ export default function AdminRelatorios() {
       toast.success('Gasto de marketing atualizado!');
       setNewExpenseValue('');
       setNewExpenseDesc('');
+      setNewExpenseDivide12(false);
       fetchData();
     } catch (error: any) {
       toast.error('Erro ao salvar: ' + error.message);
@@ -273,8 +279,21 @@ export default function AdminRelatorios() {
     const currentMonth = getMonth(today) + 1;
     const currentYear = getYear(today);
 
-    // Gasto do mês atual
-    const currentMarketingSpend = marketingExpenses.find(e => e.mes === currentMonth && e.ano === currentYear)?.valor || 0;
+    // Gasto do mês atual: gastos normais do mês + 1/12 de qualquer gasto com dividir_12 nos últimos 12 meses
+    const startOfCalc = subMonths(today, 11); // Olhar 12 meses para trás
+    
+    const monthlyNormalSpend = marketingExpenses.find(e => e.mes === currentMonth && e.ano === currentYear && !e.dividir_12)?.valor || 0;
+    
+    const proratedSpend = marketingExpenses
+      .filter(e => {
+        if (!e.dividir_12) return false;
+        const expenseDate = new Date(e.ano, e.mes - 1, 1);
+        // O gasto deve estar dentro dos últimos 12 meses em relação ao mês atual do relatório
+        return expenseDate <= today && expenseDate >= startOfCalc;
+      })
+      .reduce((acc, e) => acc + (e.valor / 12), 0);
+
+    const currentMarketingSpend = monthlyNormalSpend + proratedSpend;
     
     // Novos clientes do mês atual
     const startOfThisMonth = startOfMonth(today);
@@ -771,6 +790,19 @@ export default function AdminRelatorios() {
                         onChange={(e) => setNewExpenseValue(e.target.value)}
                       />
                     </div>
+                    <div className="flex items-center space-x-2 pt-2">
+                      <Checkbox 
+                        id="divide-12" 
+                        checked={newExpenseDivide12} 
+                        onCheckedChange={(checked) => setNewExpenseDivide12(!!checked)}
+                      />
+                      <Label 
+                        htmlFor="divide-12" 
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        Diluir valor em 12 meses (Investimento anual)
+                      </Label>
+                    </div>
                   </div>
                   <Button 
                     className="w-full md:w-auto"
@@ -780,10 +812,10 @@ export default function AdminRelatorios() {
                   </Button>
                   <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
                     <p className="text-xs font-bold text-primary flex items-center gap-1">
-                      <Info className="h-3 w-3" /> COMO USAR O CAC:
+                      <Info className="h-3 w-3" /> DICA DE INVESTIMENTO:
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Para o cálculo ser perfeito, some <strong>TUDO</strong> o que você gasta para manter a estrutura e trazer clientes (Anúncios, VPS, APIs, Ferramentas). Ao salvar, o sistema divide esse valor pelos novos clientes do mês para te dar o custo real de cada um.
+                      Use a opção <strong>"Diluir em 12 meses"</strong> para gastos que valem pelo ano todo (como licenças anuais ou VPS paga uma vez). Assim o seu CAC não fica "sujo" com um valor altíssimo só no mês que você pagou, e sim distribuído pelo tempo que a ferramenta vai ser usada.
                     </p>
                   </div>
                 </CardContent>
@@ -801,10 +833,16 @@ export default function AdminRelatorios() {
                       marketingExpenses.slice(0, 5).map((exp) => (
                         <div key={exp.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                           <div>
-                            <p className="text-sm font-medium">{format(new Date(exp.ano, exp.mes - 1), 'MMMM yyyy', { locale: ptBR })}</p>
+                            <p className="text-sm font-medium">
+                              {format(new Date(exp.ano, exp.mes - 1), 'MMMM yyyy', { locale: ptBR })}
+                              {exp.dividir_12 && <span className="ml-2 text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded uppercase">Anual (1/12)</span>}
+                            </p>
                             <p className="text-xs text-muted-foreground">{exp.descricao || 'Investimento em Marketing'}</p>
                           </div>
-                          <span className="font-bold">{formatCurrency(exp.valor, 'BRL')}</span>
+                          <div className="text-right">
+                            <span className="font-bold block">{formatCurrency(exp.valor, 'BRL')}</span>
+                            {exp.dividir_12 && <span className="text-[10px] text-muted-foreground">Rateado: {formatCurrency(exp.valor / 12, 'BRL')}/mês</span>}
+                          </div>
                         </div>
                       ))
                     )}
