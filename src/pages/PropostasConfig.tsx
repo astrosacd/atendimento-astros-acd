@@ -369,6 +369,30 @@ export default function PropostasConfig() {
     return data;
   };
 
+  const callGhostTestSendFunction = async (body: Record<string, unknown>) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error('Sessão expirada. Faça login novamente e tente de novo.');
+    }
+
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proposals-ghost-test-send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : {};
+    if (!response.ok || data?.error) {
+      throw new Error(data?.error || `Falha no teste de envio (${response.status})`);
+    }
+    return data;
+  };
+
   const cronHourUTC = ((autoRemarketingCronHour + 3) % 24);
   const cronDisplayBRT = `${String(autoRemarketingCronHour).padStart(2, '0')}:00`;
 
