@@ -451,13 +451,31 @@ export default function PropostasConfig() {
   const cronHourUTC = ((autoRemarketingCronHour + 3) % 24);
   const cronDisplayBRT = `${String(autoRemarketingCronHour).padStart(2, '0')}:00`;
   const selectedVoice = voicesList.find((voice) => voice.voice_id === elevenlabsVoiceId);
+  const isFreeVoice = (voice: { category?: string; voice_type?: string }) => {
+    const c = String(voice.category || '').toLowerCase();
+    const t = String(voice.voice_type || '').toLowerCase();
+    return t === 'default' || c === 'premade' || c === 'generated';
+  };
   const filteredVoices = voicesList.filter((voice) => {
+    if (onlyFreeVoices && !isFreeVoice(voice)) return false;
     const query = voiceSearch.trim().toLowerCase();
     if (!query) return true;
     return [voice.name, voice.voice_id, voice.category, voice.voice_type, voice.labels?.gender, voice.labels?.accent, voice.labels?.language]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(query));
   });
+
+  // Auto-sync voices once when API key is configured
+  useEffect(() => {
+    if (voicesAutoSynced || voicesList.length > 0 || !elevenlabsApiKey.trim() || loadingVoices) return;
+    setVoicesAutoSynced(true);
+    setLoadingVoices(true);
+    callElevenLabsFunction({ action: 'list_voices', apiKey: elevenlabsApiKey, voiceType: 'all' })
+      .then((data) => setVoicesList(data.voices || []))
+      .catch(() => { /* silent */ })
+      .finally(() => setLoadingVoices(false));
+  }, [elevenlabsApiKey, voicesAutoSynced, voicesList.length, loadingVoices]);
+
 
   if (isLoading) {
     return (
