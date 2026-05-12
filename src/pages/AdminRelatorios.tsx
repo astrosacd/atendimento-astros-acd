@@ -7,12 +7,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
-import { TrendingUp, TrendingDown, Users, DollarSign, UserMinus, Target, Calendar, Info, ShoppingBag, Bot } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, DollarSign, UserMinus, Target, Calendar, Info, ShoppingBag, Bot, Calculator, PiggyBank, Briefcase } from 'lucide-react';
 import { ReportsAIAnalysis } from '@/components/reports/ReportsAIAnalysis';
-import { format, subMonths, startOfMonth, endOfMonth, differenceInMonths, parseISO } from 'date-fns';
+import { format, subMonths, startOfMonth, endOfMonth, differenceInMonths, parseISO, getMonth, getYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface ClienteData {
   id: string;
@@ -24,6 +27,14 @@ interface ClienteData {
   ciclo_cobranca: string;
   moeda: string;
   plano: string | null;
+}
+
+interface MarketingExpense {
+  id: string;
+  mes: number;
+  ano: number;
+  valor: number;
+  descricao: string | null;
 }
 
 interface GatewayOrder {
@@ -64,6 +75,8 @@ export default function AdminRelatorios() {
   const [clientes, setClientes] = useState<ClienteData[]>([]);
   const [clientesRegistro, setClientesRegistro] = useState<ClienteData[]>([]);
   const [purchases, setPurchases] = useState<{ valor: number; moeda: string; cliente_id: string }[]>([]);
+  const [marketingExpenses, setMarketingExpenses] = useState<MarketingExpense[]>([]);
+  const [newExpenseValue, setNewExpenseValue] = useState('');
   const [clientesRegistroSemValor, setClientesRegistroSemValor] = useState(0);
   const [orders, setOrders] = useState<GatewayOrder[]>([]);
   const [events, setEvents] = useState<GatewayEvent[]>([]);
