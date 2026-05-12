@@ -152,6 +152,7 @@ export default function AdminRelatorios() {
       toast.success('Gasto de marketing atualizado!');
       setNewExpenseValue('');
       setNewExpenseDesc('');
+      setNewExpenseDivide12(false);
       fetchData();
     } catch (error: any) {
       toast.error('Erro ao salvar: ' + error.message);
