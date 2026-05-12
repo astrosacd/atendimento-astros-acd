@@ -749,9 +749,19 @@ export default function AdminRelatorios() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1 space-y-2">
-                      <Label htmlFor="marketing-spend">Gasto Total (BRL)</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="marketing-desc">O que você pagou? (Nome do gasto)</Label>
+                      <Input 
+                        id="marketing-desc"
+                        type="text" 
+                        placeholder="Ex: Facebook Ads + VPS + Ferramentas" 
+                        value={newExpenseDesc}
+                        onChange={(e) => setNewExpenseDesc(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="marketing-spend">Valor Total Investido (R$)</Label>
                       <Input 
                         id="marketing-spend"
                         type="number" 
@@ -760,17 +770,19 @@ export default function AdminRelatorios() {
                         onChange={(e) => setNewExpenseValue(e.target.value)}
                       />
                     </div>
-                    <Button 
-                      className="mt-8"
-                      onClick={handleSaveMarketingExpense}
-                    >
-                      Salvar Gasto
-                    </Button>
                   </div>
-                  <div className="p-4 bg-muted/50 rounded-lg">
+                  <Button 
+                    className="w-full md:w-auto"
+                    onClick={handleSaveMarketingExpense}
+                  >
+                    Salvar e Calcular Métricas
+                  </Button>
+                  <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
+                    <p className="text-xs font-bold text-primary flex items-center gap-1">
+                      <Info className="h-3 w-3" /> COMO USAR O CAC:
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      * O gasto é registrado para o mês atual ({format(new Date(), 'MMMM/yyyy', { locale: ptBR })}). 
-                      Isso permite que o sistema compare automaticamente o investimento com o número de novos clientes cadastrados no mesmo período.
+                      Para o cálculo ser perfeito, some **TUDO** o que você gasta para manter a estrutura e trazer clientes (Anúncios, VPS, APIs, Ferramentas). Ao salvar, o sistema divide esse valor pelos novos clientes do mês para te dar o custo real de cada um.
                     </p>
                   </div>
                 </CardContent>
