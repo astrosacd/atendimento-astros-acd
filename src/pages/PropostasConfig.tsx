@@ -181,6 +181,30 @@ export default function PropostasConfig() {
     fetchLogs();
   }, []);
 
+  // Fetch TTS logs
+  const fetchTtsLogs = async () => {
+    setLoadingTtsLogs(true);
+    try {
+      const { data, error } = await supabase
+        .from('proposal_tts_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      setTtsLogs(data || []);
+    } catch (err: any) {
+      console.error('Error fetching TTS logs:', err);
+    } finally {
+      setLoadingTtsLogs(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'auto-remarketing') {
+      fetchTtsLogs();
+    }
+  }, [activeTab]);
+
   // Fetch Baserow config
   useEffect(() => {
     async function fetchBaserowConfig() {
