@@ -899,12 +899,8 @@ export default function PropostasConfig() {
                                 onClick={async () => {
                                   setTestSending('audio');
                                   try {
-                                    const { data, error } = await supabase.functions.invoke('proposals-ghost-test-send', {
-                                      body: { phone: testPhone, mediaType: 'audio', clientName: 'João Silva' },
-                                    });
-                                  if (error) throw error;
-                                  if ((data as any)?.error) throw new Error((data as any).error);
-                                  toast.success(`Áudio enviado para ${(data as any).sentTo}`);
+                                    const data = await callGhostTestSendFunction({ phone: testPhone, mediaType: 'audio', clientName: 'João Silva' });
+                                  toast.success(`Áudio enviado para ${data.sentTo}`);
                                 } catch (err: any) {
                                   toast.error('Erro: ' + (err.message || err));
                                 } finally {
@@ -923,12 +919,8 @@ export default function PropostasConfig() {
                               onClick={async () => {
                                 setTestSending('video');
                                 try {
-                                  const { data, error } = await supabase.functions.invoke('proposals-ghost-test-send', {
-                                    body: { phone: testPhone, mediaType: 'video' },
-                                  });
-                                  if (error) throw error;
-                                  if ((data as any)?.error) throw new Error((data as any).error);
-                                  toast.success(`Vídeo enviado para ${(data as any).sentTo}`);
+                                  const data = await callGhostTestSendFunction({ phone: testPhone, mediaType: 'video' });
+                                  toast.success(`Vídeo enviado para ${data.sentTo}`);
                                 } catch (err: any) {
                                   toast.error('Erro: ' + (err.message || err));
                                 } finally {
