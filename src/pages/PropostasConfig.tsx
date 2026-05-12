@@ -737,15 +737,16 @@ export default function PropostasConfig() {
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-4">
                           <div className="p-4 border rounded-lg bg-background/50 space-y-4">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <Label className="font-semibold flex items-center gap-2 min-w-0">
-                                <Search className="h-4 w-4 shrink-0" /> <span className="truncate">Configurar ElevenLabs</span>
-                              </Label>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/40 p-3 rounded-t-lg -mx-4 -mt-4 border-b">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                <Label className="font-bold truncate text-sm">Configurar ElevenLabs</Label>
+                              </div>
                               <Button
                                 type="button"
-                                variant="outline"
+                                variant="secondary"
                                 size="sm"
-                                className="h-8 shrink-0 whitespace-nowrap"
+                                className="h-8 w-full sm:w-auto shrink-0 shadow-sm border"
                                 disabled={loadingVoices || !elevenlabsApiKey.trim()}
                                 onClick={async () => {
                                   setLoadingVoices(true);
