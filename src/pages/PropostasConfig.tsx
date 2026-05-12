@@ -902,8 +902,18 @@ export default function PropostasConfig() {
                               value={voiceSearch}
                               onChange={(e) => setVoiceSearch(e.target.value)}
                               placeholder="Nome, idioma ou tipo..."
-                              className="mb-4"
+                              className="mb-2"
                             />
+                            <label className="flex items-start gap-2 mb-3 text-[11px] cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={onlyFreeVoices}
+                                onChange={(e) => setOnlyFreeVoices(e.target.checked)}
+                                className="h-3 w-3 mt-0.5 accent-primary"
+                              />
+                              <span className="text-muted-foreground">Mostrar apenas vozes <strong className="text-primary">gratuitas / padrão</strong> (evita erro de plano pago)</span>
+                            </label>
+
                             <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                               {voicesList.length === 0 ? (
                                 <div className="text-center py-12 text-muted-foreground space-y-2">
