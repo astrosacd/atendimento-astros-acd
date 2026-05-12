@@ -865,6 +865,7 @@ export default function PropostasConfig() {
                                     type="button"
                                     size="sm"
                                     variant="default"
+                                    className="flex-1 whitespace-nowrap"
                                     disabled={ttsSaving || !elevenlabsVoiceId || !selectedVoice}
                                     onClick={async () => {
                                       setTtsSaving(true);
