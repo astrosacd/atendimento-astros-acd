@@ -133,7 +133,8 @@ Deno.serve(async (req) => {
 
     if (!ttsRes.ok) {
       const errText = await ttsRes.text();
-      return new Response(JSON.stringify({ error: `ElevenLabs: ${errText}` }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const err = describeElevenLabsError(errText, ttsRes.status);
+      return new Response(JSON.stringify({ error: err.message, code: err.code }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const audioBuf = await ttsRes.arrayBuffer();
