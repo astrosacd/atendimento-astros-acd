@@ -276,8 +276,21 @@ export default function AdminRelatorios() {
     const currentMonth = getMonth(today) + 1;
     const currentYear = getYear(today);
 
-    // Gasto do mês atual
-    const currentMarketingSpend = marketingExpenses.find(e => e.mes === currentMonth && e.ano === currentYear)?.valor || 0;
+    // Gasto do mês atual: gastos normais do mês + 1/12 de qualquer gasto com dividir_12 nos últimos 12 meses
+    const startOfCalc = subMonths(today, 11); // Olhar 12 meses para trás
+    
+    const monthlyNormalSpend = marketingExpenses.find(e => e.mes === currentMonth && e.ano === currentYear && !e.dividir_12)?.valor || 0;
+    
+    const proratedSpend = marketingExpenses
+      .filter(e => {
+        if (!e.dividir_12) return false;
+        const expenseDate = new Date(e.ano, e.mes - 1, 1);
+        // O gasto deve estar dentro dos últimos 12 meses em relação ao mês atual do relatório
+        return expenseDate <= today && expenseDate >= startOfCalc;
+      })
+      .reduce((acc, e) => acc + (e.valor / 12), 0);
+
+    const currentMarketingSpend = monthlyNormalSpend + proratedSpend;
     
     // Novos clientes do mês atual
     const startOfThisMonth = startOfMonth(today);
