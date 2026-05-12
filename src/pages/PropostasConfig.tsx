@@ -920,13 +920,18 @@ export default function PropostasConfig() {
                               <span className="text-muted-foreground">Mostrar apenas vozes <strong className="text-primary">gratuitas / padrão</strong> (evita erro de plano pago)</span>
                             </label>
 
-                            <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                              {voicesList.length === 0 ? (
-                                <div className="text-center py-12 text-muted-foreground space-y-2">
-                                  <Mic className="h-8 w-8 mx-auto opacity-20" />
-                                  <p className="text-xs">Sincronize as vozes para começar</p>
-                                </div>
-                              ) : filteredVoices.length === 0 ? (
+                             <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                               {onlyFreeVoices && voicesList.some(v => !isFreeVoice(v)) && (
+                                 <div className="text-[9px] bg-muted p-1.5 rounded border border-dashed text-center text-muted-foreground mb-2">
+                                   Existem {voicesList.filter(v => !isFreeVoice(v)).length} vozes pagas ocultas pelo filtro.
+                                 </div>
+                               )}
+                               {voicesList.length === 0 ? (
+                                 <div className="text-center py-12 text-muted-foreground space-y-2">
+                                   <Mic className="h-8 w-8 mx-auto opacity-20" />
+                                   <p className="text-xs">Sincronize as vozes para começar</p>
+                                 </div>
+                               ) : filteredVoices.length === 0 ? (
                                 <p className="text-center py-8 text-xs text-muted-foreground">Nenhuma voz encontrada</p>
                               ) : (
                                 filteredVoices.map((voice) => (
