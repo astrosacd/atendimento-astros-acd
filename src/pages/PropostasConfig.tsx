@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const NAV_ITEMS = [
   { value: 'branding', label: 'Identidade Visual', icon: Palette },
@@ -30,6 +31,9 @@ const NAV_ITEMS = [
 export default function PropostasConfig() {
   const navigate = useNavigate();
   const { config, isLoading, updateConfig } = useProposalSendConfig();
+  const { hasPermission } = usePermissions();
+  const canViewGhost = hasPermission('configure_proposal_ghost_mode');
+  const canViewVoices = hasPermission('configure_proposal_ai_voices');
   const [activeTab, setActiveTab] = useState('branding');
 
   const [gmailUser, setGmailUser] = useState('');
@@ -645,10 +649,11 @@ export default function PropostasConfig() {
                   <Tabs defaultValue="geral" className="w-full">
                     <TabsList className="flex flex-wrap h-auto w-full gap-1 bg-muted p-1 mb-8">
                       <TabsTrigger value="geral" className="flex-1 min-w-[120px] gap-2"><Clock className="h-4 w-4" /> Geral</TabsTrigger>
-                      <TabsTrigger value="vozes" className="flex-1 min-w-[120px] gap-2"><Mic className="h-4 w-4" /> Vozes IA</TabsTrigger>
-                      <TabsTrigger value="ghost" className="flex-1 min-w-[120px] gap-2">👻 Modo Ghost</TabsTrigger>
+                      {canViewVoices && <TabsTrigger value="vozes" className="flex-1 min-w-[120px] gap-2"><Mic className="h-4 w-4" /> Vozes IA</TabsTrigger>}
+                      {canViewGhost && <TabsTrigger value="ghost" className="flex-1 min-w-[120px] gap-2">👻 Modo Ghost</TabsTrigger>}
                       <TabsTrigger value="logs" className="flex-1 min-w-[120px] gap-2"><Database className="h-4 w-4" /> Logs</TabsTrigger>
                     </TabsList>
+
 
                     <TabsContent value="geral" className="space-y-6 animate-in fade-in-50 duration-300">
                       <div className="flex items-start gap-3 text-sm text-blue-600 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200/50">
@@ -733,7 +738,7 @@ export default function PropostasConfig() {
                       </div>
                     </TabsContent>
 
-                    <TabsContent value="vozes" className="space-y-6 animate-in fade-in-50 duration-300">
+                    {canViewVoices && <TabsContent value="vozes" className="space-y-6 animate-in fade-in-50 duration-300">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-4">
                           <div className="p-4 border rounded-lg bg-background/50 space-y-4">
@@ -969,9 +974,9 @@ export default function PropostasConfig() {
                           </div>
                         </div>
                       </div>
-                    </TabsContent>
+                    </TabsContent>}
 
-                    <TabsContent value="ghost" className="space-y-6 animate-in fade-in-50 duration-300">
+                    {canViewGhost && <TabsContent value="ghost" className="space-y-6 animate-in fade-in-50 duration-300">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-4">
                           <div className="p-5 border-2 border-purple-500/30 bg-purple-500/5 rounded-xl space-y-5">
@@ -1188,7 +1193,7 @@ export default function PropostasConfig() {
                           </div>
                         </div>
                       </div>
-                    </TabsContent>
+                    </TabsContent>}
 
                     <TabsContent value="logs" className="animate-in fade-in-50 duration-300">
                       <div className="border rounded-xl bg-slate-950 p-5 overflow-hidden shadow-inner">
