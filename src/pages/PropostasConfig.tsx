@@ -737,15 +737,15 @@ export default function PropostasConfig() {
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-4">
                           <div className="p-4 border rounded-lg bg-background/50 space-y-4">
-                            <div className="flex items-center justify-between">
-                              <Label className="font-semibold flex items-center gap-2">
-                                <Search className="h-4 w-4" /> Configurar ElevenLabs
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <Label className="font-semibold flex items-center gap-2 min-w-0">
+                                <Search className="h-4 w-4 shrink-0" /> <span className="truncate">Configurar ElevenLabs</span>
                               </Label>
                               <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className="h-8"
+                                className="h-8 shrink-0 whitespace-nowrap"
                                 disabled={loadingVoices || !elevenlabsApiKey.trim()}
                                 onClick={async () => {
                                   setLoadingVoices(true);
@@ -762,7 +762,7 @@ export default function PropostasConfig() {
                                 }}
                               >
                                 {loadingVoices ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <RefreshCcw className="h-3 w-3 mr-2" />}
-                                Sincronizar Vozes
+                                Sincronizar
                               </Button>
                             </div>
                             
@@ -828,7 +828,7 @@ export default function PropostasConfig() {
                                 />
                               </div>
 
-                              <div className="flex gap-2 pt-1">
+                              <div className="flex flex-wrap gap-2 pt-1">
                                 <Button
                                   type="button"
                                   size="sm"
@@ -865,6 +865,7 @@ export default function PropostasConfig() {
                                     type="button"
                                     size="sm"
                                     variant="default"
+                                    className="flex-1 whitespace-nowrap"
                                     disabled={ttsSaving || !elevenlabsVoiceId || !selectedVoice}
                                     onClick={async () => {
                                       setTtsSaving(true);
@@ -1101,7 +1102,7 @@ export default function PropostasConfig() {
                                 <Input placeholder="Ex: João Silva" value={testClientName} onChange={(e) => setTestClientName(e.target.value)} />
                               </div>
 
-                              <div className="grid grid-cols-2 gap-3 pt-2">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                                 <Button
                                   variant="outline"
                                   className="h-12 border-primary/30 hover:bg-primary/10"
