@@ -739,6 +739,16 @@ export default function PropostasConfig() {
                           <div className="mt-4 border border-dashed border-border rounded-lg p-3 space-y-3 bg-muted/30">
                             <div className="flex items-center justify-between">
                               <Label className="text-sm font-medium">🎙️ Gerar áudio com IA (ElevenLabs)</Label>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-[10px] text-blue-500 hover:text-blue-600 px-2"
+                                onClick={fetchTtsLogs}
+                              >
+                                <Clock className="h-3 w-3 mr-1" />
+                                Histórico de Logs
+                              </Button>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                               <div className="space-y-1">
