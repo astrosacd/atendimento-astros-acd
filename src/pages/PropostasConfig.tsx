@@ -832,7 +832,12 @@ export default function PropostasConfig() {
                                     onClick={async () => {
                                       setTtsSaving(true);
                                       try {
-                                        const data = await callElevenLabsFunction({ text: ttsText, voiceId: elevenlabsVoiceId, save: true, apiKey: elevenlabsApiKey });
+                                        const data = await callElevenLabsFunction({ 
+                                          text: ttsText.replace(/{{nome_cliente}}/g, testClientName || 'Cliente'), 
+                                          voiceId: elevenlabsVoiceId, 
+                                          save: true, 
+                                          apiKey: elevenlabsApiKey 
+                                        });
                                         setGhostAudioUrl(data.url);
                                         toast.success('Áudio salvo no Modo Ghost!');
                                       } catch (err: any) {
