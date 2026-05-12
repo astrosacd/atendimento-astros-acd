@@ -61,11 +61,36 @@ export default function PropostasConfig() {
   const [ttsGenerating, setTtsGenerating] = useState(false);
   const [ttsSaving, setTtsSaving] = useState(false);
   const [voicesList, setVoicesList] = useState<Array<{ voice_id: string; name: string; category?: string; voice_type?: string; labels?: any; preview_url?: string }>>([]);
+  const [voiceSearch, setVoiceSearch] = useState('');
   const [loadingVoices, setLoadingVoices] = useState(false);
   const [testPhone, setTestPhone] = useState('');
   const [testSending, setTestSending] = useState<'audio' | 'video' | null>(null);
   const [ttsLogs, setTtsLogs] = useState<any[]>([]);
   const [loadingTtsLogs, setLoadingTtsLogs] = useState(false);
+
+  const getVoicePlanInfo = (voice: { category?: string; voice_type?: string; labels?: any }) => {
+    const category = String(voice.category || '').toLowerCase();
+    const voiceType = String(voice.voice_type || '').toLowerCase();
+    const labelsText = JSON.stringify(voice.labels || {}).toLowerCase();
+
+    if (voiceType === 'default' || category === 'premade' || category === 'generated') {
+      return { label: 'Free / padrão', className: 'border-primary/40 bg-primary/10 text-primary' };
+    }
+
+    if (category.includes('professional') || voiceType.includes('professional') || labelsText.includes('professional')) {
+      return { label: 'Profissional', className: 'border-destructive/40 bg-destructive/10 text-destructive' };
+    }
+
+    if (category.includes('cloned') || voiceType.includes('cloned')) {
+      return { label: 'Clonada', className: 'border-accent/40 bg-accent/10 text-accent-foreground' };
+    }
+
+    if (category.includes('library')) {
+      return { label: 'Biblioteca / pago', className: 'border-destructive/40 bg-destructive/10 text-destructive' };
+    }
+
+    return { label: 'Verificar plano', className: 'border-muted-foreground/30 bg-muted text-muted-foreground' };
+  };
 
   // Status notifications
   const [statusNotifEnabled, setStatusNotifEnabled] = useState(false);
