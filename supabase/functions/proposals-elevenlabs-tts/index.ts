@@ -118,8 +118,8 @@ Deno.serve(async (req) => {
 
     // List voices action
     if (action === 'list_voices') {
-      const voiceType = String(body?.voiceType || 'non-community');
-      const vRes = await fetch(`https://api.elevenlabs.io/v2/voices?page_size=100&voice_type=${encodeURIComponent(voiceType)}`, {
+      const voiceType = String(body?.voiceType || 'all');
+      const vRes = await fetch(`https://api.elevenlabs.io/v2/voices`, {
         headers: { "xi-api-key": apiKey },
       });
       if (!vRes.ok) {
