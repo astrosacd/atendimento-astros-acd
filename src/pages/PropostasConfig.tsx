@@ -1065,7 +1065,7 @@ export default function PropostasConfig() {
                                   try {
                                     // Salvar as configurações localmente primeiro para garantir que o Edge Function as veja
                                     await handleSave();
-                                    const data = await callGhostTestSendFunction({ phone: testPhone, mediaType: 'audio', clientName: 'João Silva' });
+                                    const data = await callGhostTestSendFunction({ phone: testPhone, mediaType: 'audio', clientName: 'João Silva', mediaUrl: ghostModeType === 'fixed' ? ghostAudioUrl : undefined });
                                     toast.success(`Áudio enviado para ${data.sentTo}`);
                                 } catch (err: any) {
                                   toast.error('Erro: ' + (err.message || err));
@@ -1087,7 +1087,7 @@ export default function PropostasConfig() {
                                 try {
                                   // Salvar as configurações localmente primeiro para garantir que o Edge Function as veja
                                   await handleSave();
-                                  const data = await callGhostTestSendFunction({ phone: testPhone, mediaType: 'video' });
+                                  const data = await callGhostTestSendFunction({ phone: testPhone, mediaType: 'video', mediaUrl: ghostVideoUrl });
                                   toast.success(`Vídeo enviado para ${data.sentTo}`);
                                 } catch (err: any) {
                                   toast.error('Erro: ' + (err.message || err));
