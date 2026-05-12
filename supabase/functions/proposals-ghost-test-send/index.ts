@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
         }
       });
       if (ttsError || ttsData?.error) {
-        return new Response(JSON.stringify({ error: `TTS: ${ttsError?.message || ttsData?.error}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: `TTS: ${ttsError?.message || ttsData?.error}` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       mediaUrl = ttsData.url;
     }
