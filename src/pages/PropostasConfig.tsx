@@ -894,7 +894,7 @@ export default function PropostasConfig() {
                                     </Button>
                                   )}
                                 </div>
-                              </div>
+
                               {ttsPreviewUrl && <audio controls src={ttsPreviewUrl} className="h-8 w-full mt-2" />}
                             </div>
                           </div>
