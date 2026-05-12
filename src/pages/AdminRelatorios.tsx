@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
 interface ClienteData {
@@ -36,6 +37,7 @@ interface MarketingExpense {
   ano: number;
   valor: number;
   descricao: string | null;
+  dividir_12?: boolean;
 }
 
 interface GatewayOrder {
