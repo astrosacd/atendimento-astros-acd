@@ -700,42 +700,42 @@ export default function AdminRelatorios() {
 
           {/* Tab Inteligência de Negócio (BI) */}
           <TabsContent value="bi" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <MetricCard
-                title="CAC (Custo de Aquisição)"
+                title="CAC (Custo por Cliente)"
                 value={formatCurrency(biMetrics.cac, 'BRL')}
-                subtitle={`Baseado em ${biMetrics.newClientsThisMonth} novos clientes`}
+                subtitle={`Gasto em ${format(new Date(), 'MMMM', { locale: ptBR })}`}
                 icon={Users}
                 trend={biMetrics.cac > ltvMetrics.ticketMedioBRL ? 'down' : 'up'}
-                trendValue={biMetrics.cac > ltvMetrics.ticketMedioBRL ? 'Alto' : 'Saudável'}
-                info="Custo médio para adquirir um novo cliente este mês. Calculado como: Gastos de Marketing / Novos Clientes."
+                trendValue={biMetrics.cac > ltvMetrics.ticketMedioBRL ? 'Custo Alto' : 'Custo Bom'}
+                info="CAC é o Custo de Aquisição de Cliente. É quanto você pagou para 'comprar' cada cliente novo. Se você gastou R$ 1000 e entraram 10 clientes, seu CAC é R$ 100. Ideal que seja sempre menor que o valor da primeira mensalidade."
               />
               <MetricCard
-                title="LTV / CAC"
+                title="LTV / CAC (Lucratividade)"
                 value={`${biMetrics.ltvCacRatio.toFixed(1)}x`}
-                subtitle={biMetrics.ltvCacRatio >= 3 ? "ROI Excelente" : "ROI em atenção"}
+                subtitle="ROI sobre a aquisição"
                 icon={TrendingUp}
                 trend={biMetrics.ltvCacRatio >= 3 ? 'up' : 'down'}
-                trendValue={biMetrics.ltvCacRatio >= 3 ? 'Ótimo' : 'Melhorar'}
-                info="Relação entre o valor que o cliente traz (LTV) e o custo para trazê-lo (CAC). Ideal: acima de 3x."
+                trendValue={biMetrics.ltvCacRatio >= 3 ? 'Excelente' : 'Atenção'}
+                info="Indica quantas vezes o cliente te paga de volta o que você gastou para trazer ele. Ex: 3.0x significa que o cliente te dá 3 vezes mais dinheiro do que custou para trazê-lo. Menos de 1.0x significa prejuízo."
               />
               <MetricCard
-                title="Payback (Meses)"
+                title="Payback (Meses p/ Pagar)"
                 value={`${biMetrics.payback.toFixed(1)} meses`}
-                subtitle="Tempo para recuperar o CAC"
+                subtitle="Tempo de retorno"
                 icon={PiggyBank}
                 trend={biMetrics.payback <= 6 ? 'up' : 'down'}
-                trendValue={biMetrics.payback <= 6 ? 'Rápido' : 'Longo'}
-                info="Quantos meses o cliente precisa ficar para pagar o custo de aquisição. Ideal: abaixo de 6-8 meses."
+                trendValue={biMetrics.payback <= 6 ? 'Recuperação Rápida' : 'Recuperação Lenta'}
+                info="O Payback diz quantos meses o cliente precisa ficar pagando a mensalidade para 'se pagar'. Se o Payback é 2 meses, a partir do 3º mês o cliente é lucro puro. Ideal que seja abaixo de 6 meses."
               />
               <MetricCard
-                title="ARPU (Receita Média)"
+                title="ARPU (Faturamento Médio)"
                 value={formatCurrency(biMetrics.arpu, 'BRL')}
-                subtitle="Receita média por usuário ativo"
+                subtitle="Receita por cliente ativo"
                 icon={Briefcase}
-                info="Receita média gerada por cada usuário ativo. Ajuda a entender a valorização da sua base."
+                info="ARPU é o faturamento médio por usuário. Ele mostra quanto cada cliente (da base toda) está te rendendo por mês em média. Se você tem planos de R$ 50 e R$ 150, seu ARPU deve ficar no meio disso."
               />
-            </div>
+            </CardContent>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="bg-card/50 backdrop-blur-sm border-border/50">
