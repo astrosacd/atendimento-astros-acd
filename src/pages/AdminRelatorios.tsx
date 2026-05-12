@@ -682,17 +682,18 @@ export default function AdminRelatorios() {
         </div>
 
         <Tabs defaultValue="conversao" className="space-y-4">
-          <TabsList className="bg-muted/50 flex-wrap">
-            <TabsTrigger value="conversao">Conversão</TabsTrigger>
-            <TabsTrigger value="bi" className="flex items-center gap-1">
+          <TabsList className="bg-muted/50 flex flex-wrap h-auto w-full justify-start gap-1 p-1">
+            <TabsTrigger value="conversao" className="flex-shrink-0 text-xs sm:text-sm">Conversão</TabsTrigger>
+            <TabsTrigger value="bi" className="flex items-center gap-1 flex-shrink-0 text-xs sm:text-sm">
               <Calculator className="h-3.5 w-3.5" />
-              Inteligência de Negócio
+              <span className="hidden sm:inline">Inteligência de Negócio</span>
+              <span className="sm:hidden">BI</span>
             </TabsTrigger>
-            <TabsTrigger value="churn">Churn</TabsTrigger>
-            <TabsTrigger value="ltv">LTV & Receita</TabsTrigger>
-            <TabsTrigger value="crescimento">Crescimento</TabsTrigger>
-            <TabsTrigger value="vendas-unicas">Vendas Únicas</TabsTrigger>
-            <TabsTrigger value="ai" className="flex items-center gap-1">
+            <TabsTrigger value="churn" className="flex-shrink-0 text-xs sm:text-sm">Churn</TabsTrigger>
+            <TabsTrigger value="ltv" className="flex-shrink-0 text-xs sm:text-sm">LTV & Receita</TabsTrigger>
+            <TabsTrigger value="crescimento" className="flex-shrink-0 text-xs sm:text-sm">Crescimento</TabsTrigger>
+            <TabsTrigger value="vendas-unicas" className="flex-shrink-0 text-xs sm:text-sm">Vendas Únicas</TabsTrigger>
+            <TabsTrigger value="ai" className="flex items-center gap-1 flex-shrink-0 text-xs sm:text-sm">
               <Bot className="h-3.5 w-3.5" />
               Análise IA
             </TabsTrigger>
