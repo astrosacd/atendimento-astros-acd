@@ -775,12 +775,8 @@ export default function PropostasConfig() {
                                   setTtsGenerating(true);
                                   setTtsPreviewUrl(null);
                                   try {
-                                    const { data, error } = await supabase.functions.invoke('proposals-elevenlabs-tts', {
-                                      body: { text: ttsText, voiceId: elevenlabsVoiceId, save: false, apiKey: elevenlabsApiKey },
-                                    });
-                                    if (error) throw error;
-                                    if ((data as any)?.error) throw new Error((data as any).error);
-                                    setTtsPreviewUrl(`data:audio/mpeg;base64,${(data as any).audioContent}`);
+                                    const data = await callElevenLabsFunction({ text: ttsText, voiceId: elevenlabsVoiceId, save: false, apiKey: elevenlabsApiKey });
+                                    setTtsPreviewUrl(`data:audio/mpeg;base64,${data.audioContent}`);
                                   } catch (err: any) {
                                     toast.error('Erro ao gerar: ' + (err.message || err));
                                   } finally {
@@ -801,12 +797,8 @@ export default function PropostasConfig() {
                                     onClick={async () => {
                                       setTtsSaving(true);
                                       try {
-                                        const { data, error } = await supabase.functions.invoke('proposals-elevenlabs-tts', {
-                                          body: { text: ttsText, voiceId: elevenlabsVoiceId, save: true, apiKey: elevenlabsApiKey },
-                                        });
-                                        if (error) throw error;
-                                        if ((data as any)?.error) throw new Error((data as any).error);
-                                        setGhostAudioUrl((data as any).url);
+                                        const data = await callElevenLabsFunction({ text: ttsText, voiceId: elevenlabsVoiceId, save: true, apiKey: elevenlabsApiKey });
+                                        setGhostAudioUrl(data.url);
                                         setTtsPreviewUrl(null);
                                         toast.success('Áudio salvo no Modo Ghost! Clique em "Salvar Remarketing" para aplicar.');
                                       } catch (err: any) {
