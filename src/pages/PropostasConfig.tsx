@@ -907,6 +907,7 @@ export default function PropostasConfig() {
                                     toast.error('Erro ao gerar: ' + (err.message || err));
                                   } finally {
                                     setTtsGenerating(false);
+                                    fetchTtsLogs();
                                   }
                                 }}
                               >
