@@ -132,6 +132,15 @@ export default function AdminRelatorios() {
       return;
     }
 
+    const valorFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(newExpenseValue));
+    const confirmMessage = newExpenseDivide12 
+      ? `Você está registrando um investimento de ${valorFormatado} que será DILUÍDO em 12 meses (R$ ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(newExpenseValue)/12)} por mês). Confirmar?`
+      : `Você está registrando um investimento de ${valorFormatado} para ser aplicado INTEGRALMENTE neste mês. Confirmar?`;
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
     const today = new Date();
     const mes = getMonth(today) + 1;
     const ano = getYear(today);
