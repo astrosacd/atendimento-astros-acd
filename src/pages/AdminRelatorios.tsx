@@ -680,6 +680,10 @@ export default function AdminRelatorios() {
         <Tabs defaultValue="conversao" className="space-y-4">
           <TabsList className="bg-muted/50 flex-wrap">
             <TabsTrigger value="conversao">Conversão</TabsTrigger>
+            <TabsTrigger value="bi" className="flex items-center gap-1">
+              <Calculator className="h-3.5 w-3.5" />
+              Inteligência de Negócio
+            </TabsTrigger>
             <TabsTrigger value="churn">Churn</TabsTrigger>
             <TabsTrigger value="ltv">LTV & Receita</TabsTrigger>
             <TabsTrigger value="crescimento">Crescimento</TabsTrigger>
@@ -689,6 +693,109 @@ export default function AdminRelatorios() {
               Análise IA
             </TabsTrigger>
           </TabsList>
+
+          {/* Tab Inteligência de Negócio (BI) */}
+          <TabsContent value="bi" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <MetricCard
+                title="CAC (Custo de Aquisição)"
+                value={formatCurrency(biMetrics.cac, 'BRL')}
+                subtitle={`Baseado em ${biMetrics.newClientsThisMonth} novos clientes`}
+                icon={Users}
+                trend={biMetrics.cac > ltvMetrics.ticketMedioBRL ? 'down' : 'up'}
+                trendValue={biMetrics.cac > ltvMetrics.ticketMedioBRL ? 'Alto' : 'Saudável'}
+                info="Custo médio para adquirir um novo cliente este mês. Calculado como: Gastos de Marketing / Novos Clientes."
+              />
+              <MetricCard
+                title="LTV / CAC"
+                value={`${biMetrics.ltvCacRatio.toFixed(1)}x`}
+                subtitle={biMetrics.ltvCacRatio >= 3 ? "ROI Excelente" : "ROI em atenção"}
+                icon={TrendingUp}
+                trend={biMetrics.ltvCacRatio >= 3 ? 'up' : 'down'}
+                trendValue={biMetrics.ltvCacRatio >= 3 ? 'Ótimo' : 'Melhorar'}
+                info="Relação entre o valor que o cliente traz (LTV) e o custo para trazê-lo (CAC). Ideal: acima de 3x."
+              />
+              <MetricCard
+                title="Payback (Meses)"
+                value={`${biMetrics.payback.toFixed(1)} meses`}
+                subtitle="Tempo para recuperar o CAC"
+                icon={PiggyBank}
+                trend={biMetrics.payback <= 6 ? 'up' : 'down'}
+                trendValue={biMetrics.payback <= 6 ? 'Rápido' : 'Longo'}
+                info="Quantos meses o cliente precisa ficar para pagar o custo de aquisição. Ideal: abaixo de 6-8 meses."
+              />
+              <MetricCard
+                title="ARPU (Receita Média)"
+                value={formatCurrency(biMetrics.arpu, 'BRL')}
+                subtitle="Receita média por usuário ativo"
+                icon={Briefcase}
+                info="Receita média gerada por cada usuário ativo. Ajuda a entender a valorização da sua base."
+              />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calculator className="h-5 w-5" />
+                    Lançar Gastos de Marketing
+                  </CardTitle>
+                  <CardDescription>
+                    Insira o valor total investido em anúncios/marketing este mês para calcular o CAC.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor="marketing-spend">Gasto Total (BRL)</Label>
+                      <Input 
+                        id="marketing-spend"
+                        type="number" 
+                        placeholder="Ex: 5000.00" 
+                        value={newExpenseValue}
+                        onChange={(e) => setNewExpenseValue(e.target.value)}
+                      />
+                    </div>
+                    <Button 
+                      className="mt-8"
+                      onClick={handleSaveMarketingExpense}
+                    >
+                      Salvar Gasto
+                    </Button>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">
+                      * O gasto é registrado para o mês atual ({format(new Date(), 'MMMM/yyyy', { locale: ptBR })}). 
+                      Isso permite que o sistema compare automaticamente o investimento com o número de novos clientes cadastrados no mesmo período.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+                <CardHeader>
+                  <CardTitle>Histórico de Investimento</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {marketingExpenses.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">Nenhum gasto registrado ainda.</p>
+                    ) : (
+                      marketingExpenses.slice(0, 5).map((exp) => (
+                        <div key={exp.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                          <div>
+                            <p className="text-sm font-medium">{format(new Date(exp.ano, exp.mes - 1), 'MMMM yyyy', { locale: ptBR })}</p>
+                            <p className="text-xs text-muted-foreground">{exp.descricao || 'Investimento em Marketing'}</p>
+                          </div>
+                          <span className="font-bold">{formatCurrency(exp.valor, 'BRL')}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
           {/* Tab Conversão */}
           <TabsContent value="conversao" className="space-y-4">
