@@ -4755,6 +4755,7 @@ export type Database = {
           ano: number
           created_at: string
           descricao: string | null
+          dividir_12: boolean | null
           id: string
           mes: number
           updated_at: string
@@ -4764,6 +4765,7 @@ export type Database = {
           ano: number
           created_at?: string
           descricao?: string | null
+          dividir_12?: boolean | null
           id?: string
           mes: number
           updated_at?: string
@@ -4773,6 +4775,7 @@ export type Database = {
           ano?: number
           created_at?: string
           descricao?: string | null
+          dividir_12?: boolean | null
           id?: string
           mes?: number
           updated_at?: string
