@@ -737,15 +737,16 @@ export default function PropostasConfig() {
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-4">
                           <div className="p-4 border rounded-lg bg-background/50 space-y-4">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <Label className="font-semibold flex items-center gap-2 min-w-0">
-                                <Search className="h-4 w-4 shrink-0" /> <span className="truncate">Configurar ElevenLabs</span>
-                              </Label>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/40 p-3 rounded-t-lg -mx-4 -mt-4 border-b">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                <Label className="font-bold truncate text-sm">Configurar ElevenLabs</Label>
+                              </div>
                               <Button
                                 type="button"
-                                variant="outline"
+                                variant="secondary"
                                 size="sm"
-                                className="h-8 shrink-0 whitespace-nowrap"
+                                className="h-8 w-full sm:w-auto shrink-0 shadow-sm border"
                                 disabled={loadingVoices || !elevenlabsApiKey.trim()}
                                 onClick={async () => {
                                   setLoadingVoices(true);
@@ -818,76 +819,82 @@ export default function PropostasConfig() {
                               />
                               <p className="text-[10px] text-blue-500 font-medium">Use {"{{nome_cliente}}"} para falar o nome do cliente no áudio dinâmico.</p>
 
-                              <div className="space-y-1.5 pt-1">
-                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Nome para teste da variável {"{{nome_cliente}}"}</Label>
-                                <Input
-                                  placeholder="Ex: João Silva"
-                                  value={testClientName}
-                                  onChange={(e) => setTestClientName(e.target.value)}
-                                  className="h-9"
-                                />
+                              {/* Variável de teste sincronizada com o Laboratório */}
+                              <div className="p-3 bg-blue-500/5 border border-blue-500/10 rounded-lg space-y-2">
+                                <Label className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400">Variável {"{{nome_cliente}}"}</Label>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    placeholder="Ex: João Silva"
+                                    value={testClientName}
+                                    onChange={(e) => setTestClientName(e.target.value)}
+                                    className="h-8 text-xs bg-background"
+                                  />
+                                  <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse shrink-0" title="Sincronizado com Laboratório" />
+                                </div>
                               </div>
 
                               <div className="flex flex-wrap gap-2 pt-1">
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  className="flex-1"
-                                  variant="secondary"
-                                  disabled={ttsGenerating || !ttsText.trim() || !elevenlabsApiKey.trim() || !elevenlabsVoiceId || !selectedVoice}
-                                  onClick={async () => {
-                                    if (!testClientName.trim()) {
-                                      toast.error('Digite um nome para testar a variável {{nome_cliente}}');
-                                      return;
-                                    }
-                                    setTtsGenerating(true);
-                                      try {
-                                        const data = await callElevenLabsFunction({ 
-                                          text: ttsText.replace(/\{\{\s*nome_cliente\s*\}\}/gi, testClientName), 
-                                          voiceId: elevenlabsVoiceId, 
-                                          save: false, 
-                                          apiKey: elevenlabsApiKey 
-                                        });
-                                        setTtsPreviewUrl(`data:audio/mpeg;base64,${data.audioContent}`);
-                                        toast.success('Prévia gerada!');
-                                      } catch (err: any) {
-                                      toast.error('Erro: ' + err.message);
-                                    } finally {
-                                      setTtsGenerating(false);
-                                    }
-                                  }}
-                                >
-                                  {ttsGenerating ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <Mic className="h-3 w-3 mr-2" />}
-                                  Gerar Prévia
-                                </Button>
-                                {ttsPreviewUrl && (
+                                <div className="flex flex-col sm:flex-row gap-2 pt-1">
                                   <Button
                                     type="button"
                                     size="sm"
-                                    variant="default"
-                                    className="flex-1 whitespace-nowrap"
-                                    disabled={ttsSaving || !elevenlabsVoiceId || !selectedVoice}
+                                    className="flex-1 h-10"
+                                    variant="secondary"
+                                    disabled={ttsGenerating || !ttsText.trim() || !elevenlabsApiKey.trim() || !elevenlabsVoiceId || !selectedVoice}
                                     onClick={async () => {
-                                      setTtsSaving(true);
-                                      try {
-                                        const data = await callElevenLabsFunction({ 
-                                          text: ttsText.replace(/\{\{\s*nome_cliente\s*\}\}/gi, testClientName || 'Cliente'), 
-                                          voiceId: elevenlabsVoiceId, 
-                                          save: true, 
-                                          apiKey: elevenlabsApiKey 
-                                        });
-                                        setGhostAudioUrl(data.url);
-                                        toast.success('Áudio salvo no Modo Ghost!');
-                                      } catch (err: any) {
+                                      if (!testClientName.trim()) {
+                                        toast.error('Digite um nome para testar a variável {{nome_cliente}}');
+                                        return;
+                                      }
+                                      setTtsGenerating(true);
+                                        try {
+                                          const data = await callElevenLabsFunction({ 
+                                            text: ttsText.replace(/\{\{\s*nome_cliente\s*\}\}/gi, testClientName), 
+                                            voiceId: elevenlabsVoiceId, 
+                                            save: false, 
+                                            apiKey: elevenlabsApiKey 
+                                          });
+                                          setTtsPreviewUrl(`data:audio/mpeg;base64,${data.audioContent}`);
+                                          toast.success('Prévia gerada!');
+                                        } catch (err: any) {
                                         toast.error('Erro: ' + err.message);
                                       } finally {
-                                        setTtsSaving(false);
+                                        setTtsGenerating(false);
                                       }
                                     }}
                                   >
-                                    Usar no Ghost
+                                    {ttsGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mic className="h-4 w-4 mr-2" />}
+                                    Gerar Prévia
                                   </Button>
-                                )}
+                                  {ttsPreviewUrl && (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="default"
+                                      className="flex-1 h-10 whitespace-nowrap bg-primary hover:bg-primary/90"
+                                      disabled={ttsSaving || !elevenlabsVoiceId || !selectedVoice}
+                                      onClick={async () => {
+                                        setTtsSaving(true);
+                                        try {
+                                          const data = await callElevenLabsFunction({ 
+                                            text: ttsText.replace(/\{\{\s*nome_cliente\s*\}\}/gi, testClientName || 'Cliente'), 
+                                            voiceId: elevenlabsVoiceId, 
+                                            save: true, 
+                                            apiKey: elevenlabsApiKey 
+                                          });
+                                          setGhostAudioUrl(data.url);
+                                          toast.success('Áudio salvo no Modo Ghost!');
+                                        } catch (err: any) {
+                                          toast.error('Erro: ' + err.message);
+                                        } finally {
+                                          setTtsSaving(false);
+                                        }
+                                      }}
+                                    >
+                                      Usar no Ghost
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
                               {ttsPreviewUrl && <audio controls src={ttsPreviewUrl} className="h-8 w-full mt-2" />}
                             </div>
@@ -915,13 +922,18 @@ export default function PropostasConfig() {
                               <span className="text-muted-foreground">Mostrar apenas vozes <strong className="text-primary">gratuitas / padrão</strong> (evita erro de plano pago)</span>
                             </label>
 
-                            <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                              {voicesList.length === 0 ? (
-                                <div className="text-center py-12 text-muted-foreground space-y-2">
-                                  <Mic className="h-8 w-8 mx-auto opacity-20" />
-                                  <p className="text-xs">Sincronize as vozes para começar</p>
-                                </div>
-                              ) : filteredVoices.length === 0 ? (
+                             <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                               {onlyFreeVoices && voicesList.some(v => !isFreeVoice(v)) && (
+                                 <div className="text-[9px] bg-muted p-1.5 rounded border border-dashed text-center text-muted-foreground mb-2">
+                                   Existem {voicesList.filter(v => !isFreeVoice(v)).length} vozes pagas ocultas pelo filtro.
+                                 </div>
+                               )}
+                               {voicesList.length === 0 ? (
+                                 <div className="text-center py-12 text-muted-foreground space-y-2">
+                                   <Mic className="h-8 w-8 mx-auto opacity-20" />
+                                   <p className="text-xs">Sincronize as vozes para começar</p>
+                                 </div>
+                               ) : filteredVoices.length === 0 ? (
                                 <p className="text-center py-8 text-xs text-muted-foreground">Nenhuma voz encontrada</p>
                               ) : (
                                 filteredVoices.map((voice) => (
@@ -935,18 +947,19 @@ export default function PropostasConfig() {
                                         : "border-border bg-transparent hover:bg-muted/50"
                                     )}
                                   >
-                                    <div className="flex items-start justify-between">
+                                    <div className="flex items-start justify-between gap-2">
                                       <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2">
-                                          <p className="font-medium text-sm truncate">{voice.name}</p>
-                                          {voice.voice_id === elevenlabsVoiceId && <Badge className="h-4 text-[8px] uppercase">Atual</Badge>}
+                                          <p className="font-bold text-sm truncate">{voice.name}</p>
+                                          {voice.voice_id === elevenlabsVoiceId && <Badge className="h-4 text-[8px] uppercase bg-primary hover:bg-primary">Atual</Badge>}
                                         </div>
                                         <div className="flex flex-wrap gap-1 mt-1">
-                                          {voice.labels?.language && <Badge variant="secondary" className="text-[8px] h-3 px-1">{voice.labels.language}</Badge>}
+                                          <Badge variant="secondary" className="text-[7px] h-3 px-1 bg-muted/50 border-none uppercase font-bold">{voice.category || 'N/A'}</Badge>
+                                          {voice.labels?.language && <Badge variant="outline" className="text-[8px] h-3 px-1">{voice.labels.language}</Badge>}
                                           {voice.labels?.gender && <span className="text-[9px] text-muted-foreground">{voice.labels.gender}</span>}
                                         </div>
                                       </div>
-                                      <Badge variant="outline" className={cn('text-[8px] px-1', getVoicePlanInfo(voice).className)}>
+                                      <Badge variant="outline" className={cn('text-[8px] px-1 whitespace-nowrap', getVoicePlanInfo(voice).className)}>
                                         {getVoicePlanInfo(voice).label}
                                       </Badge>
                                     </div>
@@ -1102,10 +1115,10 @@ export default function PropostasConfig() {
                                 <Input placeholder="Ex: João Silva" value={testClientName} onChange={(e) => setTestClientName(e.target.value)} />
                               </div>
 
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                              <div className="flex flex-col gap-3 pt-2">
                                 <Button
                                   variant="outline"
-                                  className="h-12 border-primary/30 hover:bg-primary/10"
+                                  className="h-16 border-primary/30 hover:bg-primary/5 hover:border-primary flex items-center justify-start px-4 gap-4 transition-all group overflow-hidden relative"
                                   disabled={!!testSending || !testPhone.trim() || (ghostModeType === 'fixed' ? !ghostAudioUrl : !ttsText.trim())}
                                   onClick={async () => {
                                     setTestSending('audio');
@@ -1125,12 +1138,19 @@ export default function PropostasConfig() {
                                     }
                                   }}
                                 >
-                                  {testSending === 'audio' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4 mr-2" />}
-                                  Testar Áudio
+                                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                                    {testSending === 'audio' ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : <Mic className="h-5 w-5 text-primary" />}
+                                  </div>
+                                  <div className="text-left min-w-0 flex-1">
+                                    <p className="font-bold text-sm text-foreground">Testar Áudio</p>
+                                    <p className="text-[10px] text-muted-foreground truncate">Envia o áudio configurado via WhatsApp</p>
+                                  </div>
+                                  <div className="absolute right-0 top-0 h-full w-1 bg-primary/0 group-hover:bg-primary transition-all" />
                                 </Button>
+
                                 <Button
                                   variant="outline"
-                                  className="h-12 border-primary/30 hover:bg-primary/10"
+                                  className="h-16 border-primary/30 hover:bg-primary/5 hover:border-primary flex items-center justify-start px-4 gap-4 transition-all group overflow-hidden relative"
                                   disabled={!!testSending || !testPhone.trim() || !ghostVideoUrl}
                                   onClick={async () => {
                                     setTestSending('video');
@@ -1150,8 +1170,14 @@ export default function PropostasConfig() {
                                     }
                                   }}
                                 >
-                                  {testSending === 'video' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4 mr-2" />}
-                                  Testar Vídeo
+                                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                                    {testSending === 'video' ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : <Eye className="h-5 w-5 text-primary" />}
+                                  </div>
+                                  <div className="text-left min-w-0 flex-1">
+                                    <p className="font-bold text-sm text-foreground">Testar Vídeo</p>
+                                    <p className="text-[10px] text-muted-foreground truncate">Envia o vídeo configurado via WhatsApp</p>
+                                  </div>
+                                  <div className="absolute right-0 top-0 h-full w-1 bg-primary/0 group-hover:bg-primary transition-all" />
                                 </Button>
                               </div>
                             </div>
