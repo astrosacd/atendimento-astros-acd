@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Mail, MessageSquare, Save, Loader2, Eye, EyeOff, Palette, RefreshCcw, Info, Bell, Webhook, Plus, Trash2, Clock, Database } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, Mail, MessageSquare, Save, Loader2, Eye, EyeOff, Palette, RefreshCcw, Info, Bell, Webhook, Plus, Trash2, Clock, Database, Search, Mic } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useNavigate } from 'react-router-dom';
 import { useProposalSendConfig } from '@/hooks/useProposalSending';
@@ -64,6 +65,7 @@ export default function PropostasConfig() {
   const [voiceSearch, setVoiceSearch] = useState('');
   const [loadingVoices, setLoadingVoices] = useState(false);
   const [testPhone, setTestPhone] = useState('');
+  const [testClientName, setTestClientName] = useState('João Silva');
   const [testSending, setTestSending] = useState<'audio' | 'video' | null>(null);
   const [ttsLogs, setTtsLogs] = useState<any[]>([]);
   const [loadingTtsLogs, setLoadingTtsLogs] = useState(false);
@@ -604,14 +606,14 @@ export default function PropostasConfig() {
 
             {activeTab === 'auto-remarketing' && (
               <Card>
-                <CardHeader>
+                <CardHeader className="pb-3 border-b mb-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="flex items-center gap-2">
                         <RefreshCcw className="h-5 w-5 text-orange-500" />
-                        Remarketing Automático
+                        Remarketing & Modo Ghost
                       </CardTitle>
-                      <CardDescription>Envie follow-ups automáticos para clientes que visualizaram mas não assinaram</CardDescription>
+                      <CardDescription>Follow-ups automáticos e mensagens de voz/vídeo personalizadas</CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
                       <Label htmlFor="auto-remarketing-enabled">Ativado</Label>
@@ -619,512 +621,550 @@ export default function PropostasConfig() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-start gap-2 text-sm text-blue-600 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
-                    <Info className="h-4 w-4 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="font-medium">Como funciona?</p>
-                      <p className="mt-1 text-muted-foreground">
-                        Quando ativado, o sistema envia automaticamente uma mensagem de follow-up por dia para propostas
-                        com status "Visualizada". O envio para quando o cliente assinar, recusar, ou atingir o limite de dias configurado.
-                      </p>
-                    </div>
-                  </div>
+                <CardContent className="space-y-6 pt-2">
+                  <Tabs defaultValue="geral" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-8">
+                      <TabsTrigger value="geral" className="gap-2"><Clock className="h-4 w-4" /> Geral</TabsTrigger>
+                      <TabsTrigger value="vozes" className="gap-2"><Mic className="h-4 w-4" /> Vozes IA</TabsTrigger>
+                      <TabsTrigger value="ghost" className="gap-2">👻 Modo Ghost</TabsTrigger>
+                      <TabsTrigger value="logs" className="gap-2"><Database className="h-4 w-4" /> Logs</TabsTrigger>
+                    </TabsList>
 
-                  <div className="grid md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        Horário do envio (BRT)
-                      </Label>
-                      <Select value={String(autoRemarketingCronHour)} onValueChange={(v) => setAutoRemarketingCronHour(Number(v))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: 24 }, (_, i) => (
-                            <SelectItem key={i} value={String(i)}>{String(i).padStart(2, '0')}:00</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-muted-foreground">
-                        Todos os dias às {cronDisplayBRT} (Brasília) — {String(cronHourUTC).padStart(2, '0')}:00 UTC
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Quantidade de dias</Label>
-                      <Select value={String(autoRemarketingMaxDays)} onValueChange={(v) => setAutoRemarketingMaxDays(Number(v))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {[1, 2, 3, 5, 7, 10, 14].map((n) => (
-                            <SelectItem key={n} value={String(n)}>{n} {n === 1 ? 'dia' : 'dias'}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-muted-foreground">Quantos dias seguidos enviar remarketing após a visualização</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Canal de envio</Label>
-                      <Select value={autoRemarketingChannel} onValueChange={setAutoRemarketingChannel}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="email">Email</SelectItem>
-                          <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                          <SelectItem value="both">Ambos (Email + WhatsApp)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-muted-foreground">O canal precisa estar configurado nas abas de Email/WhatsApp</p>
-                    </div>
-                  </div>
-
-                  {/* Modo Ghost */}
-                  <div className="border-2 border-purple-500/40 bg-purple-500/5 rounded-lg p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-semibold flex items-center gap-2">
-                          👻 Modo Ghost — Áudio/Vídeo no WhatsApp
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Em um dia específico do remarketing, envia automaticamente um áudio ou vídeo seu pelo WhatsApp do cliente.
-                        </p>
+                    <TabsContent value="geral" className="space-y-6 animate-in fade-in-50 duration-300">
+                      <div className="flex items-start gap-3 text-sm text-blue-600 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200/50">
+                        <Info className="h-5 w-5 mt-0.5 shrink-0 text-blue-500" />
+                        <div>
+                          <p className="font-semibold">Como funciona o Remarketing?</p>
+                          <p className="mt-1 text-muted-foreground leading-relaxed">
+                            O sistema envia automaticamente um follow-up por dia para propostas
+                            "Visualizadas". O envio para quando o cliente assina, recusa ou atinge o limite de dias.
+                          </p>
+                        </div>
                       </div>
-                      <Switch checked={ghostModeEnabled} onCheckedChange={setGhostModeEnabled} />
-                    </div>
 
-                    {ghostModeEnabled && (
-                      <div className="space-y-4 pt-2 border-t border-purple-500/20">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Programar para o dia</Label>
-                            <Select value={String(ghostModeDay)} onValueChange={(v) => setGhostModeDay(Number(v))}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                {Array.from({ length: autoRemarketingMaxDays }, (_, i) => (
-                                  <SelectItem key={i + 1} value={String(i + 1)}>Dia {i + 1} do remarketing</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <p className="text-xs text-muted-foreground">Em qual dia do remarketing enviar o áudio/vídeo</p>
+                      <div className="grid md:grid-cols-3 gap-6">
+                        <div className="space-y-3 p-4 border rounded-lg bg-background/50">
+                          <Label className="flex items-center gap-2 font-semibold">
+                            <Clock className="h-4 w-4 text-primary" />
+                            Horário do envio
+                          </Label>
+                          <Select value={String(autoRemarketingCronHour)} onValueChange={(v) => setAutoRemarketingCronHour(Number(v))}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {Array.from({ length: 24 }, (_, i) => (
+                                <SelectItem key={i} value={String(i)}>{String(i).padStart(2, '0')}:00</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-[11px] text-muted-foreground">
+                            Todos os dias às {cronDisplayBRT} (Brasília)
+                          </p>
+                        </div>
+
+                        <div className="space-y-3 p-4 border rounded-lg bg-background/50">
+                          <Label className="font-semibold">Quantidade de dias</Label>
+                          <Select value={String(autoRemarketingMaxDays)} onValueChange={(v) => setAutoRemarketingMaxDays(Number(v))}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {[1, 2, 3, 5, 7, 10, 14].map((n) => (
+                                <SelectItem key={n} value={String(n)}>{n} {n === 1 ? 'dia' : 'dias'}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-[11px] text-muted-foreground">Duração da sequência de follow-ups</p>
+                        </div>
+
+                        <div className="space-y-3 p-4 border rounded-lg bg-background/50">
+                          <Label className="font-semibold">Canal de envio</Label>
+                          <Select value={autoRemarketingChannel} onValueChange={setAutoRemarketingChannel}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="email">Email</SelectItem>
+                              <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                              <SelectItem value="both">Ambos (Email + WhatsApp)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-[11px] text-muted-foreground">Escolha por onde o cliente receberá</p>
+                        </div>
+                      </div>
+
+                      <div className="bg-muted/30 border border-border rounded-lg p-5 space-y-3">
+                        <p className="text-sm font-semibold flex items-center gap-2">
+                          <RefreshCcw className="h-4 w-4" /> Fluxo de Exemplo:
+                        </p>
+                        <div className="text-sm space-y-2 text-muted-foreground">
+                          <div className="flex items-center gap-3">
+                            <span className="w-20 font-mono text-[10px] bg-muted px-2 py-0.5 rounded text-center">DIA 0</span>
+                            <span>Proposta enviada manualmente</span>
                           </div>
-                          <div className="space-y-2">
-                            <Label>Ou após X visualizações (opcional)</Label>
-                            <Input type="number" min={0} value={ghostViewThreshold} onChange={(e) => setGhostViewThreshold(Number(e.target.value))} />
-                            <p className="text-xs text-muted-foreground">0 = ignorar gatilho por visualizações</p>
+                          <div className="flex items-center gap-3">
+                            <span className="w-20 font-mono text-[10px] bg-blue-500/10 text-blue-600 px-2 py-0.5 rounded text-center">VISUALIZADA</span>
+                            <span>Cliente abre o link da proposta</span>
+                          </div>
+                          <div className="flex items-center gap-3 italic text-[11px] opacity-70">
+                            <span className="w-20 text-center">...</span>
+                            <span>Seguindo as regras de dias configuradas acima:</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="w-20 font-mono text-[10px] bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded text-center">FINAL</span>
+                            <span>Remarketing para ao assinar ou atingir limite</span>
                           </div>
                         </div>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="vozes" className="space-y-6 animate-in fade-in-50 duration-300">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-4">
-                          <div className="space-y-2">
-                            <Label>Tipo de Áudio Ghost</Label>
-                            <Select value={ghostModeType} onValueChange={(v: any) => setGhostModeType(v)}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="fixed">Áudio Fixo (Upload ou IA Salva)</SelectItem>
-                                <SelectItem value="dynamic">Áudio Dinâmico (IA gera com nome do cliente)</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <p className="text-[10px] text-muted-foreground">
-                              {ghostModeType === 'fixed' 
-                                ? 'O mesmo áudio será enviado para todos.' 
-                                : 'Um novo áudio será gerado para cada cliente usando o texto abaixo.'}
-                            </p>
-                          </div>
-
-                          {ghostModeType === 'fixed' && (
-                            <div className="space-y-2">
-                              <Label>Áudio Fixo (.mp3, .ogg, .opus)</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              type="file"
-                              accept="audio/*"
-                              disabled={uploadingGhost === 'audio'}
-                              onChange={async (e) => {
-                                const file = e.target.files?.[0];
-                                if (!file) return;
-                                setUploadingGhost('audio');
-                                try {
-                                  const ext = file.name.split('.').pop() || 'mp3';
-                                  const path = `ghost/audio-${Date.now()}.${ext}`;
-                                  const { error: upErr } = await supabase.storage.from('proposal-images').upload(path, file, { upsert: true, contentType: file.type });
-                                  if (upErr) throw upErr;
-                                  const { data } = supabase.storage.from('proposal-images').getPublicUrl(path);
-                                  setGhostAudioUrl(data.publicUrl);
-                                  toast.success('Áudio enviado!');
-                                } catch (err: any) {
-                                  toast.error('Erro no upload: ' + err.message);
-                                } finally {
-                                  setUploadingGhost(null);
-                                }
-                              }}
-                            />
-                            {uploadingGhost === 'audio' && <Loader2 className="h-5 w-5 animate-spin self-center" />}
-                          </div>
-                          {ghostAudioUrl && (
-                            <div className="flex items-center gap-2">
-                              <audio controls src={ghostAudioUrl} className="h-8 flex-1" />
-                              <Button type="button" variant="ghost" size="icon" onClick={() => setGhostAudioUrl('')}><Trash2 className="h-4 w-4" /></Button>
-                            </div>
-                          )}
-
-                            </div>
-                          )}
-
-                          {/* ElevenLabs TTS */}
-                          <div className="mt-4 border border-dashed border-border rounded-lg p-3 space-y-3 bg-muted/30">
+                          <div className="p-4 border rounded-lg bg-background/50 space-y-4">
                             <div className="flex items-center justify-between">
-                              <Label className="text-sm font-medium">🎙️ Gerar áudio com IA (ElevenLabs)</Label>
+                              <Label className="font-semibold flex items-center gap-2">
+                                <Search className="h-4 w-4" /> Configurar ElevenLabs
+                              </Label>
                               <Button
                                 type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 text-[10px] text-blue-500 hover:text-blue-600 px-2"
-                                onClick={fetchTtsLogs}
-                              >
-                                <Clock className="h-3 w-3 mr-1" />
-                                Histórico de Logs
-                              </Button>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                              <div className="space-y-1">
-                                <Label className="text-xs">Chave da API ElevenLabs</Label>
-                                <div className="relative">
-                                  <Input
-                                    type={showElevenKey ? 'text' : 'password'}
-                                    value={elevenlabsApiKey}
-                                    onChange={(e) => { setElevenlabsApiKey(e.target.value); setTtsPreviewUrl(null); }}
-                                    placeholder="sk_..."
-                                    className="pr-10"
-                                  />
-                                  <Button type="button" variant="ghost" size="icon" className="absolute right-0 top-0" onClick={() => setShowElevenKey(!showElevenKey)}>
-                                    {showElevenKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                  </Button>
-                                </div>
-                                <p className="text-[10px] text-muted-foreground">Pegue em elevenlabs.io → Profile → API Keys. Lembre de salvar.</p>
-                              </div>
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <Label className="text-xs">Voz ElevenLabs</Label>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 text-xs"
-                                    disabled={loadingVoices || !elevenlabsApiKey.trim()}
-                                    onClick={async () => {
-                                      setLoadingVoices(true);
-                                      try {
-                                        const data = await callElevenLabsFunction({ action: 'list_voices', apiKey: elevenlabsApiKey, voiceType: 'all' });
-                                        const list = data.voices || [];
-                                        setVoicesList(list);
-                                        if (list.length > 0 && !list.some((voice: any) => voice.voice_id === elevenlabsVoiceId)) {
-                                          setElevenlabsVoiceId(list[0].voice_id);
-                                        }
-                                        toast.success(`${list.length} vozes carregadas`);
-                                      } catch (err: any) {
-                                        toast.error('Erro ao listar vozes: ' + (err.message || err));
-                                      } finally {
-                                        setLoadingVoices(false);
-                                        fetchTtsLogs();
-                                      }
-                                    }}
-                                  >
-                                    {loadingVoices ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCcw className="h-3 w-3 mr-1" />}
-                                    Atualizar lista
-                                  </Button>
-                                </div>
-
-                                {selectedVoice ? (
-                                  <div className="rounded-md border border-border bg-background/70 p-2">
-                                    <div className="flex items-start justify-between gap-2">
-                                      <div className="min-w-0">
-                                        <p className="truncate text-sm font-medium text-foreground" title={selectedVoice.name}>{selectedVoice.name}</p>
-                                        <p className="truncate text-[10px] text-muted-foreground" title={selectedVoice.voice_id}>{selectedVoice.voice_id}</p>
-                                      </div>
-                                      <Badge variant="outline" className={cn('shrink-0 text-[10px]', getVoicePlanInfo(selectedVoice).className)}>
-                                        {getVoicePlanInfo(selectedVoice).label}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                ) : null}
-
-                                <Input
-                                  value={voiceSearch}
-                                  onChange={(e) => setVoiceSearch(e.target.value)}
-                                  disabled={voicesList.length === 0}
-                                  placeholder={voicesList.length === 0 ? 'Atualize a lista para buscar vozes' : 'Buscar por nome, idioma, tipo...'}
-                                  className="h-8 text-xs"
-                                />
-
-                                <div className="max-h-56 space-y-1 overflow-y-auto rounded-md border border-border bg-background/60 p-1">
-                                  {voicesList.length === 0 ? (
-                                    <div className="p-3 text-xs text-muted-foreground">
-                                      Cole a chave e clique em “Atualizar lista” para ver as vozes disponíveis na sua conta.
-                                    </div>
-                                  ) : filteredVoices.length === 0 ? (
-                                    <div className="p-3 text-xs text-muted-foreground">Nenhuma voz encontrada para essa busca.</div>
-                                  ) : (
-                                    filteredVoices.map((voice) => {
-                                      const plan = getVoicePlanInfo(voice);
-                                      return (
-                                        <button
-                                          key={voice.voice_id}
-                                          type="button"
-                                          onClick={() => setElevenlabsVoiceId(voice.voice_id)}
-                                          className={cn(
-                                            'w-full rounded-md border p-2 text-left transition-colors hover:bg-muted/70',
-                                            voice.voice_id === elevenlabsVoiceId ? 'border-primary bg-primary/10' : 'border-transparent bg-transparent'
-                                          )}
-                                        >
-                                          <div className="flex items-start justify-between gap-2">
-                                            <div className="min-w-0 flex-1">
-                                              <div className="flex items-center gap-2">
-                                                <span className="truncate text-sm font-medium text-foreground" title={voice.name}>{voice.name}</span>
-                                                {voice.voice_id === elevenlabsVoiceId && <Badge className="h-4 text-[9px]">Atual</Badge>}
-                                              </div>
-                                              <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-muted-foreground">
-                                                {voice.labels?.gender && <span>{voice.labels.gender}</span>}
-                                                {voice.labels?.language && <span>• {voice.labels.language}</span>}
-                                                {voice.category && <span>• {voice.category}</span>}
-                                              </div>
-                                            </div>
-                                            <Badge variant="outline" className={cn('shrink-0 text-[10px]', plan.className)}>{plan.label}</Badge>
-                                          </div>
-                                        </button>
-                                      );
-                                    })
-                                  )}
-                                </div>
-                                <p className="text-[10px] text-muted-foreground">
-                                  {!elevenlabsApiKey.trim()
-                                    ? '⚠️ Cole a chave da API acima para habilitar a listagem de vozes.'
-                                    : voicesList.length === 0
-                                    ? 'Clique em “Atualizar lista” para carregar suas vozes.'
-                                    : `${filteredVoices.length}/${voicesList.length} vozes exibidas. Prefira “Free / padrão” no plano gratuito; “Profissional” e “Biblioteca / pago” podem exigir assinatura.`}
-                                </p>
-                              </div>
-                          </div>
-                          
-                          {/* TTS Logs Area */}
-                          {ttsLogs.length > 0 && (
-                            <div className="mt-4 border rounded-md bg-slate-950 p-3 overflow-hidden">
-                              <div className="flex items-center justify-between mb-2">
-                                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                                  <Database className="h-3 w-3" /> Logs de Requisições TTS (Últimas 10)
-                                </h4>
-                                <Button variant="ghost" size="sm" className="h-5 text-[9px] text-slate-500 hover:text-slate-300 px-1" onClick={() => setTtsLogs([])}>
-                                  Limpar Vista
-                                </Button>
-                              </div>
-                              <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
-                                {ttsLogs.map((log) => (
-                                  <div key={log.id} className="text-[10px] font-mono border-b border-slate-800 pb-2 last:border-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className={cn(
-                                        "px-1 rounded",
-                                        log.status === 'success' ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
-                                      )}>
-                                        {log.status.toUpperCase()}
-                                      </span>
-                                      <span className="text-slate-500">{new Date(log.created_at).toLocaleTimeString()}</span>
-                                      <span className="text-slate-400">Action: {log.action}</span>
-                                      {log.response_time_ms && <span className="text-slate-600 ml-auto">{log.response_time_ms}ms</span>}
-                                    </div>
-                                    {log.text_preview && (
-                                      <div className="text-slate-300 truncate opacity-80 italic">" {log.text_preview}... "</div>
-                                    )}
-                                    {log.error_details && (
-                                      <div className="mt-1 text-red-300 bg-red-950/30 p-1.5 rounded border border-red-900/50 whitespace-pre-wrap">
-                                        {typeof log.error_details === 'string' 
-                                          ? log.error_details 
-                                          : JSON.stringify(log.error_details, null, 2)}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                            <Textarea
-                              value={ttsText}
-                              onChange={(e) => setTtsText(e.target.value)}
-                                placeholder="Ex: Oi {{nome_cliente}}, tudo bem? Vi aqui que você ainda não conferiu a proposta..."
-                                rows={3}
-                                maxLength={1000}
-                              />
-                              <p className="text-[10px] text-blue-500 font-medium">Use {"{{nome_cliente}}"} para falar o nome do cliente automaticamente no áudio dinâmico.</p>
-                            <div className="flex flex-wrap gap-2 items-center">
-                              <Button
-                                type="button"
-                                size="sm"
                                 variant="outline"
-                                disabled={ttsGenerating || !ttsText.trim() || !elevenlabsApiKey.trim()}
+                                size="sm"
+                                className="h-8"
+                                disabled={loadingVoices || !elevenlabsApiKey.trim()}
                                 onClick={async () => {
-                                  setTtsGenerating(true);
-                                  setTtsPreviewUrl(null);
+                                  setLoadingVoices(true);
                                   try {
-                                    const data = await callElevenLabsFunction({ text: ttsText, voiceId: elevenlabsVoiceId, save: false, apiKey: elevenlabsApiKey });
-                                    setTtsPreviewUrl(`data:audio/mpeg;base64,${data.audioContent}`);
+                                    const data = await callElevenLabsFunction({ action: 'list_voices', apiKey: elevenlabsApiKey, voiceType: 'all' });
+                                    const list = data.voices || [];
+                                    setVoicesList(list);
+                                    toast.success(`${list.length} vozes carregadas`);
                                   } catch (err: any) {
-                                    toast.error('Erro ao gerar: ' + (err.message || err));
+                                    toast.error('Erro ao listar vozes: ' + err.message);
                                   } finally {
-                                    setTtsGenerating(false);
-                                    fetchTtsLogs();
+                                    setLoadingVoices(false);
                                   }
                                 }}
                               >
-                                {ttsGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                                Gerar prévia
+                                {loadingVoices ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <RefreshCcw className="h-3 w-3 mr-2" />}
+                                Sincronizar Vozes
                               </Button>
-                              {ttsPreviewUrl && (
-                                <>
-                                  <audio controls src={ttsPreviewUrl} className="h-8 flex-1 min-w-[200px]" />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label className="text-xs">Chave da API</Label>
+                              <div className="relative">
+                                <Input
+                                  type={showElevenKey ? 'text' : 'password'}
+                                  value={elevenlabsApiKey}
+                                  onChange={(e) => { setElevenlabsApiKey(e.target.value); setTtsPreviewUrl(null); }}
+                                  placeholder="sk_..."
+                                  className="pr-10"
+                                />
+                                <Button type="button" variant="ghost" size="icon" className="absolute right-0 top-0" onClick={() => setShowElevenKey(!showElevenKey)}>
+                                  {showElevenKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                              </div>
+                            </div>
+
+                            {selectedVoice && (
+                              <div className="p-3 border-2 border-primary/20 bg-primary/5 rounded-lg space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Voz Selecionada</Label>
+                                  <Badge variant="outline" className={cn('text-[9px]', getVoicePlanInfo(selectedVoice).className)}>
+                                    {getVoicePlanInfo(selectedVoice).label}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <Mic className="h-5 w-5 text-primary" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-bold truncate">{selectedVoice.name}</p>
+                                    <p className="text-[10px] text-muted-foreground truncate">{selectedVoice.voice_id}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="space-y-2 pt-2 border-t mt-4">
+                              <Label className="font-semibold flex items-center gap-2">
+                                <MessageSquare className="h-4 w-4 text-purple-500" /> Texto do Áudio Dinâmico
+                              </Label>
+                              <Textarea
+                                value={ttsText}
+                                onChange={(e) => setTtsText(e.target.value)}
+                                placeholder="Ex: Oi {{nome_cliente}}, vi que você olhou a proposta..."
+                                rows={4}
+                                className="resize-none"
+                              />
+                              <p className="text-[10px] text-blue-500 font-medium">Use {"{{nome_cliente}}"} para falar o nome do cliente no áudio dinâmico.</p>
+                              
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="flex-1"
+                                  variant="secondary"
+                                  disabled={ttsGenerating || !ttsText.trim() || !elevenlabsApiKey.trim()}
+                                  onClick={async () => {
+                                    setTtsGenerating(true);
+                                    try {
+                                      const data = await callElevenLabsFunction({ text: ttsText.replace('{{nome_cliente}}', 'João'), voiceId: elevenlabsVoiceId, save: false, apiKey: elevenlabsApiKey });
+                                      setTtsPreviewUrl(`data:audio/mpeg;base64,${data.audioContent}`);
+                                      toast.success('Prévia gerada!');
+                                    } catch (err: any) {
+                                      toast.error('Erro: ' + err.message);
+                                    } finally {
+                                      setTtsGenerating(false);
+                                    }
+                                  }}
+                                >
+                                  {ttsGenerating ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <Mic className="h-3 w-3 mr-2" />}
+                                  Gerar Prévia
+                                </Button>
+                                {ttsPreviewUrl && (
                                   <Button
                                     type="button"
                                     size="sm"
+                                    variant="default"
                                     disabled={ttsSaving}
                                     onClick={async () => {
                                       setTtsSaving(true);
                                       try {
                                         const data = await callElevenLabsFunction({ text: ttsText, voiceId: elevenlabsVoiceId, save: true, apiKey: elevenlabsApiKey });
                                         setGhostAudioUrl(data.url);
-                                        setTtsPreviewUrl(null);
-                                        toast.success('Áudio salvo no Modo Ghost! Clique em "Salvar Remarketing" para aplicar.');
+                                        toast.success('Áudio salvo no Modo Ghost!');
                                       } catch (err: any) {
-                                        toast.error('Erro ao salvar: ' + (err.message || err));
+                                        toast.error('Erro: ' + err.message);
                                       } finally {
                                         setTtsSaving(false);
-                                        fetchTtsLogs();
                                       }
                                     }}
                                   >
-                                    {ttsSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                                    Usar este áudio
+                                    Usar no Ghost
                                   </Button>
-                                </>
+                                )}
+                              </div>
+                              {ttsPreviewUrl && <audio controls src={ttsPreviewUrl} className="h-8 w-full mt-2" />}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="p-4 border rounded-lg bg-background/50 flex flex-col h-full max-h-[500px]">
+                            <Label className="font-semibold mb-3 flex items-center gap-2">
+                              <Search className="h-4 w-4" /> Buscar Vozes
+                            </Label>
+                            <Input
+                              value={voiceSearch}
+                              onChange={(e) => setVoiceSearch(e.target.value)}
+                              placeholder="Nome, idioma ou tipo..."
+                              className="mb-4"
+                            />
+                            <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                              {voicesList.length === 0 ? (
+                                <div className="text-center py-12 text-muted-foreground space-y-2">
+                                  <Mic className="h-8 w-8 mx-auto opacity-20" />
+                                  <p className="text-xs">Sincronize as vozes para começar</p>
+                                </div>
+                              ) : filteredVoices.length === 0 ? (
+                                <p className="text-center py-8 text-xs text-muted-foreground">Nenhuma voz encontrada</p>
+                              ) : (
+                                filteredVoices.map((voice) => (
+                                  <button
+                                    key={voice.voice_id}
+                                    onClick={() => setElevenlabsVoiceId(voice.voice_id)}
+                                    className={cn(
+                                      "w-full text-left p-3 rounded-md border transition-all hover:shadow-sm",
+                                      voice.voice_id === elevenlabsVoiceId 
+                                        ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
+                                        : "border-border bg-transparent hover:bg-muted/50"
+                                    )}
+                                  >
+                                    <div className="flex items-start justify-between">
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2">
+                                          <p className="font-medium text-sm truncate">{voice.name}</p>
+                                          {voice.voice_id === elevenlabsVoiceId && <Badge className="h-4 text-[8px] uppercase">Atual</Badge>}
+                                        </div>
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                          {voice.labels?.language && <Badge variant="secondary" className="text-[8px] h-3 px-1">{voice.labels.language}</Badge>}
+                                          {voice.labels?.gender && <span className="text-[9px] text-muted-foreground">{voice.labels.gender}</span>}
+                                        </div>
+                                      </div>
+                                      <Badge variant="outline" className={cn('text-[8px] px-1', getVoicePlanInfo(voice).className)}>
+                                        {getVoicePlanInfo(voice).label}
+                                      </Badge>
+                                    </div>
+                                  </button>
+                                ))
                               )}
                             </div>
                           </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label>Vídeo (.mp4)</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              type="file"
-                              accept="video/mp4"
-                              disabled={uploadingGhost === 'video'}
-                              onChange={async (e) => {
-                                const file = e.target.files?.[0];
-                                if (!file) return;
-                                if (file.size > 16 * 1024 * 1024) {
-                                  toast.error('Vídeo deve ter no máximo 16MB (limite do WhatsApp)');
-                                  return;
-                                }
-                                setUploadingGhost('video');
-                                try {
-                                  const path = `ghost/video-${Date.now()}.mp4`;
-                                  const { error: upErr } = await supabase.storage.from('proposal-images').upload(path, file, { upsert: true, contentType: file.type });
-                                  if (upErr) throw upErr;
-                                  const { data } = supabase.storage.from('proposal-images').getPublicUrl(path);
-                                  setGhostVideoUrl(data.publicUrl);
-                                  toast.success('Vídeo enviado!');
-                                } catch (err: any) {
-                                  toast.error('Erro no upload: ' + err.message);
-                                } finally {
-                                  setUploadingGhost(null);
-                                }
-                              }}
-                            />
-                            {uploadingGhost === 'video' && <Loader2 className="h-5 w-5 animate-spin self-center" />}
-                          </div>
-                          {ghostVideoUrl && (
-                            <div className="flex items-center gap-2">
-                              <video controls src={ghostVideoUrl} className="h-20 flex-1 rounded" />
-                              <Button type="button" variant="ghost" size="icon" onClick={() => setGhostVideoUrl('')}><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="ghost" className="space-y-6 animate-in fade-in-50 duration-300">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <div className="p-5 border-2 border-purple-500/30 bg-purple-500/5 rounded-xl space-y-5">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-full bg-purple-500/20 flex items-center justify-center text-xl">
+                                  👻
+                                </div>
+                                <div>
+                                  <h3 className="font-bold text-purple-700 dark:text-purple-400">Status do Modo Ghost</h3>
+                                  <p className="text-xs text-muted-foreground">Envio de áudio/vídeo surpresa</p>
+                                </div>
+                              </div>
+                              <Switch checked={ghostModeEnabled} onCheckedChange={setGhostModeEnabled} className="data-[state=checked]:bg-purple-600" />
                             </div>
-                          )}
-                          <p className="text-xs text-muted-foreground">⚠️ O Modo Ghost envia <strong>somente pelo WhatsApp</strong>, mesmo que o canal esteja como "Ambos". Se enviar áudio e vídeo, o vídeo tem prioridade.</p>
+
+                            <div className="grid grid-cols-2 gap-4 border-t border-purple-200/50 pt-4">
+                              <div className="space-y-2">
+                                <Label className="text-xs font-semibold">Gatilho por Dia</Label>
+                                <Select value={String(ghostModeDay)} onValueChange={(v) => setGhostModeDay(Number(v))}>
+                                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    {Array.from({ length: autoRemarketingMaxDays }, (_, i) => (
+                                      <SelectItem key={i + 1} value={String(i + 1)}>Dia {i + 1}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs font-semibold">Gatilho por Visualização</Label>
+                                <Input type="number" min={0} value={ghostViewThreshold} onChange={(e) => setGhostViewThreshold(Number(e.target.value))} className="h-9" />
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="text-xs font-semibold">Formato do Ghost</Label>
+                              <Select value={ghostModeType} onValueChange={(v: any) => setGhostModeType(v)}>
+                                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="fixed">Fixo (Upload ou IA Salva)</SelectItem>
+                                  <SelectItem value="dynamic">Dinâmico (IA gera na hora)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          <div className="p-5 border rounded-xl bg-background/50 space-y-4">
+                            <h3 className="font-bold flex items-center gap-2"><Plus className="h-4 w-4" /> Mídias do Ghost</h3>
+                            
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <Label className="text-xs">Áudio Fixo (.mp3, .ogg)</Label>
+                                <div className="flex gap-2">
+                                  <Input
+                                    type="file"
+                                    accept="audio/*"
+                                    className="h-9 text-xs"
+                                    disabled={uploadingGhost === 'audio'}
+                                    onChange={async (e) => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      setUploadingGhost('audio');
+                                      try {
+                                        const ext = file.name.split('.').pop() || 'mp3';
+                                        const path = `ghost/audio-${Date.now()}.${ext}`;
+                                        const { error: upErr } = await supabase.storage.from('proposal-images').upload(path, file, { upsert: true, contentType: file.type });
+                                        if (upErr) throw upErr;
+                                        const { data } = supabase.storage.from('proposal-images').getPublicUrl(path);
+                                        setGhostAudioUrl(data.publicUrl);
+                                        toast.success('Áudio enviado!');
+                                      } catch (err: any) {
+                                        toast.error('Erro: ' + err.message);
+                                      } finally {
+                                        setUploadingGhost(null);
+                                      }
+                                    }}
+                                  />
+                                  {uploadingGhost === 'audio' && <Loader2 className="h-4 w-4 animate-spin self-center" />}
+                                </div>
+                                {ghostAudioUrl && (
+                                  <div className="flex items-center gap-2 bg-muted p-2 rounded-lg">
+                                    <audio controls src={ghostAudioUrl} className="h-7 flex-1" />
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setGhostAudioUrl('')}><Trash2 className="h-3 w-3" /></Button>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="space-y-2 border-t pt-4">
+                                <Label className="text-xs">Vídeo (.mp4)</Label>
+                                <div className="flex gap-2">
+                                  <Input
+                                    type="file"
+                                    accept="video/mp4"
+                                    className="h-9 text-xs"
+                                    disabled={uploadingGhost === 'video'}
+                                    onChange={async (e) => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      if (file.size > 16 * 1024 * 1024) { toast.error('Máximo 16MB'); return; }
+                                      setUploadingGhost('video');
+                                      try {
+                                        const path = `ghost/video-${Date.now()}.mp4`;
+                                        const { error: upErr } = await supabase.storage.from('proposal-images').upload(path, file, { upsert: true, contentType: file.type });
+                                        if (upErr) throw upErr;
+                                        const { data } = supabase.storage.from('proposal-images').getPublicUrl(path);
+                                        setGhostVideoUrl(data.publicUrl);
+                                        toast.success('Vídeo enviado!');
+                                      } catch (err: any) {
+                                        toast.error('Erro: ' + err.message);
+                                      } finally {
+                                        setUploadingGhost(null);
+                                      }
+                                    }}
+                                  />
+                                  {uploadingGhost === 'video' && <Loader2 className="h-4 w-4 animate-spin self-center" />}
+                                </div>
+                                {ghostVideoUrl && (
+                                  <div className="flex flex-col gap-2 bg-muted p-2 rounded-lg">
+                                    <video src={ghostVideoUrl} className="h-32 rounded w-full object-cover" controls />
+                                    <Button variant="destructive" size="sm" className="h-7 w-full" onClick={() => setGhostVideoUrl('')}><Trash2 className="h-3 w-3 mr-1" /> Remover Vídeo</Button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </div>
 
-                        {/* Teste rápido */}
-                        <div className="border border-dashed border-primary/40 rounded-lg p-3 space-y-2 bg-primary/5">
-                          <Label className="text-sm font-medium">🧪 Testar envio para um número</Label>
-                          <div className="flex flex-wrap gap-2 items-center">
-                            <Input
-                              placeholder="Ex: 5544999999999"
-                              value={testPhone}
-                              onChange={(e) => setTestPhone(e.target.value)}
-                              className="flex-1 min-w-[180px]"
-                            />
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                                disabled={!!testSending || !testPhone.trim() || (ghostModeType === 'fixed' ? !ghostAudioUrl : !ttsText.trim())}
-                                onClick={async () => {
-                                  setTestSending('audio');
-                                  try {
-                                    // Salvar as configurações localmente primeiro para garantir que o Edge Function as veja
-                                    await handleSave();
-                                    const data = await callGhostTestSendFunction({ phone: testPhone, mediaType: 'audio', clientName: 'João Silva', mediaUrl: ghostModeType === 'fixed' ? ghostAudioUrl : undefined });
-                                    toast.success(`Áudio enviado para ${data.sentTo}`);
-                                } catch (err: any) {
-                                  toast.error('Erro: ' + (err.message || err));
-                                } finally {
-                                  setTestSending(null);
-                                }
-                              }}
-                            >
-                              {testSending === 'audio' ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-                              Enviar áudio
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              disabled={!!testSending || !testPhone.trim() || !ghostVideoUrl}
-                              onClick={async () => {
-                                setTestSending('video');
-                                try {
-                                  // Salvar as configurações localmente primeiro para garantir que o Edge Function as veja
-                                  await handleSave();
-                                  const data = await callGhostTestSendFunction({ phone: testPhone, mediaType: 'video', mediaUrl: ghostVideoUrl });
-                                  toast.success(`Vídeo enviado para ${data.sentTo}`);
-                                } catch (err: any) {
-                                  toast.error('Erro: ' + (err.message || err));
-                                } finally {
-                                  setTestSending(null);
-                                }
-                              }}
-                            >
-                              {testSending === 'video' ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-                              Enviar vídeo
-                            </Button>
+                        <div className="space-y-4">
+                          <div className="p-5 border-2 border-primary/30 bg-primary/5 rounded-xl space-y-4">
+                            <h3 className="font-bold flex items-center gap-2"><RefreshCcw className="h-4 w-4" /> Laboratório de Testes</h3>
+                            <p className="text-xs text-muted-foreground">Simule o envio exatamente como o cliente receberá.</p>
+                            
+                            <div className="space-y-3">
+                              <div className="space-y-1.5">
+                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Número de Destino</Label>
+                                <Input placeholder="5544999999999" value={testPhone} onChange={(e) => setTestPhone(e.target.value)} />
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Nome para Variável {"{{nome_cliente}}"}</Label>
+                                <Input placeholder="Ex: João Silva" value={testClientName} onChange={(e) => setTestClientName(e.target.value)} />
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-3 pt-2">
+                                <Button
+                                  variant="outline"
+                                  className="h-12 border-primary/30 hover:bg-primary/10"
+                                  disabled={!!testSending || !testPhone.trim() || (ghostModeType === 'fixed' ? !ghostAudioUrl : !ttsText.trim())}
+                                  onClick={async () => {
+                                    setTestSending('audio');
+                                    try {
+                                      await handleSave();
+                                      const data = await callGhostTestSendFunction({ 
+                                        phone: testPhone, 
+                                        mediaType: 'audio', 
+                                        clientName: testClientName, 
+                                        mediaUrl: ghostModeType === 'fixed' ? ghostAudioUrl : undefined 
+                                      });
+                                      toast.success(`Áudio enviado com sucesso!`);
+                                    } catch (err: any) {
+                                      toast.error('Falha no envio: ' + err.message);
+                                    } finally {
+                                      setTestSending(null);
+                                    }
+                                  }}
+                                >
+                                  {testSending === 'audio' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4 mr-2" />}
+                                  Testar Áudio
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  className="h-12 border-primary/30 hover:bg-primary/10"
+                                  disabled={!!testSending || !testPhone.trim() || !ghostVideoUrl}
+                                  onClick={async () => {
+                                    setTestSending('video');
+                                    try {
+                                      await handleSave();
+                                      const data = await callGhostTestSendFunction({ 
+                                        phone: testPhone, 
+                                        mediaType: 'video', 
+                                        clientName: testClientName, 
+                                        mediaUrl: ghostVideoUrl 
+                                      });
+                                      toast.success(`Vídeo enviado com sucesso!`);
+                                    } catch (err: any) {
+                                      toast.error('Falha no envio: ' + err.message);
+                                    } finally {
+                                      setTestSending(null);
+                                    }
+                                  }}
+                                >
+                                  {testSending === 'video' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4 mr-2" />}
+                                  Testar Vídeo
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                              <p className="text-[10px] text-yellow-700 dark:text-yellow-400 leading-relaxed italic">
+                                💡 Dica: Se usar Áudio Dinâmico, o sistema gerará uma fala exclusiva para o nome <strong>"{testClientName}"</strong> durante este teste.
+                              </p>
+                            </div>
                           </div>
-                          <p className="text-[11px] text-muted-foreground">
-                            Use o número completo com DDI+DDD (ex: 5544999999999). Se for áudio dinâmico, o teste usará o nome "João Silva".
-                          </p>
                         </div>
                       </div>
-                    )}
-                  </div>
+                    </TabsContent>
 
-                  <div className="bg-muted/50 border border-border rounded-lg p-4 space-y-3">
-                    <p className="text-sm font-medium">Exemplo de fluxo:</p>
-                    <div className="text-sm space-y-1 text-muted-foreground">
-                      <p>📤 <strong>Dia 0:</strong> Proposta enviada manualmente</p>
-                      <p>👁️ <strong>Cliente visualiza:</strong> Status muda para "Visualizada"</p>
-                      {Array.from({ length: Math.min(autoRemarketingMaxDays, 5) }, (_, i) => (
-                        <p key={i}>🔄 <strong>Dia {i + 1}:</strong> Remarketing automático enviado às {cronDisplayBRT}</p>
-                      ))}
-                      {autoRemarketingMaxDays > 5 && <p>🔄 <strong>...</strong> até o dia {autoRemarketingMaxDays}</p>}
-                      <p>✅ <strong>Se assinar:</strong> Remarketing para automaticamente</p>
-                      <p>❌ <strong>Se recusar:</strong> Remarketing para automaticamente</p>
-                    </div>
-                  </div>
-                  <div className="flex justify-end pt-4">
-                    <Button onClick={handleSave} disabled={updateConfig.isPending}>
+                    <TabsContent value="logs" className="animate-in fade-in-50 duration-300">
+                      <div className="border rounded-xl bg-slate-950 p-5 overflow-hidden shadow-inner">
+                        <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-800">
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded bg-slate-800 flex items-center justify-center">
+                              <Database className="h-4 w-4 text-blue-400" />
+                            </div>
+                            <h4 className="text-sm font-bold text-slate-200">Histórico de Requisições IA</h4>
+                          </div>
+                          <Button variant="ghost" size="sm" className="h-7 text-xs text-slate-500 hover:text-slate-300" onClick={fetchTtsLogs}>
+                            <RefreshCcw className="h-3 w-3 mr-1" /> Atualizar
+                          </Button>
+                        </div>
+                        
+                        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar font-mono text-[11px]">
+                          {loadingTtsLogs ? (
+                            <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-blue-500" /></div>
+                          ) : ttsLogs.length === 0 ? (
+                            <p className="text-center py-12 text-slate-600 italic">Nenhum log disponível no momento.</p>
+                          ) : (
+                            ttsLogs.map((log) => (
+                              <div key={log.id} className="p-3 rounded border border-slate-800 bg-slate-900/50 hover:bg-slate-900 transition-colors text-[10px]">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Badge variant="outline" className={cn(
+                                    "text-[9px] h-4",
+                                    log.status === 'success' ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-red-500/20 text-red-400 border-red-500/30"
+                                  )}>
+                                    {log.status.toUpperCase()}
+                                  </Badge>
+                                  <span className="text-slate-500">{new Date(log.created_at).toLocaleString()}</span>
+                                  {log.response_time_ms && <span className="text-blue-500 ml-auto">{log.response_time_ms}ms</span>}
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 text-slate-400 mb-2">
+                                  <div className="truncate">Ação: <span className="text-slate-200">{log.action}</span></div>
+                                  <div className="truncate">Voz: <span className="text-slate-200">{log.voice_id || 'N/A'}</span></div>
+                                </div>
+                                {log.text_preview && (
+                                  <div className="bg-slate-950 p-2 rounded mb-2 text-slate-300 italic opacity-80 truncate">
+                                    "{log.text_preview}..."
+                                  </div>
+                                )}
+                                {log.error_details && (
+                                  <div className="bg-red-950/20 p-2 rounded border border-red-900/30 text-red-300 whitespace-pre-wrap overflow-x-auto">
+                                    {typeof log.error_details === 'string' ? log.error_details : JSON.stringify(log.error_details, null, 2)}
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+
+                  <div className="flex justify-end pt-6 border-t mt-6">
+                    <Button onClick={handleSave} disabled={updateConfig.isPending} size="lg" className="px-8 shadow-md">
                       {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                      Salvar Remarketing
+                      Salvar Todas as Configurações
                     </Button>
                   </div>
                 </CardContent>
