@@ -64,6 +64,8 @@ export default function PropostasConfig() {
   const [voicesList, setVoicesList] = useState<Array<{ voice_id: string; name: string; category?: string; voice_type?: string; labels?: any; preview_url?: string }>>([]);
   const [voiceSearch, setVoiceSearch] = useState('');
   const [loadingVoices, setLoadingVoices] = useState(false);
+  const [onlyFreeVoices, setOnlyFreeVoices] = useState(true);
+  const [voicesAutoSynced, setVoicesAutoSynced] = useState(false);
   const [testPhone, setTestPhone] = useState('');
   const [testClientName, setTestClientName] = useState('João Silva');
   const [testSending, setTestSending] = useState<'audio' | 'video' | null>(null);
@@ -449,13 +451,31 @@ export default function PropostasConfig() {
   const cronHourUTC = ((autoRemarketingCronHour + 3) % 24);
   const cronDisplayBRT = `${String(autoRemarketingCronHour).padStart(2, '0')}:00`;
   const selectedVoice = voicesList.find((voice) => voice.voice_id === elevenlabsVoiceId);
+  const isFreeVoice = (voice: { category?: string; voice_type?: string }) => {
+    const c = String(voice.category || '').toLowerCase();
+    const t = String(voice.voice_type || '').toLowerCase();
+    return t === 'default' || c === 'premade' || c === 'generated';
+  };
   const filteredVoices = voicesList.filter((voice) => {
+    if (onlyFreeVoices && !isFreeVoice(voice)) return false;
     const query = voiceSearch.trim().toLowerCase();
     if (!query) return true;
     return [voice.name, voice.voice_id, voice.category, voice.voice_type, voice.labels?.gender, voice.labels?.accent, voice.labels?.language]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(query));
   });
+
+  // Auto-sync voices once when API key is configured
+  useEffect(() => {
+    if (voicesAutoSynced || voicesList.length > 0 || !elevenlabsApiKey.trim() || loadingVoices) return;
+    setVoicesAutoSynced(true);
+    setLoadingVoices(true);
+    callElevenLabsFunction({ action: 'list_voices', apiKey: elevenlabsApiKey, voiceType: 'all' })
+      .then((data) => setVoicesList(data.voices || []))
+      .catch(() => { /* silent */ })
+      .finally(() => setLoadingVoices(false));
+  }, [elevenlabsApiKey, voicesAutoSynced, voicesList.length, loadingVoices]);
+
 
   if (isLoading) {
     return (
@@ -762,23 +782,26 @@ export default function PropostasConfig() {
                               </div>
                             </div>
 
-                            {selectedVoice && (
-                              <div className="p-3 border-2 border-primary/20 bg-primary/5 rounded-lg space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Voz Selecionada</Label>
-                                  <Badge variant="outline" className={cn('text-[9px]', getVoicePlanInfo(selectedVoice).className)}>
-                                    {getVoicePlanInfo(selectedVoice).label}
-                                  </Badge>
-                                </div>
+                            {selectedVoice ? (
+                              <div className="p-3 border-2 border-primary/30 bg-primary/5 rounded-lg">
                                 <div className="flex items-center gap-3">
-                                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                  <div className="h-10 w-10 shrink-0 rounded-full bg-primary/15 flex items-center justify-center">
                                     <Mic className="h-5 w-5 text-primary" />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="font-bold truncate">{selectedVoice.name}</p>
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-bold text-sm truncate">{selectedVoice.name}</p>
+                                      <Badge variant="outline" className={cn('text-[9px] shrink-0', getVoicePlanInfo(selectedVoice).className)}>
+                                        {getVoicePlanInfo(selectedVoice).label}
+                                      </Badge>
+                                    </div>
                                     <p className="text-[10px] text-muted-foreground truncate">{selectedVoice.voice_id}</p>
                                   </div>
                                 </div>
+                              </div>
+                            ) : (
+                              <div className="p-3 border-2 border-dashed border-amber-500/40 bg-amber-500/5 rounded-lg text-center">
+                                <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">⚠️ Selecione uma voz na lista ao lado para continuar</p>
                               </div>
                             )}
 
@@ -794,19 +817,33 @@ export default function PropostasConfig() {
                                 className="resize-none"
                               />
                               <p className="text-[10px] text-blue-500 font-medium">Use {"{{nome_cliente}}"} para falar o nome do cliente no áudio dinâmico.</p>
-                              
-                              <div className="flex gap-2">
+
+                              <div className="space-y-1.5 pt-1">
+                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Nome para teste da variável {"{{nome_cliente}}"}</Label>
+                                <Input
+                                  placeholder="Ex: João Silva"
+                                  value={testClientName}
+                                  onChange={(e) => setTestClientName(e.target.value)}
+                                  className="h-9"
+                                />
+                              </div>
+
+                              <div className="flex gap-2 pt-1">
                                 <Button
                                   type="button"
                                   size="sm"
                                   className="flex-1"
                                   variant="secondary"
-                                  disabled={ttsGenerating || !ttsText.trim() || !elevenlabsApiKey.trim()}
+                                  disabled={ttsGenerating || !ttsText.trim() || !elevenlabsApiKey.trim() || !elevenlabsVoiceId || !selectedVoice}
                                   onClick={async () => {
+                                    if (!testClientName.trim()) {
+                                      toast.error('Digite um nome para testar a variável {{nome_cliente}}');
+                                      return;
+                                    }
                                     setTtsGenerating(true);
                                       try {
                                         const data = await callElevenLabsFunction({ 
-                                          text: ttsText.replace(/{{nome_cliente}}/g, testClientName || 'João'), 
+                                          text: ttsText.replace(/\{\{\s*nome_cliente\s*\}\}/gi, testClientName), 
                                           voiceId: elevenlabsVoiceId, 
                                           save: false, 
                                           apiKey: elevenlabsApiKey 
@@ -828,12 +865,12 @@ export default function PropostasConfig() {
                                     type="button"
                                     size="sm"
                                     variant="default"
-                                    disabled={ttsSaving}
+                                    disabled={ttsSaving || !elevenlabsVoiceId || !selectedVoice}
                                     onClick={async () => {
                                       setTtsSaving(true);
                                       try {
                                         const data = await callElevenLabsFunction({ 
-                                          text: ttsText.replace(/{{nome_cliente}}/g, testClientName || 'Cliente'), 
+                                          text: ttsText.replace(/\{\{\s*nome_cliente\s*\}\}/gi, testClientName || 'Cliente'), 
                                           voiceId: elevenlabsVoiceId, 
                                           save: true, 
                                           apiKey: elevenlabsApiKey 
@@ -865,8 +902,18 @@ export default function PropostasConfig() {
                               value={voiceSearch}
                               onChange={(e) => setVoiceSearch(e.target.value)}
                               placeholder="Nome, idioma ou tipo..."
-                              className="mb-4"
+                              className="mb-2"
                             />
+                            <label className="flex items-start gap-2 mb-3 text-[11px] cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={onlyFreeVoices}
+                                onChange={(e) => setOnlyFreeVoices(e.target.checked)}
+                                className="h-3 w-3 mt-0.5 accent-primary"
+                              />
+                              <span className="text-muted-foreground">Mostrar apenas vozes <strong className="text-primary">gratuitas / padrão</strong> (evita erro de plano pago)</span>
+                            </label>
+
                             <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                               {voicesList.length === 0 ? (
                                 <div className="text-center py-12 text-muted-foreground space-y-2">
