@@ -361,7 +361,7 @@ export default function PropostasConfig() {
   };
 
   const handleSave = async () => {
-    updateConfig.mutate({
+    await updateConfig.mutateAsync({
       gmail_user: gmailUser || null,
       gmail_app_password: gmailAppPassword || null,
       gmail_sender_name: gmailSenderName || null,
