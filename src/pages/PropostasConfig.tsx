@@ -623,11 +623,11 @@ export default function PropostasConfig() {
                 </CardHeader>
                 <CardContent className="space-y-6 pt-2">
                   <Tabs defaultValue="geral" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-8">
-                      <TabsTrigger value="geral" className="gap-2"><Clock className="h-4 w-4" /> Geral</TabsTrigger>
-                      <TabsTrigger value="vozes" className="gap-2"><Mic className="h-4 w-4" /> Vozes IA</TabsTrigger>
-                      <TabsTrigger value="ghost" className="gap-2">👻 Modo Ghost</TabsTrigger>
-                      <TabsTrigger value="logs" className="gap-2"><Database className="h-4 w-4" /> Logs</TabsTrigger>
+                    <TabsList className="flex flex-wrap h-auto w-full gap-1 bg-muted p-1 mb-8">
+                      <TabsTrigger value="geral" className="flex-1 min-w-[120px] gap-2"><Clock className="h-4 w-4" /> Geral</TabsTrigger>
+                      <TabsTrigger value="vozes" className="flex-1 min-w-[120px] gap-2"><Mic className="h-4 w-4" /> Vozes IA</TabsTrigger>
+                      <TabsTrigger value="ghost" className="flex-1 min-w-[120px] gap-2">👻 Modo Ghost</TabsTrigger>
+                      <TabsTrigger value="logs" className="flex-1 min-w-[120px] gap-2"><Database className="h-4 w-4" /> Logs</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="geral" className="space-y-6 animate-in fade-in-50 duration-300">
@@ -804,11 +804,16 @@ export default function PropostasConfig() {
                                   disabled={ttsGenerating || !ttsText.trim() || !elevenlabsApiKey.trim()}
                                   onClick={async () => {
                                     setTtsGenerating(true);
-                                    try {
-                                      const data = await callElevenLabsFunction({ text: ttsText.replace('{{nome_cliente}}', 'João'), voiceId: elevenlabsVoiceId, save: false, apiKey: elevenlabsApiKey });
-                                      setTtsPreviewUrl(`data:audio/mpeg;base64,${data.audioContent}`);
-                                      toast.success('Prévia gerada!');
-                                    } catch (err: any) {
+                                      try {
+                                        const data = await callElevenLabsFunction({ 
+                                          text: ttsText.replace(/{{nome_cliente}}/g, testClientName || 'João'), 
+                                          voiceId: elevenlabsVoiceId, 
+                                          save: false, 
+                                          apiKey: elevenlabsApiKey 
+                                        });
+                                        setTtsPreviewUrl(`data:audio/mpeg;base64,${data.audioContent}`);
+                                        toast.success('Prévia gerada!');
+                                      } catch (err: any) {
                                       toast.error('Erro: ' + err.message);
                                     } finally {
                                       setTtsGenerating(false);
@@ -827,7 +832,12 @@ export default function PropostasConfig() {
                                     onClick={async () => {
                                       setTtsSaving(true);
                                       try {
-                                        const data = await callElevenLabsFunction({ text: ttsText, voiceId: elevenlabsVoiceId, save: true, apiKey: elevenlabsApiKey });
+                                        const data = await callElevenLabsFunction({ 
+                                          text: ttsText.replace(/{{nome_cliente}}/g, testClientName || 'Cliente'), 
+                                          voiceId: elevenlabsVoiceId, 
+                                          save: true, 
+                                          apiKey: elevenlabsApiKey 
+                                        });
                                         setGhostAudioUrl(data.url);
                                         toast.success('Áudio salvo no Modo Ghost!');
                                       } catch (err: any) {
@@ -1056,7 +1066,7 @@ export default function PropostasConfig() {
                                       const data = await callGhostTestSendFunction({ 
                                         phone: testPhone, 
                                         mediaType: 'audio', 
-                                        clientName: testClientName, 
+                                        clientName: testClientName || 'Cliente', 
                                         mediaUrl: ghostModeType === 'fixed' ? ghostAudioUrl : undefined 
                                       });
                                       toast.success(`Áudio enviado com sucesso!`);
