@@ -36,19 +36,41 @@ const describeElevenLabsError = (raw: string, status: number) => {
 };
 
 Deno.serve(async (req) => {
+  const startTime = Date.now();
   console.log(`Request received: ${req.method} ${new URL(req.url).pathname}`);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  let action = 'unknown';
+  let userId: string | null = null;
+  let textPreview: string | null = null;
+  let voiceId: string | null = null;
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+  const logRequest = async (status: string, errorDetails: any = null) => {
+    try {
+      await supabase.from('proposal_tts_logs').insert({
+        user_id: userId,
+        status,
+        action,
+        text_preview: textPreview,
+        voice_id: voiceId,
+        error_details: errorDetails,
+        response_time_ms: Date.now() - startTime,
+      });
+    } catch (e) {
+      console.error("Error logging TTS request:", e);
+    }
+  };
 
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Missing auth" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
 
     // Validate user
     const userClient = createClient(
@@ -60,16 +82,20 @@ Deno.serve(async (req) => {
     if (!user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    userId = user.id;
 
     const body = await req.json().catch(() => ({}));
-    const action = String(body?.action || 'generate');
+    action = String(body?.action || 'generate');
     let text = String(body?.text || "").trim();
-    const voiceId = String(body?.voiceId || ""); // Optional if using config default
+    voiceId = String(body?.voiceId || "");
     const save = Boolean(body?.save);
     const overrideKey = typeof body?.apiKey === 'string' ? body.apiKey.trim() : '';
+    textPreview = text.substring(0, 100);
 
-    if (action === 'generate' && (!text || text.length > 1000)) {
-      return new Response(JSON.stringify({ error: "Texto inválido (1-1000 caracteres)" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (action === 'generate' && (!text || text.length > 5000)) {
+      const err = "Texto inválido (1-5000 caracteres)";
+      await logRequest('error', { error: err });
+      return new Response(JSON.stringify({ error: err }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Read API key from proposal_send_config
@@ -81,16 +107,14 @@ Deno.serve(async (req) => {
 
     const apiKey = overrideKey || config?.elevenlabs_api_key;
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "Chave da ElevenLabs não configurada" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const err = "Chave da ElevenLabs não configurada";
+      await logRequest('error', { error: err });
+      return new Response(JSON.stringify({ error: err }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Resolve voice and text for generation
     const finalVoiceId = voiceId || config?.elevenlabs_voice_id || "JBFqnCBsd6RMkjVDRZzb";
     const finalText = text || config?.tts_text || "";
-
-    if (action === 'generate' && (!finalText || finalText.length > 5000)) {
-      return new Response(JSON.stringify({ error: "Texto inválido (1-5000 caracteres)" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
 
     // List voices action
     if (action === 'list_voices') {
@@ -101,6 +125,7 @@ Deno.serve(async (req) => {
       if (!vRes.ok) {
         const errText = await vRes.text();
         const err = describeElevenLabsError(errText, vRes.status);
+        await logRequest('error', { raw: errText, ...err, status: vRes.status });
         return new Response(JSON.stringify({ error: err.message, code: err.code }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       const vJson = await vRes.json();
@@ -112,6 +137,7 @@ Deno.serve(async (req) => {
         labels: v.labels || {},
         preview_url: v.preview_url,
       }));
+      await logRequest('success');
       return new Response(JSON.stringify({ voices }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -134,6 +160,7 @@ Deno.serve(async (req) => {
     if (!ttsRes.ok) {
       const errText = await ttsRes.text();
       const err = describeElevenLabsError(errText, ttsRes.status);
+      await logRequest('error', { raw: errText, ...err, status: ttsRes.status });
       return new Response(JSON.stringify({ error: err.message, code: err.code }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -147,9 +174,11 @@ Deno.serve(async (req) => {
         .from("proposal-images")
         .upload(path, audioBytes, { upsert: true, contentType: "audio/mpeg" });
       if (upErr) {
+        await logRequest('error', { error: `Upload: ${upErr.message}` });
         return new Response(JSON.stringify({ error: `Upload: ${upErr.message}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       const { data: pub } = supabase.storage.from("proposal-images").getPublicUrl(path);
+      await logRequest('success');
       return new Response(JSON.stringify({ url: pub.publicUrl }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -157,10 +186,12 @@ Deno.serve(async (req) => {
 
     // Return preview as base64
     const base64 = base64Encode(audioBytes);
+    await logRequest('success');
     return new Response(JSON.stringify({ audioContent: base64 }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
+    await logRequest('error', { error: e.message });
     return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

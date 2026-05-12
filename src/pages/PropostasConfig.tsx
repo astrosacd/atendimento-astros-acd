@@ -64,6 +64,8 @@ export default function PropostasConfig() {
   const [loadingVoices, setLoadingVoices] = useState(false);
   const [testPhone, setTestPhone] = useState('');
   const [testSending, setTestSending] = useState<'audio' | 'video' | null>(null);
+  const [ttsLogs, setTtsLogs] = useState<any[]>([]);
+  const [loadingTtsLogs, setLoadingTtsLogs] = useState(false);
 
   // Status notifications
   const [statusNotifEnabled, setStatusNotifEnabled] = useState(false);
@@ -178,6 +180,30 @@ export default function PropostasConfig() {
     }
     fetchLogs();
   }, []);
+
+  // Fetch TTS logs
+  const fetchTtsLogs = async () => {
+    setLoadingTtsLogs(true);
+    try {
+      const { data, error } = await supabase
+        .from('proposal_tts_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      setTtsLogs(data || []);
+    } catch (err: any) {
+      console.error('Error fetching TTS logs:', err);
+    } finally {
+      setLoadingTtsLogs(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'auto-remarketing') {
+      fetchTtsLogs();
+    }
+  }, [activeTab]);
 
   // Fetch Baserow config
   useEffect(() => {
@@ -713,6 +739,16 @@ export default function PropostasConfig() {
                           <div className="mt-4 border border-dashed border-border rounded-lg p-3 space-y-3 bg-muted/30">
                             <div className="flex items-center justify-between">
                               <Label className="text-sm font-medium">🎙️ Gerar áudio com IA (ElevenLabs)</Label>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-[10px] text-blue-500 hover:text-blue-600 px-2"
+                                onClick={fetchTtsLogs}
+                              >
+                                <Clock className="h-3 w-3 mr-1" />
+                                Histórico de Logs
+                              </Button>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                               <div className="space-y-1">
@@ -752,9 +788,10 @@ export default function PropostasConfig() {
                                         toast.success(`${list.length} vozes carregadas`);
                                       } catch (err: any) {
                                         toast.error('Erro ao listar vozes: ' + (err.message || err));
-                                      } finally {
-                                        setLoadingVoices(false);
-                                      }
+                                        } finally {
+                                          setLoadingVoices(false);
+                                          fetchTtsLogs();
+                                        }
                                     }}
                                   >
                                     {loadingVoices ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCcw className="h-3 w-3 mr-1" />}
@@ -766,14 +803,34 @@ export default function PropostasConfig() {
                                     <SelectValue placeholder={voicesList.length === 0 ? 'Cole sua chave e clique em "Atualizar lista"' : 'Selecione uma voz'} />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {voicesList.map((v) => (
-                                      <SelectItem key={v.voice_id} value={v.voice_id}>
-                                        {v.name}
-                                        {v.category ? ` · ${v.category === 'cloned' ? 'Clonada' : v.category === 'professional' ? 'Profissional' : v.category === 'premade' ? 'Padrão/free' : v.category}` : ''}
-                                        {v.voice_type === 'default' ? ' · free' : v.voice_type === 'personal' || v.voice_type === 'workspace' ? ' · sua conta' : ''}
-                                        {v.labels?.gender ? ` · ${v.labels.gender}` : ''}
-                                      </SelectItem>
-                                    ))}
+                                    {voicesList.map((v) => {
+                                      const isFree = v.voice_type === 'default';
+                                      const isCloned = v.category === 'cloned';
+                                      const isProfessional = v.category === 'professional';
+                                      
+                                      return (
+                                        <SelectItem key={v.voice_id} value={v.voice_id}>
+                                          <div className="flex items-center gap-2">
+                                            <span>{v.name}</span>
+                                            <Badge 
+                                              variant="outline" 
+                                              className={cn(
+                                                "text-[9px] px-1 py-0 h-4 uppercase",
+                                                isFree && "border-green-500 text-green-600 bg-green-50",
+                                                isProfessional && "border-blue-500 text-blue-600 bg-blue-50",
+                                                isCloned && "border-purple-500 text-purple-600 bg-purple-50",
+                                                !isFree && !isProfessional && !isCloned && "border-gray-300 text-gray-500"
+                                              )}
+                                            >
+                                              {isFree ? 'Free' : isCloned ? 'Clonada' : isProfessional ? 'Pro' : 'Outra'}
+                                            </Badge>
+                                            <span className="text-[10px] text-muted-foreground ml-auto opacity-70">
+                                              {v.labels?.gender || ''}
+                                            </span>
+                                          </div>
+                                        </SelectItem>
+                                      );
+                                    })}
                                   </SelectContent>
                                 </Select>
                                 <p className="text-[10px] text-muted-foreground">
@@ -784,7 +841,49 @@ export default function PropostasConfig() {
                                     : `${voicesList.length} vozes disponíveis. Use “Padrão/free” no plano gratuito; “Profissional” ou biblioteca pode exigir plano pago.`}
                                 </p>
                               </div>
+                          </div>
+                          
+                          {/* TTS Logs Area */}
+                          {ttsLogs.length > 0 && (
+                            <div className="mt-4 border rounded-md bg-slate-950 p-3 overflow-hidden">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                                  <Database className="h-3 w-3" /> Logs de Requisições TTS (Últimas 10)
+                                </h4>
+                                <Button variant="ghost" size="sm" className="h-5 text-[9px] text-slate-500 hover:text-slate-300 px-1" onClick={() => setTtsLogs([])}>
+                                  Limpar Vista
+                                </Button>
+                              </div>
+                              <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+                                {ttsLogs.map((log) => (
+                                  <div key={log.id} className="text-[10px] font-mono border-b border-slate-800 pb-2 last:border-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className={cn(
+                                        "px-1 rounded",
+                                        log.status === 'success' ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
+                                      )}>
+                                        {log.status.toUpperCase()}
+                                      </span>
+                                      <span className="text-slate-500">{new Date(log.created_at).toLocaleTimeString()}</span>
+                                      <span className="text-slate-400">Action: {log.action}</span>
+                                      {log.response_time_ms && <span className="text-slate-600 ml-auto">{log.response_time_ms}ms</span>}
+                                    </div>
+                                    {log.text_preview && (
+                                      <div className="text-slate-300 truncate opacity-80 italic">" {log.text_preview}... "</div>
+                                    )}
+                                    {log.error_details && (
+                                      <div className="mt-1 text-red-300 bg-red-950/30 p-1.5 rounded border border-red-900/50 whitespace-pre-wrap">
+                                        {typeof log.error_details === 'string' 
+                                          ? log.error_details 
+                                          : JSON.stringify(log.error_details, null, 2)}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
                             </div>
+                          )}
+
                             <Textarea
                               value={ttsText}
                               onChange={(e) => setTtsText(e.target.value)}
@@ -809,6 +908,7 @@ export default function PropostasConfig() {
                                     toast.error('Erro ao gerar: ' + (err.message || err));
                                   } finally {
                                     setTtsGenerating(false);
+                                    fetchTtsLogs();
                                   }
                                 }}
                               >
@@ -833,6 +933,7 @@ export default function PropostasConfig() {
                                         toast.error('Erro ao salvar: ' + (err.message || err));
                                       } finally {
                                         setTtsSaving(false);
+                                        fetchTtsLogs();
                                       }
                                     }}
                                   >

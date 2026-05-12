@@ -6153,6 +6153,42 @@ export type Database = {
         }
         Relationships: []
       }
+      proposal_tts_logs: {
+        Row: {
+          action: string
+          created_at: string
+          error_details: Json | null
+          id: string
+          response_time_ms: number | null
+          status: string
+          text_preview: string | null
+          user_id: string | null
+          voice_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          error_details?: Json | null
+          id?: string
+          response_time_ms?: number | null
+          status: string
+          text_preview?: string | null
+          user_id?: string | null
+          voice_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          error_details?: Json | null
+          id?: string
+          response_time_ms?: number | null
+          status?: string
+          text_preview?: string | null
+          user_id?: string | null
+          voice_id?: string | null
+        }
+        Relationships: []
+      }
       proposal_view_logs: {
         Row: {
           city: string | null
