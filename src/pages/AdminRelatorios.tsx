@@ -149,51 +149,6 @@ export default function AdminRelatorios() {
     }
   };
 
-  // Métricas Profissionais (Business Intelligence)
-  const biMetrics = useMemo(() => {
-    const mesesAtras = parseInt(periodoMeses);
-    const today = new Date();
-    const currentMonth = getMonth(today) + 1;
-    const currentYear = getYear(today);
-
-    // Gasto do mês atual
-    const currentMarketingSpend = marketingExpenses.find(e => e.mes === currentMonth && e.ano === currentYear)?.valor || 0;
-    
-    // Novos clientes do mês atual
-    const startOfThisMonth = startOfMonth(today);
-    const endOfThisMonth = endOfMonth(today);
-    const newClientsThisMonth = clientes.filter(c => {
-      const createdAt = parseISO(c.created_at);
-      return createdAt >= startOfThisMonth && createdAt <= endOfThisMonth;
-    }).length + clientesRegistro.filter(c => {
-      const createdAt = parseISO(c.created_at);
-      return createdAt >= startOfThisMonth && createdAt <= endOfThisMonth;
-    }).length;
-
-    // CAC = Gasto / Novos Clientes
-    const cac = newClientsThisMonth > 0 ? currentMarketingSpend / newClientsThisMonth : 0;
-
-    // MRR e ARPU (Average Revenue Per User)
-    const activeClientsCount = clientes.length; // Assumindo 'clientes' com cobranca_ativa=true
-    const totalMRRBRL = ltvMetrics.mrrBRL;
-    const arpu = activeClientsCount > 0 ? totalMRRBRL / activeClientsCount : 0;
-
-    // LTV / CAC
-    const ltvCacRatio = cac > 0 ? ltvMetrics.ltvBRL / cac : 0;
-
-    // Payback = CAC / Ticket Médio Mensal
-    const payback = ltvMetrics.ticketMedioBRL > 0 ? cac / ltvMetrics.ticketMedioBRL : 0;
-
-    return {
-      cac,
-      arpu,
-      ltvCacRatio,
-      payback,
-      newClientsThisMonth,
-      currentMarketingSpend
-    };
-  }, [marketingExpenses, clientes, clientesRegistro, ltvMetrics, periodoMeses]);
-
   // Métricas de Vendas Únicas (Clientes Registro + Histórico de Compras)
   const vendasUnicasMetrics = useMemo(() => {
     // Clientes registro com valor > 0
@@ -224,6 +179,133 @@ export default function AdminRelatorios() {
       ticketMedioUSD: (registroUSD.length + purchasesUSD.length) > 0 ? totalUSD / (registroUSD.length + purchasesUSD.length) : 0,
     };
   }, [clientesRegistro, purchases]);
+
+  // LTV Calculation - Separado por moeda
+  const ltvMetrics = useMemo(() => {
+    if (clientes.length === 0) return { 
+      ltvBRL: 0, ltvUSD: 0,
+      ticketMedioBRL: 0, ticketMedioUSD: 0,
+      tempoMedioMeses: 0, 
+      mrrBRL: 0, mrrUSD: 0,
+      clientesBRL: 0, clientesUSD: 0
+    };
+
+    const today = new Date();
+    // Tolerância de 7 dias para considerar cliente ainda "ativo" para MRR
+    const toleranciaDias = 7;
+    const dataLimite = new Date(today);
+    dataLimite.setDate(dataLimite.getDate() - toleranciaDias);
+
+    // Filtrar clientes realmente ativos para MRR (renovação futura ou até 7 dias atrás)
+    const clientesAtivosMRR = clientes.filter(c => {
+      const renovacao = parseISO(c.data_renovacao);
+      return renovacao >= dataLimite;
+    });
+
+    const clientesBRL = clientes.filter(c => c.moeda === 'BRL');
+    const clientesUSD = clientes.filter(c => c.moeda === 'USD');
+    
+    // Para MRR: apenas clientes com renovação futura ou recente
+    const clientesBRLAtivos = clientesAtivosMRR.filter(c => c.moeda === 'BRL');
+    const clientesUSDAtivos = clientesAtivosMRR.filter(c => c.moeda === 'USD');
+
+    const calcularMetricasPorMoeda = (clientesMoeda: ClienteData[], clientesMoedaAtivos: ClienteData[]) => {
+      if (clientesMoeda.length === 0) return { ticketMedio: 0, mrr: 0, ltv: 0 };
+      
+      // Ticket médio considera todos os clientes (histórico)
+      const valoresMensaisTodos = clientesMoeda.map(c => {
+        const cicloMeses = CICLO_MESES[c.ciclo_cobranca] || 1;
+        return c.valor / cicloMeses;
+      });
+      const ticketMedio = valoresMensaisTodos.reduce((a, b) => a + b, 0) / valoresMensaisTodos.length;
+      
+      // MRR considera apenas clientes ativos (renovação futura ou até 7 dias atrás)
+      const valoresMensaisAtivos = clientesMoedaAtivos.map(c => {
+        const cicloMeses = CICLO_MESES[c.ciclo_cobranca] || 1;
+        return c.valor / cicloMeses;
+      });
+      const mrr = valoresMensaisAtivos.reduce((a, b) => a + b, 0);
+      
+      const temposMeses = clientesMoeda.map(c => {
+        const createdAt = parseISO(c.created_at);
+        const renovacao = parseISO(c.data_renovacao);
+        const dataFim = renovacao < today ? renovacao : today;
+        return Math.max(1, differenceInMonths(dataFim, createdAt));
+      });
+      const tempoMedio = temposMeses.reduce((a, b) => a + b, 0) / temposMeses.length;
+      const ltv = ticketMedio * tempoMedio;
+      
+      return { ticketMedio, mrr, ltv };
+    };
+
+    const metricasBRL = calcularMetricasPorMoeda(clientesBRL, clientesBRLAtivos);
+    const metricasUSD = calcularMetricasPorMoeda(clientesUSD, clientesUSDAtivos);
+
+    // Tempo médio geral
+    const temposMesesGeral = clientes.map(c => {
+      const createdAt = parseISO(c.created_at);
+      const renovacao = parseISO(c.data_renovacao);
+      const dataFim = renovacao < today ? renovacao : today;
+      return Math.max(1, differenceInMonths(dataFim, createdAt));
+    });
+    const tempoMedioMeses = temposMesesGeral.length > 0 ? temposMesesGeral.reduce((a, b) => a + b, 0) / temposMesesGeral.length : 0;
+
+    return { 
+      ltvBRL: metricasBRL.ltv, 
+      ltvUSD: metricasUSD.ltv,
+      ticketMedioBRL: metricasBRL.ticketMedio, 
+      ticketMedioUSD: metricasUSD.ticketMedio,
+      tempoMedioMeses, 
+      mrrBRL: metricasBRL.mrr, 
+      mrrUSD: metricasUSD.mrr,
+      clientesBRL: clientesBRL.length,
+      clientesUSD: clientesUSD.length
+    };
+  }, [clientes]);
+
+  // Métricas Profissionais (Business Intelligence)
+  const biMetrics = useMemo(() => {
+    const today = new Date();
+    const currentMonth = getMonth(today) + 1;
+    const currentYear = getYear(today);
+
+    // Gasto do mês atual
+    const currentMarketingSpend = marketingExpenses.find(e => e.mes === currentMonth && e.ano === currentYear)?.valor || 0;
+    
+    // Novos clientes do mês atual
+    const startOfThisMonth = startOfMonth(today);
+    const endOfThisMonth = endOfMonth(today);
+    const newClientsThisMonth = clientes.filter(c => {
+      const createdAt = parseISO(c.created_at);
+      return createdAt >= startOfThisMonth && createdAt <= endOfThisMonth;
+    }).length + clientesRegistro.filter(c => {
+      const createdAt = parseISO(c.created_at);
+      return createdAt >= startOfThisMonth && createdAt <= endOfThisMonth;
+    }).length;
+
+    // CAC = Gasto / Novos Clientes
+    const cac = newClientsThisMonth > 0 ? currentMarketingSpend / newClientsThisMonth : 0;
+
+    // MRR e ARPU (Average Revenue Per User)
+    const activeClientsCount = ltvMetrics.clientesBRL + ltvMetrics.clientesUSD;
+    const totalMRRBRL = ltvMetrics.mrrBRL;
+    const arpu = activeClientsCount > 0 ? totalMRRBRL / activeClientsCount : 0;
+
+    // LTV / CAC
+    const ltvCacRatio = cac > 0 ? ltvMetrics.ltvBRL / cac : 0;
+
+    // Payback = CAC / Ticket Médio Mensal
+    const payback = ltvMetrics.ticketMedioBRL > 0 ? cac / ltvMetrics.ticketMedioBRL : 0;
+
+    return {
+      cac,
+      arpu,
+      ltvCacRatio,
+      payback,
+      newClientsThisMonth,
+      currentMarketingSpend
+    };
+  }, [marketingExpenses, clientes, clientesRegistro, ltvMetrics]);
 
   // Métricas de Conversão (Gateway)
   const conversaoMetrics = useMemo(() => {
