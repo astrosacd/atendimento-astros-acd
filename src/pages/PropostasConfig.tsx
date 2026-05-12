@@ -31,6 +31,9 @@ const NAV_ITEMS = [
 export default function PropostasConfig() {
   const navigate = useNavigate();
   const { config, isLoading, updateConfig } = useProposalSendConfig();
+  const { hasPermission } = usePermissions();
+  const canViewGhost = hasPermission('configure_proposal_ghost_mode');
+  const canViewVoices = hasPermission('configure_proposal_ai_voices');
   const [activeTab, setActiveTab] = useState('branding');
 
   const [gmailUser, setGmailUser] = useState('');
