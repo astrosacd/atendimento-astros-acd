@@ -840,7 +840,49 @@ export default function PropostasConfig() {
                                     : `${voicesList.length} vozes disponíveis. Use “Padrão/free” no plano gratuito; “Profissional” ou biblioteca pode exigir plano pago.`}
                                 </p>
                               </div>
+                          </div>
+                          
+                          {/* TTS Logs Area */}
+                          {ttsLogs.length > 0 && (
+                            <div className="mt-4 border rounded-md bg-slate-950 p-3 overflow-hidden">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                                  <Database className="h-3 w-3" /> Logs de Requisições TTS (Últimas 10)
+                                </h4>
+                                <Button variant="ghost" size="sm" className="h-5 text-[9px] text-slate-500 hover:text-slate-300 px-1" onClick={() => setTtsLogs([])}>
+                                  Limpar Vista
+                                </Button>
+                              </div>
+                              <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+                                {ttsLogs.map((log) => (
+                                  <div key={log.id} className="text-[10px] font-mono border-b border-slate-800 pb-2 last:border-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className={cn(
+                                        "px-1 rounded",
+                                        log.status === 'success' ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
+                                      )}>
+                                        {log.status.toUpperCase()}
+                                      </span>
+                                      <span className="text-slate-500">{new Date(log.created_at).toLocaleTimeString()}</span>
+                                      <span className="text-slate-400">Action: {log.action}</span>
+                                      {log.response_time_ms && <span className="text-slate-600 ml-auto">{log.response_time_ms}ms</span>}
+                                    </div>
+                                    {log.text_preview && (
+                                      <div className="text-slate-300 truncate opacity-80 italic">" {log.text_preview}... "</div>
+                                    )}
+                                    {log.error_details && (
+                                      <div className="mt-1 text-red-300 bg-red-950/30 p-1.5 rounded border border-red-900/50 whitespace-pre-wrap">
+                                        {typeof log.error_details === 'string' 
+                                          ? log.error_details 
+                                          : JSON.stringify(log.error_details, null, 2)}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
                             </div>
+                          )}
+
                             <Textarea
                               value={ttsText}
                               onChange={(e) => setTtsText(e.target.value)}
