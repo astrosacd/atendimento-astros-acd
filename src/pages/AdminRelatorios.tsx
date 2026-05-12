@@ -832,10 +832,16 @@ export default function AdminRelatorios() {
                       marketingExpenses.slice(0, 5).map((exp) => (
                         <div key={exp.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                           <div>
-                            <p className="text-sm font-medium">{format(new Date(exp.ano, exp.mes - 1), 'MMMM yyyy', { locale: ptBR })}</p>
+                            <p className="text-sm font-medium">
+                              {format(new Date(exp.ano, exp.mes - 1), 'MMMM yyyy', { locale: ptBR })}
+                              {exp.dividir_12 && <span className="ml-2 text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded uppercase">Anual (1/12)</span>}
+                            </p>
                             <p className="text-xs text-muted-foreground">{exp.descricao || 'Investimento em Marketing'}</p>
                           </div>
-                          <span className="font-bold">{formatCurrency(exp.valor, 'BRL')}</span>
+                          <div className="text-right">
+                            <span className="font-bold block">{formatCurrency(exp.valor, 'BRL')}</span>
+                            {exp.dividir_12 && <span className="text-[10px] text-muted-foreground">Rateado: {formatCurrency(exp.valor / 12, 'BRL')}/mês</span>}
+                          </div>
                         </div>
                       ))
                     )}
