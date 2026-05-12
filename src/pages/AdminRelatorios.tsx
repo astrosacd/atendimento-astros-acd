@@ -1215,6 +1215,14 @@ export default function AdminRelatorios() {
                 ticketMedioUSD: ltvMetrics.ticketMedioUSD,
                 churnHistory: churnMetrics.map(m => ({ month: m.monthLabel, value: m.value })),
                 mrrHistory: mrrGrowth.map(m => ({ month: m.monthLabel, value: m.value })),
+                // Novos campos de BI para IA analisar
+                biData: {
+                  cac: biMetrics.cac,
+                  ltvCac: biMetrics.ltvCacRatio,
+                  payback: biMetrics.payback,
+                  arpu: biMetrics.arpu,
+                  marketingSpend: biMetrics.currentMarketingSpend
+                },
                 clientesAtRisk: clientes
                   .filter(c => {
                     const renovacao = parseISO(c.data_renovacao);
