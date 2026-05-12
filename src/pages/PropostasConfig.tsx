@@ -932,6 +932,7 @@ export default function PropostasConfig() {
                                         toast.error('Erro ao salvar: ' + (err.message || err));
                                       } finally {
                                         setTtsSaving(false);
+                                        fetchTtsLogs();
                                       }
                                     }}
                                   >
