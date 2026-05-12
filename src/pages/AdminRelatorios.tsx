@@ -789,6 +789,19 @@ export default function AdminRelatorios() {
                         onChange={(e) => setNewExpenseValue(e.target.value)}
                       />
                     </div>
+                    <div className="flex items-center space-x-2 pt-2">
+                      <Checkbox 
+                        id="divide-12" 
+                        checked={newExpenseDivide12} 
+                        onCheckedChange={(checked) => setNewExpenseDivide12(!!checked)}
+                      />
+                      <Label 
+                        htmlFor="divide-12" 
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        Diluir valor em 12 meses (Investimento anual)
+                      </Label>
+                    </div>
                   </div>
                   <Button 
                     className="w-full md:w-auto"
