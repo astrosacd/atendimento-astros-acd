@@ -782,23 +782,26 @@ export default function PropostasConfig() {
                               </div>
                             </div>
 
-                            {selectedVoice && (
-                              <div className="p-3 border-2 border-primary/20 bg-primary/5 rounded-lg space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Voz Selecionada</Label>
-                                  <Badge variant="outline" className={cn('text-[9px]', getVoicePlanInfo(selectedVoice).className)}>
-                                    {getVoicePlanInfo(selectedVoice).label}
-                                  </Badge>
-                                </div>
+                            {selectedVoice ? (
+                              <div className="p-3 border-2 border-primary/30 bg-primary/5 rounded-lg">
                                 <div className="flex items-center gap-3">
-                                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                  <div className="h-10 w-10 shrink-0 rounded-full bg-primary/15 flex items-center justify-center">
                                     <Mic className="h-5 w-5 text-primary" />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="font-bold truncate">{selectedVoice.name}</p>
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-bold text-sm truncate">{selectedVoice.name}</p>
+                                      <Badge variant="outline" className={cn('text-[9px] shrink-0', getVoicePlanInfo(selectedVoice).className)}>
+                                        {getVoicePlanInfo(selectedVoice).label}
+                                      </Badge>
+                                    </div>
                                     <p className="text-[10px] text-muted-foreground truncate">{selectedVoice.voice_id}</p>
                                   </div>
                                 </div>
+                              </div>
+                            ) : (
+                              <div className="p-3 border-2 border-dashed border-amber-500/40 bg-amber-500/5 rounded-lg text-center">
+                                <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">⚠️ Selecione uma voz na lista ao lado para continuar</p>
                               </div>
                             )}
 
@@ -814,19 +817,33 @@ export default function PropostasConfig() {
                                 className="resize-none"
                               />
                               <p className="text-[10px] text-blue-500 font-medium">Use {"{{nome_cliente}}"} para falar o nome do cliente no áudio dinâmico.</p>
-                              
-                              <div className="flex gap-2">
+
+                              <div className="space-y-1.5 pt-1">
+                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Nome para teste da variável {"{{nome_cliente}}"}</Label>
+                                <Input
+                                  placeholder="Ex: João Silva"
+                                  value={testClientName}
+                                  onChange={(e) => setTestClientName(e.target.value)}
+                                  className="h-9"
+                                />
+                              </div>
+
+                              <div className="flex gap-2 pt-1">
                                 <Button
                                   type="button"
                                   size="sm"
                                   className="flex-1"
                                   variant="secondary"
-                                  disabled={ttsGenerating || !ttsText.trim() || !elevenlabsApiKey.trim()}
+                                  disabled={ttsGenerating || !ttsText.trim() || !elevenlabsApiKey.trim() || !elevenlabsVoiceId || !selectedVoice}
                                   onClick={async () => {
+                                    if (!testClientName.trim()) {
+                                      toast.error('Digite um nome para testar a variável {{nome_cliente}}');
+                                      return;
+                                    }
                                     setTtsGenerating(true);
                                       try {
                                         const data = await callElevenLabsFunction({ 
-                                          text: ttsText.replace(/{{nome_cliente}}/g, testClientName || 'João'), 
+                                          text: ttsText.replace(/\{\{\s*nome_cliente\s*\}\}/gi, testClientName), 
                                           voiceId: elevenlabsVoiceId, 
                                           save: false, 
                                           apiKey: elevenlabsApiKey 
@@ -848,12 +865,12 @@ export default function PropostasConfig() {
                                     type="button"
                                     size="sm"
                                     variant="default"
-                                    disabled={ttsSaving}
+                                    disabled={ttsSaving || !elevenlabsVoiceId || !selectedVoice}
                                     onClick={async () => {
                                       setTtsSaving(true);
                                       try {
                                         const data = await callElevenLabsFunction({ 
-                                          text: ttsText.replace(/{{nome_cliente}}/g, testClientName || 'Cliente'), 
+                                          text: ttsText.replace(/\{\{\s*nome_cliente\s*\}\}/gi, testClientName || 'Cliente'), 
                                           voiceId: elevenlabsVoiceId, 
                                           save: true, 
                                           apiKey: elevenlabsApiKey 
