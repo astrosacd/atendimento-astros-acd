@@ -60,7 +60,7 @@ export default function PropostasConfig() {
   const [ttsPreviewUrl, setTtsPreviewUrl] = useState<string | null>(null);
   const [ttsGenerating, setTtsGenerating] = useState(false);
   const [ttsSaving, setTtsSaving] = useState(false);
-  const [voicesList, setVoicesList] = useState<Array<{ voice_id: string; name: string; category?: string; labels?: any; preview_url?: string }>>([]);
+  const [voicesList, setVoicesList] = useState<Array<{ voice_id: string; name: string; category?: string; voice_type?: string; labels?: any; preview_url?: string }>>([]);
   const [loadingVoices, setLoadingVoices] = useState(false);
   const [testPhone, setTestPhone] = useState('');
   const [testSending, setTestSending] = useState<'audio' | 'video' | null>(null);
