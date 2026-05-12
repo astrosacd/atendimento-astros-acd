@@ -1018,6 +1018,17 @@ export default function PropostasConfig() {
                                     <SelectItem value="dynamic">Dinâmico (IA gera na hora)</SelectItem>
                                   </SelectContent>
                                 </Select>
+                                <div className="p-2.5 rounded-lg border border-yellow-500/20 bg-yellow-500/5 mt-2">
+                                  <p className="text-[10px] leading-relaxed text-yellow-700 dark:text-yellow-400 flex gap-2">
+                                    <span className="shrink-0">💡</span>
+                                    <span>
+                                      {ghostModeType === 'dynamic' 
+                                        ? "Modo Dinâmico: A IA gera um novo áudio personalizado com o nome de cada cliente no momento do envio. Consome créditos da ElevenLabs por cada envio."
+                                        : "Modo Fixo: Envia o mesmo arquivo de áudio ou vídeo para todos os clientes. Economiza créditos e é ideal para recados gerais."
+                                      }
+                                    </span>
+                                  </p>
+                                </div>
                               </div>
                             </div>
                           </div>
