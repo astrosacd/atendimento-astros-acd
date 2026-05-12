@@ -804,11 +804,16 @@ export default function PropostasConfig() {
                                   disabled={ttsGenerating || !ttsText.trim() || !elevenlabsApiKey.trim()}
                                   onClick={async () => {
                                     setTtsGenerating(true);
-                                    try {
-                                      const data = await callElevenLabsFunction({ text: ttsText.replace('{{nome_cliente}}', 'João'), voiceId: elevenlabsVoiceId, save: false, apiKey: elevenlabsApiKey });
-                                      setTtsPreviewUrl(`data:audio/mpeg;base64,${data.audioContent}`);
-                                      toast.success('Prévia gerada!');
-                                    } catch (err: any) {
+                                      try {
+                                        const data = await callElevenLabsFunction({ 
+                                          text: ttsText.replace(/{{nome_cliente}}/g, testClientName || 'João'), 
+                                          voiceId: elevenlabsVoiceId, 
+                                          save: false, 
+                                          apiKey: elevenlabsApiKey 
+                                        });
+                                        setTtsPreviewUrl(`data:audio/mpeg;base64,${data.audioContent}`);
+                                        toast.success('Prévia gerada!');
+                                      } catch (err: any) {
                                       toast.error('Erro: ' + err.message);
                                     } finally {
                                       setTtsGenerating(false);
