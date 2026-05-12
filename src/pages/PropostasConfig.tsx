@@ -779,7 +779,7 @@ export default function PropostasConfig() {
                                     onClick={async () => {
                                       setLoadingVoices(true);
                                       try {
-                                        const data = await callElevenLabsFunction({ action: 'list_voices', apiKey: elevenlabsApiKey, voiceType: 'non-community' });
+                                        const data = await callElevenLabsFunction({ action: 'list_voices', apiKey: elevenlabsApiKey, voiceType: 'all' });
                                         const list = data.voices || [];
                                         setVoicesList(list);
                                         if (list.length > 0 && !list.some((voice: any) => voice.voice_id === elevenlabsVoiceId)) {
@@ -1003,8 +1003,10 @@ export default function PropostasConfig() {
                                 onClick={async () => {
                                   setTestSending('audio');
                                   try {
+                                    // Salvar as configurações localmente primeiro para garantir que o Edge Function as veja
+                                    await handleSave();
                                     const data = await callGhostTestSendFunction({ phone: testPhone, mediaType: 'audio', clientName: 'João Silva' });
-                                  toast.success(`Áudio enviado para ${data.sentTo}`);
+                                    toast.success(`Áudio enviado para ${data.sentTo}`);
                                 } catch (err: any) {
                                   toast.error('Erro: ' + (err.message || err));
                                 } finally {
@@ -1023,6 +1025,8 @@ export default function PropostasConfig() {
                               onClick={async () => {
                                 setTestSending('video');
                                 try {
+                                  // Salvar as configurações localmente primeiro para garantir que o Edge Function as veja
+                                  await handleSave();
                                   const data = await callGhostTestSendFunction({ phone: testPhone, mediaType: 'video' });
                                   toast.success(`Vídeo enviado para ${data.sentTo}`);
                                 } catch (err: any) {
