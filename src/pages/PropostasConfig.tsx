@@ -1193,7 +1193,7 @@ export default function PropostasConfig() {
                           </div>
                         </div>
                       </div>
-                    </TabsContent>
+                    </TabsContent>}
 
                     <TabsContent value="logs" className="animate-in fade-in-50 duration-300">
                       <div className="border rounded-xl bg-slate-950 p-5 overflow-hidden shadow-inner">
