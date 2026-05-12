@@ -833,7 +833,7 @@ export default function PropostasConfig() {
                                 </div>
                               </div>
 
-                              <div className={`grid ${ttsPreviewUrl ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-2 pt-1 w-full`}>
+                              <div className="grid grid-cols-1 gap-2 pt-1 w-full">
                                   <Button
                                     type="button"
                                     size="sm"
