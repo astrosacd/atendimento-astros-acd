@@ -1102,7 +1102,7 @@ export default function PropostasConfig() {
                                 <Input placeholder="Ex: João Silva" value={testClientName} onChange={(e) => setTestClientName(e.target.value)} />
                               </div>
 
-                              <div className="grid grid-cols-2 gap-3 pt-2">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                                 <Button
                                   variant="outline"
                                   className="h-12 border-primary/30 hover:bg-primary/10"
