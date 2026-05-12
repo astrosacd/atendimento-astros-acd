@@ -819,14 +819,18 @@ export default function PropostasConfig() {
                               />
                               <p className="text-[10px] text-blue-500 font-medium">Use {"{{nome_cliente}}"} para falar o nome do cliente no áudio dinâmico.</p>
 
-                              <div className="space-y-1.5 pt-1">
-                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Nome para teste da variável {"{{nome_cliente}}"}</Label>
-                                <Input
-                                  placeholder="Ex: João Silva"
-                                  value={testClientName}
-                                  onChange={(e) => setTestClientName(e.target.value)}
-                                  className="h-9"
-                                />
+                              {/* Variável de teste sincronizada com o Laboratório */}
+                              <div className="p-3 bg-blue-500/5 border border-blue-500/10 rounded-lg space-y-2">
+                                <Label className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400">Variável {{nome_cliente}}</Label>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    placeholder="Ex: João Silva"
+                                    value={testClientName}
+                                    onChange={(e) => setTestClientName(e.target.value)}
+                                    className="h-8 text-xs bg-background"
+                                  />
+                                  <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse shrink-0" title="Sincronizado com Laboratório" />
+                                </div>
                               </div>
 
                               <div className="flex flex-wrap gap-2 pt-1">
