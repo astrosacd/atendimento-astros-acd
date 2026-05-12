@@ -1300,6 +1300,74 @@ export default function AdminRelatorios() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Calculator className="h-5 w-5 text-primary" />
+              Confirmar Investimento
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 pt-2">
+                <div className="p-3 bg-muted/40 rounded-lg space-y-1">
+                  <p className="text-xs uppercase text-muted-foreground">Valor total informado</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {newExpenseValue && !isNaN(parseFloat(newExpenseValue))
+                      ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(newExpenseValue))
+                      : 'R$ 0,00'}
+                  </p>
+                  {newExpenseDesc && (
+                    <p className="text-xs text-muted-foreground italic">"{newExpenseDesc}"</p>
+                  )}
+                </div>
+
+                {newExpenseDivide12 ? (
+                  <div className="p-3 bg-info/10 border border-info/30 rounded-lg space-y-2">
+                    <p className="text-sm font-bold text-info flex items-center gap-1">
+                      <PiggyBank className="h-4 w-4" /> DILUIR EM 12 MESES
+                    </p>
+                    <p className="text-sm text-foreground">
+                      Este investimento será considerado como{' '}
+                      <strong className="text-info">
+                        {newExpenseValue && !isNaN(parseFloat(newExpenseValue))
+                          ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(newExpenseValue) / 12)
+                          : 'R$ 0,00'}
+                        /mês
+                      </strong>{' '}
+                      no cálculo do CAC durante os próximos 12 meses.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Use esta opção para gastos anuais (ex: licenças, VPS pagas uma vez ao ano).
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg space-y-2">
+                    <p className="text-sm font-bold text-warning flex items-center gap-1">
+                      <Calendar className="h-4 w-4" /> APLICAR INTEGRALMENTE NESTE MÊS
+                    </p>
+                    <p className="text-sm text-foreground">
+                      O valor cheio será debitado no CAC{' '}
+                      <strong className="text-warning">
+                        apenas neste mês ({format(new Date(), 'MMMM/yyyy', { locale: ptBR })})
+                      </strong>.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Use esta opção para gastos pontuais (ex: anúncios pagos no mês corrente).
+                    </p>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSaveMarketingExpense}>
+              Confirmar e Salvar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
