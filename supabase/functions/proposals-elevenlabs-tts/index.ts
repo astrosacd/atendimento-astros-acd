@@ -94,18 +94,21 @@ Deno.serve(async (req) => {
 
     // List voices action
     if (action === 'list_voices') {
-      const vRes = await fetch("https://api.elevenlabs.io/v2/voices?page_size=100", {
+      const voiceType = String(body?.voiceType || 'non-community');
+      const vRes = await fetch(`https://api.elevenlabs.io/v2/voices?page_size=100&voice_type=${encodeURIComponent(voiceType)}`, {
         headers: { "xi-api-key": apiKey },
       });
       if (!vRes.ok) {
         const errText = await vRes.text();
-        return new Response(JSON.stringify({ error: `ElevenLabs: ${errText}` }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        const err = describeElevenLabsError(errText, vRes.status);
+        return new Response(JSON.stringify({ error: err.message, code: err.code }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       const vJson = await vRes.json();
       const voices = (vJson.voices || []).map((v: any) => ({
         voice_id: v.voice_id,
         name: v.name,
         category: v.category,
+        voice_type: v.voice_type,
         labels: v.labels || {},
         preview_url: v.preview_url,
       }));
