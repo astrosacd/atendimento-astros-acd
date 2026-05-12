@@ -64,6 +64,8 @@ export default function PropostasConfig() {
   const [voicesList, setVoicesList] = useState<Array<{ voice_id: string; name: string; category?: string; voice_type?: string; labels?: any; preview_url?: string }>>([]);
   const [voiceSearch, setVoiceSearch] = useState('');
   const [loadingVoices, setLoadingVoices] = useState(false);
+  const [onlyFreeVoices, setOnlyFreeVoices] = useState(true);
+  const [voicesAutoSynced, setVoicesAutoSynced] = useState(false);
   const [testPhone, setTestPhone] = useState('');
   const [testClientName, setTestClientName] = useState('João Silva');
   const [testSending, setTestSending] = useState<'audio' | 'video' | null>(null);
