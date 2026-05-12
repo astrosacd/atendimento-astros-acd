@@ -7,6 +7,12 @@ const corsHeaders = {
   "Access-Control-Max-Age": "86400",
 };
 
+const jsonResponse = (payload: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -26,12 +32,15 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { phone, mediaType, clientName } = await req.json().catch(() => ({}));
+    const { phone, mediaType, clientName, mediaUrl: mediaUrlOverride } = await req.json().catch(() => ({}));
     const phoneStr = String(phone || "").replace(/\D/g, "");
     const type = mediaType === "video" ? "video" : "audio";
+    const overrideUrl = typeof mediaUrlOverride === "string" && /^https?:\/\//i.test(mediaUrlOverride.trim()) && mediaUrlOverride.trim().length <= 2000
+      ? mediaUrlOverride.trim()
+      : "";
 
     if (!phoneStr || phoneStr.length < 10) {
-      return new Response(JSON.stringify({ error: "Número inválido (use DDD + número)" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return jsonResponse({ error: "Número inválido (use DDD + número)" });
     }
 
     const supabase = createClient(
@@ -46,29 +55,37 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!config?.evolution_api_url || !config?.evolution_api_key || !config?.evolution_instance_name) {
-      return new Response(JSON.stringify({ error: "Evolution API não configurada" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return jsonResponse({ error: "Evolution API não configurada" });
     }
 
-    let mediaUrl = type === "audio" ? config.ghost_audio_url : config.ghost_video_url;
+    let mediaUrl = overrideUrl || (type === "audio" ? config.ghost_audio_url : config.ghost_video_url);
     const isDynamic = type === "audio" && (config as any).ghost_mode_type === 'dynamic';
 
     if (isDynamic) {
       // Generate audio on the fly
-      const { data: ttsData, error: ttsError } = await supabase.functions.invoke('proposals-elevenlabs-tts', {
-        body: { 
+      const ttsRes = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/proposals-elevenlabs-tts`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": Deno.env.get("SUPABASE_ANON_KEY")!,
+          "Authorization": authHeader,
+        },
+        body: JSON.stringify({
           text: (config as any).tts_text?.replace('{{nome_cliente}}', clientName || 'Cliente'),
           voiceId: (config as any).elevenlabs_voice_id,
-          save: true 
-        }
+          save: true,
+        }),
       });
-      if (ttsError || ttsData?.error) {
-        return new Response(JSON.stringify({ error: `TTS: ${ttsError?.message || ttsData?.error}` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const ttsText = await ttsRes.text();
+      const ttsData = ttsText ? JSON.parse(ttsText) : {};
+      if (!ttsRes.ok || ttsData?.error) {
+        return jsonResponse({ error: `TTS: ${ttsData?.error || `Falha ao gerar áudio (${ttsRes.status})`}`, code: ttsData?.code });
       }
       mediaUrl = ttsData.url;
     }
 
     if (!mediaUrl) {
-      return new Response(JSON.stringify({ error: `Nenhum ${type} configurado no Modo Ghost` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return jsonResponse({ error: `Nenhum ${type} configurado no Modo Ghost` });
     }
 
     let cleanNumber = phoneStr;
@@ -83,23 +100,33 @@ Deno.serve(async (req) => {
 
     const body: any = type === "audio"
       ? { number: cleanNumber, audio: mediaUrl, delay: 1200, encoding: true }
-      : { number: cleanNumber, media: mediaUrl, mediaType: "video", caption: "🧪 Teste do Modo Ghost", delay: 1200 };
+      : { number: cleanNumber, mediatype: "video", media: mediaUrl, mimetype: "video/mp4", caption: "🧪 Teste do Modo Ghost", delay: 1200 };
 
-    const res = await fetch(urlBase + endpoint, {
+    let finalEndpoint = endpoint;
+    let finalBody = body;
+    let res = await fetch(urlBase + finalEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json", "apikey": config.evolution_api_key },
-      body: JSON.stringify(body),
+      body: JSON.stringify(finalBody),
     });
 
-    const respText = await res.text();
+    let respText = await res.text();
+    if (!res.ok && type === "audio" && respText.includes('mediatype')) {
+      finalEndpoint = `/sendMedia/${config.evolution_instance_name}`;
+      finalBody = { number: cleanNumber, mediatype: "audio", media: mediaUrl, mimetype: "audio/mpeg", delay: 1200 };
+      res = await fetch(urlBase + finalEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": config.evolution_api_key },
+        body: JSON.stringify(finalBody),
+      });
+      respText = await res.text();
+    }
     if (!res.ok) {
-      return new Response(JSON.stringify({ error: `Evolution: ${respText}` }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return jsonResponse({ error: `Evolution (${res.status}): ${respText}` });
     }
 
-    return new Response(JSON.stringify({ ok: true, sentTo: cleanNumber, type }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ ok: true, sentTo: cleanNumber, type, endpoint: finalEndpoint });
   } catch (e: any) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return jsonResponse({ error: e.message });
   }
 });
