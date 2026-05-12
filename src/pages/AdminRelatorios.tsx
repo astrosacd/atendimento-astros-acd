@@ -811,10 +811,10 @@ export default function AdminRelatorios() {
                   </Button>
                   <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
                     <p className="text-xs font-bold text-primary flex items-center gap-1">
-                      <Info className="h-3 w-3" /> COMO USAR O CAC:
+                      <Info className="h-3 w-3" /> DICA DE INVESTIMENTO:
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Para o cálculo ser perfeito, some <strong>TUDO</strong> o que você gasta para manter a estrutura e trazer clientes (Anúncios, VPS, APIs, Ferramentas). Ao salvar, o sistema divide esse valor pelos novos clientes do mês para te dar o custo real de cada um.
+                      Use a opção <strong>"Diluir em 12 meses"</strong> para gastos que valem pelo ano todo (como licenças anuais ou VPS paga uma vez). Assim o seu CAC não fica "sujo" com um valor altíssimo só no mês que você pagou, e sim distribuído pelo tempo que a ferramenta vai ser usada.
                     </p>
                   </div>
                 </CardContent>
