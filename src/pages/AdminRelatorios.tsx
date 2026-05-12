@@ -742,16 +742,16 @@ export default function AdminRelatorios() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Calculator className="h-5 w-5" />
-                    Lançar Gastos de Marketing
+                    Registrar Investimento do Mês
                   </CardTitle>
                   <CardDescription>
-                    Insira o valor total investido em anúncios/marketing este mês para calcular o CAC.
+                    Some tudo que você gastou (Anúncios, VPS, ferramentas) para o sistema calcular seu CAC real.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="marketing-desc">O que você pagou? (Nome do gasto)</Label>
+                      <Label htmlFor="marketing-desc" className="h-5 block truncate">Descrição do gasto</Label>
                       <Input 
                         id="marketing-desc"
                         type="text" 
@@ -761,7 +761,7 @@ export default function AdminRelatorios() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="marketing-spend">Valor Total Investido (R$)</Label>
+                      <Label htmlFor="marketing-spend" className="h-5 block truncate">Valor total (R$)</Label>
                       <Input 
                         id="marketing-spend"
                         type="number" 
@@ -782,7 +782,7 @@ export default function AdminRelatorios() {
                       <Info className="h-3 w-3" /> COMO USAR O CAC:
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Para o cálculo ser perfeito, some **TUDO** o que você gasta para manter a estrutura e trazer clientes (Anúncios, VPS, APIs, Ferramentas). Ao salvar, o sistema divide esse valor pelos novos clientes do mês para te dar o custo real de cada um.
+                      Para o cálculo ser perfeito, some <strong>TUDO</strong> o que você gasta para manter a estrutura e trazer clientes (Anúncios, VPS, APIs, Ferramentas). Ao salvar, o sistema divide esse valor pelos novos clientes do mês para te dar o custo real de cada um.
                     </p>
                   </div>
                 </CardContent>
