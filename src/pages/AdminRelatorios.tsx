@@ -812,7 +812,7 @@ export default function AdminRelatorios() {
                   </div>
                   <Button 
                     className="w-full md:w-auto"
-                    onClick={handleSaveMarketingExpense}
+                    onClick={handleRequestSave}
                   >
                     Salvar e Calcular Métricas
                   </Button>
