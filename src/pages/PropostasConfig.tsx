@@ -606,14 +606,14 @@ export default function PropostasConfig() {
 
             {activeTab === 'auto-remarketing' && (
               <Card>
-                <CardHeader>
+                <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="flex items-center gap-2">
                         <RefreshCcw className="h-5 w-5 text-orange-500" />
-                        Remarketing Automático
+                        Remarketing & Modo Ghost
                       </CardTitle>
-                      <CardDescription>Envie follow-ups automáticos para clientes que visualizaram mas não assinaram</CardDescription>
+                      <CardDescription>Follow-ups automáticos e mensagens de voz/vídeo personalizadas</CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
                       <Label htmlFor="auto-remarketing-enabled">Ativado</Label>
@@ -622,6 +622,15 @@ export default function PropostasConfig() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  <Tabs defaultValue="geral" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-6">
+                      <TabsTrigger value="geral">🕒 Config. Geral</TabsTrigger>
+                      <TabsTrigger value="vozes">🎙️ Vozes & IA</TabsTrigger>
+                      <TabsTrigger value="ghost">👻 Modo Ghost</TabsTrigger>
+                      <TabsTrigger value="logs">📋 Logs de IA</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="geral" className="space-y-6">
                   <div className="flex items-start gap-2 text-sm text-blue-600 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
                     <Info className="h-4 w-4 mt-0.5 shrink-0" />
                     <div>
