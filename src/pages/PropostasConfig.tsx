@@ -1107,10 +1107,10 @@ export default function PropostasConfig() {
                                 <Input placeholder="Ex: João Silva" value={testClientName} onChange={(e) => setTestClientName(e.target.value)} />
                               </div>
 
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                              <div className="flex flex-col gap-3 pt-2">
                                 <Button
                                   variant="outline"
-                                  className="h-12 border-primary/30 hover:bg-primary/10"
+                                  className="h-16 border-primary/30 hover:bg-primary/5 hover:border-primary flex items-center justify-start px-4 gap-4 transition-all group overflow-hidden relative"
                                   disabled={!!testSending || !testPhone.trim() || (ghostModeType === 'fixed' ? !ghostAudioUrl : !ttsText.trim())}
                                   onClick={async () => {
                                     setTestSending('audio');
@@ -1130,12 +1130,19 @@ export default function PropostasConfig() {
                                     }
                                   }}
                                 >
-                                  {testSending === 'audio' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4 mr-2" />}
-                                  Testar Áudio
+                                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                                    {testSending === 'audio' ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : <Mic className="h-5 w-5 text-primary" />}
+                                  </div>
+                                  <div className="text-left min-w-0 flex-1">
+                                    <p className="font-bold text-sm text-foreground">Testar Áudio</p>
+                                    <p className="text-[10px] text-muted-foreground truncate">Envia o áudio configurado via WhatsApp</p>
+                                  </div>
+                                  <div className="absolute right-0 top-0 h-full w-1 bg-primary/0 group-hover:bg-primary transition-all" />
                                 </Button>
+
                                 <Button
                                   variant="outline"
-                                  className="h-12 border-primary/30 hover:bg-primary/10"
+                                  className="h-16 border-primary/30 hover:bg-primary/5 hover:border-primary flex items-center justify-start px-4 gap-4 transition-all group overflow-hidden relative"
                                   disabled={!!testSending || !testPhone.trim() || !ghostVideoUrl}
                                   onClick={async () => {
                                     setTestSending('video');
@@ -1155,8 +1162,14 @@ export default function PropostasConfig() {
                                     }
                                   }}
                                 >
-                                  {testSending === 'video' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4 mr-2" />}
-                                  Testar Vídeo
+                                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                                    {testSending === 'video' ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : <Eye className="h-5 w-5 text-primary" />}
+                                  </div>
+                                  <div className="text-left min-w-0 flex-1">
+                                    <p className="font-bold text-sm text-foreground">Testar Vídeo</p>
+                                    <p className="text-[10px] text-muted-foreground truncate">Envia o vídeo configurado via WhatsApp</p>
+                                  </div>
+                                  <div className="absolute right-0 top-0 h-full w-1 bg-primary/0 group-hover:bg-primary transition-all" />
                                 </Button>
                               </div>
                             </div>
