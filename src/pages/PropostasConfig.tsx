@@ -1003,8 +1003,10 @@ export default function PropostasConfig() {
                                 onClick={async () => {
                                   setTestSending('audio');
                                   try {
+                                    // Salvar as configurações localmente primeiro para garantir que o Edge Function as veja
+                                    await handleSave();
                                     const data = await callGhostTestSendFunction({ phone: testPhone, mediaType: 'audio', clientName: 'João Silva' });
-                                  toast.success(`Áudio enviado para ${data.sentTo}`);
+                                    toast.success(`Áudio enviado para ${data.sentTo}`);
                                 } catch (err: any) {
                                   toast.error('Erro: ' + (err.message || err));
                                 } finally {
