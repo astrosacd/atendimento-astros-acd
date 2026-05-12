@@ -779,7 +779,7 @@ export default function PropostasConfig() {
                                     onClick={async () => {
                                       setLoadingVoices(true);
                                       try {
-                                        const data = await callElevenLabsFunction({ action: 'list_voices', apiKey: elevenlabsApiKey, voiceType: 'non-community' });
+                                        const data = await callElevenLabsFunction({ action: 'list_voices', apiKey: elevenlabsApiKey, voiceType: 'all' });
                                         const list = data.voices || [];
                                         setVoicesList(list);
                                         if (list.length > 0 && !list.some((voice: any) => voice.voice_id === elevenlabsVoiceId)) {
