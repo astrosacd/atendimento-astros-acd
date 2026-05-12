@@ -36,6 +36,13 @@ interface ReportsAIAnalysisProps {
     ticketMedioUSD: number;
     churnHistory: Array<{ month: string; value: number }>;
     mrrHistory: Array<{ month: string; value: number }>;
+    biData?: {
+      cac: number;
+      ltvCac: number;
+      payback: number;
+      arpu: number;
+      marketingSpend: number;
+    };
     clientesAtRisk?: Array<{ nome: string; renovacao: string; valor: number }>;
   };
 }

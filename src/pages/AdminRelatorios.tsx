@@ -7,12 +7,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
-import { TrendingUp, TrendingDown, Users, DollarSign, UserMinus, Target, Calendar, Info, ShoppingBag, Bot } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, DollarSign, UserMinus, Target, Calendar, Info, ShoppingBag, Bot, Calculator, PiggyBank, Briefcase } from 'lucide-react';
 import { ReportsAIAnalysis } from '@/components/reports/ReportsAIAnalysis';
-import { format, subMonths, startOfMonth, endOfMonth, differenceInMonths, parseISO } from 'date-fns';
+import { format, subMonths, startOfMonth, endOfMonth, differenceInMonths, parseISO, getMonth, getYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 
 interface ClienteData {
   id: string;
@@ -24,6 +28,14 @@ interface ClienteData {
   ciclo_cobranca: string;
   moeda: string;
   plano: string | null;
+}
+
+interface MarketingExpense {
+  id: string;
+  mes: number;
+  ano: number;
+  valor: number;
+  descricao: string | null;
 }
 
 interface GatewayOrder {
@@ -64,6 +76,8 @@ export default function AdminRelatorios() {
   const [clientes, setClientes] = useState<ClienteData[]>([]);
   const [clientesRegistro, setClientesRegistro] = useState<ClienteData[]>([]);
   const [purchases, setPurchases] = useState<{ valor: number; moeda: string; cliente_id: string }[]>([]);
+  const [marketingExpenses, setMarketingExpenses] = useState<MarketingExpense[]>([]);
+  const [newExpenseValue, setNewExpenseValue] = useState('');
   const [clientesRegistroSemValor, setClientesRegistroSemValor] = useState(0);
   const [orders, setOrders] = useState<GatewayOrder[]>([]);
   const [events, setEvents] = useState<GatewayEvent[]>([]);
@@ -80,16 +94,16 @@ export default function AdminRelatorios() {
     const dataInicio = subMonths(new Date(), mesesAtras).toISOString();
 
     try {
-      // Busca clientes recorrentes, clientes registro e histórico de compras
-      // Excluindo cadastros marcados como administrativo/parceiro/outros (não contam em métricas)
+      // Busca clientes recorrentes, clientes registro, histórico de compras e gastos de marketing
       const naoExcluido = 'excluir_metricas.is.null,excluir_metricas.eq.false';
-      const [clientesRecorrentesRes, clientesRegistroRes, clientesSemValorRes, purchasesRes, ordersRes, eventsRes] = await Promise.all([
+      const [clientesRecorrentesRes, clientesRegistroRes, clientesSemValorRes, purchasesRes, ordersRes, eventsRes, marketingRes] = await Promise.all([
         supabase.from('clientes').select('id, nome, cpf, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', true).or(naoExcluido),
         supabase.from('clientes').select('id, nome, cpf, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', false).gt('valor', 0).or(naoExcluido),
         supabase.from('clientes').select('id', { count: 'exact', head: true }).eq('cobranca_ativa', false).or('valor.is.null,valor.eq.0').or(naoExcluido),
         supabase.from('client_purchases').select('valor, moeda, cliente_id'),
         supabase.from('gateway_orders').select('id, created_at, status, total, currency').gte('created_at', dataInicio),
         supabase.from('gateway_events').select('id, event_type, created_at, slug').gte('created_at', dataInicio),
+        supabase.from('marketing_expenses').select('*')
       ]);
 
       if (clientesRecorrentesRes.data) setClientes(clientesRecorrentesRes.data);
@@ -98,10 +112,41 @@ export default function AdminRelatorios() {
       if (purchasesRes.data) setPurchases(purchasesRes.data);
       if (ordersRes.data) setOrders(ordersRes.data);
       if (eventsRes.data) setEvents(eventsRes.data);
+      if (marketingRes.data) setMarketingExpenses(marketingRes.data);
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveMarketingExpense = async () => {
+    if (!newExpenseValue || isNaN(parseFloat(newExpenseValue))) {
+      toast.error('Insira um valor válido');
+      return;
+    }
+
+    const today = new Date();
+    const mes = getMonth(today) + 1;
+    const ano = getYear(today);
+
+    try {
+      const { error } = await supabase
+        .from('marketing_expenses')
+        .upsert({ 
+          mes, 
+          ano, 
+          valor: parseFloat(newExpenseValue),
+          descricao: `Gasto de marketing de ${format(today, 'MMMM/yyyy', { locale: ptBR })}`
+        }, { onConflict: 'mes,ano' });
+
+      if (error) throw error;
+      
+      toast.success('Gasto de marketing atualizado!');
+      setNewExpenseValue('');
+      fetchData();
+    } catch (error: any) {
+      toast.error('Erro ao salvar: ' + error.message);
     }
   };
 
@@ -135,6 +180,133 @@ export default function AdminRelatorios() {
       ticketMedioUSD: (registroUSD.length + purchasesUSD.length) > 0 ? totalUSD / (registroUSD.length + purchasesUSD.length) : 0,
     };
   }, [clientesRegistro, purchases]);
+
+  // LTV Calculation - Separado por moeda
+  const ltvMetrics = useMemo(() => {
+    if (clientes.length === 0) return { 
+      ltvBRL: 0, ltvUSD: 0,
+      ticketMedioBRL: 0, ticketMedioUSD: 0,
+      tempoMedioMeses: 0, 
+      mrrBRL: 0, mrrUSD: 0,
+      clientesBRL: 0, clientesUSD: 0
+    };
+
+    const today = new Date();
+    // Tolerância de 7 dias para considerar cliente ainda "ativo" para MRR
+    const toleranciaDias = 7;
+    const dataLimite = new Date(today);
+    dataLimite.setDate(dataLimite.getDate() - toleranciaDias);
+
+    // Filtrar clientes realmente ativos para MRR (renovação futura ou até 7 dias atrás)
+    const clientesAtivosMRR = clientes.filter(c => {
+      const renovacao = parseISO(c.data_renovacao);
+      return renovacao >= dataLimite;
+    });
+
+    const clientesBRL = clientes.filter(c => c.moeda === 'BRL');
+    const clientesUSD = clientes.filter(c => c.moeda === 'USD');
+    
+    // Para MRR: apenas clientes com renovação futura ou recente
+    const clientesBRLAtivos = clientesAtivosMRR.filter(c => c.moeda === 'BRL');
+    const clientesUSDAtivos = clientesAtivosMRR.filter(c => c.moeda === 'USD');
+
+    const calcularMetricasPorMoeda = (clientesMoeda: ClienteData[], clientesMoedaAtivos: ClienteData[]) => {
+      if (clientesMoeda.length === 0) return { ticketMedio: 0, mrr: 0, ltv: 0 };
+      
+      // Ticket médio considera todos os clientes (histórico)
+      const valoresMensaisTodos = clientesMoeda.map(c => {
+        const cicloMeses = CICLO_MESES[c.ciclo_cobranca] || 1;
+        return c.valor / cicloMeses;
+      });
+      const ticketMedio = valoresMensaisTodos.reduce((a, b) => a + b, 0) / valoresMensaisTodos.length;
+      
+      // MRR considera apenas clientes ativos (renovação futura ou até 7 dias atrás)
+      const valoresMensaisAtivos = clientesMoedaAtivos.map(c => {
+        const cicloMeses = CICLO_MESES[c.ciclo_cobranca] || 1;
+        return c.valor / cicloMeses;
+      });
+      const mrr = valoresMensaisAtivos.reduce((a, b) => a + b, 0);
+      
+      const temposMeses = clientesMoeda.map(c => {
+        const createdAt = parseISO(c.created_at);
+        const renovacao = parseISO(c.data_renovacao);
+        const dataFim = renovacao < today ? renovacao : today;
+        return Math.max(1, differenceInMonths(dataFim, createdAt));
+      });
+      const tempoMedio = temposMeses.reduce((a, b) => a + b, 0) / temposMeses.length;
+      const ltv = ticketMedio * tempoMedio;
+      
+      return { ticketMedio, mrr, ltv };
+    };
+
+    const metricasBRL = calcularMetricasPorMoeda(clientesBRL, clientesBRLAtivos);
+    const metricasUSD = calcularMetricasPorMoeda(clientesUSD, clientesUSDAtivos);
+
+    // Tempo médio geral
+    const temposMesesGeral = clientes.map(c => {
+      const createdAt = parseISO(c.created_at);
+      const renovacao = parseISO(c.data_renovacao);
+      const dataFim = renovacao < today ? renovacao : today;
+      return Math.max(1, differenceInMonths(dataFim, createdAt));
+    });
+    const tempoMedioMeses = temposMesesGeral.length > 0 ? temposMesesGeral.reduce((a, b) => a + b, 0) / temposMesesGeral.length : 0;
+
+    return { 
+      ltvBRL: metricasBRL.ltv, 
+      ltvUSD: metricasUSD.ltv,
+      ticketMedioBRL: metricasBRL.ticketMedio, 
+      ticketMedioUSD: metricasUSD.ticketMedio,
+      tempoMedioMeses, 
+      mrrBRL: metricasBRL.mrr, 
+      mrrUSD: metricasUSD.mrr,
+      clientesBRL: clientesBRL.length,
+      clientesUSD: clientesUSD.length
+    };
+  }, [clientes]);
+
+  // Métricas Profissionais (Business Intelligence)
+  const biMetrics = useMemo(() => {
+    const today = new Date();
+    const currentMonth = getMonth(today) + 1;
+    const currentYear = getYear(today);
+
+    // Gasto do mês atual
+    const currentMarketingSpend = marketingExpenses.find(e => e.mes === currentMonth && e.ano === currentYear)?.valor || 0;
+    
+    // Novos clientes do mês atual
+    const startOfThisMonth = startOfMonth(today);
+    const endOfThisMonth = endOfMonth(today);
+    const newClientsThisMonth = clientes.filter(c => {
+      const createdAt = parseISO(c.created_at);
+      return createdAt >= startOfThisMonth && createdAt <= endOfThisMonth;
+    }).length + clientesRegistro.filter(c => {
+      const createdAt = parseISO(c.created_at);
+      return createdAt >= startOfThisMonth && createdAt <= endOfThisMonth;
+    }).length;
+
+    // CAC = Gasto / Novos Clientes
+    const cac = newClientsThisMonth > 0 ? currentMarketingSpend / newClientsThisMonth : 0;
+
+    // MRR e ARPU (Average Revenue Per User)
+    const activeClientsCount = ltvMetrics.clientesBRL + ltvMetrics.clientesUSD;
+    const totalMRRBRL = ltvMetrics.mrrBRL;
+    const arpu = activeClientsCount > 0 ? totalMRRBRL / activeClientsCount : 0;
+
+    // LTV / CAC
+    const ltvCacRatio = cac > 0 ? ltvMetrics.ltvBRL / cac : 0;
+
+    // Payback = CAC / Ticket Médio Mensal
+    const payback = ltvMetrics.ticketMedioBRL > 0 ? cac / ltvMetrics.ticketMedioBRL : 0;
+
+    return {
+      cac,
+      arpu,
+      ltvCacRatio,
+      payback,
+      newClientsThisMonth,
+      currentMarketingSpend
+    };
+  }, [marketingExpenses, clientes, clientesRegistro, ltvMetrics]);
 
   // Métricas de Conversão (Gateway)
   const conversaoMetrics = useMemo(() => {
@@ -246,88 +418,8 @@ export default function AdminRelatorios() {
     return soma / churnMetrics.length;
   }, [churnMetrics]);
 
-  // LTV Calculation - Separado por moeda
-  const ltvMetrics = useMemo(() => {
-    if (clientes.length === 0) return { 
-      ltvBRL: 0, ltvUSD: 0,
-      ticketMedioBRL: 0, ticketMedioUSD: 0,
-      tempoMedioMeses: 0, 
-      mrrBRL: 0, mrrUSD: 0,
-      clientesBRL: 0, clientesUSD: 0
-    };
-
-    const today = new Date();
-    // Tolerância de 7 dias para considerar cliente ainda "ativo" para MRR
-    const toleranciaDias = 7;
-    const dataLimite = new Date(today);
-    dataLimite.setDate(dataLimite.getDate() - toleranciaDias);
-
-    // Filtrar clientes realmente ativos para MRR (renovação futura ou até 7 dias atrás)
-    const clientesAtivosMRR = clientes.filter(c => {
-      const renovacao = parseISO(c.data_renovacao);
-      return renovacao >= dataLimite;
-    });
-
-    const clientesBRL = clientes.filter(c => c.moeda === 'BRL');
-    const clientesUSD = clientes.filter(c => c.moeda === 'USD');
-    
-    // Para MRR: apenas clientes com renovação futura ou recente
-    const clientesBRLAtivos = clientesAtivosMRR.filter(c => c.moeda === 'BRL');
-    const clientesUSDAtivos = clientesAtivosMRR.filter(c => c.moeda === 'USD');
-
-    const calcularMetricasPorMoeda = (clientesMoeda: ClienteData[], clientesMoedaAtivos: ClienteData[]) => {
-      if (clientesMoeda.length === 0) return { ticketMedio: 0, mrr: 0, ltv: 0 };
-      
-      // Ticket médio considera todos os clientes (histórico)
-      const valoresMensaisTodos = clientesMoeda.map(c => {
-        const cicloMeses = CICLO_MESES[c.ciclo_cobranca] || 1;
-        return c.valor / cicloMeses;
-      });
-      const ticketMedio = valoresMensaisTodos.reduce((a, b) => a + b, 0) / valoresMensaisTodos.length;
-      
-      // MRR considera apenas clientes ativos (renovação futura ou até 7 dias atrás)
-      const valoresMensaisAtivos = clientesMoedaAtivos.map(c => {
-        const cicloMeses = CICLO_MESES[c.ciclo_cobranca] || 1;
-        return c.valor / cicloMeses;
-      });
-      const mrr = valoresMensaisAtivos.reduce((a, b) => a + b, 0);
-      
-      const temposMeses = clientesMoeda.map(c => {
-        const createdAt = parseISO(c.created_at);
-        const renovacao = parseISO(c.data_renovacao);
-        const dataFim = renovacao < today ? renovacao : today;
-        return Math.max(1, differenceInMonths(dataFim, createdAt));
-      });
-      const tempoMedio = temposMeses.reduce((a, b) => a + b, 0) / temposMeses.length;
-      const ltv = ticketMedio * tempoMedio;
-      
-      return { ticketMedio, mrr, ltv };
-    };
-
-    const metricasBRL = calcularMetricasPorMoeda(clientesBRL, clientesBRLAtivos);
-    const metricasUSD = calcularMetricasPorMoeda(clientesUSD, clientesUSDAtivos);
-
-    // Tempo médio geral
-    const temposMesesGeral = clientes.map(c => {
-      const createdAt = parseISO(c.created_at);
-      const renovacao = parseISO(c.data_renovacao);
-      const dataFim = renovacao < today ? renovacao : today;
-      return Math.max(1, differenceInMonths(dataFim, createdAt));
-    });
-    const tempoMedioMeses = temposMesesGeral.length > 0 ? temposMesesGeral.reduce((a, b) => a + b, 0) / temposMesesGeral.length : 0;
-
-    return { 
-      ltvBRL: metricasBRL.ltv, 
-      ltvUSD: metricasUSD.ltv,
-      ticketMedioBRL: metricasBRL.ticketMedio, 
-      ticketMedioUSD: metricasUSD.ticketMedio,
-      tempoMedioMeses, 
-      mrrBRL: metricasBRL.mrr, 
-      mrrUSD: metricasUSD.mrr,
-      clientesBRL: clientesBRL.length,
-      clientesUSD: clientesUSD.length
-    };
-  }, [clientes]);
+  // LTV Calculation - Separado por moeda (Already defined above as part of biMetrics derivation or logic flow)
+  // Removing duplicate definition to fix TS2451
 
   // LTV por Plano
   const ltvPorPlano = useMemo(() => {
@@ -589,6 +681,10 @@ export default function AdminRelatorios() {
         <Tabs defaultValue="conversao" className="space-y-4">
           <TabsList className="bg-muted/50 flex-wrap">
             <TabsTrigger value="conversao">Conversão</TabsTrigger>
+            <TabsTrigger value="bi" className="flex items-center gap-1">
+              <Calculator className="h-3.5 w-3.5" />
+              Inteligência de Negócio
+            </TabsTrigger>
             <TabsTrigger value="churn">Churn</TabsTrigger>
             <TabsTrigger value="ltv">LTV & Receita</TabsTrigger>
             <TabsTrigger value="crescimento">Crescimento</TabsTrigger>
@@ -598,6 +694,109 @@ export default function AdminRelatorios() {
               Análise IA
             </TabsTrigger>
           </TabsList>
+
+          {/* Tab Inteligência de Negócio (BI) */}
+          <TabsContent value="bi" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <MetricCard
+                title="CAC (Custo de Aquisição)"
+                value={formatCurrency(biMetrics.cac, 'BRL')}
+                subtitle={`Baseado em ${biMetrics.newClientsThisMonth} novos clientes`}
+                icon={Users}
+                trend={biMetrics.cac > ltvMetrics.ticketMedioBRL ? 'down' : 'up'}
+                trendValue={biMetrics.cac > ltvMetrics.ticketMedioBRL ? 'Alto' : 'Saudável'}
+                info="Custo médio para adquirir um novo cliente este mês. Calculado como: Gastos de Marketing / Novos Clientes."
+              />
+              <MetricCard
+                title="LTV / CAC"
+                value={`${biMetrics.ltvCacRatio.toFixed(1)}x`}
+                subtitle={biMetrics.ltvCacRatio >= 3 ? "ROI Excelente" : "ROI em atenção"}
+                icon={TrendingUp}
+                trend={biMetrics.ltvCacRatio >= 3 ? 'up' : 'down'}
+                trendValue={biMetrics.ltvCacRatio >= 3 ? 'Ótimo' : 'Melhorar'}
+                info="Relação entre o valor que o cliente traz (LTV) e o custo para trazê-lo (CAC). Ideal: acima de 3x."
+              />
+              <MetricCard
+                title="Payback (Meses)"
+                value={`${biMetrics.payback.toFixed(1)} meses`}
+                subtitle="Tempo para recuperar o CAC"
+                icon={PiggyBank}
+                trend={biMetrics.payback <= 6 ? 'up' : 'down'}
+                trendValue={biMetrics.payback <= 6 ? 'Rápido' : 'Longo'}
+                info="Quantos meses o cliente precisa ficar para pagar o custo de aquisição. Ideal: abaixo de 6-8 meses."
+              />
+              <MetricCard
+                title="ARPU (Receita Média)"
+                value={formatCurrency(biMetrics.arpu, 'BRL')}
+                subtitle="Receita média por usuário ativo"
+                icon={Briefcase}
+                info="Receita média gerada por cada usuário ativo. Ajuda a entender a valorização da sua base."
+              />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calculator className="h-5 w-5" />
+                    Lançar Gastos de Marketing
+                  </CardTitle>
+                  <CardDescription>
+                    Insira o valor total investido em anúncios/marketing este mês para calcular o CAC.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor="marketing-spend">Gasto Total (BRL)</Label>
+                      <Input 
+                        id="marketing-spend"
+                        type="number" 
+                        placeholder="Ex: 5000.00" 
+                        value={newExpenseValue}
+                        onChange={(e) => setNewExpenseValue(e.target.value)}
+                      />
+                    </div>
+                    <Button 
+                      className="mt-8"
+                      onClick={handleSaveMarketingExpense}
+                    >
+                      Salvar Gasto
+                    </Button>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">
+                      * O gasto é registrado para o mês atual ({format(new Date(), 'MMMM/yyyy', { locale: ptBR })}). 
+                      Isso permite que o sistema compare automaticamente o investimento com o número de novos clientes cadastrados no mesmo período.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+                <CardHeader>
+                  <CardTitle>Histórico de Investimento</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {marketingExpenses.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">Nenhum gasto registrado ainda.</p>
+                    ) : (
+                      marketingExpenses.slice(0, 5).map((exp) => (
+                        <div key={exp.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                          <div>
+                            <p className="text-sm font-medium">{format(new Date(exp.ano, exp.mes - 1), 'MMMM yyyy', { locale: ptBR })}</p>
+                            <p className="text-xs text-muted-foreground">{exp.descricao || 'Investimento em Marketing'}</p>
+                          </div>
+                          <span className="font-bold">{formatCurrency(exp.valor, 'BRL')}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
           {/* Tab Conversão */}
           <TabsContent value="conversao" className="space-y-4">
@@ -1016,6 +1215,14 @@ export default function AdminRelatorios() {
                 ticketMedioUSD: ltvMetrics.ticketMedioUSD,
                 churnHistory: churnMetrics.map(m => ({ month: m.monthLabel, value: m.value })),
                 mrrHistory: mrrGrowth.map(m => ({ month: m.monthLabel, value: m.value })),
+                // Novos campos de BI para IA analisar
+                biData: {
+                  cac: biMetrics.cac,
+                  ltvCac: biMetrics.ltvCacRatio,
+                  payback: biMetrics.payback,
+                  arpu: biMetrics.arpu,
+                  marketingSpend: biMetrics.currentMarketingSpend
+                },
                 clientesAtRisk: clientes
                   .filter(c => {
                     const renovacao = parseISO(c.data_renovacao);

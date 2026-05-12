@@ -4750,6 +4750,36 @@ export type Database = {
           },
         ]
       }
+      marketing_expenses: {
+        Row: {
+          ano: number
+          created_at: string
+          descricao: string | null
+          id: string
+          mes: number
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          ano: number
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          mes: number
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          ano?: number
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          mes?: number
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       meta_credentials: {
         Row: {
           access_token: string
