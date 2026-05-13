@@ -54,6 +54,34 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sendingWhatsapp, setSendingWhatsapp] = useState(false);
 
+  const callRestauracaoFunction = async (payload: { channel: 'email' | 'whatsapp'; numeros: { numero: string; data_exclusao: string }[] }) => {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+
+    if (sessionError || !accessToken) {
+      throw new Error('Sessão expirada. Faça login novamente.');
+    }
+
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-restauracao-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : null;
+
+    if (!response.ok || data?.error) {
+      throw new Error(data?.error || `Falha ao enviar (${response.status})`);
+    }
+
+    return data;
+  };
+
   // Fetch deleted numbers from history
   const { data: deletedNumbers = [], isLoading, refetch } = useQuery({
     queryKey: ['numeros-aquecimento-deleted'],
@@ -121,17 +149,13 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
     }
     setSendingEmail(true);
     try {
-      const { data, error } = await supabase.functions.invoke('send-restauracao-email', {
-        body: {
-          channel: 'email',
-          numeros: filteredDeletedNumbers.map((r) => ({
-            numero: r.numero_valor,
-            data_exclusao: r.created_at,
-          })),
-        },
+      await callRestauracaoFunction({
+        channel: 'email',
+        numeros: filteredDeletedNumbers.map((r) => ({
+          numero: r.numero_valor,
+          data_exclusao: r.created_at,
+        })),
       });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
       toast.success(`E-mail enviado com ${filteredDeletedNumbers.length} número(s)`);
     } catch (e: any) {
       toast.error(`Erro ao enviar e-mail: ${e?.message || e}`);
@@ -147,17 +171,13 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
     }
     setSendingWhatsapp(true);
     try {
-      const { data, error } = await supabase.functions.invoke('send-restauracao-email', {
-        body: {
-          channel: 'whatsapp',
-          numeros: filteredDeletedNumbers.map((r) => ({
-            numero: r.numero_valor,
-            data_exclusao: r.created_at,
-          })),
-        },
+      await callRestauracaoFunction({
+        channel: 'whatsapp',
+        numeros: filteredDeletedNumbers.map((r) => ({
+          numero: r.numero_valor,
+          data_exclusao: r.created_at,
+        })),
       });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
       toast.success(`WhatsApp enviado para o grupo (${filteredDeletedNumbers.length} número(s))`);
     } catch (e: any) {
       toast.error(`Erro ao enviar WhatsApp: ${e?.message || e}`);
