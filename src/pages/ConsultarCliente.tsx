@@ -39,6 +39,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useClientHistory, ClientHistoryEntry } from '@/hooks/useClientHistory';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { logSystemActivity } from '@/hooks/useSystemActivities';
 import { Badge } from '@/components/ui/badge';
 import { ClientPaymentHistory } from '@/components/ClientPaymentHistory';
 import { ClientFilesManager } from '@/components/ClientFilesManager';
@@ -97,6 +108,7 @@ export default function ConsultarCliente() {
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [filterInadimplente, setFilterInadimplente] = useState(false);
   const [filterRenovacaoProxima, setFilterRenovacaoProxima] = useState(false);
+  const [duplicateTarget, setDuplicateTarget] = useState<Cliente | null>(null);
   
   // Quick edit state
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
@@ -721,10 +733,10 @@ export default function ConsultarCliente() {
                             {/* Duplicar cliente - admin only */}
                             {isAdmin && (
                               <Button
-                                onClick={() => navigate('/cadastrar', { state: { duplicateFrom: cliente } })}
+                                onClick={() => setDuplicateTarget(cliente)}
                                 variant="ghost"
                                 size="sm"
-                                className="text-muted-foreground hover:text-emerald-500"
+                                className="text-emerald-600 hover:text-emerald-500 hover:bg-emerald-500/10"
                                 title="Duplicar cliente (reaproveitar dados)"
                               >
                                 <Copy className="h-4 w-4" />
@@ -1277,6 +1289,37 @@ export default function ConsultarCliente() {
           open={!!groupClienteId}
           onOpenChange={() => setGroupClienteId(null)}
         />
+
+        <AlertDialog open={!!duplicateTarget} onOpenChange={(open) => !open && setDuplicateTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Duplicar cliente?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Os dados de <strong>{duplicateTarget?.nome}</strong> serão pré-preenchidos no formulário de cadastro.
+                Observações, tags e arquivos não serão copiados. Você poderá revisar antes de salvar.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-emerald-600 hover:bg-emerald-700"
+                onClick={() => {
+                  const target = duplicateTarget;
+                  if (!target) return;
+                  void logSystemActivity(
+                    `Duplicou cliente: ${target.nome}`,
+                    'cliente',
+                    `Origem: ${target.nome}${target.produto ? ` (${target.produto})` : ''} — ID ${target.id}`
+                  );
+                  setDuplicateTarget(null);
+                  navigate('/cadastrar', { state: { duplicateFrom: target } });
+                }}
+              >
+                Duplicar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
