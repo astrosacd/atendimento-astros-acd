@@ -733,10 +733,10 @@ export default function ConsultarCliente() {
                             {/* Duplicar cliente - admin only */}
                             {isAdmin && (
                               <Button
-                                onClick={() => navigate('/cadastrar', { state: { duplicateFrom: cliente } })}
+                                onClick={() => setDuplicateTarget(cliente)}
                                 variant="ghost"
                                 size="sm"
-                                className="text-muted-foreground hover:text-emerald-500"
+                                className="text-emerald-600 hover:text-emerald-500 hover:bg-emerald-500/10"
                                 title="Duplicar cliente (reaproveitar dados)"
                               >
                                 <Copy className="h-4 w-4" />
