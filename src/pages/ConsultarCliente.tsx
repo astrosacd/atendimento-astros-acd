@@ -1289,6 +1289,37 @@ export default function ConsultarCliente() {
           open={!!groupClienteId}
           onOpenChange={() => setGroupClienteId(null)}
         />
+
+        <AlertDialog open={!!duplicateTarget} onOpenChange={(open) => !open && setDuplicateTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Duplicar cliente?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Os dados de <strong>{duplicateTarget?.nome}</strong> serão pré-preenchidos no formulário de cadastro.
+                Observações, tags e arquivos não serão copiados. Você poderá revisar antes de salvar.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-emerald-600 hover:bg-emerald-700"
+                onClick={() => {
+                  const target = duplicateTarget;
+                  if (!target) return;
+                  void logSystemActivity(
+                    `Duplicou cliente: ${target.nome}`,
+                    'cliente',
+                    `Origem: ${target.nome}${target.produto ? ` (${target.produto})` : ''} — ID ${target.id}`
+                  );
+                  setDuplicateTarget(null);
+                  navigate('/cadastrar', { state: { duplicateFrom: target } });
+                }}
+              >
+                Duplicar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
