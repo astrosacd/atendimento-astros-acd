@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSystemActivities } from '@/hooks/useSystemActivities';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useClientes, ClienteInput, CicloCobranca, Moeda } from '@/hooks/useClientes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
