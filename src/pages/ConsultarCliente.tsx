@@ -718,6 +718,19 @@ export default function ConsultarCliente() {
                               </Button>
                             )}
 
+                            {/* Duplicar cliente - admin only */}
+                            {isAdmin && (
+                              <Button
+                                onClick={() => navigate('/cadastrar', { state: { duplicateFrom: cliente } })}
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-emerald-500"
+                                title="Duplicar cliente (reaproveitar dados)"
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            )}
+
                             {/* Histórico - sempre visível */}
                             <Button
                               onClick={() => handleViewHistory(cliente)}
