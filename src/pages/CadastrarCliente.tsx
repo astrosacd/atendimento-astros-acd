@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSystemActivities } from '@/hooks/useSystemActivities';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useClientes, ClienteInput, CicloCobranca, Moeda } from '@/hooks/useClientes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,6 +57,8 @@ interface UploadedFile {
 
 export default function CadastrarCliente() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const duplicateFrom = (location.state as any)?.duplicateFrom as any | undefined;
   const { createCliente, isLoading } = useClientes();
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -135,6 +137,40 @@ export default function CadastrarCliente() {
 
     fetchTags();
   }, []);
+
+  // Pré-preenchimento ao duplicar cliente (vindo de /consultar)
+  useEffect(() => {
+    if (!duplicateFrom) return;
+    const isRegistro = duplicateFrom.cobranca_ativa === false;
+    setClienteType(isRegistro ? 'registro' : 'mensal');
+    setFormData((prev) => ({
+      ...prev,
+      nome: duplicateFrom.nome || '',
+      numero: duplicateFrom.numero || '',
+      produto: duplicateFrom.produto || '',
+      data_renovacao: isRegistro
+        ? new Date().toISOString().split('T')[0]
+        : (duplicateFrom.data_renovacao || ''),
+      email: duplicateFrom.email || '',
+      cpf: duplicateFrom.cpf || '',
+      plano: duplicateFrom.plano || (isRegistro ? 'Nenhum' : ''),
+      valor: Number(duplicateFrom.valor) || 0,
+      moeda: (duplicateFrom.moeda as Moeda) || (isRegistro ? 'BRL' : (undefined as any)),
+      // NÃO duplicar: observação, tags, arquivos
+      observacao: '',
+      tags: [],
+      cobranca_ativa: !isRegistro,
+      ciclo_cobranca: (isRegistro ? '' : (duplicateFrom.ciclo_cobranca || '')) as any,
+      tipo: duplicateFrom.tipo || '',
+      excluir_metricas: !!duplicateFrom.excluir_metricas,
+    }));
+    toast({
+      title: 'Cliente duplicado',
+      description: 'Dados reaproveitados. Ajuste o necessário e salve. Observações, tags e arquivos não foram copiados.',
+    });
+    // Limpa o state da rota para evitar re-aplicar ao recarregar
+    navigate('/cadastrar', { replace: true, state: {} });
+  }, [duplicateFrom]);
 
   // Fetch recent payment links (não expirados) + IDs já usados em outros clientes
   useEffect(() => {

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server, ShieldCheck, MoreHorizontal, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server, ShieldCheck, MoreHorizontal, TrendingUp, Copy } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -715,6 +715,19 @@ export default function ConsultarCliente() {
                                 title="Editar cliente"
                               >
                                 <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
+
+                            {/* Duplicar cliente - admin only */}
+                            {isAdmin && (
+                              <Button
+                                onClick={() => navigate('/cadastrar', { state: { duplicateFrom: cliente } })}
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-emerald-500"
+                                title="Duplicar cliente (reaproveitar dados)"
+                              >
+                                <Copy className="h-4 w-4" />
                               </Button>
                             )}
 
