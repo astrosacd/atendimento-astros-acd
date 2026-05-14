@@ -736,7 +736,7 @@ export default function ConsultarCliente() {
                                 onClick={() => setDuplicateTarget(cliente)}
                                 variant="ghost"
                                 size="sm"
-                                className="text-emerald-600 hover:text-emerald-500 hover:bg-emerald-500/10"
+                                className="text-muted-foreground hover:text-emerald-500"
                                 title="Duplicar cliente (reaproveitar dados)"
                               >
                                 <Copy className="h-4 w-4" />
