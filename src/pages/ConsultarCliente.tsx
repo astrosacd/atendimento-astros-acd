@@ -39,6 +39,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useClientHistory, ClientHistoryEntry } from '@/hooks/useClientHistory';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { logSystemActivity } from '@/hooks/useSystemActivities';
 import { Badge } from '@/components/ui/badge';
 import { ClientPaymentHistory } from '@/components/ClientPaymentHistory';
 import { ClientFilesManager } from '@/components/ClientFilesManager';
