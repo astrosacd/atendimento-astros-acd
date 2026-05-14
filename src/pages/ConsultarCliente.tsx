@@ -108,6 +108,7 @@ export default function ConsultarCliente() {
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [filterInadimplente, setFilterInadimplente] = useState(false);
   const [filterRenovacaoProxima, setFilterRenovacaoProxima] = useState(false);
+  const [duplicateTarget, setDuplicateTarget] = useState<Cliente | null>(null);
   
   // Quick edit state
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
