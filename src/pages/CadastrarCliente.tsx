@@ -57,6 +57,8 @@ interface UploadedFile {
 
 export default function CadastrarCliente() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const duplicateFrom = (location.state as any)?.duplicateFrom as any | undefined;
   const { createCliente, isLoading } = useClientes();
   const { toast } = useToast();
   const { t } = useTranslation();
