@@ -162,3 +162,6 @@ verify_jwt = false
 
 [functions.proposals-ghost-test-send]
 verify_jwt = false
+
+[functions.central-ajuda-ia]
+verify_jwt = false

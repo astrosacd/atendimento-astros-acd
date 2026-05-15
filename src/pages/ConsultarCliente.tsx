@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useClientes, Cliente } from '@/hooks/useClientes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -990,7 +991,7 @@ export default function ConsultarCliente() {
                         )}
                         {cliente.observacao && (
                           <div className="pt-2 border-t border-info/10">
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                               <span className="font-medium">{t('clients.observations')}:</span> {cliente.observacao}
                             </p>
                           </div>
@@ -1220,11 +1221,11 @@ export default function ConsultarCliente() {
               </div>
               <div className="space-y-2">
                 <Label className="text-foreground font-medium">{t('clients.observations')}</Label>
-                <Input
+                <Textarea
                   placeholder="Observações"
                   value={editObservacao}
                   onChange={(e) => setEditObservacao(e.target.value)}
-                  className="bg-secondary border-border text-foreground h-10"
+                  className="bg-secondary border-border text-foreground min-h-[200px] whitespace-pre-wrap"
                 />
               </div>
               <div className="flex gap-2 pt-2">
