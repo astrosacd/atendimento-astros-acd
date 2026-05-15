@@ -1221,11 +1221,11 @@ export default function ConsultarCliente() {
               </div>
               <div className="space-y-2">
                 <Label className="text-foreground font-medium">{t('clients.observations')}</Label>
-                <Input
+                <Textarea
                   placeholder="Observações"
                   value={editObservacao}
                   onChange={(e) => setEditObservacao(e.target.value)}
-                  className="bg-secondary border-border text-foreground h-10"
+                  className="bg-secondary border-border text-foreground min-h-[200px] whitespace-pre-wrap"
                 />
               </div>
               <div className="flex gap-2 pt-2">
