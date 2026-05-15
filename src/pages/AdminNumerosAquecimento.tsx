@@ -1465,6 +1465,14 @@ function NumeroActionsMenu({
                     ))}
                   </SelectContent>
                 </Select>
+                {isChangingToVendido && (
+                  <div className="mt-2 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
+                    <ShoppingCart className="h-4 w-4 mt-0.5 shrink-0" />
+                    <span>
+                      Você selecionou <strong>Vendido</strong>. Clique em <strong>Salvar</strong> para prosseguir e informar os dados do cliente da venda.
+                    </span>
+                  </div>
+                )}
               </div>
             )}
             {canChangeObs && (
