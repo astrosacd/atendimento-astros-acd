@@ -991,7 +991,7 @@ export default function ConsultarCliente() {
                         )}
                         {cliente.observacao && (
                           <div className="pt-2 border-t border-info/10">
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                               <span className="font-medium">{t('clients.observations')}:</span> {cliente.observacao}
                             </p>
                           </div>
