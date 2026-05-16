@@ -5263,6 +5263,7 @@ export type Database = {
       }
       payment_links: {
         Row: {
+          arquivado_em: string | null
           config_source: string
           created_at: string
           created_by: string | null
@@ -5283,6 +5284,7 @@ export type Database = {
           valor_original: number
         }
         Insert: {
+          arquivado_em?: string | null
           config_source: string
           created_at?: string
           created_by?: string | null
@@ -5303,6 +5305,7 @@ export type Database = {
           valor_original: number
         }
         Update: {
+          arquivado_em?: string | null
           config_source?: string
           created_at?: string
           created_by?: string | null
