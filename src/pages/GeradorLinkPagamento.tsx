@@ -20,7 +20,7 @@ import { ptBR } from 'date-fns/locale';
 import {
   Link2, Copy, ExternalLink, Loader2, Clock, Trash2, Share2, History,
   DollarSign, Building2, Plus, RefreshCw, Search, CheckCircle2, XCircle, AlertCircle,
-  Webhook, Info, Settings
+  Webhook, Info, Settings, Archive, ArchiveRestore
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -789,6 +789,12 @@ export default function GeradorLinkPagamento() {
                                 {sc.icon}
                                 {sc.label}
                               </Badge>
+                              {link.arquivado_em && (
+                                <Badge variant="outline" className="text-xs shrink-0 gap-1 border-amber-500/50 text-amber-500">
+                                  <Archive className="h-3 w-3" />
+                                  Arquivado
+                                </Badge>
+                              )}
                             </div>
                             <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                               <span className="flex items-center gap-1">
@@ -820,10 +826,32 @@ export default function GeradorLinkPagamento() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => copyLink(link.payment_url)}
+                                title="Copiar link"
                               >
                                 <Copy className="h-4 w-4" />
                               </Button>
                             )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={async () => {
+                                const arquivar = !link.arquivado_em;
+                                const { error } = await (supabase as any)
+                                  .from('payment_links')
+                                  .update({ arquivado_em: arquivar ? new Date().toISOString() : null })
+                                  .eq('id', link.id);
+                                if (error) {
+                                  toast.error('Erro ao ' + (arquivar ? 'arquivar' : 'desarquivar') + ' link');
+                                  return;
+                                }
+                                toast.success(arquivar ? 'Link arquivado — não aparecerá no seletor de cadastro' : 'Link desarquivado');
+                                queryClient.invalidateQueries({ queryKey: ['payment-links-history'] });
+                              }}
+                              title={link.arquivado_em ? 'Desarquivar (voltar a aparecer no seletor)' : 'Arquivar (ocultar do seletor no cadastro de cliente)'}
+                              className={link.arquivado_em ? 'text-amber-500 hover:text-amber-600' : 'text-muted-foreground hover:text-foreground'}
+                            >
+                              {link.arquivado_em ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                            </Button>
                           </div>
                         </div>
                       );

@@ -1,0 +1,2 @@
+ALTER TABLE public.payment_links ADD COLUMN IF NOT EXISTS arquivado_em TIMESTAMPTZ NULL;
+CREATE INDEX IF NOT EXISTS idx_payment_links_arquivado ON public.payment_links (arquivado_em) WHERE arquivado_em IS NULL;
