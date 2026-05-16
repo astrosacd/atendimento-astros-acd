@@ -789,6 +789,12 @@ export default function GeradorLinkPagamento() {
                                 {sc.icon}
                                 {sc.label}
                               </Badge>
+                              {link.arquivado_em && (
+                                <Badge variant="outline" className="text-xs shrink-0 gap-1 border-amber-500/50 text-amber-500">
+                                  <Archive className="h-3 w-3" />
+                                  Arquivado
+                                </Badge>
+                              )}
                             </div>
                             <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                               <span className="flex items-center gap-1">
