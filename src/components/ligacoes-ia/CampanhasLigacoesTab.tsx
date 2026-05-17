@@ -19,6 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -28,9 +30,51 @@ import {
   ListChecks,
   Users,
   PhoneCall,
+  UserPlus,
+  FileUp,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+type ManualContact = { nome: string; numero: string };
+
+// Normaliza um número para apenas dígitos (mín 10 dígitos para considerar válido)
+function normalizePhone(raw: string): string | null {
+  const digits = (raw || "").replace(/\D+/g, "");
+  if (digits.length < 10) return null;
+  return digits;
+}
+
+function parseManualContacts(text: string): ManualContact[] {
+  const out: ManualContact[] = [];
+  const seen = new Set<string>();
+  text.split(/\r?\n/).forEach((line) => {
+    const l = line.trim();
+    if (!l) return;
+    // formatos aceitos: "Nome, numero" | "Nome; numero" | "Nome - numero" | "numero" | "Nome\tnumero"
+    const parts = l.split(/[,;\t]| - /).map((p) => p.trim()).filter(Boolean);
+    let nome = "";
+    let numeroRaw = "";
+    if (parts.length === 1) {
+      numeroRaw = parts[0];
+    } else {
+      // último token com mais dígitos = número, restante = nome
+      const last = parts[parts.length - 1];
+      if (/\d/.test(last)) {
+        numeroRaw = last;
+        nome = parts.slice(0, -1).join(" ");
+      } else {
+        nome = parts.join(" ");
+      }
+    }
+    const numero = normalizePhone(numeroRaw);
+    if (!numero) return;
+    if (seen.has(numero)) return;
+    seen.add(numero);
+    out.push({ nome: nome || "Contato", numero });
+  });
+  return out;
+}
 
 type Campanha = {
   id: string;
@@ -177,11 +221,15 @@ function NovaCampanhaDialog({
   const [saving, setSaving] = useState(false);
   const [diaAlvo, setDiaAlvo] = useState<string>(todayISO);
   const [delayOverride, setDelayOverride] = useState<string>("");
+  const [tab, setTab] = useState<"cadastrados" | "manuais">("cadastrados");
+  const [manualText, setManualText] = useState<string>("");
+  const manualContacts = useMemo(() => parseManualContacts(manualText), [manualText]);
 
   useEffect(() => {
     if (!open) {
       setNome(""); setRoteiroId(""); setSelected(new Set()); setSearch(""); setFilter("todos");
       setDiaAlvo(todayISO); setDelayOverride("");
+      setTab("cadastrados"); setManualText("");
       return;
     }
     (async () => {
@@ -230,7 +278,15 @@ function NovaCampanhaDialog({
   const submit = async () => {
     if (!nome.trim()) return toast({ title: "Informe o nome da campanha", variant: "destructive" });
     if (!roteiroId) return toast({ title: "Selecione um roteiro", variant: "destructive" });
-    if (selected.size === 0) return toast({ title: "Selecione ao menos 1 cliente", variant: "destructive" });
+
+    const useManual = tab === "manuais";
+    const totalSelecionados = useManual ? manualContacts.length : selected.size;
+    if (totalSelecionados === 0) {
+      return toast({
+        title: useManual ? "Adicione pelo menos 1 contato válido" : "Selecione ao menos 1 cliente",
+        variant: "destructive",
+      });
+    }
 
     setSaving(true);
     try {
@@ -241,7 +297,7 @@ function NovaCampanhaDialog({
         .insert({
           nome: nome.trim(),
           roteiro_id: roteiroId,
-          total: selected.size,
+          total: totalSelecionados,
           criado_por: userData.user?.id ?? null,
           dia_alvo: diaAlvo,
           delay_minutes_override: overrideNum,
@@ -250,14 +306,25 @@ function NovaCampanhaDialog({
         .single();
       if (e1) throw e1;
 
-      const rows = Array.from(selected).map((cid) => ({
-        cliente_id: cid,
-        roteiro_id: roteiroId,
-        dia_alvo: diaAlvo,
-        tipo_d: "campanha",
-        status: "pendente",
-        campanha_id: campanha.id,
-      }));
+      const rows = useManual
+        ? manualContacts.map((c) => ({
+            cliente_id: null,
+            nome_manual: c.nome,
+            numero_manual: c.numero,
+            roteiro_id: roteiroId,
+            dia_alvo: diaAlvo,
+            tipo_d: "campanha",
+            status: "pendente",
+            campanha_id: campanha.id,
+          }))
+        : Array.from(selected).map((cid) => ({
+            cliente_id: cid,
+            roteiro_id: roteiroId,
+            dia_alvo: diaAlvo,
+            tipo_d: "campanha",
+            status: "pendente",
+            campanha_id: campanha.id,
+          }));
       const { error: e2 } = await (supabase as any).from("ligacoes_agendadas").insert(rows);
       if (e2) throw e2;
 
@@ -324,75 +391,128 @@ function NovaCampanhaDialog({
             </div>
           </div>
 
-          <div>
-            <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
-              <Label>Clientes</Label>
-              <div className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">{selected.size}</span> selecionado(s) / {filtered.length} visíveis
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2 mb-2">
-              <Button size="sm" variant={filter === "todos" ? "default" : "outline"} onClick={() => setFilter("todos")}>
-                Todos ({clientes.length})
-              </Button>
-              <Button size="sm" variant={filter === "mensais" ? "default" : "outline"} onClick={() => setFilter("mensais")}>
-                📅 Mensais ({mensaisCount})
-              </Button>
-              <Button size="sm" variant={filter === "registros" ? "default" : "outline"} onClick={() => setFilter("registros")}>
-                📋 Registros ({registrosCount})
-              </Button>
-            </div>
-            <Input
-              placeholder="Buscar por nome, número ou produto..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="mb-2"
-            />
-            <Card className="p-0 max-h-72 overflow-y-auto">
-              {loadingData ? (
-                <div className="flex items-center justify-center py-6 text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" /> Carregando clientes...
+          <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
+            <TabsList className="grid grid-cols-2 w-full">
+              <TabsTrigger value="cadastrados" className="gap-1.5">
+                <Users className="h-3.5 w-3.5" /> Clientes cadastrados
+                {selected.size > 0 && tab === "cadastrados" && (
+                  <Badge variant="secondary" className="ml-1 h-5 px-1.5">{selected.size}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="manuais" className="gap-1.5">
+                <UserPlus className="h-3.5 w-3.5" /> Contatos manuais
+                {manualContacts.length > 0 && tab === "manuais" && (
+                  <Badge variant="secondary" className="ml-1 h-5 px-1.5">{manualContacts.length}</Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="cadastrados" className="mt-3 space-y-2">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <Label className="m-0">Clientes</Label>
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">{selected.size}</span> selecionado(s) / {filtered.length} visíveis
                 </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30 sticky top-0">
-                    <Checkbox
-                      checked={filtered.length > 0 && filtered.every((c) => selected.has(c.id))}
-                      onCheckedChange={toggleAllVisible}
-                    />
-                    <span className="text-xs text-muted-foreground">Selecionar todos visíveis (com número)</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant={filter === "todos" ? "default" : "outline"} onClick={() => setFilter("todos")}>
+                  Todos ({clientes.length})
+                </Button>
+                <Button size="sm" variant={filter === "mensais" ? "default" : "outline"} onClick={() => setFilter("mensais")}>
+                  📅 Mensais ({mensaisCount})
+                </Button>
+                <Button size="sm" variant={filter === "registros" ? "default" : "outline"} onClick={() => setFilter("registros")}>
+                  📋 Registros ({registrosCount})
+                </Button>
+              </div>
+              <Input
+                placeholder="Buscar por nome, número ou produto..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <Card className="p-0 max-h-72 overflow-y-auto">
+                {loadingData ? (
+                  <div className="flex items-center justify-center py-6 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" /> Carregando clientes...
                   </div>
-                  {filtered.length === 0 ? (
-                    <div className="py-6 text-center text-sm text-muted-foreground">Nenhum cliente encontrado</div>
-                  ) : (
-                    filtered.map((c) => (
-                      <label
-                        key={c.id}
-                        className={`flex items-center gap-3 px-3 py-2 border-b last:border-b-0 hover:bg-accent/40 cursor-pointer ${
-                          !c.numero ? "opacity-50" : ""
-                        }`}
-                      >
-                        <Checkbox
-                          checked={selected.has(c.id)}
-                          onCheckedChange={() => c.numero && toggle(c.id)}
-                          disabled={!c.numero}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate flex items-center gap-2">
-                            {c.cobranca_ativa ? "📅" : "📋"} {c.nome}
-                            {!c.numero && <span className="text-xs text-destructive">sem número</span>}
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30 sticky top-0">
+                      <Checkbox
+                        checked={filtered.length > 0 && filtered.every((c) => selected.has(c.id))}
+                        onCheckedChange={toggleAllVisible}
+                      />
+                      <span className="text-xs text-muted-foreground">Selecionar todos visíveis (com número)</span>
+                    </div>
+                    {filtered.length === 0 ? (
+                      <div className="py-6 text-center text-sm text-muted-foreground">Nenhum cliente encontrado</div>
+                    ) : (
+                      filtered.map((c) => (
+                        <label
+                          key={c.id}
+                          className={`flex items-center gap-3 px-3 py-2 border-b last:border-b-0 hover:bg-accent/40 cursor-pointer ${
+                            !c.numero ? "opacity-50" : ""
+                          }`}
+                        >
+                          <Checkbox
+                            checked={selected.has(c.id)}
+                            onCheckedChange={() => c.numero && toggle(c.id)}
+                            disabled={!c.numero}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate flex items-center gap-2">
+                              {c.cobranca_ativa ? "📅" : "📋"} {c.nome}
+                              {!c.numero && <span className="text-xs text-destructive">sem número</span>}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              {c.produto || "—"} {c.numero ? `• ${c.numero}` : ""}
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground truncate">
-                            {c.produto || "—"} {c.numero ? `• ${c.numero}` : ""}
-                          </div>
-                        </div>
-                      </label>
-                    ))
+                        </label>
+                      ))
+                    )}
+                  </>
+                )}
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="manuais" className="mt-3 space-y-2">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <Label className="m-0 flex items-center gap-1.5">
+                  <FileUp className="h-3.5 w-3.5" /> Cole os contatos (1 por linha)
+                </Label>
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">{manualContacts.length}</span> contato(s) válido(s)
+                </div>
+              </div>
+              <Textarea
+                rows={8}
+                placeholder={`Exemplos aceitos (1 contato por linha):\nJoão Silva, 5511999998888\nMaria, 11988887777\n5511977776666`}
+                value={manualText}
+                onChange={(e) => setManualText(e.target.value)}
+                className="font-mono text-xs"
+              />
+              <p className="text-xs text-muted-foreground">
+                Formato: <code>Nome, número</code> — também aceita separação por <code>;</code>, <code>tab</code> ou <code>-</code>.
+                Apenas números com 10+ dígitos são considerados. Duplicados são removidos automaticamente.
+              </p>
+              {manualContacts.length > 0 && (
+                <Card className="p-0 max-h-48 overflow-y-auto">
+                  {manualContacts.slice(0, 100).map((c, idx) => (
+                    <div key={idx} className="flex items-center justify-between gap-2 px-3 py-1.5 border-b last:border-b-0 text-xs">
+                      <span className="truncate">{c.nome}</span>
+                      <span className="font-mono text-muted-foreground">{c.numero}</span>
+                    </div>
+                  ))}
+                  {manualContacts.length > 100 && (
+                    <div className="px-3 py-2 text-xs text-muted-foreground text-center">
+                      +{manualContacts.length - 100} contatos adicionais...
+                    </div>
                   )}
-                </>
+                </Card>
               )}
-            </Card>
-          </div>
+            </TabsContent>
+          </Tabs>
 
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-2.5 text-xs text-amber-200/90 flex items-start gap-2">
             <PhoneCall className="h-3.5 w-3.5 mt-0.5 shrink-0" />
@@ -407,7 +527,10 @@ function NovaCampanhaDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
           <Button onClick={submit} disabled={saving} className="bg-fuchsia-600 hover:bg-fuchsia-700">
             {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}
-            Criar e enfileirar {selected.size > 0 ? `(${selected.size})` : ""}
+            Criar e enfileirar {(() => {
+              const n = tab === "manuais" ? manualContacts.length : selected.size;
+              return n > 0 ? `(${n})` : "";
+            })()}
           </Button>
         </DialogFooter>
       </DialogContent>

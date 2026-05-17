@@ -4800,12 +4800,14 @@ export type Database = {
       ligacoes_agendadas: {
         Row: {
           campanha_id: string | null
-          cliente_id: string
+          cliente_id: string | null
           created_at: string
           dia_alvo: string
           erro: string | null
           historico_id: string | null
           id: string
+          nome_manual: string | null
+          numero_manual: string | null
           processada_em: string | null
           roteiro_id: string | null
           status: string
@@ -4815,12 +4817,14 @@ export type Database = {
         }
         Insert: {
           campanha_id?: string | null
-          cliente_id: string
+          cliente_id?: string | null
           created_at?: string
           dia_alvo: string
           erro?: string | null
           historico_id?: string | null
           id?: string
+          nome_manual?: string | null
+          numero_manual?: string | null
           processada_em?: string | null
           roteiro_id?: string | null
           status?: string
@@ -4830,12 +4834,14 @@ export type Database = {
         }
         Update: {
           campanha_id?: string | null
-          cliente_id?: string
+          cliente_id?: string | null
           created_at?: string
           dia_alvo?: string
           erro?: string | null
           historico_id?: string | null
           id?: string
+          nome_manual?: string | null
+          numero_manual?: string | null
           processada_em?: string | null
           roteiro_id?: string | null
           status?: string
