@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
@@ -12,11 +12,12 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Phone, Plus, Play, Trash2, Loader2, PhoneCall, History, Settings as SettingsIcon, FileText, Sparkles, AlertCircle, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Phone, Plus, Play, Trash2, Loader2, PhoneCall, PhoneOff, History, Settings as SettingsIcon, FileText, Sparkles, AlertCircle, RefreshCw, CheckCircle2 } from "lucide-react";
 import { format, subDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LigarComIADialog } from "@/components/LigarComIADialog";
 import { User } from "lucide-react";
+import { placeCallWithTTS, type ActiveCallHandle } from "@/lib/wavoipCall";
 
 const CATEGORIAS = [
   { value: "cobranca", label: "Cobrança" },
@@ -448,36 +449,52 @@ function DisparoTab() {
     // eslint-disable-next-line
   }, []);
 
+  const [callStatus, setCallStatus] = useState("");
+  const callRef = useRef<ActiveCallHandle | null>(null);
+
   const ligar = async () => {
     if (!roteiroId || !numero) {
       toast({ title: "Selecione roteiro e número", variant: "destructive" });
       return;
     }
-    const callPopup = window.open("", "wavoip_call", "width=360,height=640");
-    callPopup?.document.write("<title>Ligação Wavoip</title><p style='font-family:sans-serif;padding:16px'>Preparando ligação...</p>");
     setCalling(true);
-    const { data, error } = await supabase.functions.invoke("ligacoes-ia-call", {
-      body: {
-        roteiro_id: roteiroId,
-        numero_destino: numero.replace(/\D/g, ""),
-        variables: { nome, valor },
-        voice_id_override: voiceOverride || undefined,
-        source: "manual",
-      },
-    });
+    setCallStatus("Gerando áudio do roteiro...");
+    try {
+      const { data, error } = await supabase.functions.invoke("ligacoes-ia-call", {
+        body: {
+          roteiro_id: roteiroId,
+          numero_destino: numero.replace(/\D/g, ""),
+          variables: { nome, valor },
+          voice_id_override: voiceOverride || undefined,
+          source: "manual",
+        },
+      });
+      if (error) throw error;
+      const d = data as any;
+      if (!d?.wavoip_token || !d?.audio_url || !d?.phone) {
+        throw new Error("Resposta inválida do servidor (faltam token/áudio/número)");
+      }
+      const handle = await placeCallWithTTS({
+        token: d.wavoip_token,
+        phone: d.phone,
+        audioUrl: d.audio_url,
+        onStatus: (s) => setCallStatus(s),
+        onEnded: () => { setCalling(false); setCallStatus(""); callRef.current = null; },
+      });
+      callRef.current = handle;
+      toast({ title: "Ligação em andamento" });
+    } catch (e: any) {
+      setCalling(false);
+      setCallStatus("");
+      toast({ title: "Erro ao ligar", description: e?.message ?? String(e), variant: "destructive" });
+    }
+  };
+
+  const desligar = async () => {
+    await callRef.current?.hangup();
+    callRef.current = null;
     setCalling(false);
-    if (error) {
-      callPopup?.close();
-      const description = error.message?.includes("Failed to send a request")
-        ? "O navegador bloqueou a chamada da ligação. Atualize a página e tente novamente."
-        : error.message;
-      return toast({ title: "Erro ao ligar", description, variant: "destructive" });
-    }
-    if ((data as any)?.call_url) {
-      if (callPopup) callPopup.location.href = (data as any).call_url;
-      else window.open((data as any).call_url, "wavoip_call", "width=360,height=640");
-    }
-    toast({ title: "Ligação aberta na Wavoip", description: "Se a janela não abrir, permita pop-ups para este site." });
+    setCallStatus("");
   };
 
   return (
@@ -519,10 +536,21 @@ function DisparoTab() {
             <Input value={valor} onChange={e => setValor(e.target.value)} placeholder="99,90" />
           </div>
         </div>
-        <Button className="w-full" onClick={ligar} disabled={calling}>
-          {calling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Phone className="h-4 w-4 mr-2" />}
-          Ligar agora
-        </Button>
+        {calling && callStatus && (
+          <div className="rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/5 p-3 text-xs flex items-center gap-2">
+            <Loader2 className="h-3 w-3 animate-spin text-fuchsia-500" />
+            <span className="text-foreground">{callStatus}</span>
+          </div>
+        )}
+        {calling ? (
+          <Button className="w-full" variant="destructive" onClick={desligar}>
+            <PhoneOff className="h-4 w-4 mr-2" /> Desligar
+          </Button>
+        ) : (
+          <Button className="w-full" onClick={ligar}>
+            <Phone className="h-4 w-4 mr-2" /> Ligar agora
+          </Button>
+        )}
 
         <div className="relative my-2">
           <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>

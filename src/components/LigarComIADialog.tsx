@@ -1,13 +1,14 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { Loader2, Phone, AlertCircle } from "lucide-react";
+import { Loader2, Phone, AlertCircle, PhoneOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { placeCallWithTTS, type ActiveCallHandle } from "@/lib/wavoipCall";
 
 interface Props {
   clienteId?: string;
@@ -59,29 +60,44 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
     return clientes.find(c => c.id === selectedClienteId) ?? null;
   }, [clienteId, clienteNome, clienteNumero, clientes, selectedClienteId]);
 
+  const [callStatus, setCallStatus] = useState<string>("");
+  const callRef = useRef<ActiveCallHandle | null>(null);
+
   const ligar = async () => {
     if (!roteiroId) return toast({ title: "Selecione um roteiro", variant: "destructive" });
     if (!selectedCliente?.id) return toast({ title: "Selecione um cliente", variant: "destructive" });
-    const callPopup = window.open("", "wavoip_call", "width=360,height=640");
-    callPopup?.document.write("<title>Ligação Wavoip</title><p style='font-family:sans-serif;padding:16px'>Preparando ligação...</p>");
     setCalling(true);
-    const { data, error } = await supabase.functions.invoke("ligacoes-ia-call", {
-      body: { cliente_id: selectedCliente.id, roteiro_id: roteiroId, source: "cliente_card" },
-    });
+    setCallStatus("Gerando áudio do roteiro...");
+    try {
+      const { data, error } = await supabase.functions.invoke("ligacoes-ia-call", {
+        body: { cliente_id: selectedCliente.id, roteiro_id: roteiroId, source: "cliente_card" },
+      });
+      if (error) throw error;
+      const d = data as any;
+      if (!d?.wavoip_token || !d?.audio_url || !d?.phone) {
+        throw new Error("Resposta inválida do servidor (faltam token/áudio/número)");
+      }
+      const handle = await placeCallWithTTS({
+        token: d.wavoip_token,
+        phone: d.phone,
+        audioUrl: d.audio_url,
+        onStatus: (s) => setCallStatus(s),
+        onEnded: () => { setCalling(false); setCallStatus(""); callRef.current = null; },
+      });
+      callRef.current = handle;
+      toast({ title: "Ligação em andamento", description: `Para ${selectedCliente.nome}` });
+    } catch (e: any) {
+      setCalling(false);
+      setCallStatus("");
+      toast({ title: "Erro ao ligar", description: e?.message ?? String(e), variant: "destructive" });
+    }
+  };
+
+  const desligar = async () => {
+    await callRef.current?.hangup();
+    callRef.current = null;
     setCalling(false);
-    if (error) {
-      callPopup?.close();
-      const description = error.message?.includes("Failed to send a request")
-        ? "O navegador bloqueou a chamada da ligação. Atualize a página e tente novamente."
-        : error.message;
-      return toast({ title: "Erro ao ligar", description, variant: "destructive" });
-    }
-    if ((data as any)?.call_url) {
-      if (callPopup) callPopup.location.href = (data as any).call_url;
-      else window.open((data as any).call_url, "wavoip_call", "width=360,height=640");
-    }
-    toast({ title: "Ligação aberta na Wavoip", description: `Para ${selectedCliente.nome}` });
-    onOpenChange(false);
+    setCallStatus("");
   };
 
   const preview = roteiros.find(r => r.id === roteiroId);
@@ -199,12 +215,24 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
           )}
         </div>
 
+        {calling && callStatus && (
+          <div className="rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/5 p-3 text-xs flex items-center gap-2">
+            <Loader2 className="h-3 w-3 animate-spin text-fuchsia-500" />
+            <span className="text-foreground">{callStatus}</span>
+          </div>
+        )}
+
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={ligar} disabled={calling || !roteiroId || !selectedCliente?.id || configOk === false}>
-            {calling ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Phone className="h-4 w-4 mr-1" />}
-            Ligar agora
-          </Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={calling}>Fechar</Button>
+          {calling ? (
+            <Button variant="destructive" onClick={desligar}>
+              <PhoneOff className="h-4 w-4 mr-1" /> Desligar
+            </Button>
+          ) : (
+            <Button onClick={ligar} disabled={!roteiroId || !selectedCliente?.id || configOk === false}>
+              <Phone className="h-4 w-4 mr-1" /> Ligar agora
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
