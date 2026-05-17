@@ -105,6 +105,7 @@ export default function ConsultarCliente() {
   const [groupClienteId, setGroupClienteId] = useState<string | null>(null);
   const [groupClienteName, setGroupClienteName] = useState<string>('');
   const [groupClienteNumero, setGroupClienteNumero] = useState<string>('');
+  const [ligarIACliente, setLigarIACliente] = useState<{ id: string; nome: string; numero: string } | null>(null);
   const { canViewSocialCredentials, canViewServerCredentials, canCreateWhatsAppGroups, canViewClientAI, canViewClientGraph, canViewPaymentSecurity } = usePermissions();
   const canViewUpsell = canViewClientAI; // Reusing AI permission for now
   const [availableTags, setAvailableTags] = useState<string[]>([]);
