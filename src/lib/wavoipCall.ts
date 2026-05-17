@@ -5,11 +5,14 @@
 // Approach: monkey-patch navigator.mediaDevices.getUserMedia during the call
 // so Wavoip's MediaManager picks up our synthetic stream instead of a real mic.
 import { Wavoip, type CallActive, type CallOutgoing } from "@wavoip/wavoip-api";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface PlaceCallParams {
   token: string;          // Wavoip device token
   phone: string;          // destination phone (digits only, with DDI)
   audioUrl: string;       // signed URL of the TTS MP3
+  historicoId?: string;   // for posting outcome to webhook
+  preTTSDelayMs?: number; // delay before starting playback after peer accepts
   onStatus?: (status: string) => void;
   onEnded?: () => void;
 }
@@ -43,12 +46,26 @@ async function ttsUrlToPlayableStream(audioUrl: string, audioContext: AudioConte
   };
 }
 
+async function postHistoricoOutcome(histId: string, payload: Record<string, unknown>) {
+  try {
+    const url = `https://udxaxemoozddkwpitngq.supabase.co/functions/v1/ligacoes-ia-webhook?hist_id=${encodeURIComponent(histId)}`;
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      keepalive: true,
+    });
+  } catch (e) {
+    console.warn("[wavoipCall] failed to post outcome", e);
+  }
+}
+
 /**
  * Place a Wavoip call with TTS audio injected as the microphone stream.
  * MUST be called from a user gesture (button click).
  */
 export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveCallHandle> {
-  const { token, phone, audioUrl, onStatus, onEnded } = params;
+  const { token, phone, audioUrl, historicoId, preTTSDelayMs = 3000, onStatus, onEnded } = params;
 
   // 1. Build TTS-backed MediaStream
   onStatus?.("Preparando áudio do roteiro...");
@@ -76,12 +93,43 @@ export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveC
 
   let activeCall: CallActive | CallOutgoing | null = null;
   let ended = false;
-  const cleanup = async () => {
+  let answered = false;
+  let playbackStarted = false;
+  let playbackCompleted = false;
+  let answeredAt = 0;
+
+  const cleanup = async (reason?: string) => {
     if (ended) return;
     ended = true;
     restorePatch();
     try { tts.stop(); } catch { /* ignore */ }
     try { await audioContext.close(); } catch { /* ignore */ }
+
+    // Report outcome to the historico webhook
+    if (historicoId) {
+      const listenedMs = answeredAt ? Date.now() - answeredAt : 0;
+      let observacao = reason ?? "";
+      let mappedStatus = "finalizada";
+      if (answered && !playbackCompleted) {
+        mappedStatus = "cliente_desligou_antes_audio";
+        observacao = playbackStarted
+          ? `Cliente desligou durante o áudio (ouviu ~${Math.round(listenedMs / 1000)}s)`
+          : `Cliente desligou antes do roteiro começar (atendeu mas desligou durante o delay)`;
+      } else if (!answered) {
+        mappedStatus = "nao_atendeu";
+        observacao = observacao || "Não atendida ou rejeitada";
+      } else if (playbackCompleted) {
+        observacao = "Roteiro reproduzido por completo";
+      }
+      void postHistoricoOutcome(historicoId, {
+        status: mappedStatus,
+        duration_seconds: answeredAt ? Math.round(listenedMs / 1000) : 0,
+        observacao,
+        playback_completed: playbackCompleted,
+        playback_started: playbackStarted,
+      });
+    }
+
     onEnded?.();
   };
 
@@ -100,39 +148,48 @@ export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveC
     activeCall = outgoing;
 
     const wireEndEvents = (call: { on: (e: "ended", cb: () => void) => unknown }) => {
-      call.on("ended", () => { onStatus?.("Ligação encerrada"); cleanup(); });
+      call.on("ended", () => { onStatus?.("Ligação encerrada"); cleanup("Ligação encerrada"); });
     };
 
     outgoing.on("status", (s) => onStatus?.(`Status: ${s}`));
-    outgoing.on("peerReject", () => { onStatus?.("Rejeitada pelo destinatário"); cleanup(); });
-    outgoing.on("unanswered", () => { onStatus?.("Não atendida"); cleanup(); });
+    outgoing.on("peerReject", () => { onStatus?.("Rejeitada pelo destinatário"); cleanup("Rejeitada"); });
+    outgoing.on("unanswered", () => { onStatus?.("Não atendida"); cleanup("Não atendida"); });
     wireEndEvents(outgoing);
 
     outgoing.on("peerAccept", (active: CallActive) => {
-      onStatus?.("Atendida — reproduzindo roteiro...");
+      answered = true;
+      answeredAt = Date.now();
+      onStatus?.(`Atendida — aguardando ${Math.round(preTTSDelayMs / 1000)}s antes de falar...`);
       activeCall = active;
       active.on("status", (s) => onStatus?.(`Chamada: ${s}`));
       wireEndEvents(active);
 
-      // Start TTS playback; when it ends, hang up.
       tts.onEnded(() => {
+        playbackCompleted = true;
         onStatus?.("Roteiro concluído, encerrando...");
         setTimeout(() => {
           (activeCall as CallActive | null)?.end?.().catch(() => {});
-          cleanup();
+          cleanup("Roteiro concluído");
         }, 800);
       });
-      try { tts.play(); } catch (e) { console.warn("[wavoipCall] play error", e); }
+
+      // Delay before starting playback so it doesn't fire right on top of "alô"
+      setTimeout(() => {
+        if (ended) return;
+        onStatus?.("Reproduzindo roteiro...");
+        playbackStarted = true;
+        try { tts.play(); } catch (e) { console.warn("[wavoipCall] play error", e); }
+      }, preTTSDelayMs);
     });
 
     return {
       hangup: async () => {
         try { await (activeCall as CallActive | CallOutgoing | null)?.end?.(); } catch { /* ignore */ }
-        await cleanup();
+        await cleanup("Encerrada pelo operador");
       },
     };
   } catch (e) {
-    await cleanup();
+    await cleanup((e as Error)?.message);
     throw e;
   }
 }
