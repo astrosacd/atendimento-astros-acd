@@ -83,43 +83,35 @@ Deno.serve(async (req) => {
     }).select("*").single();
     if (histErr) return new Response(JSON.stringify({ error: histErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    // Call Wavoip
-    const webhookUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/ligacoes-ia-webhook?hist_id=${hist.id}`;
-    const wavoipRes = await fetch("https://api.wavoip.com/v1/calls", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${wavoipToken}` },
-      body: JSON.stringify({
-        from: dialer,
-        to: numeroDestino,
-        audio_url: ttsData.signed_url,
-        webhook_url: webhookUrl,
-        metadata: { historico_id: hist.id },
-      }),
+    // Wavoip Click To Call is URL based (not POST /v1/calls).
+    const params = new URLSearchParams({
+      token: wavoipToken,
+      phone: String(numeroDestino).replace(/\D/g, ""),
+      name: finalVars.nome || cliente?.nome || "Cliente",
+      start_if_ready: "true",
+      available_after_call: "false",
+      close_after_call: "true",
     });
-    const wavoipText = await wavoipRes.text();
-    let wavoipData: any = {};
-    try { wavoipData = JSON.parse(wavoipText); } catch { wavoipData = { raw: wavoipText }; }
-
-    if (!wavoipRes.ok) {
-      await supabase.from("ligacoes_ia_historico").update({
-        status: "erro",
-        error_message: wavoipText.slice(0, 500),
-        raw_payload: wavoipData,
-      }).eq("id", hist.id);
-      return new Response(JSON.stringify({ error: `Wavoip falhou: ${wavoipText}`, historico_id: hist.id }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    const callUrl = `https://app.wavoip.com/call?${params.toString()}`;
+    const wavoipData = {
+      mode: "click_to_call",
+      call_url: callUrl,
+      phone: String(numeroDestino).replace(/\D/g, ""),
+      audio_url: ttsData.signed_url,
+    };
 
     await supabase.from("ligacoes_ia_historico").update({
       status: "discando",
-      wavoip_call_id: wavoipData.call_id ?? wavoipData.id ?? null,
+      wavoip_call_id: hist.id,
       started_at: new Date().toISOString(),
-      raw_payload: wavoipData,
+      raw_payload: { ...wavoipData, call_url: "[enviado ao navegador]" },
     }).eq("id", hist.id);
 
     return new Response(JSON.stringify({
       success: true,
       historico_id: hist.id,
       cache_hit: ttsData.cache_hit,
+      call_url: callUrl,
       wavoip: wavoipData,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
