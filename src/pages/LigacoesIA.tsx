@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
@@ -7,13 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Phone, Plus, Play, Trash2, Loader2, PhoneCall, PhoneOff, History, Settings as SettingsIcon, FileText, Sparkles, AlertCircle, RefreshCw, CheckCircle2 } from "lucide-react";
-import { format, subDays, startOfDay } from "date-fns";
+import { toast as sonnerToast } from "sonner";
+import { Phone, Plus, Play, Trash2, Loader2, PhoneCall, PhoneOff, History, Settings as SettingsIcon, FileText, Sparkles, AlertCircle, RefreshCw, CheckCircle2, Link as LinkIcon, Copy, Clock, Check, X } from "lucide-react";
+import { format, subDays, startOfDay, addHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LigarComIADialog } from "@/components/LigarComIADialog";
 import { User } from "lucide-react";
@@ -22,6 +23,9 @@ import { CobrancaConfigTab } from "@/components/ligacoes-ia/CobrancaConfigTab";
 import { FilaLigacoesTab } from "@/components/ligacoes-ia/FilaLigacoesTab";
 import { CampanhasLigacoesTab } from "@/components/ligacoes-ia/CampanhasLigacoesTab";
 import { ListChecks, CalendarClock, Megaphone } from "lucide-react";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useSiteUrl } from "@/hooks/useSiteUrl";
+import { copyToClipboard } from "@/utils/clipboard";
 
 const CATEGORIAS = [
   { value: "cobranca", label: "Cobrança" },
