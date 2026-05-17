@@ -589,6 +589,23 @@ export function FilaLigacoesTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AlertDialog open={confirmClear} onOpenChange={setConfirmClear}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Limpar fila de hoje?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Serão canceladas <strong>{alvosLimpar.length}</strong> ligações pendentes de{" "}
+              <strong>Cobrança automática</strong>. Ligações de campanhas não serão afetadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={limparFila} disabled={alvosLimpar.length === 0}>
+              <Trash2 className="h-4 w-4 mr-1" /> Confirmar e limpar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
