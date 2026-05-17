@@ -83,36 +83,23 @@ Deno.serve(async (req) => {
     }).select("*").single();
     if (histErr) return new Response(JSON.stringify({ error: histErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    // Wavoip Click To Call is URL based (not POST /v1/calls).
-    const params = new URLSearchParams({
-      token: wavoipToken,
-      phone: String(numeroDestino).replace(/\D/g, ""),
-      name: finalVars.nome || cliente?.nome || "Cliente",
-      start_if_ready: "true",
-      available_after_call: "false",
-      close_after_call: "true",
-    });
-    const callUrl = `https://app.wavoip.com/call?${params.toString()}`;
-    const wavoipData = {
-      mode: "click_to_call",
-      call_url: callUrl,
-      phone: String(numeroDestino).replace(/\D/g, ""),
-      audio_url: ttsData.signed_url,
-    };
-
+    // Call is placed client-side via WebRTC (Wavoip JS SDK) so we can inject
+    // TTS audio as the microphone stream. This endpoint just provisions the
+    // historico row, generates/caches the audio, and returns what the client needs.
     await supabase.from("ligacoes_ia_historico").update({
-      status: "discando",
+      status: "pronto_para_discar",
       wavoip_call_id: hist.id,
-      started_at: new Date().toISOString(),
-      raw_payload: { ...wavoipData, call_url: "[enviado ao navegador]" },
+      raw_payload: { mode: "webrtc_inject_tts", audio_cache_id: ttsData.audio_cache_id },
     }).eq("id", hist.id);
 
     return new Response(JSON.stringify({
       success: true,
       historico_id: hist.id,
       cache_hit: ttsData.cache_hit,
-      call_url: callUrl,
-      wavoip: wavoipData,
+      audio_url: ttsData.signed_url,
+      texto_final: ttsData.texto_final,
+      phone: String(numeroDestino).replace(/\D/g, ""),
+      wavoip_token: wavoipToken,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
