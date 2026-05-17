@@ -79,10 +79,12 @@ export function FilaLigacoesTab() {
 
   const sincronizar = async () => {
     setSyncing(true);
-    const { data, error } = await supabase.functions.invoke("cobranca-ligacoes-enqueue", { body: {} });
+    const { data, error } = await supabase.functions.invoke("cobranca-ligacoes-enqueue", { body: { force: true } });
     setSyncing(false);
     if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
-    toast({ title: "Sincronizado", description: `${(data as any)?.enqueued ?? 0} novas ligações na fila.` });
+    const d = data as any;
+    const extra = d?.scanned ? ` (${d.scanned} clientes encontrados em ${d.regra ?? "cobrança"})` : "";
+    toast({ title: "Sincronizado", description: `${d?.enqueued ?? 0} novas ligações na fila${extra}.` });
     load();
   };
 
