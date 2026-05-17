@@ -470,7 +470,10 @@ function DisparoTab() {
         : error.message;
       return toast({ title: "Erro ao ligar", description, variant: "destructive" });
     }
-    toast({ title: "Ligação disparada!", description: `Cache hit: ${(data as any).cache_hit ? "sim" : "não"}` });
+    if ((data as any)?.call_url) {
+      window.open((data as any).call_url, "wavoip_call", "width=360,height=640");
+    }
+    toast({ title: "Ligação aberta na Wavoip", description: "Se a janela não abrir, permita pop-ups para este site." });
   };
 
   return (

@@ -67,8 +67,16 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
       body: { cliente_id: selectedCliente.id, roteiro_id: roteiroId, source: "cliente_card" },
     });
     setCalling(false);
-    if (error) return toast({ title: "Erro ao ligar", description: error.message, variant: "destructive" });
-    toast({ title: "Ligação disparada!", description: `Para ${selectedCliente.nome} • cache: ${(data as any)?.cache_hit ? "sim" : "não"}` });
+    if (error) {
+      const description = error.message?.includes("Failed to send a request")
+        ? "O navegador bloqueou a chamada da ligação. Atualize a página e tente novamente."
+        : error.message;
+      return toast({ title: "Erro ao ligar", description, variant: "destructive" });
+    }
+    if ((data as any)?.call_url) {
+      window.open((data as any).call_url, "wavoip_call", "width=360,height=640");
+    }
+    toast({ title: "Ligação aberta na Wavoip", description: `Para ${selectedCliente.nome}` });
     onOpenChange(false);
   };
 
