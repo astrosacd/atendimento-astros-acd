@@ -564,7 +564,14 @@ function RoteirosTab() {
   const load = async () => {
     setLoading(true);
     const { data } = await supabase.from("ligacoes_ia_roteiros").select("*").order("created_at", { ascending: false });
-    setItems(data ?? []);
+    const rows = data ?? [];
+    const ids = Array.from(new Set(rows.map((r: any) => r.created_by).filter(Boolean)));
+    let profMap: Record<string, string> = {};
+    if (ids.length) {
+      const { data: profs } = await supabase.from("profiles").select("user_id, name, email").in("user_id", ids as string[]);
+      (profs ?? []).forEach((p: any) => { profMap[p.user_id] = p.name || p.email || "Usuário"; });
+    }
+    setItems(rows.map((r: any) => ({ ...r, _creator: r.created_by ? (profMap[r.created_by] || "Usuário") : null })));
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -603,6 +610,10 @@ function RoteirosTab() {
                   </div>
                   <h3 className="font-medium mt-1">{r.nome}</h3>
                   <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{r.texto}</p>
+                  <p className="text-[11px] text-muted-foreground mt-2">
+                    Criado por <span className="font-medium">{r._creator ?? "—"}</span>
+                    {r.created_at && <> • {new Date(r.created_at).toLocaleDateString("pt-BR")}</>}
+                  </p>
                 </div>
                 <div className="flex gap-1">
                   <Button size="icon" variant="ghost" onClick={() => setEditing(r)}>
@@ -685,10 +696,14 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
     }
     setSaving(true);
     const variaveis = Array.from(form.texto.matchAll(/\{(\w+)\}/g)).map(m => m[1]);
-    const payload = { ...form, variaveis: [...new Set(variaveis)], voice_id: form.voice_id || null };
-    const { error } = roteiro.id
-      ? await supabase.from("ligacoes_ia_roteiros").update(payload).eq("id", roteiro.id)
-      : await supabase.from("ligacoes_ia_roteiros").insert(payload);
+    const basePayload = { ...form, variaveis: [...new Set(variaveis)], voice_id: form.voice_id || null };
+    let error: any = null;
+    if (roteiro.id) {
+      ({ error } = await supabase.from("ligacoes_ia_roteiros").update(basePayload).eq("id", roteiro.id));
+    } else {
+      const { data: auth } = await supabase.auth.getUser();
+      ({ error } = await supabase.from("ligacoes_ia_roteiros").insert({ ...basePayload, created_by: auth.user?.id ?? null }));
+    }
     setSaving(false);
     if (error) return toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     toast({ title: "Roteiro salvo" });
