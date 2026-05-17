@@ -19,6 +19,8 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const now = new Date().toISOString();
+    const body = await req.json().catch(() => ({}));
+    const targetFollowupId = typeof body?.followup_id === "string" ? body.followup_id : null;
 
     // Fetch active webhooks
     const { data: webhooks } = await supabase
@@ -26,14 +28,20 @@ serve(async (req: Request) => {
       .select("*")
       .eq("is_active", true);
 
-    // Pick only the FIRST pending followup that is due (queue mode: 1 per execution)
-    const { data: followups, error: fetchError } = await supabase
+    // Pick a specific follow-up when manually retrying, otherwise process the queue one at a time.
+    let followupsQuery = supabase
       .from("client_followups")
       .select("*, clientes(*)")
       .eq("status", "pending")
       .lte("next_dispatch_at", now)
       .order("next_dispatch_at", { ascending: true })
       .limit(1);
+
+    if (targetFollowupId) {
+      followupsQuery = followupsQuery.eq("id", targetFollowupId);
+    }
+
+    const { data: followups, error: fetchError } = await followupsQuery;
 
     if (fetchError) {
       console.error("❌ Error fetching followups:", fetchError);
@@ -78,14 +86,19 @@ serve(async (req: Request) => {
     const channel = followup.channel;
     let emailSent = false;
     let whatsappSent = false;
+    const gmailUser = Deno.env.get("GMAIL_USER") || config?.gmail_user;
+    const gmailAppPassword = Deno.env.get("GMAIL_APP_PASSWORD") || config?.gmail_app_password;
+    const evolutionApiUrl = (Deno.env.get("EVOLUTION_API_URL") || config?.evolution_api_url || "").replace(/\/$/, "");
+    const evolutionApiKey = Deno.env.get("EVOLUTION_API_KEY") || config?.evolution_api_key;
+    const evolutionInstanceName = Deno.env.get("EVOLUTION_INSTANCE") || config?.evolution_instance_name;
 
     // Send Email
     if (
       (channel === "email" || channel === "both") &&
       clientEmail &&
       config?.email_enabled &&
-      config?.gmail_user &&
-      config?.gmail_app_password
+      gmailUser &&
+      gmailAppPassword
     ) {
       try {
         const htmlBody = generateEmailHtml(clientName, followup.produto, message, config.gmail_sender_name || "Equipe Comercial");
@@ -96,15 +109,15 @@ serve(async (req: Request) => {
             port: 465,
             tls: true,
             auth: {
-              username: config.gmail_user,
-              password: config.gmail_app_password,
+              username: gmailUser,
+              password: gmailAppPassword,
             },
           },
         });
 
         const fromAddress = config.gmail_sender_name
-          ? `${config.gmail_sender_name} <${config.gmail_user}>`
-          : config.gmail_user;
+          ? `${config.gmail_sender_name} <${gmailUser}>`
+          : gmailUser;
 
         await client.send({
           from: fromAddress,
@@ -139,9 +152,9 @@ serve(async (req: Request) => {
       (channel === "whatsapp" || channel === "both") &&
       clientPhone &&
       config?.whatsapp_enabled &&
-      config?.evolution_api_url &&
-      config?.evolution_api_key &&
-      config?.evolution_instance_name
+      evolutionApiUrl &&
+      evolutionApiKey &&
+      evolutionInstanceName
     ) {
       try {
         const rawPhone = clientPhone.trim();
@@ -149,13 +162,13 @@ serve(async (req: Request) => {
         // already stores the full number with DDI (e.g. 51944853866 for Peru)
         const cleanNumber = rawPhone.replace(/\D/g, "");
 
-        const url = `${config.evolution_api_url}/message/sendText/${config.evolution_instance_name}`;
+        const url = `${evolutionApiUrl}/message/sendText/${evolutionInstanceName}`;
 
         const response = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            apikey: config.evolution_api_key,
+            apikey: evolutionApiKey,
           },
           body: JSON.stringify({
             number: cleanNumber,
@@ -199,6 +212,29 @@ serve(async (req: Request) => {
 
       await fireWebhooks(supabase, webhooks || [], "followup.failed", followup, clientName);
       await createBaserowLead(supabaseUrl, "followup.failed", clientName, clientPhone);
+
+      const { data: latestErrors } = await supabase
+        .from("client_followup_logs")
+        .select("channel, error_message")
+        .eq("followup_id", followup.id)
+        .eq("status", "error")
+        .order("sent_at", { ascending: false })
+        .limit(2);
+
+      const errorDetails = (latestErrors || [])
+        .map((log: any) => `${log.channel}: ${log.error_message || "falha sem detalhe"}`)
+        .join(" | ");
+
+      return new Response(
+        JSON.stringify({
+          processed: 1,
+          followup_id: followup.id,
+          email_sent: false,
+          whatsapp_sent: false,
+          error: errorDetails || "Nenhum canal confirmou o envio",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     } else if (
       followup.is_recurring &&
       newAttempt < followup.max_attempts
