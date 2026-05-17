@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
       if (!insErr) total += newRows.length;
     }
 
-    return new Response(JSON.stringify({ ok: true, enqueued: total, scanned, dia: hojeStr, regra: dias.includes(5) ? "D+5 ou mais" : "D exato", roteiro_fallback: roteiroFallback }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: true, enqueued: total, scanned, dia: hojeStr, dias_processados: dias, roteiro_fallback: roteiroFallback }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
