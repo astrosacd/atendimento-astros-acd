@@ -15,7 +15,7 @@ const D_OPCOES = [
   { value: 0, label: "D+0 (no dia)" },
   { value: 1, label: "D+1" },
   { value: 2, label: "D+2" },
-  { value: 5, label: "D+5" },
+  { value: 5, label: "D+5+ (5 dias ou mais)" },
   { value: 7, label: "D+7" },
   { value: 10, label: "D+10" },
   { value: 15, label: "D+15" },
@@ -35,7 +35,7 @@ export function CobrancaConfigTab() {
       supabase.from("cobranca_ligacao_config").select("*").limit(1).maybeSingle(),
       supabase.from("ligacoes_ia_roteiros").select("id, nome, categoria").eq("ativo", true).order("nome"),
     ]);
-    setCfg(c.data ?? { enabled: false, delay_minutes: 5, dias_disparo: [], horario_inicio: "09:00", horario_fim: "18:00", apenas_cobranca_ativa: true });
+    setCfg(c.data ?? { enabled: false, delay_minutes: 5, dias_disparo: [5], horario_inicio: "09:00", horario_fim: "18:00", apenas_cobranca_ativa: true });
     setRoteiros(r.data ?? []);
     setLoading(false);
   };
@@ -70,10 +70,11 @@ export function CobrancaConfigTab() {
 
   const sincronizarAgora = async () => {
     setSyncing(true);
-    const { data, error } = await supabase.functions.invoke("cobranca-ligacoes-enqueue", { body: {} });
+    const { data, error } = await supabase.functions.invoke("cobranca-ligacoes-enqueue", { body: { force: true } });
     setSyncing(false);
     if (error) return toast({ title: "Erro ao sincronizar", description: error.message, variant: "destructive" });
-    toast({ title: "Fila sincronizada", description: `${(data as any)?.enqueued ?? 0} ligações enfileiradas hoje.` });
+    const d = data as any;
+    toast({ title: "Fila sincronizada", description: `${d?.enqueued ?? 0} ligações enfileiradas hoje (${d?.scanned ?? 0} clientes encontrados).` });
   };
 
   if (loading) return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
@@ -120,7 +121,7 @@ export function CobrancaConfigTab() {
             );
           })}
         </div>
-        <p className="text-xs text-muted-foreground mt-1">D-3 = 3 dias antes do vencimento. D+5 = 5 dias depois.</p>
+        <p className="text-xs text-muted-foreground mt-1">D-3 = 3 dias antes do vencimento. D+5+ = todos os clientes com 5 dias ou mais de atraso.</p>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
