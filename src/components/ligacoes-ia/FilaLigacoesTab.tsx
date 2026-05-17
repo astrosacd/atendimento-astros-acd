@@ -487,6 +487,19 @@ export function FilaLigacoesTab() {
                     </td>
                     <td className="p-3 font-mono text-xs">{numero}</td>
                     <td className="p-3"><Badge variant="outline">{it.tipo_d}</Badge></td>
+                    <td className="p-3 text-xs">
+                      {it.campanha_id ? (
+                        <div className="flex items-center gap-1" title={`Campanha: ${it.ligacoes_campanhas?.nome ?? "—"}`}>
+                          <Megaphone className="h-3 w-3 text-fuchsia-500 shrink-0" />
+                          <span className="truncate max-w-[140px]">{it.ligacoes_campanhas?.nome ?? "Campanha"}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-muted-foreground" title={`Cobrança automática — ${it.tipo_d}`}>
+                          <Bot className="h-3 w-3 text-blue-500 shrink-0" />
+                          <span>Cobrança auto</span>
+                        </div>
+                      )}
+                    </td>
                     <td className="p-3">
                       <span className={`inline-flex items-center gap-1 text-white text-xs px-2 py-0.5 rounded ${s.cls}`}>
                         <Icon className="h-3 w-3" /> {s.label}
