@@ -564,7 +564,14 @@ function RoteirosTab() {
   const load = async () => {
     setLoading(true);
     const { data } = await supabase.from("ligacoes_ia_roteiros").select("*").order("created_at", { ascending: false });
-    setItems(data ?? []);
+    const rows = data ?? [];
+    const ids = Array.from(new Set(rows.map((r: any) => r.created_by).filter(Boolean)));
+    let profMap: Record<string, string> = {};
+    if (ids.length) {
+      const { data: profs } = await supabase.from("profiles").select("user_id, name, email").in("user_id", ids as string[]);
+      (profs ?? []).forEach((p: any) => { profMap[p.user_id] = p.name || p.email || "Usuário"; });
+    }
+    setItems(rows.map((r: any) => ({ ...r, _creator: r.created_by ? (profMap[r.created_by] || "Usuário") : null })));
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
