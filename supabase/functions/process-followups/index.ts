@@ -199,6 +199,29 @@ serve(async (req: Request) => {
 
       await fireWebhooks(supabase, webhooks || [], "followup.failed", followup, clientName);
       await createBaserowLead(supabaseUrl, "followup.failed", clientName, clientPhone);
+
+      const { data: latestErrors } = await supabase
+        .from("client_followup_logs")
+        .select("channel, error_message")
+        .eq("followup_id", followup.id)
+        .eq("status", "error")
+        .order("sent_at", { ascending: false })
+        .limit(2);
+
+      const errorDetails = (latestErrors || [])
+        .map((log: any) => `${log.channel}: ${log.error_message || "falha sem detalhe"}`)
+        .join(" | ");
+
+      return new Response(
+        JSON.stringify({
+          processed: 1,
+          followup_id: followup.id,
+          email_sent: false,
+          whatsapp_sent: false,
+          error: errorDetails || "Nenhum canal confirmou o envio",
+        }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     } else if (
       followup.is_recurring &&
       newAttempt < followup.max_attempts
