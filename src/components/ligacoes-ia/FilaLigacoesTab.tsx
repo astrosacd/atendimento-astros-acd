@@ -97,6 +97,7 @@ export function FilaLigacoesTab() {
   const [delayMinutes, setDelayMinutes] = useState<number>(5);
   const [syncing, setSyncing] = useState(false);
   const [confirmStart, setConfirmStart] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterTipoD, setFilterTipoD] = useState<string>("todos");
@@ -168,13 +169,13 @@ export function FilaLigacoesTab() {
     load();
   };
 
+  const alvosLimpar = items.filter((i) => i.status === "pendente" && !i.campanha_id);
+
   const limparFila = async () => {
-    const alvo = items.filter((i) => i.status === "pendente" && !i.campanha_id);
-    if (alvo.length === 0) {
+    if (alvosLimpar.length === 0) {
       toast({ title: "Nada a limpar", description: "Não há pendentes de Cobrança automática hoje." });
       return;
     }
-    if (!confirm(`Cancelar ${alvo.length} ligações pendentes de Cobrança automática? (campanhas não serão afetadas)`)) return;
     const { error } = await supabase
       .from("ligacoes_agendadas")
       .update({ status: "cancelada" })
@@ -182,7 +183,8 @@ export function FilaLigacoesTab() {
       .eq("status", "pendente")
       .is("campanha_id", null);
     if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
-    toast({ title: "Fila limpa", description: `${alvo.length} ligações canceladas.` });
+    toast({ title: "Fila limpa", description: `${alvosLimpar.length} ligações canceladas.` });
+    setConfirmClear(false);
     load();
   };
 
@@ -338,7 +340,7 @@ export function FilaLigacoesTab() {
                 <><RefreshCw className="h-4 w-4 mr-1" /> Sincronizar</>
               )}
             </Button>
-            <Button variant="outline" size="sm" onClick={limparFila} disabled={syncing || running}>
+            <Button variant="outline" size="sm" onClick={() => setConfirmClear(true)} disabled={syncing || running}>
               <Trash2 className="h-4 w-4 mr-1" /> Limpar fila de hoje
             </Button>
             {!running ? (
@@ -583,6 +585,23 @@ export function FilaLigacoesTab() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => { setConfirmStart(false); startQueue(); }} disabled={pendentes.length === 0}>
               <Play className="h-4 w-4 mr-1" /> Confirmar e iniciar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={confirmClear} onOpenChange={setConfirmClear}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Limpar fila de hoje?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Serão canceladas <strong>{alvosLimpar.length}</strong> ligações pendentes de{" "}
+              <strong>Cobrança automática</strong>. Ligações de campanhas não serão afetadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={limparFila} disabled={alvosLimpar.length === 0}>
+              <Trash2 className="h-4 w-4 mr-1" /> Confirmar e limpar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
