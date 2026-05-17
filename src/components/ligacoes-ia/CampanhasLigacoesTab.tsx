@@ -19,6 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -28,9 +30,51 @@ import {
   ListChecks,
   Users,
   PhoneCall,
+  UserPlus,
+  FileUp,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+type ManualContact = { nome: string; numero: string };
+
+// Normaliza um número para apenas dígitos (mín 10 dígitos para considerar válido)
+function normalizePhone(raw: string): string | null {
+  const digits = (raw || "").replace(/\D+/g, "");
+  if (digits.length < 10) return null;
+  return digits;
+}
+
+function parseManualContacts(text: string): ManualContact[] {
+  const out: ManualContact[] = [];
+  const seen = new Set<string>();
+  text.split(/\r?\n/).forEach((line) => {
+    const l = line.trim();
+    if (!l) return;
+    // formatos aceitos: "Nome, numero" | "Nome; numero" | "Nome - numero" | "numero" | "Nome\tnumero"
+    const parts = l.split(/[,;\t]| - /).map((p) => p.trim()).filter(Boolean);
+    let nome = "";
+    let numeroRaw = "";
+    if (parts.length === 1) {
+      numeroRaw = parts[0];
+    } else {
+      // último token com mais dígitos = número, restante = nome
+      const last = parts[parts.length - 1];
+      if (/\d/.test(last)) {
+        numeroRaw = last;
+        nome = parts.slice(0, -1).join(" ");
+      } else {
+        nome = parts.join(" ");
+      }
+    }
+    const numero = normalizePhone(numeroRaw);
+    if (!numero) return;
+    if (seen.has(numero)) return;
+    seen.add(numero);
+    out.push({ nome: nome || "Contato", numero });
+  });
+  return out;
+}
 
 type Campanha = {
   id: string;
