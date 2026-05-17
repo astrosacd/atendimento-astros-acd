@@ -231,8 +231,14 @@ export function useFollowups() {
       if (error) throw error;
 
       // Immediately invoke the process-followups edge function
-      const { error: fnError } = await supabase.functions.invoke('process-followups');
+      const { data, error: fnError } = await supabase.functions.invoke('process-followups');
       if (fnError) throw fnError;
+
+      const deliverySucceeded = Boolean(data?.email_sent || data?.whatsapp_sent);
+      if (!deliverySucceeded) {
+        const failureMessage = data?.error || data?.message || 'Nenhum canal confirmou o envio. Verifique a conexão do WhatsApp/e-mail.';
+        throw new Error(failureMessage);
+      }
     },
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
