@@ -145,7 +145,7 @@ export function FilaLigacoesTab() {
     // refresh from DB to grab latest pendentes
     const { data: fresh } = await supabase
       .from("ligacoes_agendadas")
-      .select("*, clientes(nome, numero)")
+      .select("*, clientes(nome, numero), ligacoes_campanhas(nome, delay_minutes_override)")
       .eq("dia_alvo", hoje)
       .eq("status", "pendente")
       .order("created_at");
@@ -162,9 +162,11 @@ export function FilaLigacoesTab() {
 
       const isLast = i === queue.length - 1;
       if (!isLast && runningRef.current) {
-        setCurrentStatus(`Aguardando ${delayMinutes} min antes da próxima...`);
-        await sleepWithCountdown(delayMinutes * 60 * 1000);
-        // honor pause during delay
+        // Honor per-campaign delay override for the NEXT item
+        const next = queue[i + 1];
+        const effectiveDelay = next?.ligacoes_campanhas?.delay_minutes_override ?? delayMinutes;
+        setCurrentStatus(`Aguardando ${effectiveDelay} min antes da próxima...`);
+        await sleepWithCountdown(effectiveDelay * 60 * 1000);
         while (pauseRef.current && runningRef.current) {
           await new Promise((r) => setTimeout(r, 500));
         }
