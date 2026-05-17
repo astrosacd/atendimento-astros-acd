@@ -359,7 +359,10 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
       const audio = new Audio((data as any).signed_url);
       await audio.play();
     } catch (e: any) {
-      toast({ title: "Erro no preview", description: e.message, variant: "destructive" });
+      const description = e?.message?.includes("Failed to send a request")
+        ? "O navegador bloqueou a chamada do preview. Atualize a página e tente novamente."
+        : e.message;
+      toast({ title: "Erro no preview", description, variant: "destructive" });
     } finally {
       setPreviewing(false);
     }
