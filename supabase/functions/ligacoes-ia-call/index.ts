@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const body = await req.json();
-    const { cliente_id, roteiro_id, variables = {}, numero_destino: numDestino, source = "manual" } = body;
+    const { cliente_id, roteiro_id, variables = {}, numero_destino: numDestino, source = "manual", voice_id_override } = body;
 
     // Load config
     const { data: configRows } = await supabase.from("ligacoes_ia_config").select("config_key, config_value");
