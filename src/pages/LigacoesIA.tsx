@@ -96,7 +96,11 @@ export default function LigacoesIA() {
     return () => { window.clearInterval(itv); window.removeEventListener("focus", load); };
   }, [isTempAccess]);
 
-  const tabAllowed = (id: string) => !isTempAccess || (tempPerms ?? []).includes(id);
+  // Configurações é sempre bloqueada em acesso provisório (usa as creds do admin)
+  const tabAllowed = (id: string) => {
+    if (isTempAccess && id === "config") return false;
+    return !isTempAccess || (tempPerms ?? []).includes(id);
+  };
 
   const [configStatus, setConfigStatus] = useState<{ wavoip: boolean; eleven: boolean; dialer: boolean } | null>(null);
 
