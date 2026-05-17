@@ -99,7 +99,7 @@ export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveC
     const outgoing = result.call;
     activeCall = outgoing;
 
-    const wireEndEvents = (call: CallActive | CallOutgoing) => {
+    const wireEndEvents = (call: { on: (e: "ended", cb: () => void) => unknown }) => {
       call.on("ended", () => { onStatus?.("Ligação encerrada"); cleanup(); });
     };
 
