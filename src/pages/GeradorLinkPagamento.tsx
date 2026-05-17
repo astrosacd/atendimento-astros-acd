@@ -831,27 +831,30 @@ export default function GeradorLinkPagamento() {
                                 <Copy className="h-4 w-4" />
                               </Button>
                             )}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={async () => {
-                                const arquivar = !link.arquivado_em;
-                                const { error } = await (supabase as any)
-                                  .from('payment_links')
-                                  .update({ arquivado_em: arquivar ? new Date().toISOString() : null })
-                                  .eq('id', link.id);
-                                if (error) {
-                                  toast.error('Erro ao ' + (arquivar ? 'arquivar' : 'desarquivar') + ' link');
-                                  return;
-                                }
-                                toast.success(arquivar ? 'Link arquivado — não aparecerá no seletor de cadastro' : 'Link desarquivado');
-                                queryClient.invalidateQueries({ queryKey: ['payment-links-history'] });
-                              }}
-                              title={link.arquivado_em ? 'Desarquivar (voltar a aparecer no seletor)' : 'Arquivar (ocultar do seletor no cadastro de cliente)'}
-                              className={link.arquivado_em ? 'text-amber-500 hover:text-amber-600' : 'text-muted-foreground hover:text-foreground'}
-                            >
-                              {link.arquivado_em ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
-                            </Button>
+                            {status === 'paid' && (
+                              <Button
+                                variant={link.arquivado_em ? 'secondary' : 'ghost'}
+                                size="icon"
+                                onClick={async () => {
+                                  const arquivar = !link.arquivado_em;
+                                  const { data, error } = await (supabase as any)
+                                    .from('payment_links')
+                                    .update({ arquivado_em: arquivar ? new Date().toISOString() : null })
+                                    .eq('id', link.id)
+                                    .select();
+                                  if (error || !data || data.length === 0) {
+                                    toast.error('Erro ao ' + (arquivar ? 'arquivar' : 'desarquivar') + ' link');
+                                    return;
+                                  }
+                                  toast.success(arquivar ? 'Link ocultado do seletor de cadastro' : 'Link voltou a aparecer no seletor');
+                                  queryClient.invalidateQueries({ queryKey: ['payment-links-history'] });
+                                }}
+                                title={link.arquivado_em ? 'Clique para desocultar (voltar a aparecer no seletor)' : 'Clique para ocultar do seletor no cadastro de cliente'}
+                                className={link.arquivado_em ? 'bg-amber-500/15 text-amber-500 hover:bg-amber-500/25 hover:text-amber-600' : 'text-muted-foreground hover:text-foreground'}
+                              >
+                                {link.arquivado_em ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                              </Button>
+                            )}
                           </div>
                         </div>
                       );
