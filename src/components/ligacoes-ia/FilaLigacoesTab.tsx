@@ -12,6 +12,7 @@ import {
 import {
   Play, Pause, RefreshCw, Loader2, PhoneCall, CheckCircle2, XCircle,
   Clock, PhoneOff, Search, User, UserCheck, PhoneMissed, PhoneIncoming, AlertTriangle,
+  Trash2, Megaphone, Bot,
 } from "lucide-react";
 import { placeCallWithTTS, type ActiveCallHandle } from "@/lib/wavoipCall";
 
