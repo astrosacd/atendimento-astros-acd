@@ -96,6 +96,7 @@ export function FilaLigacoesTab() {
   const [countdown, setCountdown] = useState<number>(0);
   const [delayMinutes, setDelayMinutes] = useState<number>(5);
   const [syncing, setSyncing] = useState(false);
+  const [confirmStart, setConfirmStart] = useState(false);
 
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterTipoD, setFilterTipoD] = useState<string>("todos");
