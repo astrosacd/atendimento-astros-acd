@@ -221,11 +221,15 @@ function NovaCampanhaDialog({
   const [saving, setSaving] = useState(false);
   const [diaAlvo, setDiaAlvo] = useState<string>(todayISO);
   const [delayOverride, setDelayOverride] = useState<string>("");
+  const [tab, setTab] = useState<"cadastrados" | "manuais">("cadastrados");
+  const [manualText, setManualText] = useState<string>("");
+  const manualContacts = useMemo(() => parseManualContacts(manualText), [manualText]);
 
   useEffect(() => {
     if (!open) {
       setNome(""); setRoteiroId(""); setSelected(new Set()); setSearch(""); setFilter("todos");
       setDiaAlvo(todayISO); setDelayOverride("");
+      setTab("cadastrados"); setManualText("");
       return;
     }
     (async () => {
