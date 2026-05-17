@@ -94,11 +94,17 @@ Deno.serve(async (req) => {
         }));
       if (!rows.length) continue;
 
-      // upsert with conflict on (cliente_id, dia_alvo, tipo_d) — ignore duplicates
-      const { error: insErr, count } = await supabase
+      const { data: existing } = await supabase
         .from("ligacoes_agendadas")
-        .upsert(rows, { onConflict: "cliente_id,dia_alvo,tipo_d", ignoreDuplicates: true, count: "exact" });
-      if (!insErr) total += count ?? rows.length;
+        .select("cliente_id, tipo_d")
+        .eq("dia_alvo", hojeStr)
+        .is("campanha_id", null);
+      const existingKeys = new Set((existing ?? []).map((r: any) => `${r.cliente_id}|${r.tipo_d}`));
+      const newRows = rows.filter((r: any) => !existingKeys.has(`${r.cliente_id}|${r.tipo_d}`));
+      if (!newRows.length) continue;
+
+      const { error: insErr } = await supabase.from("ligacoes_agendadas").insert(newRows);
+      if (!insErr) total += newRows.length;
     }
 
     return new Response(JSON.stringify({ ok: true, enqueued: total, scanned, dia: hojeStr, regra: dias.includes(5) ? "D+5 ou mais" : "D exato", roteiro_fallback: roteiroFallback }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
