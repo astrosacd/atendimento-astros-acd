@@ -62,19 +62,23 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
   const ligar = async () => {
     if (!roteiroId) return toast({ title: "Selecione um roteiro", variant: "destructive" });
     if (!selectedCliente?.id) return toast({ title: "Selecione um cliente", variant: "destructive" });
+    const callPopup = window.open("", "wavoip_call", "width=360,height=640");
+    callPopup?.document.write("<title>Ligação Wavoip</title><p style='font-family:sans-serif;padding:16px'>Preparando ligação...</p>");
     setCalling(true);
     const { data, error } = await supabase.functions.invoke("ligacoes-ia-call", {
       body: { cliente_id: selectedCliente.id, roteiro_id: roteiroId, source: "cliente_card" },
     });
     setCalling(false);
     if (error) {
+      callPopup?.close();
       const description = error.message?.includes("Failed to send a request")
         ? "O navegador bloqueou a chamada da ligação. Atualize a página e tente novamente."
         : error.message;
       return toast({ title: "Erro ao ligar", description, variant: "destructive" });
     }
     if ((data as any)?.call_url) {
-      window.open((data as any).call_url, "wavoip_call", "width=360,height=640");
+      if (callPopup) callPopup.location.href = (data as any).call_url;
+      else window.open((data as any).call_url, "wavoip_call", "width=360,height=640");
     }
     toast({ title: "Ligação aberta na Wavoip", description: `Para ${selectedCliente.nome}` });
     onOpenChange(false);
