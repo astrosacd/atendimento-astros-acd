@@ -304,9 +304,27 @@ function NovaCampanhaDialog({
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <Label>Disparar no dia</Label>
+              <Input type="date" min={todayISO} value={diaAlvo} onChange={(e) => setDiaAlvo(e.target.value)} />
+              <p className="text-xs text-muted-foreground mt-1">A campanha entra na fila desse dia.</p>
+            </div>
+            <div>
+              <Label>Delay entre ligações (min) — opcional</Label>
+              <Input
+                type="number"
+                min={0}
+                max={120}
+                placeholder="Usar delay global"
+                value={delayOverride}
+                onChange={(e) => setDelayOverride(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Deixe em branco para usar o delay configurado em Cobrança.</p>
+            </div>
+          </div>
+
           <div>
-            <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
-              <Label>Clientes</Label>
               <div className="text-xs text-muted-foreground">
                 <span className="font-medium text-foreground">{selected.size}</span> selecionado(s) / {filtered.length} visíveis
               </div>
