@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     const ttsRes = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/ligacoes-ia-tts`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: authHeader },
-      body: JSON.stringify({ roteiro_id, variables: finalVars }),
+      body: JSON.stringify({ roteiro_id, variables: finalVars, preview_voice_id: voice_id_override }),
     });
     const ttsData = await ttsRes.json();
     if (!ttsRes.ok) {
