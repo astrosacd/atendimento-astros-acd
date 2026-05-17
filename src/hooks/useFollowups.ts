@@ -231,7 +231,9 @@ export function useFollowups() {
       if (error) throw error;
 
       // Immediately invoke the process-followups edge function
-      const { data, error: fnError } = await supabase.functions.invoke('process-followups');
+      const { data, error: fnError } = await supabase.functions.invoke('process-followups', {
+        body: { followup_id: id },
+      });
       if (fnError) throw fnError;
 
       const deliverySucceeded = Boolean(data?.email_sent || data?.whatsapp_sent);
