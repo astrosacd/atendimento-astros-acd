@@ -169,13 +169,13 @@ export function FilaLigacoesTab() {
     load();
   };
 
+  const alvosLimpar = items.filter((i) => i.status === "pendente" && !i.campanha_id);
+
   const limparFila = async () => {
-    const alvo = items.filter((i) => i.status === "pendente" && !i.campanha_id);
-    if (alvo.length === 0) {
+    if (alvosLimpar.length === 0) {
       toast({ title: "Nada a limpar", description: "Não há pendentes de Cobrança automática hoje." });
       return;
     }
-    if (!confirm(`Cancelar ${alvo.length} ligações pendentes de Cobrança automática? (campanhas não serão afetadas)`)) return;
     const { error } = await supabase
       .from("ligacoes_agendadas")
       .update({ status: "cancelada" })
@@ -183,7 +183,8 @@ export function FilaLigacoesTab() {
       .eq("status", "pendente")
       .is("campanha_id", null);
     if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
-    toast({ title: "Fila limpa", description: `${alvo.length} ligações canceladas.` });
+    toast({ title: "Fila limpa", description: `${alvosLimpar.length} ligações canceladas.` });
+    setConfirmClear(false);
     load();
   };
 
