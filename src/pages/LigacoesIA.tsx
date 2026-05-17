@@ -433,6 +433,7 @@ function ConfigTab() {
 
       <section className="space-y-3">
         <h3 className="font-semibold text-sm uppercase text-muted-foreground">ElevenLabs (voz)</h3>
+        {field("elevenlabs_api_key", "API Key ElevenLabs", "Pegue em elevenlabs.io → Profile → API Key", "password")}
         <div>
           <Label>Voz padrão</Label>
           <Select value={cfg.elevenlabs_default_voice_id || ""} onValueChange={v => setCfg({ ...cfg, elevenlabs_default_voice_id: v })}>
@@ -441,7 +442,6 @@ function ConfigTab() {
               {VOICES.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground mt-1">A chave ELEVENLABS_API_KEY é guardada nos Secrets do projeto.</p>
         </div>
         <div className="grid grid-cols-3 gap-3">
           {field("voice_stability", "Estabilidade (0-1)")}
