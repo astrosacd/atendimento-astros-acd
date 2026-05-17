@@ -429,7 +429,7 @@ export function FilaLigacoesTab() {
             </thead>
             <tbody>
               {filteredItems.length === 0 && (
-                <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">
+                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">
                   {items.length === 0
                     ? <>Nenhuma ligação na fila para hoje. Clique em <strong>Sincronizar</strong>.</>
                     : "Nenhum item corresponde aos filtros."}
