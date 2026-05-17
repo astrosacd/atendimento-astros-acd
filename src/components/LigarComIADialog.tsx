@@ -88,10 +88,16 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
   }, [preview, selectedCliente]);
 
   const clienteOptions = useMemo(() =>
-    clientes.map(c => ({
-      value: c.id,
-      label: `${c.nome}${c.tipo ? ` • ${c.tipo}` : ""}${c.numero ? ` • ${c.numero}` : ""}`,
-    })),
+    clientes.map(c => {
+      const tipo = (c.tipo || "").toLowerCase();
+      const tipoLabel = tipo === "mensal" ? "📅 MENSAL" : tipo === "registro" || tipo === "registros" ? "📋 REGISTRO" : (c.tipo ? `• ${c.tipo}` : "");
+      const produto = c.produto ? ` — ${c.produto}` : "";
+      const numero = c.numero ? ` (${c.numero})` : "";
+      return {
+        value: c.id,
+        label: `${tipoLabel ? `[${tipoLabel}] ` : ""}${c.nome}${produto}${numero}`,
+      };
+    }),
     [clientes]
   );
 
