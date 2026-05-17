@@ -453,6 +453,8 @@ function DisparoTab() {
       toast({ title: "Selecione roteiro e número", variant: "destructive" });
       return;
     }
+    const callPopup = window.open("", "wavoip_call", "width=360,height=640");
+    callPopup?.document.write("<title>Ligação Wavoip</title><p style='font-family:sans-serif;padding:16px'>Preparando ligação...</p>");
     setCalling(true);
     const { data, error } = await supabase.functions.invoke("ligacoes-ia-call", {
       body: {
@@ -464,8 +466,18 @@ function DisparoTab() {
       },
     });
     setCalling(false);
-    if (error) return toast({ title: "Erro ao ligar", description: error.message, variant: "destructive" });
-    toast({ title: "Ligação disparada!", description: `Cache hit: ${(data as any).cache_hit ? "sim" : "não"}` });
+    if (error) {
+      callPopup?.close();
+      const description = error.message?.includes("Failed to send a request")
+        ? "O navegador bloqueou a chamada da ligação. Atualize a página e tente novamente."
+        : error.message;
+      return toast({ title: "Erro ao ligar", description, variant: "destructive" });
+    }
+    if ((data as any)?.call_url) {
+      if (callPopup) callPopup.location.href = (data as any).call_url;
+      else window.open((data as any).call_url, "wavoip_call", "width=360,height=640");
+    }
+    toast({ title: "Ligação aberta na Wavoip", description: "Se a janela não abrir, permita pop-ups para este site." });
   };
 
   return (
