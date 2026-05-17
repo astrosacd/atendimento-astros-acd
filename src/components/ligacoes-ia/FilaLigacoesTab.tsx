@@ -420,6 +420,7 @@ export function FilaLigacoesTab() {
                 <th className="text-left p-3">Tipo / Produto</th>
                 <th className="text-left p-3">Número</th>
                 <th className="text-left p-3">D</th>
+                <th className="text-left p-3">Origem</th>
                 <th className="text-left p-3">Status</th>
                 <th className="text-left p-3">Resultado</th>
                 <th className="text-left p-3">Hora</th>
