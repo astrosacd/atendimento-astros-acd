@@ -67,6 +67,7 @@ import { ClientScoreBadge } from '@/components/ClientScoreBadge';
 import { ClientPaymentApprovalBadge } from '@/components/ClientPaymentApprovalBadge';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { LigarComIADialog } from '@/components/LigarComIADialog';
 
 export default function ConsultarCliente() {
   const navigate = useNavigate();
