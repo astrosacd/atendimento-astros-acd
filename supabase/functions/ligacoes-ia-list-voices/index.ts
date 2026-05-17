@@ -3,7 +3,20 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-temp-access-token, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
+};
+
+const parseElevenLabsError = (raw: string, status: number) => {
+  try {
+    const parsed = JSON.parse(raw);
+    const detail = parsed?.detail || parsed;
+    const message = detail?.message || detail?.status || raw;
+    return `ElevenLabs (${status}): ${message}`;
+  } catch {
+    return `ElevenLabs (${status}): ${raw || "erro ao validar a API Key"}`;
+  }
 };
 
 Deno.serve(async (req) => {
@@ -33,7 +46,7 @@ Deno.serve(async (req) => {
     let apiKey: string | undefined;
     try {
       const body = await req.json();
-      apiKey = body?.api_key;
+      apiKey = body?.api_key || body?.apiKey;
     } catch { /* no body */ }
 
     if (!apiKey) {
@@ -49,12 +62,14 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "API Key do ElevenLabs não configurada" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const res = await fetch("https://api.elevenlabs.io/v1/voices", {
+    apiKey = apiKey.trim();
+
+    const res = await fetch("https://api.elevenlabs.io/v2/voices", {
       headers: { "xi-api-key": apiKey },
     });
     if (!res.ok) {
       const err = await res.text();
-      return new Response(JSON.stringify({ error: `ElevenLabs: ${err}` }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: parseElevenLabsError(err, res.status) }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const data = await res.json();
     const voices = (data.voices ?? []).map((v: any) => ({
