@@ -1,56 +1,64 @@
-## Objetivo
-Fazer o roteiro/TTS ser falado automaticamente dentro da chamada Wavoip, sem precisar de operador humano com microfone.
+# Fila de Ligações IA para Cobrança (Opção A)
 
-## Estratégia
-O Wavoip foi explícito: é preciso editar a entrada/saída de áudio do próprio projeto `wavoip-api`. O ponto único de alteração é o `MediaManager` (`src/modules/media/MediaManager.ts`), que hoje sempre chama `getUserMedia` pra capturar microfone. Vamos vendorizar a lib dentro do nosso repo e substituir esse stream por um stream sintético alimentado pelo MP3 do ElevenLabs.
+## Conceito
+Cron diário identifica clientes que entram em D's configurados e cria registros em `ligacoes_agendadas` (status `pendente`). Operador abre a tela, vê a fila do dia, clica "Iniciar fila" e o navegador disca uma de cada vez, esperando N minutos (configurável) entre cada chamada — independente do resultado. Se fechar a aba, ao reabrir mostra "faltam X ligações" e permite retomar.
 
-## Passos
+## Banco de dados
 
-### 1. Vendorizar o wavoip-api
-- Copiar `src/modules/*` + `Wavoip.ts` do repo `wavoip/wavoip-api` pra `src/vendor/wavoip/`.
-- Ajustar imports (`@/modules/...` → caminhos relativos) e o `?worklet` do Vite (já suportado no nosso projeto).
-- Remover dependências de teste (Vitest, biome).
+**`cobranca_ligacao_config`** (1 linha global)
+- `enabled` (bool), `roteiro_id` (FK), `delay_minutes` (int, padrão 5)
+- `dias_disparo` (int[]) — ex: `[-3, 0, 5]` significa D-3, D+0, D+5
+- `horario_inicio`, `horario_fim` (time) — janela permitida (ex: 09:00–18:00)
+- `apenas_cobranca_ativa` (bool)
 
-### 2. Patch no MediaManager
-Adicionar dois métodos novos sem quebrar a API atual:
-- `setVirtualMicStream(stream: MediaStream)` — substitui `this.stream` pelo stream injetado; `startMedia()` passa a retornar esse stream em vez de chamar `getUserMedia`.
-- `captureRemoteStream(): MediaStream` — pega o áudio remoto (WhatsApp → nós) via `MediaStreamAudioDestinationNode`, pra opcionalmente gravar.
+**`ligacoes_agendadas`**
+- `cliente_id`, `roteiro_id`, `dia_alvo` (date — qual D), `tipo_d` (text, ex "D+5")
+- `status` (`pendente`|`em_andamento`|`finalizada`|`falhou`|`cancelada`)
+- `historico_id` (FK pra `ligacoes_ia_historico` quando rodar)
+- `tentativas` (int), `processada_em` (timestamp), `erro` (text)
+- Unique: `(cliente_id, dia_alvo, tipo_d)` — evita duplicar no mesmo dia
 
-`startMedia()` ganha um branch: se houver `virtualStream`, pula `getUserMedia` e retorna direto. Isso evita prompt de permissão de microfone também.
+## Cron
+Estende `billing-cron` (ou cria `cobranca-ligacoes-cron` rodando 1x/dia 07:00) que:
+1. Lê `cobranca_ligacao_config`.
+2. Para cada `dia_disparo`, busca clientes com `data_renovacao + dia = hoje` (e `cobranca_ativa` se filtro ativo).
+3. Insere em `ligacoes_agendadas` com status `pendente` (ignora duplicatas).
 
-### 3. Helper TTS → MediaStream
-Criar `src/lib/ttsToStream.ts`:
-- Recebe URL do MP3 do ElevenLabs (já temos via `ligacoes-ia-tts`).
-- `fetch` → `arrayBuffer` → `AudioContext.decodeAudioData` → `AudioBufferSourceNode` → `MediaStreamAudioDestinationNode` → retorna `destination.stream`.
-- Expõe `onEnded` pra sabermos quando o roteiro terminou (e podermos encerrar ou tocar próximo trecho).
+## UI
 
-### 4. Integração na chamada
-Em `LigarComIADialog.tsx` e `LigacoesIA.tsx`:
-1. Gerar TTS via edge function (já existe).
-2. Criar o stream virtual com o helper.
-3. Antes de `wavoip.startCall({ to })`, chamar `mediaManager.setVirtualMicStream(ttsStream)`.
-4. Disparar a ligação. Quando peer aceitar (`onPeerAccept`), o áudio TTS começa a tocar automaticamente no lugar do microfone.
-5. No `onEnded` do TTS, opcionalmente encerrar a chamada (`callActive.end()`).
+**Configuração** — nova aba em `LigacoesIA.tsx` chamada "Cobrança automática":
+- Toggle ligado/desligado
+- Multi-select dos D's (D-3, D+0, D+5, etc — opções derivadas dos campos existentes em cobrança)
+- Select de roteiro
+- Slider de delay entre ligações (1–30 min)
+- Inputs horário início/fim
+- Checkbox "Apenas cobrança ativa"
 
-### 5. Remover o fallback Click-to-Call
-Tirar o popup `https://app.wavoip.com/call?...` — agora a chamada acontece silenciosamente em background via WebRTC, sem janela extra. Resolve também o problema do iframe do Chat Host (sem popup pra bloquear).
+**Fila** — nova aba "Fila do dia" em `LigacoesIA.tsx`:
+- Card de resumo: "X pendentes, Y feitas, Z falharam"
+- Botão grande "▶ Iniciar fila" (ou "Retomar fila" se houver registros já processados hoje)
+- Lista das ligações: cliente, número, D, status, horário processado
+- Quando iniciada: mostra timer "Próxima ligação em 4:23", ligação atual com estado, botão "⏸ Pausar"
+- Ao terminar uma chamada (qualquer resultado), aguarda `delay_minutes` e passa pra próxima
+- Estado vive em memória do React + atualiza `ligacoes_agendadas` a cada passo (assim, recarregar = retomar do banco)
+- Se fechar a aba: pendentes ficam `pendente` no banco. Ao reabrir, banner "📞 Faltam 10 ligações agendadas — Retomar?"
 
-### 6. Iframe / permissões
-Documentar no README do módulo que o iframe que embute o app precisa de:
-```
-allow="microphone; autoplay"
-```
-Mesmo usando stream virtual, o `AudioContext` precisa de user gesture pra dar `resume()`, então a ligação só dispara após clique do usuário (já é o caso).
+**Dashboard** — card "📞 X ligações agendadas para hoje" com link pra fila (se permissão).
 
-## Riscos
-- Wavoip pode atualizar a lib e quebrar nosso fork — vamos pinar a versão e documentar onde está o patch.
-- WebRTC com track sintético é suportado em Chrome/Edge/Safari modernos; navegadores antigos podem falhar.
-- ElevenLabs MP3 precisa ser decodificado no client — pode adicionar 200-500ms de latência antes da fala começar (aceitável).
+## Detalhes técnicos
+- O motor da fila reusa `placeCallWithTTS` de `src/lib/wavoipCall.ts` (mesma injeção TTS via WebRTC).
+- Cada ligação cria um `ligacoes_ia_historico` e atualiza `ligacoes_agendadas.historico_id`.
+- Delay entre ligações: `setTimeout` no front, com countdown visível, cancelável via "Pausar".
+- "Pausar" não cancela a próxima — só impede o disparo automático até "Retomar".
+- Realtime opcional na tabela `ligacoes_agendadas` pra refletir mudanças se aberto em mais de uma aba (futuro).
 
-## Arquivos a mexer
-- **Criar**: `src/vendor/wavoip/**`, `src/lib/ttsToStream.ts`
-- **Editar**: `src/components/LigarComIADialog.tsx`, `src/pages/LigacoesIA.tsx`
-- **Remover**: lógica de `window.open` / `call_url` em `supabase/functions/ligacoes-ia-call/index.ts` (agora só registra histórico)
+## Permissões
+- Nova permissão `ligacoes_cobranca_config` (admin) pra acessar config.
+- Operador comum acessa só a aba "Fila do dia".
 
-## Próximo passo
-Confirma que posso seguir com esse caminho? É ~1h de implementação e testa direto no preview.
+## Entregáveis
+1. Migration: tabelas + RLS + índices.
+2. Edge function `cobranca-ligacoes-enqueue` (chamada pelo cron).
+3. Cron pg_cron 1x/dia.
+4. UI: 2 novas abas em `LigacoesIA.tsx` + card no Dashboard.
+5. Hook `useLigacoesFila` que orquestra a discagem sequencial com delay.
