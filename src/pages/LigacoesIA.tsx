@@ -285,17 +285,22 @@ function useElevenVoices() {
   const [voices, setVoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetch = async (apiKey?: string) => {
+  const fetch = async (apiKey?: string, opts?: { silent?: boolean }) => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("ligacoes-ia-list-voices", {
         body: apiKey ? { api_key: apiKey } : {},
       });
       if (error) throw error;
+      const msg = (data as any)?.error;
+      if (msg) {
+        if (!opts?.silent) toast({ title: "Erro ao buscar vozes", description: msg, variant: "destructive" });
+        return [];
+      }
       setVoices((data as any).voices ?? []);
       return (data as any).voices ?? [];
     } catch (e: any) {
-      toast({ title: "Erro ao buscar vozes", description: e.message, variant: "destructive" });
+      if (!opts?.silent) toast({ title: "Erro ao buscar vozes", description: e.message, variant: "destructive" });
       return [];
     } finally {
       setLoading(false);
@@ -318,7 +323,7 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
   const [previewing, setPreviewing] = useState(false);
   const { voices, loading: loadingVoices, fetch: fetchVoices } = useElevenVoices();
 
-  useEffect(() => { fetchVoices(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { fetchVoices(undefined, { silent: true }); /* eslint-disable-next-line */ }, []);
 
   const save = async () => {
     if (!form.nome || !form.texto) {
@@ -429,7 +434,7 @@ function DisparoTab() {
 
   useEffect(() => {
     supabase.from("ligacoes_ia_roteiros").select("id, nome, categoria").eq("ativo", true).then(({ data }) => setRoteiros(data ?? []));
-    fetchVoices();
+    fetchVoices(undefined, { silent: true });
     // eslint-disable-next-line
   }, []);
 
@@ -518,7 +523,7 @@ function ConfigTab({ onSaved }: { onSaved?: () => void }) {
     (data ?? []).forEach((r: any) => map[r.config_key] = r.config_value ?? "");
     setCfg(map);
     setLoading(false);
-    if (map.elevenlabs_api_key) fetchVoices();
+    if (map.elevenlabs_api_key) fetchVoices(undefined, { silent: true });
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
@@ -559,14 +564,21 @@ function ConfigTab({ onSaved }: { onSaved?: () => void }) {
 
       <section className="space-y-3">
         <h3 className="font-semibold text-sm uppercase text-muted-foreground">ElevenLabs (voz)</h3>
-        <div className="flex items-end gap-2">
-          <div className="flex-1">
-            {field("elevenlabs_api_key", "API Key ElevenLabs", "elevenlabs.io → Profile → API Key. Após colar, clique em Buscar vozes.", "password")}
+        <div>
+          <Label>API Key ElevenLabs</Label>
+          <div className="flex gap-2 mt-1.5">
+            <Input
+              type="password"
+              value={cfg.elevenlabs_api_key || ""}
+              onChange={e => setCfg({ ...cfg, elevenlabs_api_key: e.target.value })}
+              className="flex-1"
+            />
+            <Button variant="outline" onClick={testarVozes} disabled={loadingVoices} className="shrink-0">
+              {loadingVoices ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+              Buscar vozes
+            </Button>
           </div>
-          <Button variant="outline" onClick={testarVozes} disabled={loadingVoices}>
-            {loadingVoices ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-            Buscar vozes
-          </Button>
+          <p className="text-xs text-muted-foreground mt-1">elevenlabs.io → Profile → API Key. Após colar, clique em Buscar vozes.</p>
         </div>
         <div>
           <Label>Voz padrão {voices.length > 0 && <span className="text-xs text-muted-foreground">({voices.length} disponíveis)</span>}</Label>
