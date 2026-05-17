@@ -2349,6 +2349,53 @@ export type Database = {
         }
         Relationships: []
       }
+      cobranca_ligacao_config: {
+        Row: {
+          apenas_cobranca_ativa: boolean
+          created_at: string
+          delay_minutes: number
+          dias_disparo: number[]
+          enabled: boolean
+          horario_fim: string
+          horario_inicio: string
+          id: string
+          roteiro_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          apenas_cobranca_ativa?: boolean
+          created_at?: string
+          delay_minutes?: number
+          dias_disparo?: number[]
+          enabled?: boolean
+          horario_fim?: string
+          horario_inicio?: string
+          id?: string
+          roteiro_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          apenas_cobranca_ativa?: boolean
+          created_at?: string
+          delay_minutes?: number
+          dias_disparo?: number[]
+          enabled?: boolean
+          horario_fim?: string
+          horario_inicio?: string
+          id?: string
+          roteiro_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobranca_ligacao_config_roteiro_id_fkey"
+            columns: ["roteiro_id"]
+            isOneToOne: false
+            referencedRelation: "ligacoes_ia_roteiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consulta_numeros_api_keys: {
         Row: {
           api_key: string
@@ -4746,6 +4793,73 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ligacoes_agendadas: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          dia_alvo: string
+          erro: string | null
+          historico_id: string | null
+          id: string
+          processada_em: string | null
+          roteiro_id: string | null
+          status: string
+          tentativas: number
+          tipo_d: string
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          dia_alvo: string
+          erro?: string | null
+          historico_id?: string | null
+          id?: string
+          processada_em?: string | null
+          roteiro_id?: string | null
+          status?: string
+          tentativas?: number
+          tipo_d: string
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          dia_alvo?: string
+          erro?: string | null
+          historico_id?: string | null
+          id?: string
+          processada_em?: string | null
+          roteiro_id?: string | null
+          status?: string
+          tentativas?: number
+          tipo_d?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ligacoes_agendadas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_agendadas_historico_id_fkey"
+            columns: ["historico_id"]
+            isOneToOne: false
+            referencedRelation: "ligacoes_ia_historico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_agendadas_roteiro_id_fkey"
+            columns: ["roteiro_id"]
+            isOneToOne: false
+            referencedRelation: "ligacoes_ia_roteiros"
             referencedColumns: ["id"]
           },
         ]
