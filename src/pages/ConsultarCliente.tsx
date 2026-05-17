@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server, ShieldCheck, MoreHorizontal, TrendingUp, Copy } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server, ShieldCheck, MoreHorizontal, TrendingUp, Copy, PhoneCall } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,6 +67,7 @@ import { ClientScoreBadge } from '@/components/ClientScoreBadge';
 import { ClientPaymentApprovalBadge } from '@/components/ClientPaymentApprovalBadge';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { LigarComIADialog } from '@/components/LigarComIADialog';
 
 export default function ConsultarCliente() {
   const navigate = useNavigate();
@@ -104,6 +105,7 @@ export default function ConsultarCliente() {
   const [groupClienteId, setGroupClienteId] = useState<string | null>(null);
   const [groupClienteName, setGroupClienteName] = useState<string>('');
   const [groupClienteNumero, setGroupClienteNumero] = useState<string>('');
+  const [ligarIACliente, setLigarIACliente] = useState<{ id: string; nome: string; numero: string } | null>(null);
   const { canViewSocialCredentials, canViewServerCredentials, canCreateWhatsAppGroups, canViewClientAI, canViewClientGraph, canViewPaymentSecurity } = usePermissions();
   const canViewUpsell = canViewClientAI; // Reusing AI permission for now
   const [availableTags, setAvailableTags] = useState<string[]>([]);
@@ -938,6 +940,23 @@ export default function ConsultarCliente() {
                                     )}
                                   </>
                                 )}
+
+                                {/* Grupo: Comunicação */}
+                                {!isNonClientType(cliente) && isAdmin && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
+                                      Comunicação
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuItem
+                                      onClick={() => setLigarIACliente({ id: cliente.id, nome: cliente.nome, numero: cliente.numero })}
+                                      className="gap-2"
+                                    >
+                                      <PhoneCall className="h-4 w-4 text-fuchsia-500" />
+                                      <span>Ligar com IA</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -1290,6 +1309,16 @@ export default function ConsultarCliente() {
           open={!!groupClienteId}
           onOpenChange={() => setGroupClienteId(null)}
         />
+
+        {ligarIACliente && (
+          <LigarComIADialog
+            clienteId={ligarIACliente.id}
+            clienteNome={ligarIACliente.nome}
+            clienteNumero={ligarIACliente.numero}
+            open={!!ligarIACliente}
+            onOpenChange={(o) => !o && setLigarIACliente(null)}
+          />
+        )}
 
         <AlertDialog open={!!duplicateTarget} onOpenChange={(open) => !open && setDuplicateTarget(null)}>
           <AlertDialogContent>

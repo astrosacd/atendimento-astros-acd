@@ -12,17 +12,9 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Phone, Plus, Play, Trash2, Loader2, PhoneCall, History, Settings as SettingsIcon, FileText, Sparkles } from "lucide-react";
-import { format } from "date-fns";
+import { Phone, Plus, Play, Trash2, Loader2, PhoneCall, History, Settings as SettingsIcon, FileText, Sparkles, AlertCircle, RefreshCw, CheckCircle2 } from "lucide-react";
+import { format, subDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-
-const VOICES = [
-  { id: "pNInz6obpgDQGcFmaJgB", name: "Adam (PT-BR profissional)" },
-  { id: "21m00Tcm4TlvDq8ikWAM", name: "Rachel (PT-BR simpática)" },
-  { id: "EXAVITQu4vr4xnSDxMaL", name: "Sarah (clara)" },
-  { id: "JBFqnCBsd6RMkjVDRZzb", name: "George (grave)" },
-  { id: "XB0fDUnXU5powFXDhCwa", name: "Charlotte (jovem)" },
-];
 
 const CATEGORIAS = [
   { value: "cobranca", label: "Cobrança" },
@@ -45,7 +37,33 @@ const STATUS_COLOR: Record<string, string> = {
   erro: "bg-destructive",
 };
 
+const CATEGORY_LABEL: Record<string, string> = {
+  premade: "Pré-feita",
+  professional: "Profissional",
+  cloned: "Clonada",
+  generated: "Gerada",
+};
+
 export default function LigacoesIA() {
+  const [configStatus, setConfigStatus] = useState<{ wavoip: boolean; eleven: boolean; dialer: boolean } | null>(null);
+
+  const refreshStatus = async () => {
+    const { data } = await supabase
+      .from("ligacoes_ia_config")
+      .select("config_key, config_value")
+      .in("config_key", ["wavoip_token", "wavoip_dialer_number", "elevenlabs_api_key"]);
+    const map: Record<string, string> = {};
+    (data ?? []).forEach((r: any) => map[r.config_key] = r.config_value ?? "");
+    setConfigStatus({
+      wavoip: !!map.wavoip_token,
+      dialer: !!map.wavoip_dialer_number,
+      eleven: !!map.elevenlabs_api_key,
+    });
+  };
+  useEffect(() => { refreshStatus(); }, []);
+
+  const allOk = configStatus?.wavoip && configStatus?.dialer && configStatus?.eleven;
+
   return (
     <DashboardLayout>
       <div className="container max-w-7xl py-6 space-y-6">
@@ -63,6 +81,28 @@ export default function LigacoesIA() {
           </div>
         </div>
 
+        {configStatus && !allOk && (
+          <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4">
+            <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
+            <div className="flex-1 text-sm">
+              <p className="font-medium">Configuração incompleta — as ligações não funcionarão</p>
+              <ul className="text-xs text-muted-foreground mt-1 list-disc pl-4">
+                {!configStatus.wavoip && <li>Token Wavoip ausente</li>}
+                {!configStatus.dialer && <li>Número discador (WhatsApp Business) ausente</li>}
+                {!configStatus.eleven && <li>API Key ElevenLabs ausente</li>}
+              </ul>
+              <p className="text-xs mt-1">Vá para a aba <strong>Configurações</strong> abaixo.</p>
+            </div>
+          </div>
+        )}
+
+        {configStatus && allOk && (
+          <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm">
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            <span>Configuração completa — pronto para fazer ligações.</span>
+          </div>
+        )}
+
         <Tabs defaultValue="historico" className="space-y-4">
           <TabsList className="grid grid-cols-4 w-full max-w-2xl">
             <TabsTrigger value="historico"><History className="h-4 w-4 mr-2" />Histórico</TabsTrigger>
@@ -74,7 +114,7 @@ export default function LigacoesIA() {
           <TabsContent value="historico"><HistoricoTab /></TabsContent>
           <TabsContent value="roteiros"><RoteirosTab /></TabsContent>
           <TabsContent value="disparo"><DisparoTab /></TabsContent>
-          <TabsContent value="config"><ConfigTab /></TabsContent>
+          <TabsContent value="config"><ConfigTab onSaved={refreshStatus} /></TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
@@ -85,51 +125,76 @@ export default function LigacoesIA() {
 function HistoricoTab() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [periodo, setPeriodo] = useState("7"); // dias
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase
+    let q = supabase
       .from("ligacoes_ia_historico")
       .select("*, clientes(nome, numero), ligacoes_ia_roteiros(nome)")
       .order("created_at", { ascending: false })
-      .limit(100);
+      .limit(200);
+    if (periodo !== "all") {
+      const since = startOfDay(subDays(new Date(), Number(periodo))).toISOString();
+      q = q.gte("created_at", since);
+    }
+    const { data } = await q;
     setItems(data ?? []);
     setLoading(false);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [periodo]);
+
+  // Realtime updates
+  useEffect(() => {
+    const ch = supabase.channel("ligacoes_ia_hist")
+      .on("postgres_changes", { event: "*", schema: "public", table: "ligacoes_ia_historico" }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+    // eslint-disable-next-line
+  }, []);
 
   return (
     <Card className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="font-semibold">Últimas 100 ligações</h2>
-        <Button size="sm" variant="outline" onClick={load} disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Atualizar"}
-        </Button>
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <h2 className="font-semibold">Histórico de ligações</h2>
+        <div className="flex items-center gap-2">
+          <Select value={periodo} onValueChange={setPeriodo}>
+            <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">Hoje</SelectItem>
+              <SelectItem value="7">Últimos 7 dias</SelectItem>
+              <SelectItem value="30">Últimos 30 dias</SelectItem>
+              <SelectItem value="all">Tudo</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button size="sm" variant="outline" onClick={load} disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          </Button>
+        </div>
       </div>
       {loading && items.length === 0 ? (
         <div className="text-center py-10 text-muted-foreground">Carregando...</div>
       ) : items.length === 0 ? (
         <div className="text-center py-10 text-muted-foreground">
-          Nenhuma ligação ainda. Vá para a aba <strong>Disparo</strong> para fazer a primeira.
+          Nenhuma ligação no período. Vá para a aba <strong>Disparo</strong> para testar.
         </div>
       ) : (
         <div className="space-y-2">
           {items.map((it) => (
             <div key={it.id} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/30">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Badge className={`${STATUS_COLOR[it.status] || "bg-muted"} text-white`}>{it.status}</Badge>
-                  <span className="font-medium truncate">
-                    {it.clientes?.nome || it.numero_destino}
-                  </span>
+                  <span className="font-medium truncate">{it.clientes?.nome || it.numero_destino}</span>
                   {it.ligacoes_ia_roteiros?.nome && (
                     <span className="text-xs text-muted-foreground">• {it.ligacoes_ia_roteiros.nome}</span>
                   )}
+                  <Badge variant="outline" className="text-[10px]">{it.source || "manual"}</Badge>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
                   {format(new Date(it.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                   {it.duration_seconds ? ` • ${it.duration_seconds}s` : ""}
-                  {it.error_message ? ` • erro: ${it.error_message.slice(0, 60)}` : ""}
+                  {it.error_message ? ` • erro: ${it.error_message.slice(0, 80)}` : ""}
                 </div>
               </div>
               <code className="text-xs text-muted-foreground hidden md:block">{it.numero_destino}</code>
@@ -215,6 +280,31 @@ function RoteirosTab() {
   );
 }
 
+// Hook: load voices from ElevenLabs
+function useElevenVoices() {
+  const [voices, setVoices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetch = async (apiKey?: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ligacoes-ia-list-voices", {
+        body: apiKey ? { api_key: apiKey } : {},
+      });
+      if (error) throw error;
+      setVoices((data as any).voices ?? []);
+      return (data as any).voices ?? [];
+    } catch (e: any) {
+      toast({ title: "Erro ao buscar vozes", description: e.message, variant: "destructive" });
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { voices, loading, fetch, setVoices };
+}
+
 function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({
     nome: roteiro.nome ?? "",
@@ -226,6 +316,9 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
   });
   const [saving, setSaving] = useState(false);
   const [previewing, setPreviewing] = useState(false);
+  const { voices, loading: loadingVoices, fetch: fetchVoices } = useElevenVoices();
+
+  useEffect(() => { fetchVoices(); /* eslint-disable-next-line */ }, []);
 
   const save = async () => {
     if (!form.nome || !form.texto) {
@@ -282,14 +375,21 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
             </div>
           </div>
           <div>
-            <Label>Voz (deixe vazio para usar padrão)</Label>
+            <Label>Voz {loadingVoices && <Loader2 className="h-3 w-3 inline animate-spin ml-1" />}</Label>
             <Select value={form.voice_id || "default"} onValueChange={v => setForm({ ...form, voice_id: v === "default" ? "" : v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Padrão das configurações" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="default">Padrão das configurações</SelectItem>
-                {VOICES.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+                {voices.map(v => (
+                  <SelectItem key={v.voice_id} value={v.voice_id}>
+                    {v.name} • {CATEGORY_LABEL[v.category] || v.category}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            {voices.length === 0 && !loadingVoices && (
+              <p className="text-xs text-muted-foreground mt-1">Configure a API Key ElevenLabs em Configurações para listar suas vozes.</p>
+            )}
           </div>
           <div>
             <Label>Texto (use {"{nome}"}, {"{valor}"}, {"{produto}"}, {"{data_renovacao}"})</Label>
@@ -320,13 +420,17 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
 function DisparoTab() {
   const [roteiros, setRoteiros] = useState<any[]>([]);
   const [roteiroId, setRoteiroId] = useState("");
+  const [voiceOverride, setVoiceOverride] = useState("");
   const [numero, setNumero] = useState("");
   const [nome, setNome] = useState("");
   const [valor, setValor] = useState("");
   const [calling, setCalling] = useState(false);
+  const { voices, fetch: fetchVoices } = useElevenVoices();
 
   useEffect(() => {
     supabase.from("ligacoes_ia_roteiros").select("id, nome, categoria").eq("ativo", true).then(({ data }) => setRoteiros(data ?? []));
+    fetchVoices();
+    // eslint-disable-next-line
   }, []);
 
   const ligar = async () => {
@@ -340,6 +444,7 @@ function DisparoTab() {
         roteiro_id: roteiroId,
         numero_destino: numero.replace(/\D/g, ""),
         variables: { nome, valor },
+        voice_id_override: voiceOverride || undefined,
         source: "manual",
       },
     });
@@ -362,16 +467,28 @@ function DisparoTab() {
           </Select>
         </div>
         <div>
+          <Label>Voz (opcional — sobrepõe a do roteiro)</Label>
+          <Select value={voiceOverride || "default"} onValueChange={v => setVoiceOverride(v === "default" ? "" : v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">Usar voz do roteiro</SelectItem>
+              {voices.map(v => (
+                <SelectItem key={v.voice_id} value={v.voice_id}>{v.name} • {CATEGORY_LABEL[v.category] || v.category}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
           <Label>Número de destino (com DDI, ex: 5511999999999)</Label>
           <Input value={numero} onChange={e => setNumero(e.target.value)} placeholder="5511999999999" />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>Nome (para variável {"{nome}"})</Label>
+            <Label>Nome (variável {"{nome}"})</Label>
             <Input value={nome} onChange={e => setNome(e.target.value)} />
           </div>
           <div>
-            <Label>Valor (para variável {"{valor}"})</Label>
+            <Label>Valor (variável {"{valor}"})</Label>
             <Input value={valor} onChange={e => setValor(e.target.value)} placeholder="99,90" />
           </div>
         </div>
@@ -380,7 +497,7 @@ function DisparoTab() {
           Ligar agora
         </Button>
         <p className="text-xs text-muted-foreground">
-          Para ligar a partir de um cliente cadastrado, use o botão "Ligar com IA" no card do cliente (a ser adicionado).
+          Para ligar a partir de um cliente cadastrado, use o botão <strong>Ligar com IA</strong> no menu de ações do cliente.
         </p>
       </div>
     </Card>
@@ -388,10 +505,11 @@ function DisparoTab() {
 }
 
 // ============ CONFIG ============
-function ConfigTab() {
+function ConfigTab({ onSaved }: { onSaved?: () => void }) {
   const [cfg, setCfg] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { voices, loading: loadingVoices, fetch: fetchVoices } = useElevenVoices();
 
   const load = async () => {
     setLoading(true);
@@ -400,8 +518,9 @@ function ConfigTab() {
     (data ?? []).forEach((r: any) => map[r.config_key] = r.config_value ?? "");
     setCfg(map);
     setLoading(false);
+    if (map.elevenlabs_api_key) fetchVoices();
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
   const save = async () => {
     setSaving(true);
@@ -411,6 +530,13 @@ function ConfigTab() {
     await Promise.all(updates);
     setSaving(false);
     toast({ title: "Configurações salvas" });
+    onSaved?.();
+  };
+
+  const testarVozes = async () => {
+    if (!cfg.elevenlabs_api_key) return toast({ title: "Cole a API Key primeiro", variant: "destructive" });
+    const v = await fetchVoices(cfg.elevenlabs_api_key);
+    if (v.length > 0) toast({ title: `${v.length} vozes carregadas`, description: "API Key válida ✓" });
   };
 
   if (loading) return <Card className="p-6"><Loader2 className="h-5 w-5 animate-spin" /></Card>;
@@ -427,19 +553,31 @@ function ConfigTab() {
     <Card className="p-6 space-y-6 max-w-3xl">
       <section className="space-y-3">
         <h3 className="font-semibold text-sm uppercase text-muted-foreground">Wavoip (discador)</h3>
-        {field("wavoip_token", "Token Wavoip", "Pegue em app.wavoip.com → API Keys", "password")}
+        {field("wavoip_token", "Token Wavoip", "No painel da Wavoip, abra o Dispositivo (número WhatsApp) e copie o Token de API/Integração.", "password")}
         {field("wavoip_dialer_number", "Número WhatsApp Business discador", "Com DDI, sem símbolos. Ex: 5511999999999")}
       </section>
 
       <section className="space-y-3">
         <h3 className="font-semibold text-sm uppercase text-muted-foreground">ElevenLabs (voz)</h3>
-        {field("elevenlabs_api_key", "API Key ElevenLabs", "Pegue em elevenlabs.io → Profile → API Key", "password")}
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
+            {field("elevenlabs_api_key", "API Key ElevenLabs", "elevenlabs.io → Profile → API Key. Após colar, clique em Buscar vozes.", "password")}
+          </div>
+          <Button variant="outline" onClick={testarVozes} disabled={loadingVoices}>
+            {loadingVoices ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+            Buscar vozes
+          </Button>
+        </div>
         <div>
-          <Label>Voz padrão</Label>
+          <Label>Voz padrão {voices.length > 0 && <span className="text-xs text-muted-foreground">({voices.length} disponíveis)</span>}</Label>
           <Select value={cfg.elevenlabs_default_voice_id || ""} onValueChange={v => setCfg({ ...cfg, elevenlabs_default_voice_id: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder={voices.length === 0 ? "Configure a API Key e busque vozes" : "Selecione uma voz"} /></SelectTrigger>
             <SelectContent>
-              {VOICES.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+              {voices.map(v => (
+                <SelectItem key={v.voice_id} value={v.voice_id}>
+                  {v.name} • {CATEGORY_LABEL[v.category] || v.category}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
