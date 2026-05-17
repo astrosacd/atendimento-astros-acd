@@ -880,6 +880,10 @@ export default function Dashboard() {
 
         <QuickActions />
 
+        <div className="mb-6">
+          <LigacoesAgendadasCard />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <SecurityAlertsCard />
           {hasPermission('manage_system_health') && <SystemHealthCard />}
