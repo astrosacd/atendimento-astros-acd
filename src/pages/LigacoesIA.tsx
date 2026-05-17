@@ -55,7 +55,49 @@ const CATEGORY_LABEL: Record<string, string> = {
   generated: "Gerada",
 };
 
+const LIGACOES_PERMISSION_OPTIONS = [
+  { id: "historico", label: "Histórico" },
+  { id: "fila", label: "Fila do dia" },
+  { id: "roteiros", label: "Roteiros" },
+  { id: "disparo", label: "Disparo" },
+  { id: "campanhas", label: "Campanhas" },
+  { id: "cobranca", label: "Cobrança" },
+  { id: "config", label: "Configurações" },
+];
+
+const LIGACOES_TARGET_PATH = "/ligacoes-ia";
+
 export default function LigacoesIA() {
+  const { canManageTemporaryAccess } = usePermissions();
+  const siteUrl = useSiteUrl();
+
+  const isTempAccess = !!sessionStorage.getItem("temp_access_token");
+  const [tempPerms, setTempPerms] = useState<string[] | null>(null);
+  const [tempLoading, setTempLoading] = useState(isTempAccess);
+
+  useEffect(() => {
+    if (!isTempAccess) { setTempLoading(false); return; }
+    const load = async () => {
+      const token = sessionStorage.getItem("temp_access_token");
+      if (!token) { setTempPerms(null); setTempLoading(false); return; }
+      const { data } = await supabase
+        .from("temporary_access_tokens")
+        .select("permissions")
+        .eq("token", token)
+        .eq("is_active", true)
+        .gt("expires_at", new Date().toISOString())
+        .maybeSingle();
+      setTempPerms(((data?.permissions as string[]) ?? []));
+      setTempLoading(false);
+    };
+    load();
+    const itv = window.setInterval(load, 2000);
+    window.addEventListener("focus", load);
+    return () => { window.clearInterval(itv); window.removeEventListener("focus", load); };
+  }, [isTempAccess]);
+
+  const tabAllowed = (id: string) => !isTempAccess || (tempPerms ?? []).includes(id);
+
   const [configStatus, setConfigStatus] = useState<{ wavoip: boolean; eleven: boolean; dialer: boolean } | null>(null);
 
   const refreshStatus = async () => {
@@ -74,25 +116,77 @@ export default function LigacoesIA() {
   useEffect(() => { refreshStatus(); }, []);
 
   const allOk = configStatus?.wavoip && configStatus?.dialer && configStatus?.eleven;
+  const allowedTabs = LIGACOES_PERMISSION_OPTIONS.map(p => p.id).filter(tabAllowed);
+  const defaultTab = isTempAccess ? (allowedTabs[0] ?? "historico") : "historico";
+
+  const Wrapper = React.useMemo(() => {
+    return ({ children }: { children: React.ReactNode }) =>
+      isTempAccess ? (
+        <div className="min-h-screen bg-background">
+          <div className="border-b bg-card/50 backdrop-blur">
+            <div className="container mx-auto max-w-7xl flex items-center justify-between px-6 py-3">
+              <div className="flex items-center gap-2">
+                <PhoneCall className="h-5 w-5 text-fuchsia-500" />
+                <span className="font-semibold">Ligações IA</span>
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                <Clock className="h-3 w-3" /> Acesso Provisório
+              </span>
+            </div>
+          </div>
+          {children}
+        </div>
+      ) : (
+        <DashboardLayout>{children}</DashboardLayout>
+      );
+  }, [isTempAccess]);
+
+  if (isTempAccess && tempLoading) {
+    return (
+      <Wrapper>
+        <div className="flex flex-col items-center justify-center h-[60vh] space-y-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Carregando permissões...</p>
+        </div>
+      </Wrapper>
+    );
+  }
+
+  if (isTempAccess && allowedTabs.length === 0) {
+    return (
+      <Wrapper>
+        <div className="flex flex-col items-center justify-center h-[60vh] space-y-3">
+          <X className="h-10 w-10 text-destructive" />
+          <p className="text-muted-foreground">Este link não tem nenhuma permissão habilitada.</p>
+        </div>
+      </Wrapper>
+    );
+  }
 
   return (
-    <DashboardLayout>
+    <Wrapper>
       <div className="container max-w-7xl py-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 shadow-lg">
-            <PhoneCall className="h-6 w-6 text-white" />
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 shadow-lg">
+              <PhoneCall className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                Ligações IA <Sparkles className="h-5 w-5 text-amber-400" />
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Ligações automáticas via WhatsApp (Wavoip) com voz natural (ElevenLabs)
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              Ligações IA <Sparkles className="h-5 w-5 text-amber-400" />
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Ligações automáticas via WhatsApp (Wavoip) com voz natural (ElevenLabs)
-            </p>
-          </div>
+
+          {!isTempAccess && canManageTemporaryAccess() && (
+            <AcessoProvisorioButton siteUrl={siteUrl} />
+          )}
         </div>
 
-        {configStatus && !allOk && (
+        {!isTempAccess && configStatus && !allOk && (
           <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4">
             <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
             <div className="flex-1 text-sm">
@@ -107,34 +201,268 @@ export default function LigacoesIA() {
           </div>
         )}
 
-        {configStatus && allOk && (
+        {!isTempAccess && configStatus && allOk && (
           <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm">
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
             <span>Configuração completa — pronto para fazer ligações.</span>
           </div>
         )}
 
-        <Tabs defaultValue="historico" className="space-y-4">
-          <TabsList className="grid grid-cols-7 w-full max-w-5xl">
-            <TabsTrigger value="historico"><History className="h-4 w-4 mr-2" />Histórico</TabsTrigger>
-            <TabsTrigger value="fila"><ListChecks className="h-4 w-4 mr-2" />Fila do dia</TabsTrigger>
-            <TabsTrigger value="roteiros"><FileText className="h-4 w-4 mr-2" />Roteiros</TabsTrigger>
-            <TabsTrigger value="disparo"><Phone className="h-4 w-4 mr-2" />Disparo</TabsTrigger>
-            <TabsTrigger value="campanhas"><Megaphone className="h-4 w-4 mr-2" />Campanhas</TabsTrigger>
-            <TabsTrigger value="cobranca"><CalendarClock className="h-4 w-4 mr-2" />Cobrança</TabsTrigger>
-            <TabsTrigger value="config"><SettingsIcon className="h-4 w-4 mr-2" />Configurações</TabsTrigger>
+        <Tabs defaultValue={defaultTab} className="space-y-4">
+          <TabsList className="flex flex-wrap w-full max-w-5xl h-auto">
+            {tabAllowed("historico") && <TabsTrigger value="historico"><History className="h-4 w-4 mr-2" />Histórico</TabsTrigger>}
+            {tabAllowed("fila") && <TabsTrigger value="fila"><ListChecks className="h-4 w-4 mr-2" />Fila do dia</TabsTrigger>}
+            {tabAllowed("roteiros") && <TabsTrigger value="roteiros"><FileText className="h-4 w-4 mr-2" />Roteiros</TabsTrigger>}
+            {tabAllowed("disparo") && <TabsTrigger value="disparo"><Phone className="h-4 w-4 mr-2" />Disparo</TabsTrigger>}
+            {tabAllowed("campanhas") && <TabsTrigger value="campanhas"><Megaphone className="h-4 w-4 mr-2" />Campanhas</TabsTrigger>}
+            {tabAllowed("cobranca") && <TabsTrigger value="cobranca"><CalendarClock className="h-4 w-4 mr-2" />Cobrança</TabsTrigger>}
+            {tabAllowed("config") && <TabsTrigger value="config"><SettingsIcon className="h-4 w-4 mr-2" />Configurações</TabsTrigger>}
           </TabsList>
 
-          <TabsContent value="historico"><HistoricoTab /></TabsContent>
-          <TabsContent value="fila"><FilaLigacoesTab /></TabsContent>
-          <TabsContent value="roteiros"><RoteirosTab /></TabsContent>
-          <TabsContent value="disparo"><DisparoTab /></TabsContent>
-          <TabsContent value="campanhas"><CampanhasLigacoesTab /></TabsContent>
-          <TabsContent value="cobranca"><CobrancaConfigTab /></TabsContent>
-          <TabsContent value="config"><ConfigTab onSaved={refreshStatus} /></TabsContent>
+          {tabAllowed("historico") && <TabsContent value="historico"><HistoricoTab /></TabsContent>}
+          {tabAllowed("fila") && <TabsContent value="fila"><FilaLigacoesTab /></TabsContent>}
+          {tabAllowed("roteiros") && <TabsContent value="roteiros"><RoteirosTab /></TabsContent>}
+          {tabAllowed("disparo") && <TabsContent value="disparo"><DisparoTab /></TabsContent>}
+          {tabAllowed("campanhas") && <TabsContent value="campanhas"><CampanhasLigacoesTab /></TabsContent>}
+          {tabAllowed("cobranca") && <TabsContent value="cobranca"><CobrancaConfigTab /></TabsContent>}
+          {tabAllowed("config") && <TabsContent value="config"><ConfigTab onSaved={refreshStatus} /></TabsContent>}
         </Tabs>
       </div>
-    </DashboardLayout>
+    </Wrapper>
+  );
+}
+
+// ============ ACESSO PROVISÓRIO ============
+function AcessoProvisorioButton({ siteUrl }: { siteUrl: string }) {
+  const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<"initial" | "success">("initial");
+  const [generatedLink, setGeneratedLink] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [tokens, setTokens] = useState<any[]>([]);
+  const [editing, setEditing] = useState<any | null>(null);
+  const [editPerms, setEditPerms] = useState<string[]>([]);
+  const [form, setForm] = useState({
+    duration: "4",
+    max_uses: "1",
+    permissions: ["fila", "historico"] as string[],
+  });
+
+  const fetchTokens = async () => {
+    const { data } = await supabase
+      .from("temporary_access_tokens")
+      .select("*")
+      .eq("target_path", LIGACOES_TARGET_PATH)
+      .order("created_at", { ascending: false });
+    setTokens(data ?? []);
+  };
+
+  useEffect(() => { if (open) fetchTokens(); }, [open]);
+
+  const createLink = async () => {
+    if (form.permissions.length === 0) {
+      sonnerToast.error("Escolha ao menos uma permissão.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      const expiresAt = addHours(new Date(), parseInt(form.duration)).toISOString();
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from("temporary_access_tokens").insert({
+        created_by: user?.id,
+        token,
+        target_path: LIGACOES_TARGET_PATH,
+        expires_at: expiresAt,
+        max_uses: parseInt(form.max_uses),
+        permissions: form.permissions,
+      });
+      if (error) throw error;
+      setGeneratedLink(`${siteUrl}/access/${token}`);
+      setStep("success");
+      fetchTokens();
+    } catch (e: any) {
+      sonnerToast.error("Erro ao criar link: " + e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteToken = async (id: string) => {
+    const { error } = await supabase.from("temporary_access_tokens").delete().eq("id", id);
+    if (error) sonnerToast.error("Erro ao excluir");
+    else { sonnerToast.success("Link excluído"); fetchTokens(); }
+  };
+
+  const copyLink = (t: string) => {
+    copyToClipboard(`${siteUrl}/access/${t}`);
+    sonnerToast.success("Link copiado!");
+  };
+
+  const updatePerms = async () => {
+    if (!editing) return;
+    const { error } = await supabase
+      .from("temporary_access_tokens")
+      .update({ permissions: editPerms })
+      .eq("id", editing.id);
+    if (error) sonnerToast.error("Erro ao salvar");
+    else { sonnerToast.success("Permissões atualizadas"); setEditing(null); fetchTokens(); }
+  };
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setTimeout(() => setStep("initial"), 300); }}>
+        <DialogTrigger asChild>
+          <Button variant="outline" className="gap-2">
+            <LinkIcon className="h-4 w-4" /> Acesso Provisório
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          {step === "initial" ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Gerar Link Provisório</DialogTitle>
+                <DialogDescription>
+                  Link que expira sozinho — para um assistente acessar só este módulo, sem login no CRM.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <Label>Duração</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={form.duration}
+                    onChange={(e) => setForm(p => ({ ...p, duration: e.target.value }))}
+                  >
+                    <option value="1">1 hora</option>
+                    <option value="4">4 horas</option>
+                    <option value="12">12 horas</option>
+                    <option value="24">1 dia</option>
+                    <option value="72">3 dias</option>
+                    <option value="168">7 dias</option>
+                    <option value="480">20 dias</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Permissões (abas que o assistente verá)</Label>
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    {LIGACOES_PERMISSION_OPTIONS.map((p) => (
+                      <div key={p.id} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={`np-${p.id}`}
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                          checked={form.permissions.includes(p.id)}
+                          onChange={(e) => setForm(prev => ({
+                            ...prev,
+                            permissions: e.target.checked
+                              ? [...prev.permissions, p.id]
+                              : prev.permissions.filter(x => x !== p.id),
+                          }))}
+                        />
+                        <label htmlFor={`np-${p.id}`} className="text-sm leading-none cursor-pointer">{p.label}</label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Limite de Usos</Label>
+                  <Input
+                    type="number"
+                    value={form.max_uses}
+                    onChange={(e) => setForm(p => ({ ...p, max_uses: e.target.value }))}
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Quantas vezes o link pode ser aberto (1 dispositivo = 1 uso).
+                  </p>
+                </div>
+
+                <div className="pt-2 space-y-2">
+                  <Label className="text-xs uppercase text-muted-foreground">Links Ativos</Label>
+                  <div className="max-h-40 overflow-y-auto space-y-2">
+                    {tokens.map(t => (
+                      <div key={t.id} className="flex items-center justify-between p-2 rounded bg-muted text-sm">
+                        <div className="truncate flex-1 mr-2">
+                          <p className="font-mono text-xs">...{t.token.substring(t.token.length - 8)}</p>
+                          <p className="text-[10px] text-muted-foreground">Expira: {format(new Date(t.expires_at), "dd/MM HH:mm")}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {((t.permissions as string[]) || []).map((p) => LIGACOES_PERMISSION_OPTIONS.find(o => o.id === p)?.label || p).join(", ") || "—"}
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditing(t); setEditPerms((t.permissions as string[]) || []); }}>
+                            <SettingsIcon className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => copyLink(t.token)}>
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteToken(t.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {tokens.length === 0 && <p className="text-xs text-center py-2 text-muted-foreground">Nenhum link ativo.</p>}
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+                <Button onClick={createLink} disabled={loading}>
+                  {loading ? "Gerando..." : "Gerar Link"}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Check className="h-5 w-5 text-emerald-500" /> Link Gerado!
+                </DialogTitle>
+                <DialogDescription>Copie e envie para o assistente.</DialogDescription>
+              </DialogHeader>
+              <div className="flex items-center gap-2 py-2">
+                <Input readOnly value={generatedLink} className="font-mono text-xs" />
+                <Button size="sm" onClick={() => { copyToClipboard(generatedLink); sonnerToast.success("Copiado!"); }}>
+                  <Copy className="h-4 w-4 mr-1" /> Copiar
+                </Button>
+              </div>
+              <DialogFooter>
+                <Button variant="secondary" onClick={() => setOpen(false)}>Fechar</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Permissões</DialogTitle>
+            <DialogDescription>Mudanças valem na próxima atualização da aba do assistente.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            {LIGACOES_PERMISSION_OPTIONS.map((p) => (
+              <div key={p.id} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id={`ep-${p.id}`}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  checked={editPerms.includes(p.id)}
+                  onChange={(e) => setEditPerms(prev => e.target.checked ? [...prev, p.id] : prev.filter(x => x !== p.id))}
+                />
+                <label htmlFor={`ep-${p.id}`} className="text-sm leading-none cursor-pointer">{p.label}</label>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button>
+            <Button onClick={updatePerms}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
