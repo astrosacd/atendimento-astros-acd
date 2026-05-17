@@ -215,12 +215,24 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
           )}
         </div>
 
+        {calling && callStatus && (
+          <div className="rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/5 p-3 text-xs flex items-center gap-2">
+            <Loader2 className="h-3 w-3 animate-spin text-fuchsia-500" />
+            <span className="text-foreground">{callStatus}</span>
+          </div>
+        )}
+
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={ligar} disabled={calling || !roteiroId || !selectedCliente?.id || configOk === false}>
-            {calling ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Phone className="h-4 w-4 mr-1" />}
-            Ligar agora
-          </Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={calling}>Fechar</Button>
+          {calling ? (
+            <Button variant="destructive" onClick={desligar}>
+              <PhoneOff className="h-4 w-4 mr-1" /> Desligar
+            </Button>
+          ) : (
+            <Button onClick={ligar} disabled={!roteiroId || !selectedCliente?.id || configOk === false}>
+              <Phone className="h-4 w-4 mr-1" /> Ligar agora
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
