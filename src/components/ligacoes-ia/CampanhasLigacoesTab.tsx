@@ -278,7 +278,15 @@ function NovaCampanhaDialog({
   const submit = async () => {
     if (!nome.trim()) return toast({ title: "Informe o nome da campanha", variant: "destructive" });
     if (!roteiroId) return toast({ title: "Selecione um roteiro", variant: "destructive" });
-    if (selected.size === 0) return toast({ title: "Selecione ao menos 1 cliente", variant: "destructive" });
+
+    const useManual = tab === "manuais";
+    const totalSelecionados = useManual ? manualContacts.length : selected.size;
+    if (totalSelecionados === 0) {
+      return toast({
+        title: useManual ? "Adicione pelo menos 1 contato válido" : "Selecione ao menos 1 cliente",
+        variant: "destructive",
+      });
+    }
 
     setSaving(true);
     try {
@@ -289,7 +297,7 @@ function NovaCampanhaDialog({
         .insert({
           nome: nome.trim(),
           roteiro_id: roteiroId,
-          total: selected.size,
+          total: totalSelecionados,
           criado_por: userData.user?.id ?? null,
           dia_alvo: diaAlvo,
           delay_minutes_override: overrideNum,
@@ -298,14 +306,25 @@ function NovaCampanhaDialog({
         .single();
       if (e1) throw e1;
 
-      const rows = Array.from(selected).map((cid) => ({
-        cliente_id: cid,
-        roteiro_id: roteiroId,
-        dia_alvo: diaAlvo,
-        tipo_d: "campanha",
-        status: "pendente",
-        campanha_id: campanha.id,
-      }));
+      const rows = useManual
+        ? manualContacts.map((c) => ({
+            cliente_id: null,
+            nome_manual: c.nome,
+            numero_manual: c.numero,
+            roteiro_id: roteiroId,
+            dia_alvo: diaAlvo,
+            tipo_d: "campanha",
+            status: "pendente",
+            campanha_id: campanha.id,
+          }))
+        : Array.from(selected).map((cid) => ({
+            cliente_id: cid,
+            roteiro_id: roteiroId,
+            dia_alvo: diaAlvo,
+            tipo_d: "campanha",
+            status: "pendente",
+            campanha_id: campanha.id,
+          }));
       const { error: e2 } = await (supabase as any).from("ligacoes_agendadas").insert(rows);
       if (e2) throw e2;
 
