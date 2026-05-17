@@ -11,7 +11,15 @@ import { toast } from "@/hooks/use-toast";
 import { Loader2, Save, RefreshCw } from "lucide-react";
 
 const D_OPCOES = [
-  { value: 5, label: "D+5+ (5 dias ou mais)" },
+  { value: -3, label: "D-3" },
+  { value: 0, label: "D+0" },
+  { value: 1, label: "D+1" },
+  { value: 2, label: "D+2" },
+  { value: 5, label: "D+5" },
+  { value: 7, label: "D+7" },
+  { value: 10, label: "D+10" },
+  { value: 15, label: "D+15" },
+  { value: 30, label: "D+30" },
 ];
 
 export function CobrancaConfigTab() {
