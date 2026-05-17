@@ -55,6 +55,7 @@ const CATEGORY_LABEL: Record<string, string> = {
   generated: "Gerada",
 };
 
+// Configurações NUNCA pode ser concedida via acesso provisório — só admin
 const LIGACOES_PERMISSION_OPTIONS = [
   { id: "historico", label: "Histórico" },
   { id: "fila", label: "Fila do dia" },
@@ -62,7 +63,6 @@ const LIGACOES_PERMISSION_OPTIONS = [
   { id: "disparo", label: "Disparo" },
   { id: "campanhas", label: "Campanhas" },
   { id: "cobranca", label: "Cobrança" },
-  { id: "config", label: "Configurações" },
 ];
 
 const LIGACOES_TARGET_PATH = "/ligacoes-ia";
