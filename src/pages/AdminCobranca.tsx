@@ -232,9 +232,56 @@ const AdminCobranca = () => {
         },
       });
       if (error) throw error;
+
+      const sentCount = Number(data?.sent || 0);
+      const errorCount = Number(data?.errors || 0);
+      if (sentCount < 1 || errorCount > 0) {
+        throw new Error(`Reenvio não confirmado. Enviados: ${sentCount}, Erros: ${errorCount}`);
+      }
+
+      const resolvedAt = new Date().toISOString();
+      const userResponse = await supabase.auth.getUser();
+      const resolvedBy = userResponse.data.user?.email || 'unknown';
+      const retryNote = `Reenviado manualmente com sucesso em ${new Date(resolvedAt).toLocaleString('pt-BR')}. Erro anterior: ${log.error_message || 'não informado'}`;
+
+      const { data: updatedLog, error: updateError } = await supabase
+        .from('billing_logs')
+        .update({
+          status: 'sent',
+          error_message: null,
+          resolution: 'reenviado_manual',
+          resolution_note: retryNote,
+          resolved_at: resolvedAt,
+          resolved_by: resolvedBy,
+        })
+        .eq('id', log.id)
+        .select('id, status, error_message, resolution, resolution_note, resolved_at, resolved_by')
+        .maybeSingle();
+
+      if (updateError) throw updateError;
+      if (!updatedLog) {
+        throw new Error('Mensagem reenviada, mas não consegui atualizar o histórico antigo. Recarregue e tente resolver manualmente.');
+      }
+
+      setLogs((currentLogs) =>
+        currentLogs.map((item) =>
+          item.id === log.id
+            ? {
+                ...item,
+                status: updatedLog.status,
+                error_message: updatedLog.error_message,
+                resolution: updatedLog.resolution,
+                resolution_note: updatedLog.resolution_note,
+                resolved_at: updatedLog.resolved_at,
+                resolved_by: updatedLog.resolved_by,
+              }
+            : item
+        )
+      );
+
       toast({
-        title: 'Reenvio disparado',
-        description: `Enviados: ${data?.sent || 0}, Erros: ${data?.errors || 0}`,
+        title: 'Reenviado e atualizado',
+        description: 'O erro antigo foi marcado como OK e os detalhes foram atualizados.',
       });
       await loadLogs();
     } catch (err: any) {
