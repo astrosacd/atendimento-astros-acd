@@ -81,6 +81,7 @@ import SalaAgentes from "./pages/SalaAgentes";
 import InstagramCreate from "./pages/InstagramCreate";
 import InstagramHistory from "./pages/InstagramHistory";
 import InstagramSettings from "./pages/InstagramSettings";
+import LigacoesIA from "./pages/LigacoesIA";
 
 const queryClient = new QueryClient();
 
@@ -187,6 +188,9 @@ function AppRoutes() {
       
       {/* Instagram Module */}
       <Route path="/instagram" element={<ProtectedRoute permission="view_instagram"><InstagramModule /></ProtectedRoute>} />
+
+      {/* Ligações IA */}
+      <Route path="/ligacoes-ia" element={<ProtectedRoute adminOnly><LigacoesIA /></ProtectedRoute>} />
       
       {/* Public Routes - NO AUTH */}
       <Route path="/chamados" element={<ChamadosPublico />} />
