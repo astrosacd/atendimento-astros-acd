@@ -232,9 +232,56 @@ const AdminCobranca = () => {
         },
       });
       if (error) throw error;
+
+      const sentCount = Number(data?.sent || 0);
+      const errorCount = Number(data?.errors || 0);
+      if (sentCount < 1 || errorCount > 0) {
+        throw new Error(`Reenvio não confirmado. Enviados: ${sentCount}, Erros: ${errorCount}`);
+      }
+
+      const resolvedAt = new Date().toISOString();
+      const userResponse = await supabase.auth.getUser();
+      const resolvedBy = userResponse.data.user?.email || 'unknown';
+      const retryNote = `Reenviado manualmente com sucesso em ${new Date(resolvedAt).toLocaleString('pt-BR')}. Erro anterior: ${log.error_message || 'não informado'}`;
+
+      const { data: updatedLog, error: updateError } = await supabase
+        .from('billing_logs')
+        .update({
+          status: 'sent',
+          error_message: null,
+          resolution: 'reenviado_manual',
+          resolution_note: retryNote,
+          resolved_at: resolvedAt,
+          resolved_by: resolvedBy,
+        })
+        .eq('id', log.id)
+        .select('id, status, error_message, resolution, resolution_note, resolved_at, resolved_by')
+        .maybeSingle();
+
+      if (updateError) throw updateError;
+      if (!updatedLog) {
+        throw new Error('Mensagem reenviada, mas não consegui atualizar o histórico antigo. Recarregue e tente resolver manualmente.');
+      }
+
+      setLogs((currentLogs) =>
+        currentLogs.map((item) =>
+          item.id === log.id
+            ? {
+                ...item,
+                status: updatedLog.status,
+                error_message: updatedLog.error_message,
+                resolution: updatedLog.resolution,
+                resolution_note: updatedLog.resolution_note,
+                resolved_at: updatedLog.resolved_at,
+                resolved_by: updatedLog.resolved_by,
+              }
+            : item
+        )
+      );
+
       toast({
-        title: 'Reenvio disparado',
-        description: `Enviados: ${data?.sent || 0}, Erros: ${data?.errors || 0}`,
+        title: 'Reenviado e atualizado',
+        description: 'O erro antigo foi marcado como OK e os detalhes foram atualizados.',
       });
       await loadLogs();
     } catch (err: any) {
@@ -1113,11 +1160,11 @@ const AdminCobranca = () => {
   };
 
   const getStatusBadge = (status: string, resolution?: string | null) => {
-    if (status === 'resolved' || resolution) {
-      return <Badge className="bg-primary/15 text-primary border-primary/30"><CheckCircle className="w-3 h-3 mr-1" />Resolvido</Badge>;
-    }
     if (status === 'sent') {
       return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30"><CheckCircle className="w-3 h-3 mr-1" />OK</Badge>;
+    }
+    if (status === 'resolved' || resolution) {
+      return <Badge className="bg-primary/15 text-primary border-primary/30"><CheckCircle className="w-3 h-3 mr-1" />Resolvido</Badge>;
     }
     if (status === 'info') {
       return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30"><AlertCircle className="w-3 h-3 mr-1" />Info</Badge>;
@@ -3415,7 +3462,7 @@ const AdminCobranca = () => {
                                   <TableCell className="hidden lg:table-cell">
                                     {log.resolution ? (
                                       <span className="text-sm text-emerald-400" title={log.resolution_note || ''}>
-                                        ✅ {log.resolution === 'erro_numero' ? 'Erro de número' : log.resolution === 'erro_sistema' ? 'Erro do sistema' : log.resolution === 'sem_dados' ? 'Sem dados' : log.resolution === 'ignorar' ? 'Ignorado' : log.resolution}
+                                        ✅ {log.resolution === 'reenviado_manual' ? 'Reenviado manualmente' : log.resolution === 'erro_numero' ? 'Erro de número' : log.resolution === 'erro_sistema' ? 'Erro do sistema' : log.resolution === 'sem_dados' ? 'Sem dados' : log.resolution === 'ignorar' ? 'Ignorado' : log.resolution}
                                       </span>
                                     ) : log.error_message ? (
                                       <span className="text-sm text-red-400 truncate max-w-[200px] block" title={log.error_message}>
