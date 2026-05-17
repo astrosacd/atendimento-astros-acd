@@ -527,7 +527,10 @@ function NovaCampanhaDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
           <Button onClick={submit} disabled={saving} className="bg-fuchsia-600 hover:bg-fuchsia-700">
             {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}
-            Criar e enfileirar {selected.size > 0 ? `(${selected.size})` : ""}
+            Criar e enfileirar {(() => {
+              const n = tab === "manuais" ? manualContacts.length : selected.size;
+              return n > 0 ? `(${n})` : "";
+            })()}
           </Button>
         </DialogFooter>
       </DialogContent>
