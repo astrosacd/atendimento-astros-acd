@@ -15,6 +15,8 @@ import { toast } from "@/hooks/use-toast";
 import { Phone, Plus, Play, Trash2, Loader2, PhoneCall, History, Settings as SettingsIcon, FileText, Sparkles, AlertCircle, RefreshCw, CheckCircle2 } from "lucide-react";
 import { format, subDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { LigarComIADialog } from "@/components/LigarComIADialog";
+import { User } from "lucide-react";
 
 const CATEGORIAS = [
   { value: "cobranca", label: "Cobrança" },
@@ -430,6 +432,7 @@ function DisparoTab() {
   const [nome, setNome] = useState("");
   const [valor, setValor] = useState("");
   const [calling, setCalling] = useState(false);
+  const [clienteDialogOpen, setClienteDialogOpen] = useState(false);
   const { voices, fetch: fetchVoices } = useElevenVoices();
 
   useEffect(() => {
@@ -501,10 +504,19 @@ function DisparoTab() {
           {calling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Phone className="h-4 w-4 mr-2" />}
           Ligar agora
         </Button>
-        <p className="text-xs text-muted-foreground">
-          Para ligar a partir de um cliente cadastrado, use o botão <strong>Ligar com IA</strong> no menu de ações do cliente.
-        </p>
+
+        <div className="relative my-2">
+          <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+          <div className="relative flex justify-center text-xs"><span className="bg-background px-2 text-muted-foreground">ou</span></div>
+        </div>
+
+        <Button variant="outline" className="w-full" onClick={() => setClienteDialogOpen(true)}>
+          <User className="h-4 w-4 mr-2" />
+          Ligar para um cliente cadastrado (mensais + registros)
+        </Button>
       </div>
+
+      <LigarComIADialog open={clienteDialogOpen} onOpenChange={setClienteDialogOpen} />
     </Card>
   );
 }
