@@ -7777,6 +7777,7 @@ export type Database = {
         Args: { role_name: string; user_uuid: string }
         Returns: boolean
       }
+      has_ligacoes_temp_perm: { Args: { p_perm: string }; Returns: boolean }
       has_role:
         | {
             Args: {
