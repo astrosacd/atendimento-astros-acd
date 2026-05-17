@@ -197,6 +197,56 @@ const AdminCobranca = () => {
   const [resolvingLogId, setResolvingLogId] = useState<string | null>(null);
   const [resolutionType, setResolutionType] = useState<string>('erro_numero');
   const [resolutionNote, setResolutionNote] = useState('');
+  const [retryingLogId, setRetryingLogId] = useState<string | null>(null);
+
+  const isConnectionError = (errorMessage: string | null | undefined) => {
+    if (!errorMessage) return false;
+    const msg = errorMessage.toLowerCase();
+    return (
+      msg.includes('connection closed') ||
+      msg.includes('connection_closed') ||
+      msg.includes('connection failed') ||
+      msg.includes('disconnected') ||
+      msg.includes('desconectad') ||
+      msg.includes('instance not connected') ||
+      msg.includes('instância não conectada')
+    );
+  };
+
+  const handleRetryLog = async (log: BillingLog) => {
+    const clienteId = (log as any).cliente_id as string | undefined;
+    if (!clienteId) {
+      toast({
+        title: 'Não foi possível reenviar',
+        description: 'Este log não possui um cliente vinculado.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setRetryingLogId(log.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('trigger-billing', {
+        body: {
+          clienteIds: [clienteId],
+          messageType: log.message_type || 'd_zero',
+        },
+      });
+      if (error) throw error;
+      toast({
+        title: 'Reenvio disparado',
+        description: `Enviados: ${data?.sent || 0}, Erros: ${data?.errors || 0}`,
+      });
+      await loadLogs();
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao reenviar',
+        description: err.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setRetryingLogId(null);
+    }
+  };
   
   const [metrics, setMetrics] = useState<MetricsData>({
     successRate: 0,
