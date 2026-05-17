@@ -138,7 +138,7 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
                 disabled={loadingClientes}
               />
               <p className="text-[10px] text-muted-foreground mt-1">
-                {clientes.length} clientes (mensais + registros)
+                {clientes.length} clientes • 📅 {clientes.filter(c => (c.tipo||"").toLowerCase() === "mensal").length} mensais • 📋 {clientes.filter(c => ["registro","registros"].includes((c.tipo||"").toLowerCase())).length} registros
               </p>
             </div>
           )}
