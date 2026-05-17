@@ -86,14 +86,19 @@ serve(async (req: Request) => {
     const channel = followup.channel;
     let emailSent = false;
     let whatsappSent = false;
+    const gmailUser = Deno.env.get("GMAIL_USER") || config?.gmail_user;
+    const gmailAppPassword = Deno.env.get("GMAIL_APP_PASSWORD") || config?.gmail_app_password;
+    const evolutionApiUrl = (Deno.env.get("EVOLUTION_API_URL") || config?.evolution_api_url || "").replace(/\/$/, "");
+    const evolutionApiKey = Deno.env.get("EVOLUTION_API_KEY") || config?.evolution_api_key;
+    const evolutionInstanceName = Deno.env.get("EVOLUTION_INSTANCE") || config?.evolution_instance_name;
 
     // Send Email
     if (
       (channel === "email" || channel === "both") &&
       clientEmail &&
       config?.email_enabled &&
-      config?.gmail_user &&
-      config?.gmail_app_password
+      gmailUser &&
+      gmailAppPassword
     ) {
       try {
         const htmlBody = generateEmailHtml(clientName, followup.produto, message, config.gmail_sender_name || "Equipe Comercial");
@@ -104,15 +109,15 @@ serve(async (req: Request) => {
             port: 465,
             tls: true,
             auth: {
-              username: config.gmail_user,
-              password: config.gmail_app_password,
+              username: gmailUser,
+              password: gmailAppPassword,
             },
           },
         });
 
         const fromAddress = config.gmail_sender_name
-          ? `${config.gmail_sender_name} <${config.gmail_user}>`
-          : config.gmail_user;
+          ? `${config.gmail_sender_name} <${gmailUser}>`
+          : gmailUser;
 
         await client.send({
           from: fromAddress,
@@ -147,9 +152,9 @@ serve(async (req: Request) => {
       (channel === "whatsapp" || channel === "both") &&
       clientPhone &&
       config?.whatsapp_enabled &&
-      config?.evolution_api_url &&
-      config?.evolution_api_key &&
-      config?.evolution_instance_name
+      evolutionApiUrl &&
+      evolutionApiKey &&
+      evolutionInstanceName
     ) {
       try {
         const rawPhone = clientPhone.trim();
@@ -157,13 +162,13 @@ serve(async (req: Request) => {
         // already stores the full number with DDI (e.g. 51944853866 for Peru)
         const cleanNumber = rawPhone.replace(/\D/g, "");
 
-        const url = `${config.evolution_api_url}/message/sendText/${config.evolution_instance_name}`;
+        const url = `${evolutionApiUrl}/message/sendText/${evolutionInstanceName}`;
 
         const response = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            apikey: config.evolution_api_key,
+            apikey: evolutionApiKey,
           },
           body: JSON.stringify({
             number: cleanNumber,
