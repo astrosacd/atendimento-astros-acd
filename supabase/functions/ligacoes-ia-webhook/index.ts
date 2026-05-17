@@ -15,6 +15,9 @@ const STATUS_MAP: Record<string, string> = {
   busy: "ocupado",
   failed: "erro",
   rejected: "rejeitada",
+  cliente_desligou_antes_audio: "cliente_desligou_antes_audio",
+  nao_atendeu: "nao_atendeu",
+  finalizada: "finalizada",
 };
 
 Deno.serve(async (req) => {
@@ -37,10 +40,13 @@ Deno.serve(async (req) => {
       status: mapped,
       raw_payload: body,
     };
-    if (body.duration_seconds || body.duration) update.duration_seconds = body.duration_seconds ?? body.duration;
+    if (body.duration_seconds != null || body.duration != null) update.duration_seconds = body.duration_seconds ?? body.duration;
     if (body.cost_cents) update.cost_cents = body.cost_cents;
+    if (body.observacao) update.error_message = body.observacao;
     if (mapped === "atendida" && !update.answered_at) update.answered_at = new Date().toISOString();
-    if (["finalizada", "nao_atendeu", "ocupado", "erro", "rejeitada"].includes(mapped)) update.ended_at = new Date().toISOString();
+    if (["finalizada", "nao_atendeu", "ocupado", "erro", "rejeitada", "cliente_desligou_antes_audio"].includes(mapped)) {
+      update.ended_at = new Date().toISOString();
+    }
 
     let query = supabase.from("ligacoes_ia_historico").update(update);
     if (histId) query = query.eq("id", histId);

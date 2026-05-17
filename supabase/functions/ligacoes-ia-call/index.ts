@@ -66,7 +66,14 @@ Deno.serve(async (req) => {
     });
     const ttsData = await ttsRes.json();
     if (!ttsRes.ok) {
-      return new Response(JSON.stringify({ error: `TTS falhou: ${ttsData.error}` }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const raw = String(ttsData?.error ?? "");
+      let friendly = raw;
+      if (raw.includes("detected_unusual_activity") || raw.includes("Free Tier usage disabled")) {
+        friendly = "ElevenLabs bloqueou a conta Free Tier (atividade incomum detectada). É necessário ativar um plano pago no ElevenLabs ou usar outra chave de API. Verifique em Ligações IA → Configurações.";
+      } else if (raw.includes("quota") || raw.includes("character_limit")) {
+        friendly = "Cota de caracteres do ElevenLabs esgotada. Faça upgrade do plano ou aguarde a renovação.";
+      }
+      return new Response(JSON.stringify({ error: friendly, raw }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Create historico row first (pending)
