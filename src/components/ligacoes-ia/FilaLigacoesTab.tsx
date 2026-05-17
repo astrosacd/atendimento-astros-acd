@@ -12,6 +12,7 @@ import {
 import {
   Play, Pause, RefreshCw, Loader2, PhoneCall, CheckCircle2, XCircle,
   Clock, PhoneOff, Search, User, UserCheck, PhoneMissed, PhoneIncoming, AlertTriangle,
+  Trash2, Megaphone, Bot,
 } from "lucide-react";
 import { placeCallWithTTS, type ActiveCallHandle } from "@/lib/wavoipCall";
 
@@ -159,6 +160,24 @@ export function FilaLigacoesTab() {
     const d = data as any;
     const extra = d?.scanned ? ` (${d.scanned} clientes encontrados em ${d.regra ?? "cobrança"})` : "";
     toast({ title: "Sincronizado", description: `${d?.enqueued ?? 0} novas ligações na fila${extra}.` });
+    load();
+  };
+
+  const limparFila = async () => {
+    const alvo = items.filter((i) => i.status === "pendente" && !i.campanha_id);
+    if (alvo.length === 0) {
+      toast({ title: "Nada a limpar", description: "Não há pendentes de Cobrança automática hoje." });
+      return;
+    }
+    if (!confirm(`Cancelar ${alvo.length} ligações pendentes de Cobrança automática? (campanhas não serão afetadas)`)) return;
+    const { error } = await supabase
+      .from("ligacoes_agendadas")
+      .update({ status: "cancelada" })
+      .eq("dia_alvo", hoje)
+      .eq("status", "pendente")
+      .is("campanha_id", null);
+    if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
+    toast({ title: "Fila limpa", description: `${alvo.length} ligações canceladas.` });
     load();
   };
 
@@ -314,6 +333,9 @@ export function FilaLigacoesTab() {
                 <><RefreshCw className="h-4 w-4 mr-1" /> Sincronizar</>
               )}
             </Button>
+            <Button variant="outline" size="sm" onClick={limparFila} disabled={syncing || running}>
+              <Trash2 className="h-4 w-4 mr-1" /> Limpar fila de hoje
+            </Button>
             {!running ? (
               <Button onClick={startQueue} disabled={pendentes.length === 0}>
                 <Play className="h-4 w-4 mr-1" /> {finalizadas + falhadas > 0 ? "Retomar fila" : "Iniciar fila"}
@@ -398,6 +420,7 @@ export function FilaLigacoesTab() {
                 <th className="text-left p-3">Tipo / Produto</th>
                 <th className="text-left p-3">Número</th>
                 <th className="text-left p-3">D</th>
+                <th className="text-left p-3">Origem</th>
                 <th className="text-left p-3">Status</th>
                 <th className="text-left p-3">Resultado</th>
                 <th className="text-left p-3">Hora</th>
@@ -406,7 +429,7 @@ export function FilaLigacoesTab() {
             </thead>
             <tbody>
               {filteredItems.length === 0 && (
-                <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">
+                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">
                   {items.length === 0
                     ? <>Nenhuma ligação na fila para hoje. Clique em <strong>Sincronizar</strong>.</>
                     : "Nenhum item corresponde aos filtros."}
@@ -464,6 +487,19 @@ export function FilaLigacoesTab() {
                     </td>
                     <td className="p-3 font-mono text-xs">{numero}</td>
                     <td className="p-3"><Badge variant="outline">{it.tipo_d}</Badge></td>
+                    <td className="p-3 text-xs">
+                      {it.campanha_id ? (
+                        <div className="flex items-center gap-1" title={`Campanha: ${it.ligacoes_campanhas?.nome ?? "—"}`}>
+                          <Megaphone className="h-3 w-3 text-fuchsia-500 shrink-0" />
+                          <span className="truncate max-w-[140px]">{it.ligacoes_campanhas?.nome ?? "Campanha"}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-muted-foreground" title={`Cobrança automática — ${it.tipo_d}`}>
+                          <Bot className="h-3 w-3 text-blue-500 shrink-0" />
+                          <span>Cobrança auto</span>
+                        </div>
+                      )}
+                    </td>
                     <td className="p-3">
                       <span className={`inline-flex items-center gap-1 text-white text-xs px-2 py-0.5 rounded ${s.cls}`}>
                         <Icon className="h-3 w-3" /> {s.label}
