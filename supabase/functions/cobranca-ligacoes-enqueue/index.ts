@@ -75,8 +75,7 @@ Deno.serve(async (req) => {
     for (const d of dias) {
       const targetStr = addDays(hojeStr, -d);
 
-      let q = supabase.from("clientes").select("id, numero, cobranca_ativa, data_renovacao").not("numero", "is", null).neq("numero", "");
-      q = d === 5 ? q.lte("data_renovacao", targetStr) : q.eq("data_renovacao", targetStr);
+      let q = supabase.from("clientes").select("id, numero, cobranca_ativa, data_renovacao").not("numero", "is", null).neq("numero", "").eq("data_renovacao", targetStr);
       if (cfg.apenas_cobranca_ativa) q = q.eq("cobranca_ativa", true);
       const { data: clientes, error } = await q;
       if (error) continue;
@@ -89,7 +88,7 @@ Deno.serve(async (req) => {
           cliente_id: c.id,
           roteiro_id: roteiroId,
           dia_alvo: hojeStr,
-          tipo_d: d === 5 ? tipoDFromDays(diffDays(c.data_renovacao, hojeStr)) : tipoDFromDays(d),
+          tipo_d: tipoDFromDays(d),
           status: "pendente",
         }));
       if (!rows.length) continue;
@@ -107,7 +106,7 @@ Deno.serve(async (req) => {
       if (!insErr) total += newRows.length;
     }
 
-    return new Response(JSON.stringify({ ok: true, enqueued: total, scanned, dia: hojeStr, regra: dias.includes(5) ? "D+5 ou mais" : "D exato", roteiro_fallback: roteiroFallback }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: true, enqueued: total, scanned, dia: hojeStr, dias_processados: dias, roteiro_fallback: roteiroFallback }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
