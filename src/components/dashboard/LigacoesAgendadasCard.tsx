@@ -24,7 +24,7 @@ export function LigacoesAgendadasCard() {
         .select('status')
         .eq('dia_alvo', hoje);
       if (error) throw error;
-      const rows = (data ?? []) as { status: string }[];
+      const rows = ((data ?? []) as unknown) as { status: string }[];
       return {
         total: rows.length,
         pendentes: rows.filter((r) => r.status === 'pendente').length,
