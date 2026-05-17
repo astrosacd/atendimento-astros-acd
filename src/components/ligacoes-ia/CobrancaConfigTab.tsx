@@ -35,7 +35,7 @@ export function CobrancaConfigTab() {
       supabase.from("cobranca_ligacao_config").select("*").limit(1).maybeSingle(),
       supabase.from("ligacoes_ia_roteiros").select("id, nome, categoria").eq("ativo", true).order("nome"),
     ]);
-    setCfg(c.data ?? { enabled: false, delay_minutes: 5, dias_disparo: [5], horario_inicio: "09:00", horario_fim: "18:00", apenas_cobranca_ativa: true });
+    setCfg(c.data ?? { enabled: false, delay_minutes: 5, dias_disparo: [5], horario_inicio: "09:00", horario_fim: "18:00", apenas_cobranca_ativa: false });
     setRoteiros(r.data ?? []);
     setLoading(false);
   };
@@ -142,7 +142,7 @@ export function CobrancaConfigTab() {
 
       <div className="flex items-center gap-2">
         <Switch checked={!!cfg.apenas_cobranca_ativa} onCheckedChange={(v) => setCfg({ ...cfg, apenas_cobranca_ativa: v })} />
-        <Label>Somente clientes com cobrança ativa</Label>
+        <Label>Somente clientes mensais (com cobrança ativa)</Label>
       </div>
 
       <div className="flex gap-2">
