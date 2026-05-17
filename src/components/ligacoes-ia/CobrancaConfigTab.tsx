@@ -121,7 +121,7 @@ export function CobrancaConfigTab() {
             );
           })}
         </div>
-        <p className="text-xs text-muted-foreground mt-1">D-3 = 3 dias antes do vencimento. D+5+ = todos os clientes com 5 dias ou mais de atraso.</p>
+        <p className="text-xs text-muted-foreground mt-1">Ex.: D-3 = 3 dias antes do vencimento. D+5 = exatamente 5 dias de atraso. A ligação só dispara nos dias marcados.</p>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
