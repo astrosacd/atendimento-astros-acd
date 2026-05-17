@@ -536,10 +536,21 @@ function DisparoTab() {
             <Input value={valor} onChange={e => setValor(e.target.value)} placeholder="99,90" />
           </div>
         </div>
-        <Button className="w-full" onClick={ligar} disabled={calling}>
-          {calling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Phone className="h-4 w-4 mr-2" />}
-          Ligar agora
-        </Button>
+        {calling && callStatus && (
+          <div className="rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/5 p-3 text-xs flex items-center gap-2">
+            <Loader2 className="h-3 w-3 animate-spin text-fuchsia-500" />
+            <span className="text-foreground">{callStatus}</span>
+          </div>
+        )}
+        {calling ? (
+          <Button className="w-full" variant="destructive" onClick={desligar}>
+            <PhoneOff className="h-4 w-4 mr-2" /> Desligar
+          </Button>
+        ) : (
+          <Button className="w-full" onClick={ligar}>
+            <Phone className="h-4 w-4 mr-2" /> Ligar agora
+          </Button>
+        )}
 
         <div className="relative my-2">
           <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
