@@ -1160,11 +1160,11 @@ const AdminCobranca = () => {
   };
 
   const getStatusBadge = (status: string, resolution?: string | null) => {
-    if (status === 'resolved' || resolution) {
-      return <Badge className="bg-primary/15 text-primary border-primary/30"><CheckCircle className="w-3 h-3 mr-1" />Resolvido</Badge>;
-    }
     if (status === 'sent') {
       return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30"><CheckCircle className="w-3 h-3 mr-1" />OK</Badge>;
+    }
+    if (status === 'resolved' || resolution) {
+      return <Badge className="bg-primary/15 text-primary border-primary/30"><CheckCircle className="w-3 h-3 mr-1" />Resolvido</Badge>;
     }
     if (status === 'info') {
       return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30"><AlertCircle className="w-3 h-3 mr-1" />Info</Badge>;
@@ -3462,7 +3462,7 @@ const AdminCobranca = () => {
                                   <TableCell className="hidden lg:table-cell">
                                     {log.resolution ? (
                                       <span className="text-sm text-emerald-400" title={log.resolution_note || ''}>
-                                        ✅ {log.resolution === 'erro_numero' ? 'Erro de número' : log.resolution === 'erro_sistema' ? 'Erro do sistema' : log.resolution === 'sem_dados' ? 'Sem dados' : log.resolution === 'ignorar' ? 'Ignorado' : log.resolution}
+                                        ✅ {log.resolution === 'reenviado_manual' ? 'Reenviado manualmente' : log.resolution === 'erro_numero' ? 'Erro de número' : log.resolution === 'erro_sistema' ? 'Erro do sistema' : log.resolution === 'sem_dados' ? 'Sem dados' : log.resolution === 'ignorar' ? 'Ignorado' : log.resolution}
                                       </span>
                                     ) : log.error_message ? (
                                       <span className="text-sm text-red-400 truncate max-w-[200px] block" title={log.error_message}>
