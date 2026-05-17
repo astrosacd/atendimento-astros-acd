@@ -165,6 +165,7 @@ function NovaCampanhaDialog({
   onOpenChange: (o: boolean) => void;
   onCreated: () => void;
 }) {
+  const todayISO = new Date().toISOString().slice(0, 10);
   const [nome, setNome] = useState("");
   const [roteiros, setRoteiros] = useState<any[]>([]);
   const [roteiroId, setRoteiroId] = useState("");
@@ -174,10 +175,13 @@ function NovaCampanhaDialog({
   const [search, setSearch] = useState("");
   const [loadingData, setLoadingData] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [diaAlvo, setDiaAlvo] = useState<string>(todayISO);
+  const [delayOverride, setDelayOverride] = useState<string>("");
 
   useEffect(() => {
     if (!open) {
       setNome(""); setRoteiroId(""); setSelected(new Set()); setSearch(""); setFilter("todos");
+      setDiaAlvo(todayISO); setDelayOverride("");
       return;
     }
     (async () => {
