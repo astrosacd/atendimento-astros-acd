@@ -234,6 +234,7 @@ function NovaCampanhaDialog({
 
     setSaving(true);
     try {
+      const overrideNum = delayOverride.trim() === "" ? null : Math.max(0, Math.min(120, Number(delayOverride)));
       const { data: userData } = await supabase.auth.getUser();
       const { data: campanha, error: e1 } = await (supabase as any)
         .from("ligacoes_campanhas")
@@ -242,16 +243,17 @@ function NovaCampanhaDialog({
           roteiro_id: roteiroId,
           total: selected.size,
           criado_por: userData.user?.id ?? null,
+          dia_alvo: diaAlvo,
+          delay_minutes_override: overrideNum,
         })
         .select()
         .single();
       if (e1) throw e1;
 
-      const hoje = new Date().toISOString().slice(0, 10);
       const rows = Array.from(selected).map((cid) => ({
         cliente_id: cid,
         roteiro_id: roteiroId,
-        dia_alvo: hoje,
+        dia_alvo: diaAlvo,
         tipo_d: "campanha",
         status: "pendente",
         campanha_id: campanha.id,
@@ -261,7 +263,7 @@ function NovaCampanhaDialog({
 
       toast({
         title: "Campanha criada",
-        description: `${rows.length} ligaç${rows.length === 1 ? "ão adicionada" : "ões adicionadas"} à fila de hoje.`,
+        description: `${rows.length} ligaç${rows.length === 1 ? "ão agendada" : "ões agendadas"} para ${diaAlvo === todayISO ? "hoje" : diaAlvo}.`,
       });
       onCreated();
     } catch (e: any) {
