@@ -17,7 +17,9 @@ type Agendada = {
   processada_em: string | null;
   erro: string | null;
   historico_id: string | null;
+  campanha_id: string | null;
   clientes?: { nome: string; numero: string } | null;
+  ligacoes_campanhas?: { nome: string; delay_minutes_override: number | null } | null;
 };
 
 const STATUS_LABEL: Record<Agendada["status"], { label: string; cls: string; icon: any }> = {
