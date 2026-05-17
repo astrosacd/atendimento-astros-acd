@@ -1,11 +1,14 @@
 // Wavoip call client with TTS audio injection.
 // Replaces the microphone stream with a MediaStream produced from the
 // ElevenLabs TTS MP3, so the script is spoken inside the WhatsApp call.
-import { Wavoip } from "@wavoip/wavoip-api";
+//
+// Approach: monkey-patch navigator.mediaDevices.getUserMedia during the call
+// so Wavoip's MediaManager picks up our synthetic stream instead of a real mic.
+import { Wavoip, type CallActive, type CallOutgoing } from "@wavoip/wavoip-api";
 
 export interface PlaceCallParams {
   token: string;          // Wavoip device token
-  phone: string;          // destination phone (digits only)
+  phone: string;          // destination phone (digits only, with DDI)
   audioUrl: string;       // signed URL of the TTS MP3
   onStatus?: (status: string) => void;
   onEnded?: () => void;
@@ -15,11 +18,7 @@ export interface ActiveCallHandle {
   hangup: () => Promise<void>;
 }
 
-/**
- * Builds a MediaStream from an MP3 URL using WebAudio.
- * Returns the stream + a function that starts playback (must be called after gesture).
- */
-async function ttsUrlToStream(audioUrl: string, audioContext: AudioContext) {
+async function ttsUrlToPlayableStream(audioUrl: string, audioContext: AudioContext) {
   const res = await fetch(audioUrl);
   if (!res.ok) throw new Error(`Falha ao baixar áudio TTS: ${res.status}`);
   const arrayBuffer = await res.arrayBuffer();
@@ -30,7 +29,7 @@ async function ttsUrlToStream(audioUrl: string, audioContext: AudioContext) {
   let onEndedCb: (() => void) | null = null;
 
   return {
-    stream: dest.stream,
+    stream: dest.stream as MediaStream,
     duration: audioBuffer.duration,
     play() {
       source = audioContext.createBufferSource();
@@ -39,132 +38,96 @@ async function ttsUrlToStream(audioUrl: string, audioContext: AudioContext) {
       source.onended = () => onEndedCb?.();
       source.start(0);
     },
-    onEnded(cb: () => void) {
-      onEndedCb = cb;
-    },
-    stop() {
-      try { source?.stop(); } catch { /* ignore */ }
-    },
+    onEnded(cb: () => void) { onEndedCb = cb; },
+    stop() { try { source?.stop(); } catch { /* ignore */ } },
   };
 }
 
 /**
  * Place a Wavoip call with TTS audio injected as the microphone stream.
- * MUST be called from a user gesture (button click) so AudioContext can resume
- * and getUserMedia patch is in scope.
+ * MUST be called from a user gesture (button click).
  */
 export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveCallHandle> {
   const { token, phone, audioUrl, onStatus, onEnded } = params;
 
-  // 1. Build TTS stream from MP3 (uses its own AudioContext)
+  // 1. Build TTS-backed MediaStream
+  onStatus?.("Preparando áudio do roteiro...");
   const audioContext = new AudioContext();
-  const tts = await ttsUrlToStream(audioUrl, audioContext);
+  if (audioContext.state === "suspended") await audioContext.resume();
+  const tts = await ttsUrlToPlayableStream(audioUrl, audioContext);
 
-  // 2. Monkey-patch getUserMedia so MediaManager picks up our virtual mic
-  const originalGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
-  const patchedGetUserMedia = async (constraints?: MediaStreamConstraints) => {
+  // 2. Monkey-patch getUserMedia so Wavoip's MediaManager grabs our stream
+  const md = navigator.mediaDevices;
+  const originalGetUserMedia = md.getUserMedia.bind(md);
+  const patched = async (constraints?: MediaStreamConstraints) => {
     if (constraints?.audio) {
-      onStatus?.("Injetando áudio TTS no microfone...");
+      onStatus?.("Injetando áudio TTS no lugar do microfone...");
       return tts.stream;
     }
     return originalGetUserMedia(constraints);
   };
-  navigator.mediaDevices.getUserMedia = patchedGetUserMedia as typeof navigator.mediaDevices.getUserMedia;
+  md.getUserMedia = patched as typeof md.getUserMedia;
 
-  const restoreGetUserMedia = () => {
-    if (navigator.mediaDevices.getUserMedia === patchedGetUserMedia) {
-      navigator.mediaDevices.getUserMedia = originalGetUserMedia;
+  const restorePatch = () => {
+    if (md.getUserMedia === patched) {
+      md.getUserMedia = originalGetUserMedia;
     }
   };
 
-  let activeCall: any = null;
+  let activeCall: CallActive | CallOutgoing | null = null;
   let ended = false;
-
   const cleanup = async () => {
     if (ended) return;
     ended = true;
-    restoreGetUserMedia();
+    restorePatch();
     try { tts.stop(); } catch { /* ignore */ }
     try { await audioContext.close(); } catch { /* ignore */ }
     onEnded?.();
   };
 
   try {
-    // 3. Instantiate Wavoip and connect device
+    // 3. Build Wavoip client (constructor takes tokens array)
     onStatus?.("Conectando ao Wavoip...");
-    // @ts-ignore - constructor signature varies between versions
-    const wavoip = new Wavoip();
-    // @ts-ignore - addDevice returns DeviceConnection or Promise<DeviceConnection>
-    const deviceMaybe = wavoip.addDevice ? wavoip.addDevice(token) : wavoip.connect?.(token);
-    const device = deviceMaybe && typeof (deviceMaybe as any).then === "function"
-      ? await deviceMaybe
-      : deviceMaybe;
+    const wavoip = new Wavoip({ tokens: [token], platform: "lovable-call-ai" });
 
-    // Wait for device to be UP (status events)
-    await new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error("Timeout aguardando dispositivo Wavoip ficar pronto")), 15000);
-      const checkUp = () => {
-        const status = (device as any)?.status ?? (device as any)?.getStatus?.();
-        if (status === "UP" || status === "ready" || status === "connected") {
-          clearTimeout(timeout);
-          resolve();
-        }
-      };
-      checkUp();
-      if ((device as any)?.on) {
-        (device as any).on("status", (s: string) => {
-          onStatus?.(`Dispositivo: ${s}`);
-          if (s === "UP" || s === "ready" || s === "connected") {
-            clearTimeout(timeout);
-            resolve();
-          } else if (s === "error" || s === "disconnected") {
-            clearTimeout(timeout);
-            reject(new Error(`Dispositivo Wavoip: ${s}`));
-          }
-        });
-      } else {
-        // Fallback polling
-        const iv = setInterval(() => {
-          checkUp();
-        }, 500);
-        setTimeout(() => clearInterval(iv), 15000);
-      }
-    });
-
-    // 4. Start the call
+    // 4. Start outgoing call
     onStatus?.("Discando...");
-    // @ts-ignore - API: startCall({ to }) returns CallOutgoing
-    const outgoing = await (device as any).startCall({ to: phone });
+    const result = await wavoip.startCall({ to: phone });
+    if (result.err || !result.call) {
+      throw new Error(result.err?.message || "Falha ao iniciar ligação");
+    }
+    const outgoing = result.call;
     activeCall = outgoing;
 
-    // Wire events
-    const wireEnd = (call: any) => {
-      if (!call?.on) return;
+    const wireEndEvents = (call: CallActive | CallOutgoing) => {
       call.on("ended", () => { onStatus?.("Ligação encerrada"); cleanup(); });
-      call.on("rejected", () => { onStatus?.("Ligação rejeitada"); cleanup(); });
-      call.on("failed", (e: any) => { onStatus?.(`Falha: ${e?.message ?? e}`); cleanup(); });
     };
-    wireEnd(outgoing);
 
-    if ((outgoing as any)?.on) {
-      (outgoing as any).on("accepted", (active: any) => {
-        onStatus?.("Atendida — falando roteiro...");
-        activeCall = active ?? outgoing;
-        wireEnd(active);
+    outgoing.on("status", (s) => onStatus?.(`Status: ${s}`));
+    outgoing.on("peerReject", () => { onStatus?.("Rejeitada pelo destinatário"); cleanup(); });
+    outgoing.on("unanswered", () => { onStatus?.("Não atendida"); cleanup(); });
+    wireEndEvents(outgoing);
 
-        // Start TTS playback now that peer accepted
-        tts.onEnded(() => {
-          onStatus?.("Roteiro finalizado, encerrando...");
-          (activeCall as any)?.end?.().catch(() => {});
-          setTimeout(cleanup, 500);
-        });
-        try { tts.play(); } catch (e) { console.warn("[wavoipCall] play error", e); }
+    outgoing.on("peerAccept", (active: CallActive) => {
+      onStatus?.("Atendida — reproduzindo roteiro...");
+      activeCall = active;
+      active.on("status", (s) => onStatus?.(`Chamada: ${s}`));
+      wireEndEvents(active);
+
+      // Start TTS playback; when it ends, hang up.
+      tts.onEnded(() => {
+        onStatus?.("Roteiro concluído, encerrando...");
+        setTimeout(() => {
+          (activeCall as CallActive | null)?.end?.().catch(() => {});
+          cleanup();
+        }, 800);
       });
-    }
+      try { tts.play(); } catch (e) { console.warn("[wavoipCall] play error", e); }
+    });
 
     return {
       hangup: async () => {
-        try { await (activeCall as any)?.end?.(); } catch { /* ignore */ }
+        try { await (activeCall as CallActive | CallOutgoing | null)?.end?.(); } catch { /* ignore */ }
         await cleanup();
       },
     };
