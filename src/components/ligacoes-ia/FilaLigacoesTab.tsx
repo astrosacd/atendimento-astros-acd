@@ -7,6 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
@@ -92,6 +96,7 @@ export function FilaLigacoesTab() {
   const [countdown, setCountdown] = useState<number>(0);
   const [delayMinutes, setDelayMinutes] = useState<number>(5);
   const [syncing, setSyncing] = useState(false);
+  const [confirmStart, setConfirmStart] = useState(false);
 
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterTipoD, setFilterTipoD] = useState<string>("todos");
@@ -337,7 +342,7 @@ export function FilaLigacoesTab() {
               <Trash2 className="h-4 w-4 mr-1" /> Limpar fila de hoje
             </Button>
             {!running ? (
-              <Button onClick={startQueue} disabled={pendentes.length === 0}>
+              <Button onClick={() => setConfirmStart(true)} disabled={pendentes.length === 0}>
                 <Play className="h-4 w-4 mr-1" /> {finalizadas + falhadas > 0 ? "Retomar fila" : "Iniciar fila"}
               </Button>
             ) : (
