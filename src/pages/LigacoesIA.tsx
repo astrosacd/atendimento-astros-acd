@@ -610,6 +610,10 @@ function RoteirosTab() {
                   </div>
                   <h3 className="font-medium mt-1">{r.nome}</h3>
                   <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{r.texto}</p>
+                  <p className="text-[11px] text-muted-foreground mt-2">
+                    Criado por <span className="font-medium">{r._creator ?? "—"}</span>
+                    {r.created_at && <> • {new Date(r.created_at).toLocaleDateString("pt-BR")}</>}
+                  </p>
                 </div>
                 <div className="flex gap-1">
                   <Button size="icon" variant="ghost" onClick={() => setEditing(r)}>
