@@ -8,63 +8,106 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+function todayInBrazil() {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const get = (type: string) => parts.find((p) => p.type === type)?.value;
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+function addDays(dateStr: string, days: number) {
+  const date = new Date(`${dateStr}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function diffDays(fromDateStr: string, toDateStr: string) {
+  const from = new Date(`${fromDateStr}T00:00:00.000Z`).getTime();
+  const to = new Date(`${toDateStr}T00:00:00.000Z`).getTime();
+  return Math.floor((to - from) / 86400000);
+}
+
+function tipoDFromDays(days: number) {
+  if (days === 0) return "D+0";
+  return days > 0 ? `D+${days}` : `D-${Math.abs(days)}`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
+    const body = await req.json().catch(() => ({}));
+    const force = body?.force === true;
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
     const { data: cfg } = await supabase.from("cobranca_ligacao_config").select("*").limit(1).maybeSingle();
-    if (!cfg || !cfg.enabled) {
+    if (!cfg || (!cfg.enabled && !force)) {
       return new Response(JSON.stringify({ ok: true, skipped: "disabled" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (!cfg.roteiro_id) {
-      return new Response(JSON.stringify({ ok: false, error: "roteiro_id não configurado" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    let roteiroId = cfg?.roteiro_id;
+    let roteiroFallback: string | null = null;
+    if (!roteiroId) {
+      const { data: roteiro } = await supabase
+        .from("ligacoes_ia_roteiros")
+        .select("id, nome")
+        .eq("ativo", true)
+        .in("categoria", ["cobranca", "recuperacao", "geral"])
+        .order("categoria", { ascending: true })
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      roteiroId = roteiro?.id;
+      roteiroFallback = roteiro?.nome ?? null;
     }
-    const dias: number[] = cfg.dias_disparo ?? [];
+    if (!roteiroId) {
+      return new Response(JSON.stringify({ ok: false, error: "Nenhum roteiro ativo encontrado. Crie ou ative um roteiro antes de sincronizar." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const dias: number[] = (cfg?.dias_disparo?.length ? cfg.dias_disparo : [5]);
     if (dias.length === 0) {
       return new Response(JSON.stringify({ ok: true, skipped: "sem dias_disparo" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const hoje = new Date();
-    hoje.setUTCHours(0, 0, 0, 0);
-    const hojeStr = hoje.toISOString().slice(0, 10);
+    const hojeStr = todayInBrazil();
 
     let total = 0;
+    let scanned = 0;
     for (const d of dias) {
-      // target renovation date = hoje - d  (so that data_renovacao + d = hoje)
-      const target = new Date(hoje);
-      target.setUTCDate(target.getUTCDate() - d);
-      const targetStr = target.toISOString().slice(0, 10);
+      const targetStr = addDays(hojeStr, -d);
 
-      let q = supabase.from("clientes").select("id, numero, cobranca_ativa").eq("data_renovacao", targetStr).not("numero", "is", null);
+      let q = supabase.from("clientes").select("id, numero, cobranca_ativa, data_renovacao").not("numero", "is", null).neq("numero", "");
+      q = d === 5 ? q.lte("data_renovacao", targetStr) : q.eq("data_renovacao", targetStr);
       if (cfg.apenas_cobranca_ativa) q = q.eq("cobranca_ativa", true);
       const { data: clientes, error } = await q;
       if (error) continue;
       if (!clientes?.length) continue;
+      scanned += clientes.length;
 
-      const tipoD = d === 0 ? "D+0" : d > 0 ? `D+${d}` : `D-${Math.abs(d)}`;
       const rows = clientes
         .filter((c: any) => c.numero)
         .map((c: any) => ({
           cliente_id: c.id,
-          roteiro_id: cfg.roteiro_id,
+          roteiro_id: roteiroId,
           dia_alvo: hojeStr,
-          tipo_d: tipoD,
+          tipo_d: d === 5 ? tipoDFromDays(diffDays(c.data_renovacao, hojeStr)) : tipoDFromDays(d),
           status: "pendente",
         }));
       if (!rows.length) continue;
 
-      // upsert with conflict on (cliente_id, dia_alvo, tipo_d) — ignore duplicates
-      const { error: insErr, count } = await supabase
+      const { data: existing } = await supabase
         .from("ligacoes_agendadas")
-        .upsert(rows, { onConflict: "cliente_id,dia_alvo,tipo_d", ignoreDuplicates: true, count: "exact" });
-      if (!insErr) total += count ?? rows.length;
+        .select("cliente_id, tipo_d")
+        .eq("dia_alvo", hojeStr)
+        .is("campanha_id", null);
+      const existingKeys = new Set((existing ?? []).map((r: any) => `${r.cliente_id}|${r.tipo_d}`));
+      const newRows = rows.filter((r: any) => !existingKeys.has(`${r.cliente_id}|${r.tipo_d}`));
+      if (!newRows.length) continue;
+
+      const { error: insErr } = await supabase.from("ligacoes_agendadas").insert(newRows);
+      if (!insErr) total += newRows.length;
     }
 
-    return new Response(JSON.stringify({ ok: true, enqueued: total, dia: hojeStr }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: true, enqueued: total, scanned, dia: hojeStr, regra: dias.includes(5) ? "D+5 ou mais" : "D exato", roteiro_fallback: roteiroFallback }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
