@@ -331,7 +331,6 @@ function NovaCampanhaDialog({
                 <span className="font-medium text-foreground">{selected.size}</span> selecionado(s) / {filtered.length} visíveis
               </div>
             </div>
-            </div>
             <div className="flex flex-wrap gap-2 mb-2">
               <Button size="sm" variant={filter === "todos" ? "default" : "outline"} onClick={() => setFilter("todos")}>
                 Todos ({clientes.length})
