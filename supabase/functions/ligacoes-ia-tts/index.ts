@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
       if (!r) return new Response(JSON.stringify({ error: "Roteiro não encontrado" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       roteiro = r;
       texto = interpolate(r.texto, variables);
-      voiceId = r.voice_id || voiceId;
+      voiceId = preview_voice_id || r.voice_id || voiceId;
     }
 
     if (!texto) return new Response(JSON.stringify({ error: "Texto ausente" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
