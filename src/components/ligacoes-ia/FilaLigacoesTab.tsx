@@ -342,7 +342,7 @@ export function FilaLigacoesTab() {
               <Trash2 className="h-4 w-4 mr-1" /> Limpar fila de hoje
             </Button>
             {!running ? (
-              <Button onClick={startQueue} disabled={pendentes.length === 0}>
+              <Button onClick={() => setConfirmStart(true)} disabled={pendentes.length === 0}>
                 <Play className="h-4 w-4 mr-1" /> {finalizadas + falhadas > 0 ? "Retomar fila" : "Iniciar fila"}
               </Button>
             ) : (
