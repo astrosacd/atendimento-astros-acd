@@ -274,7 +274,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
         { title: 'Instagram', icon: Instagram, path: '/instagram', color: 'text-pink-500', gradient: 'from-pink-500 to-rose-500' },
         { title: t('sidebar.proposals'), icon: FileSignature, path: '/propostas', adminOnly: !canViewProposals(), color: 'text-emerald-500', gradient: 'from-emerald-500 to-teal-500' },
         { title: t('sidebar.paymentlink'), icon: Link2, path: '/link-pagamento', adminOnly: !canViewPaymentLinks(), color: 'text-green-500', gradient: 'from-green-500 to-emerald-500' },
-        { title: 'Ligações IA', icon: PhoneCall, path: '/ligacoes-ia', adminOnly: !isAdmin, color: 'text-fuchsia-500', gradient: 'from-fuchsia-500 to-purple-500' },
+        { title: 'Ligações IA', icon: PhoneCall, path: '/ligacoes-ia', adminOnly: !hasPermission('view_ligacoes_ia'), color: 'text-fuchsia-500', gradient: 'from-fuchsia-500 to-purple-500' },
       ]
     },
     {
