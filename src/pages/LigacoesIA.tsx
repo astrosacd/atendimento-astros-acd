@@ -290,8 +290,9 @@ function useElevenVoices() {
   const fetch = async (apiKey?: string, opts?: { silent?: boolean }) => {
     setLoading(true);
     try {
+      const cleanApiKey = apiKey?.trim();
       const { data, error } = await supabase.functions.invoke("ligacoes-ia-list-voices", {
-        body: apiKey ? { api_key: apiKey } : {},
+        body: cleanApiKey ? { api_key: cleanApiKey } : {},
       });
       if (error) throw error;
       const msg = (data as any)?.error;
@@ -302,7 +303,10 @@ function useElevenVoices() {
       setVoices((data as any).voices ?? []);
       return (data as any).voices ?? [];
     } catch (e: any) {
-      if (!opts?.silent) toast({ title: "Erro ao buscar vozes", description: e.message, variant: "destructive" });
+      const description = e?.message?.includes("Failed to send a request")
+        ? "Não foi possível chamar o backend. Atualize a página e tente novamente. Se persistir, confira se a função de vozes está publicada."
+        : e.message;
+      if (!opts?.silent) toast({ title: "Erro ao buscar vozes", description, variant: "destructive" });
       return [];
     } finally {
       setLoading(false);
