@@ -696,10 +696,14 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
     }
     setSaving(true);
     const variaveis = Array.from(form.texto.matchAll(/\{(\w+)\}/g)).map(m => m[1]);
-    const payload = { ...form, variaveis: [...new Set(variaveis)], voice_id: form.voice_id || null };
-    const { error } = roteiro.id
-      ? await supabase.from("ligacoes_ia_roteiros").update(payload).eq("id", roteiro.id)
-      : await supabase.from("ligacoes_ia_roteiros").insert(payload);
+    const basePayload = { ...form, variaveis: [...new Set(variaveis)], voice_id: form.voice_id || null };
+    let error: any = null;
+    if (roteiro.id) {
+      ({ error } = await supabase.from("ligacoes_ia_roteiros").update(basePayload).eq("id", roteiro.id));
+    } else {
+      const { data: auth } = await supabase.auth.getUser();
+      ({ error } = await supabase.from("ligacoes_ia_roteiros").insert({ ...basePayload, created_by: auth.user?.id ?? null }));
+    }
     setSaving(false);
     if (error) return toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     toast({ title: "Roteiro salvo" });
