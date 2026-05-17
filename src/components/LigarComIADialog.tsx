@@ -39,7 +39,7 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
       ];
       if (!clienteId) {
         setLoadingClientes(true);
-        promises.push(supabase.from("clientes").select("id, nome, numero, tipo, produto, valor").order("nome").limit(2000));
+        promises.push(supabase.from("clientes").select("id, nome, numero, tipo, produto, valor, cobranca_ativa, ciclo_cobranca, data_renovacao").order("nome").limit(2000));
       }
       const results = await Promise.all(promises);
       const [r, c, cli] = results;
