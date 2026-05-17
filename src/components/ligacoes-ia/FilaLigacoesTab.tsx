@@ -53,7 +53,7 @@ export function FilaLigacoesTab() {
       supabase.from("cobranca_ligacao_config").select("delay_minutes").limit(1).maybeSingle(),
       supabase
         .from("ligacoes_agendadas")
-        .select("*, clientes(nome, numero)")
+        .select("*, clientes(nome, numero), ligacoes_campanhas(nome, delay_minutes_override)")
         .eq("dia_alvo", hoje)
         .order("created_at"),
     ]);
