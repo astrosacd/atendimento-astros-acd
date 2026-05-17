@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Play, Pause, RefreshCw, Loader2, PhoneCall, CheckCircle2, XCircle, Clock, PhoneOff } from "lucide-react";
 import { placeCallWithTTS, type ActiveCallHandle } from "@/lib/wavoipCall";
 
