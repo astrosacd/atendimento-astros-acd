@@ -464,7 +464,12 @@ function DisparoTab() {
       },
     });
     setCalling(false);
-    if (error) return toast({ title: "Erro ao ligar", description: error.message, variant: "destructive" });
+    if (error) {
+      const description = error.message?.includes("Failed to send a request")
+        ? "O navegador bloqueou a chamada da ligação. Atualize a página e tente novamente."
+        : error.message;
+      return toast({ title: "Erro ao ligar", description, variant: "destructive" });
+    }
     toast({ title: "Ligação disparada!", description: `Cache hit: ${(data as any).cache_hit ? "sim" : "não"}` });
   };
 
