@@ -3426,25 +3426,48 @@ const AdminCobranca = () => {
                                     )}
                                   </TableCell>
                                   <TableCell>
-                                    {(log.status === 'skipped' || log.status === 'error') && !log.resolution && (
-                                      <Button
-                                        onClick={() => {
-                                          setResolvingLogId(log.id);
-                                          setResolutionType(log.status === 'error' ? 'erro_sistema' : 'erro_numero');
-                                          setResolutionNote('');
-                                        }}
-                                        variant="outline"
-                                        size="sm"
-                                        className={`text-xs ${log.status === 'error' ? 'border-red-500/30 text-red-400 hover:bg-red-500/10' : 'border-amber-500/30 text-amber-400 hover:bg-amber-500/10'}`}
-                                      >
-                                        Resolver
-                                      </Button>
-                                    )}
-                                    {log.resolution && (
-                                      <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
-                                        Resolvido
-                                      </Badge>
-                                    )}
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      {log.status === 'error' && !log.resolution && isConnectionError(log.error_message) && (
+                                        <Button
+                                          onClick={() => handleRetryLog(log)}
+                                          variant="outline"
+                                          size="sm"
+                                          disabled={retryingLogId === log.id}
+                                          className="text-xs border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                                        >
+                                          {retryingLogId === log.id ? (
+                                            <>
+                                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                              Processando...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <RefreshCw className="h-3 w-3 mr-1" />
+                                              Reenviar
+                                            </>
+                                          )}
+                                        </Button>
+                                      )}
+                                      {(log.status === 'skipped' || log.status === 'error') && !log.resolution && (
+                                        <Button
+                                          onClick={() => {
+                                            setResolvingLogId(log.id);
+                                            setResolutionType(log.status === 'error' ? 'erro_sistema' : 'erro_numero');
+                                            setResolutionNote('');
+                                          }}
+                                          variant="outline"
+                                          size="sm"
+                                          className={`text-xs ${log.status === 'error' ? 'border-red-500/30 text-red-400 hover:bg-red-500/10' : 'border-amber-500/30 text-amber-400 hover:bg-amber-500/10'}`}
+                                        >
+                                          Resolver
+                                        </Button>
+                                      )}
+                                      {log.resolution && (
+                                        <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                                          Resolvido
+                                        </Badge>
+                                      )}
+                                    </div>
                                   </TableCell>
                                 </TableRow>
                               ))
