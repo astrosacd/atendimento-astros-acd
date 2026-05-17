@@ -48,7 +48,7 @@ import {
 import {
   Plus, Search, Trash2, XCircle, Clock, CheckCircle, Send,
   Mail, MessageSquare, RefreshCcw, AlertCircle, CalendarClock, Settings,
-  Eye, Edit, Copy, ThumbsUp, ThumbsDown, Star, Hash, ChevronLeft, ChevronRight, ShieldCheck, History
+  Eye, Edit, Copy, ThumbsUp, ThumbsDown, Star, Hash, ChevronLeft, ChevronRight, ShieldCheck, History, Loader2
 } from 'lucide-react';
 import { useFollowups, type Followup } from '@/hooks/useFollowups';
 import { FollowupFormDialog } from '@/components/followups/FollowupFormDialog';
