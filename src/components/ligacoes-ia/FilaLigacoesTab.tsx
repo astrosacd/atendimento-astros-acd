@@ -269,6 +269,7 @@ export function FilaLigacoesTab() {
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
             <tr>
+              <th className="text-left p-3 w-10"></th>
               <th className="text-left p-3">Cliente</th>
               <th className="text-left p-3">Número</th>
               <th className="text-left p-3">D</th>
@@ -279,13 +280,33 @@ export function FilaLigacoesTab() {
           </thead>
           <tbody>
             {items.length === 0 && (
-              <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Nenhuma ligação na fila para hoje. Clique em <strong>Sincronizar</strong>.</td></tr>
+              <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Nenhuma ligação na fila para hoje. Clique em <strong>Sincronizar</strong>.</td></tr>
             )}
             {items.map((it) => {
               const s = STATUS_LABEL[it.status];
               const Icon = s.icon;
+              const toggleable = it.status === "pendente" || it.status === "cancelada";
+              const willCall = it.status === "pendente";
+              const onToggle = async () => {
+                if (!toggleable || running) return;
+                const novo = willCall ? "cancelada" : "pendente";
+                const { error } = await supabase
+                  .from("ligacoes_agendadas")
+                  .update({ status: novo })
+                  .eq("id", it.id);
+                if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+                else load();
+              };
               return (
-                <tr key={it.id} className="border-t">
+                <tr key={it.id} className={`border-t ${it.status === "cancelada" ? "opacity-60" : ""}`}>
+                  <td className="p-3">
+                    <Checkbox
+                      checked={willCall}
+                      disabled={!toggleable || running}
+                      onCheckedChange={onToggle}
+                      title={willCall ? "Desmarcar (não ligar)" : "Marcar (ligar)"}
+                    />
+                  </td>
                   <td className="p-3">{it.clientes?.nome ?? "—"}</td>
                   <td className="p-3 font-mono text-xs">{it.clientes?.numero ?? "—"}</td>
                   <td className="p-3"><Badge variant="outline">{it.tipo_d}</Badge></td>
