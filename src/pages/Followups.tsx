@@ -48,7 +48,7 @@ import {
 import {
   Plus, Search, Trash2, XCircle, Clock, CheckCircle, Send,
   Mail, MessageSquare, RefreshCcw, AlertCircle, CalendarClock, Settings,
-  Eye, Edit, Copy, ThumbsUp, ThumbsDown, Star, Hash, ChevronLeft, ChevronRight, ShieldCheck, History
+  Eye, Edit, Copy, ThumbsUp, ThumbsDown, Star, Hash, ChevronLeft, ChevronRight, ShieldCheck, History, Loader2
 } from 'lucide-react';
 import { useFollowups, type Followup } from '@/hooks/useFollowups';
 import { FollowupFormDialog } from '@/components/followups/FollowupFormDialog';
@@ -480,11 +480,23 @@ export default function Followups() {
                                   <>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-orange-500 hover:text-orange-600 hover:bg-orange-50" onClick={() => retryFollowup.mutate(f.id)}>
-                                          <RefreshCcw className="h-3.5 w-3.5" />
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7 text-orange-500 hover:text-orange-600 hover:bg-orange-50 disabled:opacity-60"
+                                          onClick={() => retryFollowup.mutate(f.id)}
+                                          disabled={retryFollowup.isPending && retryFollowup.variables === f.id}
+                                        >
+                                          {retryFollowup.isPending && retryFollowup.variables === f.id ? (
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                          ) : (
+                                            <RefreshCcw className="h-3.5 w-3.5" />
+                                          )}
                                         </Button>
                                       </TooltipTrigger>
-                                      <TooltipContent>Reenviar</TooltipContent>
+                                      <TooltipContent>
+                                        {retryFollowup.isPending && retryFollowup.variables === f.id ? 'Processando...' : 'Reenviar'}
+                                      </TooltipContent>
                                     </Tooltip>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
