@@ -4799,6 +4799,7 @@ export type Database = {
       }
       ligacoes_agendadas: {
         Row: {
+          campanha_id: string | null
           cliente_id: string
           created_at: string
           dia_alvo: string
@@ -4813,6 +4814,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          campanha_id?: string | null
           cliente_id: string
           created_at?: string
           dia_alvo: string
@@ -4827,6 +4829,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          campanha_id?: string | null
           cliente_id?: string
           created_at?: string
           dia_alvo?: string
@@ -4841,6 +4844,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ligacoes_agendadas_campanha_id_fkey"
+            columns: ["campanha_id"]
+            isOneToOne: false
+            referencedRelation: "ligacoes_campanhas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ligacoes_agendadas_cliente_id_fkey"
             columns: ["cliente_id"]
@@ -4857,6 +4867,47 @@ export type Database = {
           },
           {
             foreignKeyName: "ligacoes_agendadas_roteiro_id_fkey"
+            columns: ["roteiro_id"]
+            isOneToOne: false
+            referencedRelation: "ligacoes_ia_roteiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ligacoes_campanhas: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          id: string
+          nome: string
+          roteiro_id: string | null
+          status: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          nome: string
+          roteiro_id?: string | null
+          status?: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          nome?: string
+          roteiro_id?: string | null
+          status?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ligacoes_campanhas_roteiro_id_fkey"
             columns: ["roteiro_id"]
             isOneToOne: false
             referencedRelation: "ligacoes_ia_roteiros"
