@@ -1310,6 +1310,16 @@ export default function ConsultarCliente() {
           onOpenChange={() => setGroupClienteId(null)}
         />
 
+        {ligarIACliente && (
+          <LigarComIADialog
+            clienteId={ligarIACliente.id}
+            clienteNome={ligarIACliente.nome}
+            clienteNumero={ligarIACliente.numero}
+            open={!!ligarIACliente}
+            onOpenChange={(o) => !o && setLigarIACliente(null)}
+          />
+        )}
+
         <AlertDialog open={!!duplicateTarget} onOpenChange={(open) => !open && setDuplicateTarget(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
