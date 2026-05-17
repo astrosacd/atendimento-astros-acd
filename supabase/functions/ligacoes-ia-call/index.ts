@@ -1,0 +1,127 @@
+// Dispatches a call via Wavoip API using a pre-generated TTS audio URL.
+// Creates a historico row and triggers the call.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: { user } } = await userClient.auth.getUser();
+    if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    const body = await req.json();
+    const { cliente_id, roteiro_id, variables = {}, numero_destino: numDestino, source = "manual" } = body;
+
+    // Load config
+    const { data: configRows } = await supabase.from("ligacoes_ia_config").select("config_key, config_value");
+    const cfg: Record<string, string> = {};
+    (configRows ?? []).forEach((r: any) => cfg[r.config_key] = r.config_value ?? "");
+
+    const wavoipToken = cfg.wavoip_token;
+    const dialer = cfg.wavoip_dialer_number;
+    if (!wavoipToken || !dialer) {
+      return new Response(JSON.stringify({ error: "Wavoip não configurado (token ou número discador ausente)" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Resolve destination number
+    let numeroDestino = numDestino;
+    let cliente: any = null;
+    if (cliente_id) {
+      const { data: c } = await supabase.from("clientes").select("*").eq("id", cliente_id).single();
+      if (c) {
+        cliente = c;
+        if (!numeroDestino) numeroDestino = c.numero;
+      }
+    }
+    if (!numeroDestino) {
+      return new Response(JSON.stringify({ error: "Número de destino ausente" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Auto-merge cliente fields into variables
+    const finalVars = { ...(cliente ? { nome: cliente.nome, produto: cliente.produto, valor: String(cliente.valor ?? ""), data_renovacao: cliente.data_renovacao ?? "" } : {}), ...variables };
+
+    // Generate (or get cached) audio
+    const ttsRes = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/ligacoes-ia-tts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: authHeader },
+      body: JSON.stringify({ roteiro_id, variables: finalVars }),
+    });
+    const ttsData = await ttsRes.json();
+    if (!ttsRes.ok) {
+      return new Response(JSON.stringify({ error: `TTS falhou: ${ttsData.error}` }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Create historico row first (pending)
+    const { data: hist, error: histErr } = await supabase.from("ligacoes_ia_historico").insert({
+      cliente_id: cliente_id ?? null,
+      roteiro_id: roteiro_id ?? null,
+      audio_cache_id: ttsData.audio_cache_id,
+      numero_destino: numeroDestino,
+      numero_origem: dialer,
+      status: "iniciando",
+      context: { variables: finalVars, texto_final: ttsData.texto_final },
+      triggered_by: user.id,
+      source,
+    }).select("*").single();
+    if (histErr) return new Response(JSON.stringify({ error: histErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    // Call Wavoip
+    const webhookUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/ligacoes-ia-webhook?hist_id=${hist.id}`;
+    const wavoipRes = await fetch("https://api.wavoip.com/v1/calls", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${wavoipToken}` },
+      body: JSON.stringify({
+        from: dialer,
+        to: numeroDestino,
+        audio_url: ttsData.signed_url,
+        webhook_url: webhookUrl,
+        metadata: { historico_id: hist.id },
+      }),
+    });
+    const wavoipText = await wavoipRes.text();
+    let wavoipData: any = {};
+    try { wavoipData = JSON.parse(wavoipText); } catch { wavoipData = { raw: wavoipText }; }
+
+    if (!wavoipRes.ok) {
+      await supabase.from("ligacoes_ia_historico").update({
+        status: "erro",
+        error_message: wavoipText.slice(0, 500),
+        raw_payload: wavoipData,
+      }).eq("id", hist.id);
+      return new Response(JSON.stringify({ error: `Wavoip falhou: ${wavoipText}`, historico_id: hist.id }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    await supabase.from("ligacoes_ia_historico").update({
+      status: "discando",
+      wavoip_call_id: wavoipData.call_id ?? wavoipData.id ?? null,
+      started_at: new Date().toISOString(),
+      raw_payload: wavoipData,
+    }).eq("id", hist.id);
+
+    return new Response(JSON.stringify({
+      success: true,
+      historico_id: hist.id,
+      cache_hit: ttsData.cache_hit,
+      wavoip: wavoipData,
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+});
