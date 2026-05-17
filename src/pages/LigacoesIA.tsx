@@ -20,7 +20,8 @@ import { User } from "lucide-react";
 import { placeCallWithTTS, type ActiveCallHandle } from "@/lib/wavoipCall";
 import { CobrancaConfigTab } from "@/components/ligacoes-ia/CobrancaConfigTab";
 import { FilaLigacoesTab } from "@/components/ligacoes-ia/FilaLigacoesTab";
-import { ListChecks, CalendarClock } from "lucide-react";
+import { CampanhasLigacoesTab } from "@/components/ligacoes-ia/CampanhasLigacoesTab";
+import { ListChecks, CalendarClock, Megaphone } from "lucide-react";
 
 const CATEGORIAS = [
   { value: "cobranca", label: "Cobrança" },
