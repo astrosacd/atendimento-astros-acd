@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
@@ -12,11 +12,12 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Phone, Plus, Play, Trash2, Loader2, PhoneCall, History, Settings as SettingsIcon, FileText, Sparkles, AlertCircle, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Phone, Plus, Play, Trash2, Loader2, PhoneCall, PhoneOff, History, Settings as SettingsIcon, FileText, Sparkles, AlertCircle, RefreshCw, CheckCircle2 } from "lucide-react";
 import { format, subDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LigarComIADialog } from "@/components/LigarComIADialog";
 import { User } from "lucide-react";
+import { placeCallWithTTS, type ActiveCallHandle } from "@/lib/wavoipCall";
 
 const CATEGORIAS = [
   { value: "cobranca", label: "Cobrança" },
