@@ -528,6 +528,65 @@ export function FilaLigacoesTab() {
           </table>
         </div>
       </Card>
+
+      <AlertDialog open={confirmStart} onOpenChange={setConfirmStart}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Iniciar fila de ligações de hoje?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  Serão disparadas <strong>{pendentes.length}</strong> ligações pendentes,
+                  com delay de <strong>{delayMinutes} min</strong> entre cada uma.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  ⚠️ Mantenha esta aba aberta — o navegador é quem disca.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="max-h-[280px] overflow-y-auto rounded border bg-muted/30 text-xs">
+            <table className="w-full">
+              <thead className="bg-muted/60 sticky top-0">
+                <tr>
+                  <th className="text-left p-2">#</th>
+                  <th className="text-left p-2">Nome</th>
+                  <th className="text-left p-2">Tipo</th>
+                  <th className="text-left p-2">D</th>
+                  <th className="text-left p-2">Origem</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendentes.map((p, idx) => {
+                  const manual = !p.cliente_id;
+                  const tipo = manual ? "Manual" : (p.clientes?.cobranca_ativa ? "Mensal" : "Registro");
+                  const origem = p.campanha_id ? (p.ligacoes_campanhas?.nome ?? "Campanha") : "Cobrança auto";
+                  return (
+                    <tr key={p.id} className="border-t">
+                      <td className="p-2 text-muted-foreground">{idx + 1}</td>
+                      <td className="p-2">{p.clientes?.nome ?? p.nome_manual ?? "—"}</td>
+                      <td className="p-2">{tipo}</td>
+                      <td className="p-2"><Badge variant="outline" className="text-[10px]">{p.tipo_d}</Badge></td>
+                      <td className="p-2 truncate max-w-[140px]" title={origem}>{origem}</td>
+                    </tr>
+                  );
+                })}
+                {pendentes.length === 0 && (
+                  <tr><td colSpan={5} className="p-4 text-center text-muted-foreground">Nenhum pendente.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmStart(false); startQueue(); }} disabled={pendentes.length === 0}>
+              <Play className="h-4 w-4 mr-1" /> Confirmar e iniciar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
