@@ -940,6 +940,23 @@ export default function ConsultarCliente() {
                                     )}
                                   </>
                                 )}
+
+                                {/* Grupo: Comunicação */}
+                                {!isNonClientType(cliente) && isAdmin && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
+                                      Comunicação
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuItem
+                                      onClick={() => setLigarIACliente({ id: cliente.id, nome: cliente.nome, numero: cliente.numero })}
+                                      className="gap-2"
+                                    >
+                                      <PhoneCall className="h-4 w-4 text-fuchsia-500" />
+                                      <span>Ligar com IA</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
