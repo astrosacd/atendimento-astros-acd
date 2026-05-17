@@ -111,11 +111,12 @@ export default function LigacoesIA() {
         )}
 
         <Tabs defaultValue="historico" className="space-y-4">
-          <TabsList className="grid grid-cols-6 w-full max-w-4xl">
+          <TabsList className="grid grid-cols-7 w-full max-w-5xl">
             <TabsTrigger value="historico"><History className="h-4 w-4 mr-2" />Histórico</TabsTrigger>
             <TabsTrigger value="fila"><ListChecks className="h-4 w-4 mr-2" />Fila do dia</TabsTrigger>
             <TabsTrigger value="roteiros"><FileText className="h-4 w-4 mr-2" />Roteiros</TabsTrigger>
             <TabsTrigger value="disparo"><Phone className="h-4 w-4 mr-2" />Disparo</TabsTrigger>
+            <TabsTrigger value="campanhas"><Megaphone className="h-4 w-4 mr-2" />Campanhas</TabsTrigger>
             <TabsTrigger value="cobranca"><CalendarClock className="h-4 w-4 mr-2" />Cobrança</TabsTrigger>
             <TabsTrigger value="config"><SettingsIcon className="h-4 w-4 mr-2" />Configurações</TabsTrigger>
           </TabsList>
@@ -124,6 +125,7 @@ export default function LigacoesIA() {
           <TabsContent value="fila"><FilaLigacoesTab /></TabsContent>
           <TabsContent value="roteiros"><RoteirosTab /></TabsContent>
           <TabsContent value="disparo"><DisparoTab /></TabsContent>
+          <TabsContent value="campanhas"><CampanhasLigacoesTab /></TabsContent>
           <TabsContent value="cobranca"><CobrancaConfigTab /></TabsContent>
           <TabsContent value="config"><ConfigTab onSaved={refreshStatus} /></TabsContent>
         </Tabs>
