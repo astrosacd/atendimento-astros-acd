@@ -190,7 +190,7 @@ function AppRoutes() {
       <Route path="/instagram" element={<ProtectedRoute permission="view_instagram"><InstagramModule /></ProtectedRoute>} />
 
       {/* Ligações IA */}
-      <Route path="/ligacoes-ia" element={<ProtectedRoute adminOnly><LigacoesIA /></ProtectedRoute>} />
+      <Route path="/ligacoes-ia" element={<ProtectedRoute permission="view_ligacoes_ia"><LigacoesIA /></ProtectedRoute>} />
       
       {/* Public Routes - NO AUTH */}
       <Route path="/chamados" element={<ChamadosPublico />} />
