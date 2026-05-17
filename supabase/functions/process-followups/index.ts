@@ -19,6 +19,8 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const now = new Date().toISOString();
+    const body = await req.json().catch(() => ({}));
+    const targetFollowupId = typeof body?.followup_id === "string" ? body.followup_id : null;
 
     // Fetch active webhooks
     const { data: webhooks } = await supabase
@@ -26,14 +28,20 @@ serve(async (req: Request) => {
       .select("*")
       .eq("is_active", true);
 
-    // Pick only the FIRST pending followup that is due (queue mode: 1 per execution)
-    const { data: followups, error: fetchError } = await supabase
+    // Pick a specific follow-up when manually retrying, otherwise process the queue one at a time.
+    let followupsQuery = supabase
       .from("client_followups")
       .select("*, clientes(*)")
       .eq("status", "pending")
       .lte("next_dispatch_at", now)
       .order("next_dispatch_at", { ascending: true })
       .limit(1);
+
+    if (targetFollowupId) {
+      followupsQuery = followupsQuery.eq("id", targetFollowupId);
+    }
+
+    const { data: followups, error: fetchError } = await followupsQuery;
 
     if (fetchError) {
       console.error("❌ Error fetching followups:", fetchError);
@@ -220,7 +228,7 @@ serve(async (req: Request) => {
           whatsapp_sent: false,
           error: errorDetails || "Nenhum canal confirmou o envio",
         }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     } else if (
       followup.is_recurring &&
