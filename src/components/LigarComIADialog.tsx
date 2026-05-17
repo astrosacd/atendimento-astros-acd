@@ -87,15 +87,20 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
     return preview.texto.replace(/\{(\w+)\}/g, (_: string, k: string) => vars[k] ?? `{${k}}`);
   }, [preview, selectedCliente]);
 
+  const isMensal = (c: any) => !!c.cobranca_ativa;
+  const isRegistro = (c: any) => !c.cobranca_ativa;
+
+  const mensaisCount = useMemo(() => clientes.filter(isMensal).length, [clientes]);
+  const registrosCount = useMemo(() => clientes.filter(isRegistro).length, [clientes]);
+
   const clienteOptions = useMemo(() =>
     clientes.map(c => {
-      const tipo = (c.tipo || "").toLowerCase();
-      const tipoLabel = tipo === "mensal" ? "📅 MENSAL" : tipo === "registro" || tipo === "registros" ? "📋 REGISTRO" : (c.tipo ? `• ${c.tipo}` : "");
+      const tipoLabel = isMensal(c) ? "📅 MENSAL" : "📋 REGISTRO";
       const produto = c.produto ? ` — ${c.produto}` : "";
       const numero = c.numero ? ` (${c.numero})` : "";
       return {
         value: c.id,
-        label: `${tipoLabel ? `[${tipoLabel}] ` : ""}${c.nome}${produto}${numero}`,
+        label: `[${tipoLabel}] ${c.nome}${produto}${numero}`,
       };
     }),
     [clientes]
@@ -137,8 +142,16 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
                 emptyMessage="Nenhum cliente encontrado"
                 disabled={loadingClientes}
               />
-              <p className="text-[10px] text-muted-foreground mt-1">
-                {clientes.length} clientes • 📅 {clientes.filter(c => (c.tipo||"").toLowerCase() === "mensal").length} mensais • 📋 {clientes.filter(c => ["registro","registros"].includes((c.tipo||"").toLowerCase())).length} registros
+              <p className="text-xs text-muted-foreground mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
+                <span className="font-medium text-foreground">{clientes.length}</span> clientes
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+                  📅 <span className="font-medium text-foreground">{mensaisCount}</span> mensais
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
+                  📋 <span className="font-medium text-foreground">{registrosCount}</span> registros
+                </span>
               </p>
             </div>
           )}
