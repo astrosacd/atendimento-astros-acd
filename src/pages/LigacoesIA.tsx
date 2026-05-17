@@ -478,6 +478,7 @@ function DisparoTab() {
         token: d.wavoip_token,
         phone: d.phone,
         audioUrl: d.audio_url,
+        historicoId: d.historico_id,
         onStatus: (s) => setCallStatus(s),
         onEnded: () => { setCalling(false); setCallStatus(""); callRef.current = null; },
       });
