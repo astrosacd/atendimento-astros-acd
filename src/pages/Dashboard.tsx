@@ -38,6 +38,7 @@ import { ChurnRateCard } from '@/components/dashboard/ChurnRateCard';
 import { RevenueByCurrencyCard } from '@/components/dashboard/RevenueByCurrencyCard';
 import { PaymentSecurityAlertBanner } from '@/components/dashboard/PaymentSecurityAlertBanner';
 import { SystemHealthCard } from '@/components/dashboard/SystemHealthCard';
+import { LigacoesAgendadasCard } from '@/components/dashboard/LigacoesAgendadasCard';
 
 // Mapping of billing cycles to months
 const CICLO_MESES: Record<string, number> = {
@@ -878,6 +879,10 @@ export default function Dashboard() {
         </div>
 
         <QuickActions />
+
+        <div className="mb-6">
+          <LigacoesAgendadasCard />
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <SecurityAlertsCard />
