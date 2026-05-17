@@ -165,6 +165,7 @@ function NovaCampanhaDialog({
   onOpenChange: (o: boolean) => void;
   onCreated: () => void;
 }) {
+  const todayISO = new Date().toISOString().slice(0, 10);
   const [nome, setNome] = useState("");
   const [roteiros, setRoteiros] = useState<any[]>([]);
   const [roteiroId, setRoteiroId] = useState("");
@@ -174,10 +175,13 @@ function NovaCampanhaDialog({
   const [search, setSearch] = useState("");
   const [loadingData, setLoadingData] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [diaAlvo, setDiaAlvo] = useState<string>(todayISO);
+  const [delayOverride, setDelayOverride] = useState<string>("");
 
   useEffect(() => {
     if (!open) {
       setNome(""); setRoteiroId(""); setSelected(new Set()); setSearch(""); setFilter("todos");
+      setDiaAlvo(todayISO); setDelayOverride("");
       return;
     }
     (async () => {
@@ -230,6 +234,7 @@ function NovaCampanhaDialog({
 
     setSaving(true);
     try {
+      const overrideNum = delayOverride.trim() === "" ? null : Math.max(0, Math.min(120, Number(delayOverride)));
       const { data: userData } = await supabase.auth.getUser();
       const { data: campanha, error: e1 } = await (supabase as any)
         .from("ligacoes_campanhas")
@@ -238,16 +243,17 @@ function NovaCampanhaDialog({
           roteiro_id: roteiroId,
           total: selected.size,
           criado_por: userData.user?.id ?? null,
+          dia_alvo: diaAlvo,
+          delay_minutes_override: overrideNum,
         })
         .select()
         .single();
       if (e1) throw e1;
 
-      const hoje = new Date().toISOString().slice(0, 10);
       const rows = Array.from(selected).map((cid) => ({
         cliente_id: cid,
         roteiro_id: roteiroId,
-        dia_alvo: hoje,
+        dia_alvo: diaAlvo,
         tipo_d: "campanha",
         status: "pendente",
         campanha_id: campanha.id,
@@ -257,7 +263,7 @@ function NovaCampanhaDialog({
 
       toast({
         title: "Campanha criada",
-        description: `${rows.length} ligaç${rows.length === 1 ? "ão adicionada" : "ões adicionadas"} à fila de hoje.`,
+        description: `${rows.length} ligaç${rows.length === 1 ? "ão agendada" : "ões agendadas"} para ${diaAlvo === todayISO ? "hoje" : diaAlvo}.`,
       });
       onCreated();
     } catch (e: any) {
@@ -295,6 +301,26 @@ function NovaCampanhaDialog({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <Label>Disparar no dia</Label>
+              <Input type="date" min={todayISO} value={diaAlvo} onChange={(e) => setDiaAlvo(e.target.value)} />
+              <p className="text-xs text-muted-foreground mt-1">A campanha entra na fila desse dia.</p>
+            </div>
+            <div>
+              <Label>Delay entre ligações (min) — opcional</Label>
+              <Input
+                type="number"
+                min={0}
+                max={120}
+                placeholder="Usar delay global"
+                value={delayOverride}
+                onChange={(e) => setDelayOverride(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Deixe em branco para usar o delay configurado em Cobrança.</p>
             </div>
           </div>
 

@@ -4878,6 +4878,8 @@ export type Database = {
         Row: {
           created_at: string
           criado_por: string | null
+          delay_minutes_override: number | null
+          dia_alvo: string
           id: string
           nome: string
           roteiro_id: string | null
@@ -4888,6 +4890,8 @@ export type Database = {
         Insert: {
           created_at?: string
           criado_por?: string | null
+          delay_minutes_override?: number | null
+          dia_alvo?: string
           id?: string
           nome: string
           roteiro_id?: string | null
@@ -4898,6 +4902,8 @@ export type Database = {
         Update: {
           created_at?: string
           criado_por?: string | null
+          delay_minutes_override?: number | null
+          dia_alvo?: string
           id?: string
           nome?: string
           roteiro_id?: string | null
