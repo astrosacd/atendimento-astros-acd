@@ -333,6 +333,9 @@ export function FilaLigacoesTab() {
                 <><RefreshCw className="h-4 w-4 mr-1" /> Sincronizar</>
               )}
             </Button>
+            <Button variant="outline" size="sm" onClick={limparFila} disabled={syncing || running}>
+              <Trash2 className="h-4 w-4 mr-1" /> Limpar fila de hoje
+            </Button>
             {!running ? (
               <Button onClick={startQueue} disabled={pendentes.length === 0}>
                 <Play className="h-4 w-4 mr-1" /> {finalizadas + falhadas > 0 ? "Retomar fila" : "Iniciar fila"}
