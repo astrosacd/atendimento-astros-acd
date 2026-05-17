@@ -18,6 +18,9 @@ import { ptBR } from "date-fns/locale";
 import { LigarComIADialog } from "@/components/LigarComIADialog";
 import { User } from "lucide-react";
 import { placeCallWithTTS, type ActiveCallHandle } from "@/lib/wavoipCall";
+import { CobrancaConfigTab } from "@/components/ligacoes-ia/CobrancaConfigTab";
+import { FilaLigacoesTab } from "@/components/ligacoes-ia/FilaLigacoesTab";
+import { ListChecks, CalendarClock } from "lucide-react";
 
 const CATEGORIAS = [
   { value: "cobranca", label: "Cobrança" },
