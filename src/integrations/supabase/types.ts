@@ -4750,6 +4750,228 @@ export type Database = {
           },
         ]
       }
+      ligacoes_ia_audios_cache: {
+        Row: {
+          cache_hash: string
+          characters_count: number | null
+          created_at: string
+          duration_seconds: number | null
+          hit_count: number
+          id: string
+          last_used_at: string
+          roteiro_id: string | null
+          size_bytes: number | null
+          storage_path: string
+          texto_final: string
+          voice_id: string
+        }
+        Insert: {
+          cache_hash: string
+          characters_count?: number | null
+          created_at?: string
+          duration_seconds?: number | null
+          hit_count?: number
+          id?: string
+          last_used_at?: string
+          roteiro_id?: string | null
+          size_bytes?: number | null
+          storage_path: string
+          texto_final: string
+          voice_id: string
+        }
+        Update: {
+          cache_hash?: string
+          characters_count?: number | null
+          created_at?: string
+          duration_seconds?: number | null
+          hit_count?: number
+          id?: string
+          last_used_at?: string
+          roteiro_id?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+          texto_final?: string
+          voice_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ligacoes_ia_audios_cache_roteiro_id_fkey"
+            columns: ["roteiro_id"]
+            isOneToOne: false
+            referencedRelation: "ligacoes_ia_roteiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ligacoes_ia_config: {
+        Row: {
+          config_key: string
+          config_value: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_secret: boolean
+          updated_at: string
+        }
+        Insert: {
+          config_key: string
+          config_value?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_secret?: boolean
+          updated_at?: string
+        }
+        Update: {
+          config_key?: string
+          config_value?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_secret?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ligacoes_ia_historico: {
+        Row: {
+          answered_at: string | null
+          attempt_number: number
+          audio_cache_id: string | null
+          cliente_id: string | null
+          context: Json
+          cost_cents: number | null
+          created_at: string
+          duration_seconds: number | null
+          ended_at: string | null
+          error_message: string | null
+          id: string
+          numero_destino: string
+          numero_origem: string | null
+          raw_payload: Json | null
+          roteiro_id: string | null
+          source: string
+          started_at: string | null
+          status: string
+          triggered_by: string | null
+          updated_at: string
+          wavoip_call_id: string | null
+        }
+        Insert: {
+          answered_at?: string | null
+          attempt_number?: number
+          audio_cache_id?: string | null
+          cliente_id?: string | null
+          context?: Json
+          cost_cents?: number | null
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          error_message?: string | null
+          id?: string
+          numero_destino: string
+          numero_origem?: string | null
+          raw_payload?: Json | null
+          roteiro_id?: string | null
+          source?: string
+          started_at?: string | null
+          status?: string
+          triggered_by?: string | null
+          updated_at?: string
+          wavoip_call_id?: string | null
+        }
+        Update: {
+          answered_at?: string | null
+          attempt_number?: number
+          audio_cache_id?: string | null
+          cliente_id?: string | null
+          context?: Json
+          cost_cents?: number | null
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          error_message?: string | null
+          id?: string
+          numero_destino?: string
+          numero_origem?: string | null
+          raw_payload?: Json | null
+          roteiro_id?: string | null
+          source?: string
+          started_at?: string | null
+          status?: string
+          triggered_by?: string | null
+          updated_at?: string
+          wavoip_call_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ligacoes_ia_historico_audio_cache_id_fkey"
+            columns: ["audio_cache_id"]
+            isOneToOne: false
+            referencedRelation: "ligacoes_ia_audios_cache"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_ia_historico_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_ia_historico_roteiro_id_fkey"
+            columns: ["roteiro_id"]
+            isOneToOne: false
+            referencedRelation: "ligacoes_ia_roteiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ligacoes_ia_roteiros: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          texto: string
+          updated_at: string
+          variaveis: string[]
+          voice_id: string | null
+          voice_settings: Json
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          texto: string
+          updated_at?: string
+          variaveis?: string[]
+          voice_id?: string | null
+          voice_settings?: Json
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          texto?: string
+          updated_at?: string
+          variaveis?: string[]
+          voice_id?: string | null
+          voice_settings?: Json
+        }
+        Relationships: []
+      }
       marketing_expenses: {
         Row: {
           ano: number
