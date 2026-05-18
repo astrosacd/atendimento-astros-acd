@@ -629,7 +629,7 @@ function RoteirosTab() {
                   <Button size="icon" variant="ghost" onClick={() => setEditing(r)}>
                     <FileText className="h-4 w-4" />
                   </Button>
-                  <Button size="icon" variant="ghost" onClick={() => remove(r.id)}>
+                  <Button size="icon" variant="ghost" onClick={() => setToDelete(r)}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
