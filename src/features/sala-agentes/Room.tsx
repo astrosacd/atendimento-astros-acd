@@ -56,26 +56,16 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
           </mesh>
         ))}
 
-        {/* Painéis de Luz LED Embutidos */}
+        {/* Painéis de Luz LED Embutidos (emissivos, sem rectAreaLight pra perf) */}
         {[-12, -6, 0, 6, 12].map(x => [-7, 0, 7].map(z => (
-          <group key={`light-${x}-${z}`} position={[x, -0.05, z]}>
-            <mesh>
-              <boxGeometry args={[2, 0.05, 1]} />
-              <meshStandardMaterial 
-                color="#ffffff" 
-                emissive="#ffffff" 
-                emissiveIntensity={isNight ? 0.3 : 1} 
-              />
-            </mesh>
-            <rectAreaLight 
-              width={2} 
-              height={1} 
-              intensity={isNight ? 0.5 : 2} 
+          <mesh key={`light-${x}-${z}`} position={[x, -0.05, z]}>
+            <boxGeometry args={[2, 0.05, 1]} />
+            <meshStandardMaterial 
               color="#ffffff" 
-              position={[0, -0.1, 0]} 
-              rotation={[-Math.PI / 2, 0, 0]} 
+              emissive="#ffffff" 
+              emissiveIntensity={isNight ? 0.6 : 1.2} 
             />
-          </group>
+          </mesh>
         )))}
       </group>
 
