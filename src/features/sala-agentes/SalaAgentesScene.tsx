@@ -210,9 +210,9 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
     }`}>
       {/* Canvas 3D */}
       <Canvas
-        shadows
-        dpr={[1, 1.8]}
-        gl={{ antialias: true, alpha: false }}
+        shadows={false}
+        dpr={[1, 1.4]}
+        gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
       >
         <PerspectiveCamera 
           makeDefault 
@@ -236,16 +236,13 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
         <color attach="background" args={[isNight ? '#1a1c2c' : '#f5ecd9']} />
         <fog attach="fog" args={[isNight ? '#1a1c2c' : '#f5ecd9', 40, 80]} />
 
-        {/* Iluminação dinâmica */}
-        <ambientLight intensity={isNight ? 0.25 : 0.55} />
+        {/* Iluminação simplificada (sem shadow maps - ContactShadows fornece sombras fake) */}
+        <ambientLight intensity={isNight ? 0.45 : 0.8} />
         <directionalLight
           position={[10, 18, 10]}
-          intensity={isNight ? 0.4 : 1.1}
+          intensity={isNight ? 0.5 : 1.0}
           color={isNight ? '#a8c8ff' : '#ffffff'}
-          castShadow
-          shadow-mapSize={[1024, 1024]}
         />
-// ... keep existing code
         
         {isNight && (
           <pointLight position={[0, 4, 0]} intensity={0.6} color="#4c6ef5" />
