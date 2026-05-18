@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
@@ -560,6 +561,8 @@ function RoteirosTab() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any | null>(null);
+  const [toDelete, setToDelete] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -576,10 +579,17 @@ function RoteirosTab() {
   };
   useEffect(() => { load(); }, []);
 
-  const remove = async (id: string) => {
-    if (!confirm("Excluir roteiro?")) return;
-    await supabase.from("ligacoes_ia_roteiros").delete().eq("id", id);
+  const confirmRemove = async () => {
+    if (!toDelete) return;
+    setDeleting(true);
+    const { error } = await supabase.from("ligacoes_ia_roteiros").delete().eq("id", toDelete.id);
+    setDeleting(false);
+    if (error) {
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+      return;
+    }
     toast({ title: "Roteiro excluído" });
+    setToDelete(null);
     load();
   };
 
@@ -619,7 +629,7 @@ function RoteirosTab() {
                   <Button size="icon" variant="ghost" onClick={() => setEditing(r)}>
                     <FileText className="h-4 w-4" />
                   </Button>
-                  <Button size="icon" variant="ghost" onClick={() => remove(r.id)}>
+                  <Button size="icon" variant="ghost" onClick={() => setToDelete(r)}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
@@ -636,6 +646,23 @@ function RoteirosTab() {
           onSaved={() => { setEditing(null); load(); }}
         />
       )}
+
+      <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir roteiro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o roteiro <strong>{toDelete?.nome}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemove} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Excluindo...</> : <><Trash2 className="h-4 w-4 mr-2" /> Excluir</>}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
