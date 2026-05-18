@@ -646,6 +646,23 @@ function RoteirosTab() {
           onSaved={() => { setEditing(null); load(); }}
         />
       )}
+
+      <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir roteiro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o roteiro <strong>{toDelete?.nome}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemove} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Excluindo...</> : <><Trash2 className="h-4 w-4 mr-2" /> Excluir</>}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
