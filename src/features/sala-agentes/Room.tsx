@@ -18,14 +18,10 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
       {/* --- CHÃO PREMIUM --- */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
         <planeGeometry args={[W, D]} />
-        {/* Usando MeshPhysicalMaterial para reflexões e visual mais "limpo" */}
-        <meshPhysicalMaterial 
+        <meshStandardMaterial 
           color={isNight ? '#0a101f' : '#f0f4f8'} 
-          roughness={0.15} 
-          metalness={0.05}
-          reflectivity={0.8}
-          clearcoat={1}
-          clearcoatRoughness={0.1}
+          roughness={0.4} 
+          metalness={0.1}
         />
       </mesh>
       
