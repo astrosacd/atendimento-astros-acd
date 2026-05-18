@@ -457,12 +457,17 @@ export function FilaLigacoesTab() {
                 const onToggle = async () => {
                   if (!toggleable || running) return;
                   const novo = willCall ? "cancelada" : "pendente";
+                  // Atualização otimista local — evita recarregar a tabela inteira
+                  setItems((prev) => prev.map((p) => (p.id === it.id ? { ...p, status: novo } : p)));
                   const { error } = await supabase
                     .from("ligacoes_agendadas")
                     .update({ status: novo })
                     .eq("id", it.id);
-                  if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-                  else load();
+                  if (error) {
+                    // Reverte em caso de erro
+                    setItems((prev) => prev.map((p) => (p.id === it.id ? { ...p, status: it.status } : p)));
+                    toast({ title: "Erro", description: error.message, variant: "destructive" });
+                  }
                 };
                 return (
                   <tr key={it.id} className={`border-t ${it.status === "cancelada" ? "opacity-60" : ""}`}>
