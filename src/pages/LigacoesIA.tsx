@@ -315,7 +315,7 @@ function AcessoProvisorioButton({ siteUrl }: { siteUrl: string }) {
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setTimeout(() => setStep("initial"), 300); }}>
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) { setStep("initial"); setGeneratedLink(""); } else setTimeout(() => { setStep("initial"); setGeneratedLink(""); }, 300); }}>
         <DialogTrigger asChild>
           <Button variant="outline" className="gap-2">
             <LinkIcon className="h-4 w-4" /> Acesso Provisório
