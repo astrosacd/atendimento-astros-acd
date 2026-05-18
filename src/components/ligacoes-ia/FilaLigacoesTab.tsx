@@ -87,6 +87,17 @@ function friendlyError(err: string | null): string {
   return err;
 }
 
+function todayInBrazil() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const get = (type: string) => parts.find((p) => p.type === type)?.value;
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
 export function FilaLigacoesTab() {
   const [items, setItems] = useState<Agendada[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,7 +119,7 @@ export function FilaLigacoesTab() {
   const callRef = useRef<ActiveCallHandle | null>(null);
   const cdTimerRef = useRef<any>(null);
 
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = useMemo(() => todayInBrazil(), []);
 
   const loadedOnceRef = useRef(false);
   const load = useCallback(async (opts?: { silent?: boolean }) => {
