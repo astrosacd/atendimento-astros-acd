@@ -167,8 +167,18 @@ export function FilaLigacoesTab() {
     setSyncing(false);
     if (error) return toast({ title: "Erro", description: error.message, variant: "destructive" });
     const d = data as any;
-    const extra = d?.scanned ? ` (${d.scanned} clientes encontrados em ${d.regra ?? "cobrança"})` : "";
-    toast({ title: "Sincronizado", description: `${d?.enqueued ?? 0} novas ligações na fila${extra}.` });
+    const enq = d?.enqueued ?? 0;
+    const scanned = d?.scanned ?? 0;
+    const dias = Array.isArray(d?.dias_processados) ? d.dias_processados.join(", ") : "—";
+    let desc = "";
+    if (enq > 0) {
+      desc = `${enq} nova(s) ligação(ões) adicionada(s) à fila.`;
+    } else if (scanned > 0) {
+      desc = `${scanned} cliente(s) elegível(is) já estavam na fila. Nada novo para enfileirar.`;
+    } else {
+      desc = `Nenhum cliente bate com a regra atual (D+${dias} da data de renovação). Ajuste em Configurações → Cobrança IA se necessário.`;
+    }
+    toast({ title: "Sincronização concluída", description: desc });
     load();
   };
 
