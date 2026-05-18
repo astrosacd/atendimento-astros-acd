@@ -561,6 +561,8 @@ function RoteirosTab() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any | null>(null);
+  const [toDelete, setToDelete] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -577,10 +579,17 @@ function RoteirosTab() {
   };
   useEffect(() => { load(); }, []);
 
-  const remove = async (id: string) => {
-    if (!confirm("Excluir roteiro?")) return;
-    await supabase.from("ligacoes_ia_roteiros").delete().eq("id", id);
+  const confirmRemove = async () => {
+    if (!toDelete) return;
+    setDeleting(true);
+    const { error } = await supabase.from("ligacoes_ia_roteiros").delete().eq("id", toDelete.id);
+    setDeleting(false);
+    if (error) {
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+      return;
+    }
     toast({ title: "Roteiro excluído" });
+    setToDelete(null);
     load();
   };
 
