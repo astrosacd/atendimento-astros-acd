@@ -72,6 +72,7 @@ export default function AdminRecaptcha() {
               Obtenha suas chaves em{' '}
               <a
                 href="https://www.google.com/recaptcha/admin/create"
+                referrerPolicy="no-referrer"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-primary underline"
