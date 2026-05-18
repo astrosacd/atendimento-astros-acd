@@ -285,7 +285,7 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
             blur={2.4}
             far={6}
           />
-          <FloatingParticles count={80} isNight={isNight} />
+          <FloatingParticles count={25} isNight={isNight} />
           <PulsingBeacons />
         </Suspense>
 
