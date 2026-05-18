@@ -110,8 +110,10 @@ export function FilaLigacoesTab() {
 
   const hoje = new Date().toISOString().slice(0, 10);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const loadedOnceRef = useRef(false);
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent ?? loadedOnceRef.current;
+    if (!silent) setLoading(true);
     const [{ data: cfg }, { data }] = await Promise.all([
       supabase.from("cobranca_ligacao_config").select("delay_minutes").limit(1).maybeSingle(),
       supabase
@@ -122,7 +124,8 @@ export function FilaLigacoesTab() {
     ]);
     setDelayMinutes(cfg?.delay_minutes ?? 5);
     setItems((data ?? []) as any);
-    setLoading(false);
+    if (!silent) setLoading(false);
+    loadedOnceRef.current = true;
   }, [hoje]);
 
   useEffect(() => { load(); }, [load]);
@@ -130,7 +133,7 @@ export function FilaLigacoesTab() {
   useEffect(() => {
     const ch = supabase
       .channel("ligacoes_agendadas_realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "ligacoes_agendadas" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "ligacoes_agendadas" }, () => load({ silent: true }))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [load]);
@@ -457,12 +460,17 @@ export function FilaLigacoesTab() {
                 const onToggle = async () => {
                   if (!toggleable || running) return;
                   const novo = willCall ? "cancelada" : "pendente";
+                  // Atualização otimista local — evita recarregar a tabela inteira
+                  setItems((prev) => prev.map((p) => (p.id === it.id ? { ...p, status: novo } : p)));
                   const { error } = await supabase
                     .from("ligacoes_agendadas")
                     .update({ status: novo })
                     .eq("id", it.id);
-                  if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-                  else load();
+                  if (error) {
+                    // Reverte em caso de erro
+                    setItems((prev) => prev.map((p) => (p.id === it.id ? { ...p, status: it.status } : p)));
+                    toast({ title: "Erro", description: error.message, variant: "destructive" });
+                  }
                 };
                 return (
                   <tr key={it.id} className={`border-t ${it.status === "cancelada" ? "opacity-60" : ""}`}>
