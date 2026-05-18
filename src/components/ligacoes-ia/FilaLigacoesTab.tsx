@@ -162,7 +162,9 @@ export function FilaLigacoesTab() {
   const filteredItems = useMemo(() => {
     const term = search.trim().toLowerCase();
     return items.filter((it) => {
-      if (filterStatus !== "todos" && it.status !== filterStatus) return false;
+      if (filterStatus === "todos") {
+        if (it.status === "cancelada") return false;
+      } else if (it.status !== filterStatus) return false;
       if (filterTipoD !== "todos" && it.tipo_d !== filterTipoD) return false;
       if (!term) return true;
       const nome = (it.clientes?.nome ?? it.nome_manual ?? "").toLowerCase();
