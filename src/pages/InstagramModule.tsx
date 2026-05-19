@@ -457,6 +457,11 @@ const InstagramModule = () => {
                 <History className="h-4 w-4" /> Histórico
               </TabsTrigger>
             )}
+            {effectiveCanManageEspionage && (
+              <TabsTrigger value="espionage" className="gap-2">
+                <Eye className="h-4 w-4" /> Espionagem
+              </TabsTrigger>
+            )}
             {effectiveCanManageSettings && (
               <TabsTrigger value="settings" className="gap-2">
                 <Settings className="h-4 w-4" /> Configurações
