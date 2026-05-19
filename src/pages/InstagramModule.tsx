@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Instagram, History, Settings, Sparkles, Link as LinkIcon, Plus, Copy, Trash2, Clock, Check, X, Zap, Loader2 } from "lucide-react";
+import { Instagram, History, Settings, Sparkles, Link as LinkIcon, Plus, Copy, Trash2, Clock, Check, X, Zap, Loader2, Eye } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import InstagramCreate from "./InstagramCreate";
 import InstagramHistory from "./InstagramHistory";
 import InstagramSettings from "./InstagramSettings";
 import InstagramAutoReply from "./InstagramAutoReply";
+import InstagramEspionage from "./InstagramEspionage";
 
 const InstagramModule = () => {
   const { 
@@ -25,6 +26,7 @@ const InstagramModule = () => {
     canCreateInstagramPost, 
     canManageInstagramSettings, 
     canViewInstagramHistory,
+    canManageInstagramEspionage,
     canManageTemporaryAccess,
   } = usePermissions();
 
@@ -83,16 +85,19 @@ const InstagramModule = () => {
   const effectiveCanCreatePost = canCreateInstagramPost() || (isTempAccess && hasPermission("create"));
   const effectiveCanManageAutoReply = isTempAccess ? hasPermission("autoreply") : true; 
   const effectiveCanViewHistory = canViewInstagramHistory() || (isTempAccess && hasPermission("history"));
+  const effectiveCanManageEspionage = isTempAccess ? false : canManageInstagramEspionage();
   const effectiveCanManageSettings = isTempAccess ? false : canManageInstagramSettings();
   const effectiveCanManageTempAccess = isTempAccess ? false : canManageTemporaryAccess();
   const firstAllowedTab = effectiveCanCreatePost ? "create" : 
     effectiveCanManageAutoReply ? "autoreply" : 
     effectiveCanViewHistory ? "history" : 
+    effectiveCanManageEspionage ? "espionage" :
     effectiveCanManageSettings ? "settings" : "none";
   const allowedInstagramTabs = [
     effectiveCanCreatePost && "create",
     effectiveCanManageAutoReply && "autoreply",
     effectiveCanViewHistory && "history",
+    effectiveCanManageEspionage && "espionage",
     effectiveCanManageSettings && "settings",
   ].filter(Boolean) as string[];
   const selectedInstagramTab = allowedInstagramTabs.includes(activeInstagramTab) ? activeInstagramTab : firstAllowedTab;
@@ -450,6 +455,11 @@ const InstagramModule = () => {
             {effectiveCanViewHistory && (
               <TabsTrigger value="history" className="gap-2">
                 <History className="h-4 w-4" /> Histórico
+              </TabsTrigger>
+            )}
+            {effectiveCanManageEspionage && (
+              <TabsTrigger value="espionage" className="gap-2">
+                <Eye className="h-4 w-4" /> Espionagem
               </TabsTrigger>
             )}
             {effectiveCanManageSettings && (

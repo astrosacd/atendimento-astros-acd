@@ -245,6 +245,7 @@ export function usePermissions() {
   const canCreateInstagramPost = () => hasPermission('create_instagram_post');
   const canManageInstagramSettings = () => hasPermission('manage_instagram_settings');
   const canViewInstagramHistory = () => hasPermission('view_instagram_history');
+  const canManageInstagramEspionage = () => hasPermission('manage_instagram_espionage');
   const canManageTemporaryAccess = () => hasPermission('manage_temporary_access');
   const canViewGuiaInstagram = () => hasPermission('view_guia_instagram');
   const canManageSystemHealth = () => hasPermission('manage_system_health');
@@ -426,6 +427,7 @@ export function usePermissions() {
     canCreateInstagramPost,
     canManageInstagramSettings,
     canViewInstagramHistory,
+    canManageInstagramEspionage,
     canManageTemporaryAccess,
     canViewGuiaInstagram,
     canViewInstagramReports: () => hasPermission('view_instagram_reports'),
