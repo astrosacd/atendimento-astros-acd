@@ -231,6 +231,19 @@ INSTRUÇÕES FINAIS:
           </div>
         </div>
 
+        <Tabs defaultValue="ask" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 max-w-md">
+            <TabsTrigger value="ask" className="gap-2">
+              <BookOpen className="h-4 w-4" />
+              Gerar resposta
+            </TabsTrigger>
+            <TabsTrigger value="improve" className="gap-2">
+              <Wand2 className="h-4 w-4" />
+              Melhorar mensagem
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="ask" className="mt-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Form */}
           <Card>
