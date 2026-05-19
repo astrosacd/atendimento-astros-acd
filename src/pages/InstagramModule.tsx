@@ -18,6 +18,7 @@ import InstagramCreate from "./InstagramCreate";
 import InstagramHistory from "./InstagramHistory";
 import InstagramSettings from "./InstagramSettings";
 import InstagramAutoReply from "./InstagramAutoReply";
+import InstagramEspionage from "./InstagramEspionage";
 
 const InstagramModule = () => {
   const { 
@@ -25,6 +26,7 @@ const InstagramModule = () => {
     canCreateInstagramPost, 
     canManageInstagramSettings, 
     canViewInstagramHistory,
+    canManageInstagramEspionage,
     canManageTemporaryAccess,
   } = usePermissions();
 
