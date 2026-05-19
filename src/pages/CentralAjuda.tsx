@@ -426,6 +426,174 @@ INSTRUÇÕES FINAIS:
             </CardContent>
           </Card>
         </div>
+          </TabsContent>
+
+          <TabsContent value="improve" className="mt-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Input draft */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Wand2 className="h-5 w-5 text-primary" />
+                    Sua mensagem (rascunho)
+                  </CardTitle>
+                  <CardDescription>
+                    Cole o texto que você escreveu. A IA vai melhorar a redação, clareza e formato — sem inventar dados novos.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="imp-tone">Tom de voz</Label>
+                      <Select value={improveTone} onValueChange={(v) => setImproveTone(v as typeof improveTone)}>
+                        <SelectTrigger id="imp-tone"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="amigavel">Amigável e profissional</SelectItem>
+                          <SelectItem value="formal">Formal e corporativo</SelectItem>
+                          <SelectItem value="tecnico">Técnico e objetivo</SelectItem>
+                          <SelectItem value="vendedor">Persuasivo (vendas)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="imp-style">Formato de saída</Label>
+                      <Select value={improveStyle} onValueChange={(v) => setImproveStyle(v as typeof improveStyle)}>
+                        <SelectTrigger id="imp-style"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="whatsapp">WhatsApp (*negrito*, emojis)</SelectItem>
+                          <SelectItem value="email">E-mail (parágrafos)</SelectItem>
+                          <SelectItem value="plano">Texto plano (sem formatação)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-md border p-3">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="imp-keep" className="text-sm">Manter significado exato</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Não inventa valores, prazos ou regras que não estão no seu rascunho.
+                      </p>
+                    </div>
+                    <Switch id="imp-keep" checked={keepMeaning} onCheckedChange={setKeepMeaning} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="imp-draft">
+                      Rascunho da mensagem <span className="text-destructive">*</span>
+                    </Label>
+                    <Textarea
+                      id="imp-draft"
+                      placeholder={`Ex: melhore solicitação de sms , somente com o bot, conforme foi orientado no dia da compra...`}
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      rows={8}
+                      className="resize-none"
+                    />
+                    <p className="text-xs text-muted-foreground">{draft.length}/4000 caracteres</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="imp-extra">Instruções extras (opcional)</Label>
+                    <Textarea
+                      id="imp-extra"
+                      placeholder="Ex: deixe mais curto, evite emojis, use 'você' formal..."
+                      value={extraInstructions}
+                      onChange={(e) => setExtraInstructions(e.target.value)}
+                      rows={2}
+                      className="resize-none"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      onClick={handleImprove}
+                      disabled={improvingLoading || !draft.trim()}
+                      className="flex-1 gap-2"
+                    >
+                      {improvingLoading ? (
+                        <><Loader2 className="h-4 w-4 animate-spin" /> Melhorando...</>
+                      ) : (
+                        <><Wand2 className="h-4 w-4" /> Melhorar mensagem <ArrowRight className="h-4 w-4" /></>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => { setDraft(''); setImproved(''); setExtraInstructions(''); }}
+                      disabled={improvingLoading}
+                      title="Limpar"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Output improved */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Sparkles className="h-5 w-5 text-primary" />
+                        Versão melhorada
+                      </CardTitle>
+                      <CardDescription>
+                        Edite à vontade antes de copiar e enviar.
+                      </CardDescription>
+                    </div>
+                    {improved && (
+                      <div className="flex gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleImprove}
+                          disabled={improvingLoading}
+                          title="Gerar novamente"
+                        >
+                          <RefreshCw className={`h-4 w-4 ${improvingLoading ? 'animate-spin' : ''}`} />
+                        </Button>
+                        <Button
+                          variant={improvedCopied ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={handleCopyImproved}
+                          className="gap-1"
+                        >
+                          {improvedCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                          {improvedCopied ? 'Copiado' : 'Copiar'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {improvingLoading ? (
+                    <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <p className="text-sm">Reescrevendo sua mensagem...</p>
+                    </div>
+                  ) : improved ? (
+                    <Textarea
+                      value={improved}
+                      onChange={(e) => setImproved(e.target.value)}
+                      rows={16}
+                      className="resize-none font-sans text-sm leading-relaxed"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-12 gap-3 text-center text-muted-foreground">
+                      <Wand2 className="h-10 w-10 opacity-30" />
+                      <p className="text-sm max-w-xs">
+                        Cole seu rascunho ao lado e clique em <strong>Melhorar mensagem</strong>. A IA não vai inventar dados — só refinar a redação.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+
 
         <Card className="bg-muted/30">
           <CardContent className="pt-6">
