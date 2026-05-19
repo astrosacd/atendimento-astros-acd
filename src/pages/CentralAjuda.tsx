@@ -35,6 +35,16 @@ export default function CentralAjuda() {
   const [copied, setCopied] = useState(false);
   const [aiConfig, setAiConfig] = useState<{ provider: string; model: string }>({ provider: 'lovable', model: '' });
 
+  // Melhorar mensagem
+  const [draft, setDraft] = useState('');
+  const [improved, setImproved] = useState('');
+  const [improveTone, setImproveTone] = useState<'amigavel' | 'formal' | 'tecnico' | 'vendedor'>('amigavel');
+  const [improveStyle, setImproveStyle] = useState<'whatsapp' | 'email' | 'plano'>('whatsapp');
+  const [keepMeaning, setKeepMeaning] = useState(true);
+  const [extraInstructions, setExtraInstructions] = useState('');
+  const [improvingLoading, setImprovingLoading] = useState(false);
+  const [improvedCopied, setImprovedCopied] = useState(false);
+
   useEffect(() => {
     (async () => {
       const { data } = await supabase
@@ -155,6 +165,55 @@ INSTRUÇÕES FINAIS:
     setClientName('');
     setProduto('');
     setAnswer(null);
+  };
+
+  const handleImprove = async () => {
+    if (!draft.trim() || draft.trim().length < 3) {
+      toast.error('Cole a mensagem a melhorar (mínimo 3 caracteres)');
+      return;
+    }
+    setImprovingLoading(true);
+    setImproved('');
+    try {
+      const { data, error } = await supabase.functions.invoke('melhorar-mensagem', {
+        body: {
+          draft: draft.trim(),
+          tone: improveTone,
+          style: improveStyle,
+          keep_meaning: keepMeaning,
+          extra_instructions: extraInstructions.trim() || undefined,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.improved) {
+        setImproved(data.improved);
+        logActivity('Melhorou mensagem na Central de Ajuda', 'consulta', draft.slice(0, 80));
+      } else {
+        throw new Error('Resposta vazia');
+      }
+    } catch (err: any) {
+      toast.error('Erro ao melhorar mensagem: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setImprovingLoading(false);
+    }
+  };
+
+  const handleCopyImproved = async () => {
+    if (!improved) return;
+    try {
+      await navigator.clipboard.writeText(improved);
+      setImprovedCopied(true);
+      toast.success('Mensagem copiada!');
+      setTimeout(() => setImprovedCopied(false), 2000);
+    } catch {
+      const el = document.createElement('textarea');
+      el.value = improved;
+      document.body.appendChild(el);
+      el.select();
+      try { document.execCommand('copy'); toast.success('Mensagem copiada!'); } catch { toast.error('Falha ao copiar'); }
+      document.body.removeChild(el);
+    }
   };
 
   return (
