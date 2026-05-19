@@ -4310,6 +4310,208 @@ export type Database = {
         }
         Relationships: []
       }
+      instagram_competitor_analyses: {
+        Row: {
+          analysis_type: string
+          competitor_id: string | null
+          content: Json
+          created_at: string
+          created_by: string
+          id: string
+          model_used: string | null
+          period_days: number
+          posts_analyzed_count: number
+        }
+        Insert: {
+          analysis_type: string
+          competitor_id?: string | null
+          content: Json
+          created_at?: string
+          created_by: string
+          id?: string
+          model_used?: string | null
+          period_days?: number
+          posts_analyzed_count?: number
+        }
+        Update: {
+          analysis_type?: string
+          competitor_id?: string | null
+          content?: Json
+          created_at?: string
+          created_by?: string
+          id?: string
+          model_used?: string | null
+          period_days?: number
+          posts_analyzed_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_competitor_analyses_competitor_id_fkey"
+            columns: ["competitor_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_competitors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_competitor_posts: {
+        Row: {
+          caption: string | null
+          comments_count: number | null
+          competitor_id: string
+          hashtags: string[] | null
+          id: string
+          ig_media_id: string
+          like_count: number | null
+          media_product_type: string | null
+          media_type: string
+          media_url: string | null
+          permalink: string | null
+          posted_at: string | null
+          synced_at: string
+          thumbnail_url: string | null
+          views_count: number | null
+        }
+        Insert: {
+          caption?: string | null
+          comments_count?: number | null
+          competitor_id: string
+          hashtags?: string[] | null
+          id?: string
+          ig_media_id: string
+          like_count?: number | null
+          media_product_type?: string | null
+          media_type: string
+          media_url?: string | null
+          permalink?: string | null
+          posted_at?: string | null
+          synced_at?: string
+          thumbnail_url?: string | null
+          views_count?: number | null
+        }
+        Update: {
+          caption?: string | null
+          comments_count?: number | null
+          competitor_id?: string
+          hashtags?: string[] | null
+          id?: string
+          ig_media_id?: string
+          like_count?: number | null
+          media_product_type?: string | null
+          media_type?: string
+          media_url?: string | null
+          permalink?: string | null
+          posted_at?: string | null
+          synced_at?: string
+          thumbnail_url?: string | null
+          views_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_competitor_posts_competitor_id_fkey"
+            columns: ["competitor_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_competitors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_competitors: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          display_name: string | null
+          followers_count: number | null
+          id: string
+          ig_business_id: string | null
+          is_active: boolean
+          last_sync_error: string | null
+          last_sync_status: string | null
+          last_synced_at: string | null
+          notes: string | null
+          profile_picture_url: string | null
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by: string
+          display_name?: string | null
+          followers_count?: number | null
+          id?: string
+          ig_business_id?: string | null
+          is_active?: boolean
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          last_synced_at?: string | null
+          notes?: string | null
+          profile_picture_url?: string | null
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          display_name?: string | null
+          followers_count?: number | null
+          id?: string
+          ig_business_id?: string | null
+          is_active?: boolean
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          last_synced_at?: string | null
+          notes?: string | null
+          profile_picture_url?: string | null
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      instagram_espionage_config: {
+        Row: {
+          auto_analysis_enabled: boolean
+          auto_sync_enabled: boolean
+          created_at: string
+          default_analysis_period_days: number
+          default_analysis_type: string
+          id: string
+          last_auto_run_at: string | null
+          last_auto_run_status: string | null
+          max_competitors: number
+          sync_frequency: string
+          updated_at: string
+        }
+        Insert: {
+          auto_analysis_enabled?: boolean
+          auto_sync_enabled?: boolean
+          created_at?: string
+          default_analysis_period_days?: number
+          default_analysis_type?: string
+          id?: string
+          last_auto_run_at?: string | null
+          last_auto_run_status?: string | null
+          max_competitors?: number
+          sync_frequency?: string
+          updated_at?: string
+        }
+        Update: {
+          auto_analysis_enabled?: boolean
+          auto_sync_enabled?: boolean
+          created_at?: string
+          default_analysis_period_days?: number
+          default_analysis_type?: string
+          id?: string
+          last_auto_run_at?: string | null
+          last_auto_run_status?: string | null
+          max_competitors?: number
+          sync_frequency?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       instagram_settings: {
         Row: {
           access_token: string | null
@@ -7690,6 +7892,7 @@ export type Database = {
       execute_divulgador_cron: { Args: never; Returns: undefined }
       execute_followups_cron: { Args: never; Returns: undefined }
       execute_gateway_abandoned_cart: { Args: never; Returns: undefined }
+      execute_instagram_spy_cron: { Args: never; Returns: undefined }
       execute_process_automations: { Args: never; Returns: undefined }
       execute_reports_analysis_cron: { Args: never; Returns: undefined }
       execute_scheduled_proposal_sends: { Args: never; Returns: undefined }
@@ -7749,6 +7952,13 @@ export type Database = {
         }[]
       }
       get_gateway_abandoned_cart_cron_schedule: {
+        Args: never
+        Returns: {
+          job_name: string
+          schedule: string
+        }[]
+      }
+      get_instagram_spy_cron_schedule: {
         Args: never
         Returns: {
           job_name: string
@@ -7873,6 +8083,10 @@ export type Database = {
       }
       update_gateway_abandoned_cart_cron: {
         Args: { p_interval_minutes: number }
+        Returns: boolean
+      }
+      update_instagram_spy_cron: {
+        Args: { p_frequency: string }
         Returns: boolean
       }
       update_remarketing_cron_schedule: {
