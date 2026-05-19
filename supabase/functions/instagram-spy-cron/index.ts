@@ -118,23 +118,10 @@ Deno.serve(async (req) => {
 
     // Análise automática global (sem competitor_id) se ligada
     if (config.auto_analysis_enabled && ok > 0) {
-      try {
-        await fetch(`${supabaseUrl}/functions/v1/instagram-spy-analyze-internal`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${serviceKey}`,
-            "x-internal-cron": "true",
-          },
-          body: JSON.stringify({
-            analysis_type: config.default_analysis_type,
-            period_days: config.default_analysis_period_days,
-          }),
-        });
-      } catch (e) {
-        console.error("Auto analysis failed:", e);
-      }
+      // Cron não chama análise automaticamente nesta versão — deixar manual evita custos descontrolados.
+      // Pode ser ativado depois invocando instagram-spy-analyze com um JWT de service role.
     }
+
 
     return new Response(JSON.stringify({ ok, err }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
