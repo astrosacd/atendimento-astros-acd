@@ -427,6 +427,7 @@ export function usePermissions() {
     canCreateInstagramPost,
     canManageInstagramSettings,
     canViewInstagramHistory,
+    canManageInstagramEspionage,
     canManageTemporaryAccess,
     canViewGuiaInstagram,
     canViewInstagramReports: () => hasPermission('view_instagram_reports'),
