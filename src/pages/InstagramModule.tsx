@@ -85,7 +85,7 @@ const InstagramModule = () => {
   const effectiveCanCreatePost = canCreateInstagramPost() || (isTempAccess && hasPermission("create"));
   const effectiveCanManageAutoReply = isTempAccess ? hasPermission("autoreply") : true; 
   const effectiveCanViewHistory = canViewInstagramHistory() || (isTempAccess && hasPermission("history"));
-  const effectiveCanManageEspionage = isTempAccess ? false : canManageInstagramEspionage();
+  const effectiveCanManageEspionage = isTempAccess ? hasPermission("espionage") : canManageInstagramEspionage();
   const effectiveCanManageSettings = isTempAccess ? false : canManageInstagramSettings();
   const effectiveCanManageTempAccess = isTempAccess ? false : canManageTemporaryAccess();
   const firstAllowedTab = effectiveCanCreatePost ? "create" : 
