@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { invokeFunction } from "@/utils/invokeFunction";
 
 const MAX_COMPETITORS = 25;
 
@@ -177,17 +178,17 @@ function CompetitorsTab() {
   const syncOne = async (id: string) => {
     setSyncingId(id);
     try {
-      const { data, error } = await supabase.functions.invoke("instagram-spy-sync", {
+      const data = await invokeFunction<any>("instagram-spy-sync", {
         body: { competitor_id: id },
       });
-      if (error) throw error;
       const r = data?.results?.[0];
       if (r?.status === "ok") toast.success(`${r.username}: ${r.posts_synced} posts sincronizados`);
-      else toast.error(`${r?.username || ""}: ${r?.error || "erro"}`);
+      else if (r) toast.error(`@${r.username}: ${r.error || "erro desconhecido"}`);
+      else toast.success(data?.message || "Sincronização concluída");
       qc.invalidateQueries({ queryKey: ["ig-competitors"] });
       qc.invalidateQueries({ queryKey: ["ig-posts"] });
     } catch (e: any) {
-      toast.error(e.message);
+      toast.error(e.message || "Erro ao sincronizar");
     } finally {
       setSyncingId(null);
     }
@@ -196,17 +197,21 @@ function CompetitorsTab() {
   const syncAll = async () => {
     setSyncingAll(true);
     try {
-      const { data, error } = await supabase.functions.invoke("instagram-spy-sync", {
+      const data = await invokeFunction<any>("instagram-spy-sync", {
         body: { sync_all: true },
       });
-      if (error) throw error;
       const ok = data?.results?.filter((r: any) => r.status === "ok").length || 0;
       const err = data?.results?.filter((r: any) => r.status === "error").length || 0;
-      toast.success(`Sincronização concluída: ${ok} ok, ${err} erros`);
+      const firstError = data?.results?.find((r: any) => r.status === "error");
+      if (err > 0 && ok === 0) {
+        toast.error(`Falha na sincronização: ${firstError?.error || "erro desconhecido"}`);
+      } else {
+        toast.success(`Sincronização concluída: ${ok} ok, ${err} erros`);
+      }
       qc.invalidateQueries({ queryKey: ["ig-competitors"] });
       qc.invalidateQueries({ queryKey: ["ig-posts"] });
     } catch (e: any) {
-      toast.error(e.message);
+      toast.error(e.message || "Erro ao sincronizar");
     } finally {
       setSyncingAll(false);
     }
@@ -405,14 +410,13 @@ function AnalysesTab() {
   const generate = async () => {
     setAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("instagram-spy-analyze", {
+      await invokeFunction("instagram-spy-analyze", {
         body: {
           competitor_id: form.scope === "one" ? form.competitor_id : null,
           analysis_type: form.analysis_type,
           period_days: parseInt(form.period_days),
         },
       });
-      if (error) throw error;
       toast.success("Análise gerada!");
       setDialogOpen(false);
       qc.invalidateQueries({ queryKey: ["ig-analyses"] });
