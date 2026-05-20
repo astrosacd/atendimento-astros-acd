@@ -410,14 +410,13 @@ function AnalysesTab() {
   const generate = async () => {
     setAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("instagram-spy-analyze", {
+      await invokeFunction("instagram-spy-analyze", {
         body: {
           competitor_id: form.scope === "one" ? form.competitor_id : null,
           analysis_type: form.analysis_type,
           period_days: parseInt(form.period_days),
         },
       });
-      if (error) throw error;
       toast.success("Análise gerada!");
       setDialogOpen(false);
       qc.invalidateQueries({ queryKey: ["ig-analyses"] });
