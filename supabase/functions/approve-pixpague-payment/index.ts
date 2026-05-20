@@ -157,21 +157,11 @@ serve(async (req) => {
       });
     }
 
-    // 2) Renew cliente.data_renovacao from CURRENT renewal date (not today)
+    // 2) Renovação: NÃO avançar a data automaticamente.
+    // A data_renovacao salva no cadastro/atualização do cliente é a fonte da verdade.
+    // O aprovador deve respeitar exatamente o que foi digitado pelo operador.
+    // (Antigamente somávamos CYCLE_MONTHS aqui, o que estava deslocando 1 mês a mais.)
     const cliente: any = payment.cliente;
-    
-    // 2) Renew cliente.data_renovacao only if billing is active (mensal)
-    if (cliente?.cobranca_ativa !== false && cliente?.data_renovacao && cliente?.ciclo_cobranca) {
-      const renewalDate = new Date(cliente.data_renovacao);
-      const months = CYCLE_MONTHS[cliente.ciclo_cobranca] || 1;
-      renewalDate.setMonth(renewalDate.getMonth() + months);
-      const newRenewalDate = renewalDate.toISOString().split("T")[0];
-
-      await supabase
-        .from("clientes")
-        .update({ data_renovacao: newRenewalDate })
-        .eq("id", cliente.id);
-    }
 
     // 3) Send receipt — ONLY if it is a monthly client (cobranca_ativa !== false)
     let receiptResult: any = null;
