@@ -127,6 +127,7 @@ const InstagramModule = () => {
     { id: "create", label: "Criar Post" },
     { id: "autoreply", label: "Auto-Resposta" },
     { id: "history", label: "Histórico" },
+    { id: "espionage", label: "Espionagem" },
   ];
 
   const updateTokenPermissions = async () => {
