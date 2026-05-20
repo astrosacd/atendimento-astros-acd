@@ -13,6 +13,10 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -98,6 +102,7 @@ function CompetitorsTab() {
   const [form, setForm] = useState({ username: "", category: "concorrente_direto", notes: "" });
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [syncingAll, setSyncingAll] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Competitor | null>(null);
 
   const { data: competitors = [], isLoading } = useQuery({
     queryKey: ["ig-competitors"],
@@ -305,15 +310,25 @@ function CompetitorsTab() {
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => toggleActive.mutate(c)} title={c.is_active ? "Pausar" : "Reativar"}>
                       {c.is_active ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => {
-                      if (confirm(`Excluir @${c.username}? Todos os posts coletados serão removidos.`)) deleteMutation.mutate(c.id);
-                    }} title="Excluir">
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteTarget(c)} title="Excluir">
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 ml-auto" asChild title="Abrir no Instagram">
-                      <a href={`https://instagram.com/${c.username}`} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 ml-auto"
+                      title="Abrir no Instagram"
+                      onClick={() => {
+                        const url = `https://www.instagram.com/${c.username}/`;
+                        const w = window.open(url, "_blank", "noopener,noreferrer");
+                        if (!w) {
+                          // popup bloqueado — copia link como fallback
+                          navigator.clipboard?.writeText(url);
+                          toast.info("Popup bloqueado. Link copiado: " + url);
+                        }
+                      }}
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </CardContent>
@@ -368,6 +383,29 @@ function CompetitorsTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir concorrente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir <strong>@{deleteTarget?.username}</strong>? Todos os posts coletados desse perfil serão removidos. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
+                setDeleteTarget(null);
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
