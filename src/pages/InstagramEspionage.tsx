@@ -102,6 +102,7 @@ function CompetitorsTab() {
   const [form, setForm] = useState({ username: "", category: "concorrente_direto", notes: "" });
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [syncingAll, setSyncingAll] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Competitor | null>(null);
 
   const { data: competitors = [], isLoading } = useQuery({
     queryKey: ["ig-competitors"],
