@@ -157,11 +157,39 @@ serve(async (req) => {
       });
     }
 
-    // 2) Renovação: NÃO avançar a data automaticamente.
-    // A data_renovacao salva no cadastro/atualização do cliente é a fonte da verdade.
-    // O aprovador deve respeitar exatamente o que foi digitado pelo operador.
-    // (Antigamente somávamos CYCLE_MONTHS aqui, o que estava deslocando 1 mês a mais.)
+    // 2) Renovação de data: SOMENTE quando for renovação (não no primeiro cadastro).
+    // Detecta automaticamente: se já existe outro pagamento "paid" pra esse cliente,
+    // é renovação → avança a data_renovacao em +CYCLE_MONTHS.
+    // Se for o primeiro pagamento aprovado (cadastro), mantém a data exata que o
+    // operador digitou no cadastro do cliente.
     const cliente: any = payment.cliente;
+
+    if (cliente?.id && cliente?.cobranca_ativa !== false && cliente?.data_renovacao && cliente?.ciclo_cobranca) {
+      const { count: priorPaidCount } = await supabase
+        .from("client_payments")
+        .select("id", { count: "exact", head: true })
+        .eq("cliente_id", cliente.id)
+        .eq("status", "paid")
+        .neq("id", paymentId);
+
+      const isRenewal = (priorPaidCount ?? 0) > 0;
+
+      if (isRenewal) {
+        const renewalDate = new Date(cliente.data_renovacao);
+        const months = CYCLE_MONTHS[cliente.ciclo_cobranca] || 1;
+        renewalDate.setMonth(renewalDate.getMonth() + months);
+        const newRenewalDate = renewalDate.toISOString().split("T")[0];
+
+        await supabase
+          .from("clientes")
+          .update({ data_renovacao: newRenewalDate })
+          .eq("id", cliente.id);
+
+        console.log(`[approve-pixpague] Renovação detectada (cliente ${cliente.id}): data avançada para ${newRenewalDate}`);
+      } else {
+        console.log(`[approve-pixpague] Primeiro pagamento (cadastro) — data_renovacao preservada: ${cliente.data_renovacao}`);
+      }
+    }
 
     // 3) Send receipt — ONLY if it is a monthly client (cobranca_ativa !== false)
     let receiptResult: any = null;
