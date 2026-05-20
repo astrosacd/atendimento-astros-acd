@@ -484,6 +484,11 @@ const InstagramModule = () => {
               <InstagramHistory />
             </TabsContent>
           )}
+          {effectiveCanManageEspionage && (
+            <TabsContent value="espionage">
+              <InstagramEspionage />
+            </TabsContent>
+          )}
           {effectiveCanManageSettings && (
             <TabsContent value="settings">
               <InstagramSettings />
