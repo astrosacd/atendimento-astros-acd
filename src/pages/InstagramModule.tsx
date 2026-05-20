@@ -85,7 +85,7 @@ const InstagramModule = () => {
   const effectiveCanCreatePost = canCreateInstagramPost() || (isTempAccess && hasPermission("create"));
   const effectiveCanManageAutoReply = isTempAccess ? hasPermission("autoreply") : true; 
   const effectiveCanViewHistory = canViewInstagramHistory() || (isTempAccess && hasPermission("history"));
-  const effectiveCanManageEspionage = isTempAccess ? false : canManageInstagramEspionage();
+  const effectiveCanManageEspionage = isTempAccess ? hasPermission("espionage") : canManageInstagramEspionage();
   const effectiveCanManageSettings = isTempAccess ? false : canManageInstagramSettings();
   const effectiveCanManageTempAccess = isTempAccess ? false : canManageTemporaryAccess();
   const firstAllowedTab = effectiveCanCreatePost ? "create" : 
@@ -127,6 +127,7 @@ const InstagramModule = () => {
     { id: "create", label: "Criar Post" },
     { id: "autoreply", label: "Auto-Resposta" },
     { id: "history", label: "Histórico" },
+    { id: "espionage", label: "Espionagem" },
   ];
 
   const updateTokenPermissions = async () => {
@@ -322,6 +323,7 @@ const InstagramModule = () => {
                             { id: "create", label: "Criar Post" },
                             { id: "autoreply", label: "Auto-Resposta" },
                             { id: "history", label: "Histórico" },
+                            { id: "espionage", label: "Espionagem" },
                           ].map((p) => (
                             <div key={p.id} className="flex items-center space-x-2">
                               <input 

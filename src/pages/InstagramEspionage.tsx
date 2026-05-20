@@ -63,6 +63,7 @@ interface Competitor {
 
 export default function InstagramEspionage() {
   const qc = useQueryClient();
+  const isTempAccess = typeof window !== "undefined" && !!sessionStorage.getItem("temp_access_token");
   const [tab, setTab] = useState("concorrentes");
 
   return (
@@ -72,7 +73,9 @@ export default function InstagramEspionage() {
           <TabsTrigger value="concorrentes" className="gap-2"><Eye className="h-4 w-4" /> Concorrentes</TabsTrigger>
           <TabsTrigger value="analises" className="gap-2"><Sparkles className="h-4 w-4" /> Análises</TabsTrigger>
           <TabsTrigger value="posts" className="gap-2"><BarChart3 className="h-4 w-4" /> Posts coletados</TabsTrigger>
-          <TabsTrigger value="config" className="gap-2"><SettingsIcon className="h-4 w-4" /> Configurações</TabsTrigger>
+          {!isTempAccess && (
+            <TabsTrigger value="config" className="gap-2"><SettingsIcon className="h-4 w-4" /> Configurações</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="concorrentes" className="space-y-4">
@@ -84,9 +87,11 @@ export default function InstagramEspionage() {
         <TabsContent value="posts" className="space-y-4">
           <PostsTab />
         </TabsContent>
-        <TabsContent value="config" className="space-y-4">
-          <ConfigTab />
-        </TabsContent>
+        {!isTempAccess && (
+          <TabsContent value="config" className="space-y-4">
+            <ConfigTab />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
