@@ -310,15 +310,25 @@ function CompetitorsTab() {
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => toggleActive.mutate(c)} title={c.is_active ? "Pausar" : "Reativar"}>
                       {c.is_active ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => {
-                      if (confirm(`Excluir @${c.username}? Todos os posts coletados serão removidos.`)) deleteMutation.mutate(c.id);
-                    }} title="Excluir">
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteTarget(c)} title="Excluir">
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 ml-auto" asChild title="Abrir no Instagram">
-                      <a href={`https://instagram.com/${c.username}`} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 ml-auto"
+                      title="Abrir no Instagram"
+                      onClick={() => {
+                        const url = `https://www.instagram.com/${c.username}/`;
+                        const w = window.open(url, "_blank", "noopener,noreferrer");
+                        if (!w) {
+                          // popup bloqueado — copia link como fallback
+                          navigator.clipboard?.writeText(url);
+                          toast.info("Popup bloqueado. Link copiado: " + url);
+                        }
+                      }}
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </CardContent>
