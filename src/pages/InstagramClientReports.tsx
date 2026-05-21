@@ -62,6 +62,7 @@ function ProfilesTab() {
   const save = useSaveProfile();
   const del = useDeleteProfile();
   const sync = useSyncProfile();
+  const siteUrl = useSiteUrl();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<SocialProfile | null>(null);
   const [oauthLoading, setOauthLoading] = useState(false);
@@ -85,10 +86,12 @@ function ProfilesTab() {
 
   async function startOAuth() {
     if (!editing?.id) { toast.error("Salve o perfil primeiro"); return; }
+    if (!siteUrl) { toast.error("URL do site não configurada. Vá em Gateway → Configurações e defina a URL pública."); return; }
     setOauthLoading(true);
     try {
+      const returnUrl = `${siteUrl}/instagram`;
       const { data, error } = await supabase.functions.invoke("instagram-oauth-start", {
-        body: { profile_id: editing.id, return_url: window.location.href },
+        body: { profile_id: editing.id, return_url: returnUrl, site_url: siteUrl },
       });
       if (error) throw error;
       if (data?.auth_url) window.location.href = data.auth_url;
@@ -543,6 +546,7 @@ function ConfigTab() {
   const { data: cfg, isLoading } = useSocialReportConfig();
   const save = useSaveReportConfig();
   const test = useTestCredentials();
+  const siteUrl = useSiteUrl();
 
   const [form, setForm] = useState<any>({});
   const [testPhone, setTestPhone] = useState("");
@@ -671,10 +675,33 @@ function ConfigTab() {
                 <Input type="password" value={form.instagram_app_secret || ""} onChange={(e) => setForm({ ...form, instagram_app_secret: e.target.value })} placeholder="••••••••••••" />
               </div>
             </div>
+            <div className="mt-3 rounded-md border border-purple-200 dark:border-purple-900 bg-purple-50/50 dark:bg-purple-950/20 p-3 space-y-2">
+              <p className="text-[11px] font-medium text-purple-900 dark:text-purple-200">
+                Configure no Facebook Developers → Facebook Login → Settings → <strong>Valid OAuth Redirect URIs</strong>:
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-[11px] bg-background border rounded px-2 py-1.5 break-all">
+                  {siteUrl ? `${siteUrl}/instagram/oauth-callback` : "Carregando URL pública..."}
+                </code>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!siteUrl}
+                  onClick={async () => {
+                    const ok = await copyToClipboard(`${siteUrl}/instagram/oauth-callback`);
+                    if (ok) toast.success("Redirect URI copiado!");
+                  }}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                ⚠️ Use exatamente esta URL (do site publicado). NÃO use a URL <code>id-preview--*.lovable.app</code> do editor — ela muda a cada deploy e não é pública. A URL acima vem das suas configurações do Gateway (<em>site_base_url</em>).
+              </p>
+            </div>
             <p className="text-[10px] text-muted-foreground mt-2">
-              Crie um App em <a href="https://developers.facebook.com" target="_blank" rel="noopener" className="underline">developers.facebook.com</a>, adicione produto "Facebook Login" e configure o redirect URI:
-              <br />
-              <code className="text-[10px]">{`${window.location.origin}/instagram/oauth-callback`}</code>
+              Crie um App em <a href="https://developers.facebook.com" target="_blank" rel="noopener" className="underline">developers.facebook.com</a>, adicione o produto "Facebook Login" e cole o redirect URI acima.
             </p>
           </div>
         </CardContent>
