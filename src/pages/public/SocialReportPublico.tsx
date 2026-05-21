@@ -332,3 +332,63 @@ function Metric({ label, value, color, icon }: { label: string; value: string; c
     </div>
   );
 }
+
+function DemoPie({ title, data, colors }: { title: string; data: any[]; colors: string[] }) {
+  const total = data.reduce((a, b) => a + (b.value || 0), 0) || 1;
+  return (
+    <div>
+      <p className="text-xs font-semibold mb-2 text-muted-foreground uppercase tracking-wide">{title}</p>
+      <div className="h-44">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={data} dataKey="value" nameKey="key" outerRadius={60} label={(e: any) => `${e.key} ${Math.round((e.value / total) * 100)}%`} labelLine={false}>
+              {data.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
+            </Pie>
+            <Tooltip />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+function DemoBar({ title, data }: { title: string; data: any[] }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold mb-2 text-muted-foreground uppercase tracking-wide">{title}</p>
+      <div className="h-44">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+            <XAxis dataKey="key" tick={{ fontSize: 10 }} />
+            <YAxis tick={{ fontSize: 10 }} />
+            <Tooltip />
+            <Bar dataKey="value" fill="#a855f7" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+function DemoTop({ title, data }: { title: string; data: any[] }) {
+  const max = Math.max(...data.map((d: any) => d.value || 0), 1);
+  return (
+    <div>
+      <p className="text-xs font-semibold mb-2 text-muted-foreground uppercase tracking-wide">{title}</p>
+      <div className="space-y-1.5">
+        {data.map((d: any, i: number) => (
+          <div key={i} className="text-xs">
+            <div className="flex justify-between mb-0.5">
+              <span className="font-medium truncate">{d.key}</span>
+              <span className="text-muted-foreground">{(d.value || 0).toLocaleString("pt-BR")}</span>
+            </div>
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500" style={{ width: `${((d.value || 0) / max) * 100}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
