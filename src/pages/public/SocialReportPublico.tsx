@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, TrendingUp, TrendingDown, Heart, MessageCircle, Image as ImgIcon, Film, Layers, Download, Instagram, ExternalLink } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, Heart, MessageCircle, Image as ImgIcon, Film, Layers, Download, Instagram, ExternalLink, Eye, Bookmark, Share2, Globe, Users as UsersIcon, KeyRound, MousePointerClick, Play } from "lucide-react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  CartesianGrid, Legend,
+  CartesianGrid, Legend, PieChart, Pie, Cell,
 } from "recharts";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
