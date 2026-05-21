@@ -5,7 +5,7 @@ import {
   History, CreditCard, Mail, FileText, CheckSquare, ShoppingBag, 
   File, RefreshCw, ChevronDown, AlertTriangle, Send, MessageSquare,
   Clock, ArrowUpDown, Image, Key, Columns3, Zap, Users, Award, ExternalLink, User,
-  Sparkles, ShoppingCart
+  Sparkles, ShoppingCart, PhoneCall, CalendarClock, TrendingUp, Lightbulb, Instagram
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
