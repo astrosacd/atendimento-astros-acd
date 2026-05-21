@@ -546,6 +546,7 @@ function ConfigTab() {
   const { data: cfg, isLoading } = useSocialReportConfig();
   const save = useSaveReportConfig();
   const test = useTestCredentials();
+  const siteUrl = useSiteUrl();
 
   const [form, setForm] = useState<any>({});
   const [testPhone, setTestPhone] = useState("");
