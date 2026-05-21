@@ -7527,6 +7527,12 @@ export type Database = {
           last_synced_at: string | null
           notify_email: boolean
           notify_whatsapp: boolean
+          oauth_access_token: string | null
+          oauth_connected: boolean
+          oauth_connected_at: string | null
+          oauth_fb_page_id: string | null
+          oauth_ig_business_id: string | null
+          oauth_token_expires_at: string | null
           profile_picture_url: string | null
           report_day: number
           updated_at: string
@@ -7549,6 +7555,12 @@ export type Database = {
           last_synced_at?: string | null
           notify_email?: boolean
           notify_whatsapp?: boolean
+          oauth_access_token?: string | null
+          oauth_connected?: boolean
+          oauth_connected_at?: string | null
+          oauth_fb_page_id?: string | null
+          oauth_ig_business_id?: string | null
+          oauth_token_expires_at?: string | null
           profile_picture_url?: string | null
           report_day?: number
           updated_at?: string
@@ -7571,6 +7583,12 @@ export type Database = {
           last_synced_at?: string | null
           notify_email?: boolean
           notify_whatsapp?: boolean
+          oauth_access_token?: string | null
+          oauth_connected?: boolean
+          oauth_connected_at?: string | null
+          oauth_fb_page_id?: string | null
+          oauth_ig_business_id?: string | null
+          oauth_token_expires_at?: string | null
           profile_picture_url?: string | null
           report_day?: number
           updated_at?: string
@@ -7624,6 +7642,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      social_media_message_templates: {
+        Row: {
+          body: string
+          channel: string
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          subject: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          channel: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          subject?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          subject?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       social_media_monthly_reports: {
         Row: {
@@ -7751,10 +7805,15 @@ export type Database = {
           email_smtp_pass: string | null
           email_smtp_port: number | null
           email_smtp_user: string | null
+          evolution_apikey: string | null
           evolution_instance_id: string | null
           evolution_instance_name: string | null
           evolution_phone_sender: string | null
+          evolution_url: string | null
           id: string
+          instagram_app_id: string | null
+          instagram_app_secret: string | null
+          instagram_oauth_enabled: boolean
           send_hour: number
           updated_at: string
         }
@@ -7768,10 +7827,15 @@ export type Database = {
           email_smtp_pass?: string | null
           email_smtp_port?: number | null
           email_smtp_user?: string | null
+          evolution_apikey?: string | null
           evolution_instance_id?: string | null
           evolution_instance_name?: string | null
           evolution_phone_sender?: string | null
+          evolution_url?: string | null
           id?: string
+          instagram_app_id?: string | null
+          instagram_app_secret?: string | null
+          instagram_oauth_enabled?: boolean
           send_hour?: number
           updated_at?: string
         }
@@ -7785,10 +7849,15 @@ export type Database = {
           email_smtp_pass?: string | null
           email_smtp_port?: number | null
           email_smtp_user?: string | null
+          evolution_apikey?: string | null
           evolution_instance_id?: string | null
           evolution_instance_name?: string | null
           evolution_phone_sender?: string | null
+          evolution_url?: string | null
           id?: string
+          instagram_app_id?: string | null
+          instagram_app_secret?: string | null
+          instagram_oauth_enabled?: boolean
           send_hour?: number
           updated_at?: string
         }
