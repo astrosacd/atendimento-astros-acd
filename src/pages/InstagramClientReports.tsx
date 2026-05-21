@@ -414,6 +414,9 @@ const VARIABLES = [
   "crescimento", "posts_total", "posts_reels", "posts_carrossel",
   "posts_imagem", "curtidas", "comentarios", "engajamento_total",
   "media_por_post", "link",
+  // OAuth (só preenchidas quando o perfil tem OAuth conectado)
+  "alcance", "impressoes", "visualizacoes_perfil", "cliques_site",
+  "salvos", "compartilhamentos", "reproducoes", "taxa_real_engajamento",
 ];
 
 function TemplatesTab() {
