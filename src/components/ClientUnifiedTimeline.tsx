@@ -5,7 +5,7 @@ import {
   History, CreditCard, Mail, FileText, CheckSquare, ShoppingBag, 
   File, RefreshCw, ChevronDown, AlertTriangle, Send, MessageSquare,
   Clock, ArrowUpDown, Image, Key, Columns3, Zap, Users, Award, ExternalLink, User,
-  Sparkles, ShoppingCart
+  Sparkles, ShoppingCart, PhoneCall, CalendarClock, TrendingUp, Lightbulb, Instagram
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface TimelineEvent {
   id: string;
-  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery' | 'whatsapp_group' | 'logo' | 'credential' | 'pipeline' | 'automation' | 'license' | 'share_link' | 'client' | 'ai_log' | 'ticket' | 'appointment' | 'sale' | 'sms_validation';
+  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery' | 'whatsapp_group' | 'logo' | 'credential' | 'pipeline' | 'automation' | 'license' | 'share_link' | 'client' | 'ai_log' | 'ticket' | 'appointment' | 'sale' | 'sms_validation' | 'ia_call' | 'scheduled_call' | 'score_change' | 'upsell' | 'social_profile';
   date: string;
   title: string;
   description: string;
@@ -50,6 +50,11 @@ const TYPE_CONFIG: Record<TimelineEvent['type'], { icon: React.ElementType; colo
   appointment: { icon: Clock, color: 'text-blue-400', label: 'Agendamento' },
   sale: { icon: ShoppingCart, color: 'text-emerald-500', label: 'Venda' },
   sms_validation: { icon: Zap, color: 'text-amber-400', label: 'Validação SMS' },
+  ia_call: { icon: PhoneCall, color: 'text-fuchsia-500', label: 'Ligação IA' },
+  scheduled_call: { icon: CalendarClock, color: 'text-fuchsia-400', label: 'Ligação Agendada' },
+  score_change: { icon: TrendingUp, color: 'text-emerald-400', label: 'Score IA' },
+  upsell: { icon: Lightbulb, color: 'text-yellow-400', label: 'Sugestão Upsell' },
+  social_profile: { icon: Instagram, color: 'text-pink-400', label: 'Perfil Social' },
 };
 
 export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedTimelineProps) {
@@ -92,6 +97,11 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         appointmentsRes,
         salesRes,
         smsLogsRes,
+        iaCallsRes,
+        scheduledCallsRes,
+        scoreHistoryRes,
+        upsellRes,
+        socialProfilesRes,
       ] = await Promise.all([
         supabase.from('client_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('billing_logs').select('*').eq('cliente_id', clienteId).order('sent_at', { ascending: false }).limit(50),
@@ -115,6 +125,11 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         supabase.from('calendar_events').select('*').or(`client_email.eq.${clienteId},client_phone.eq.${clienteId}`).order('created_at', { ascending: false }).limit(50),
         supabase.from('gateway_orders').select('*').eq('customer_email', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('sms_validation_logs').select('*').eq('numero', clienteId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('ligacoes_ia_historico').select('*, roteiro:ligacoes_ia_roteiros(nome)').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('ligacoes_agendadas').select('*, roteiro:ligacoes_ia_roteiros(nome)').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('client_score_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('client_ai_upsell_suggestions').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20),
+        supabase.from('social_media_client_profiles').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20),
       ]);
 
       const clientInfo = clientDataRes.data;
@@ -406,6 +421,72 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
           title: 'Validação SMS',
           description: `${sms.resultado} — ${sms.motivo || ''}`,
           status: sms.resultado === 'sucesso' ? 'default' : 'destructive',
+        });
+      });
+
+      // Ligações IA (histórico de chamadas feitas)
+      (iaCallsRes.data || []).forEach((c: any) => {
+        const roteiroNome = (c.roteiro as any)?.nome || 'Sem roteiro';
+        const dur = c.duration_seconds ? ` — ${c.duration_seconds}s` : '';
+        allEvents.push({
+          id: `ia-call-${c.id}`,
+          type: 'ia_call',
+          date: c.created_at,
+          title: `Ligação IA: ${roteiroNome}`,
+          description: `${c.numero_destino || ''} — ${c.status}${dur}${c.source ? ` (${c.source})` : ''}${c.error_message ? ` — ${c.error_message}` : ''}`,
+          status: c.status,
+        });
+      });
+
+      // Ligações Agendadas (fila de cobrança IA)
+      (scheduledCallsRes.data || []).forEach((s: any) => {
+        const roteiroNome = (s.roteiro as any)?.nome || 'Sem roteiro';
+        allEvents.push({
+          id: `sched-call-${s.id}`,
+          type: 'scheduled_call',
+          date: s.created_at,
+          title: `Ligação agendada: ${roteiroNome}`,
+          description: `${s.tipo_d || ''} — alvo: ${s.dia_alvo} — ${s.status}${s.tentativas ? ` (tent. ${s.tentativas})` : ''}${s.erro ? ` — ${s.erro}` : ''}`,
+          status: s.status,
+        });
+      });
+
+      // Histórico de Score IA
+      (scoreHistoryRes.data || []).forEach((s: any) => {
+        const delta = (s.score_novo ?? 0) - (s.score_anterior ?? 0);
+        const sign = delta > 0 ? '+' : '';
+        allEvents.push({
+          id: `score-${s.id}`,
+          type: 'score_change',
+          date: s.created_at,
+          title: `Score: ${s.score_anterior ?? 0} → ${s.score_novo ?? 0} (${sign}${delta})`,
+          description: `${s.faixa_anterior || '—'} → ${s.faixa_nova || '—'}${s.motivo ? ` — ${s.motivo}` : ''}`,
+          status: s.faixa_nova,
+        });
+      });
+
+      // Sugestões de Upsell IA
+      (upsellRes.data || []).forEach((u: any) => {
+        const count = Array.isArray(u.suggestions) ? u.suggestions.length : 0;
+        allEvents.push({
+          id: `upsell-${u.id}`,
+          type: 'upsell',
+          date: u.last_analysis_at || u.created_at,
+          title: `Sugestões de upsell geradas`,
+          description: `${count} sugestão(ões) — status: ${u.status || 'pendente'}`,
+          status: u.status,
+        });
+      });
+
+      // Perfis de Redes Sociais vinculados
+      (socialProfilesRes.data || []).forEach((p: any) => {
+        allEvents.push({
+          id: `social-profile-${p.id}`,
+          type: 'social_profile',
+          date: p.created_at,
+          title: `Perfil Instagram vinculado: @${p.username || 'sem usuário'}`,
+          description: `${p.display_name || ''}${p.followers_count ? ` — ${p.followers_count} seguidores` : ''}${p.oauth_connected ? ' — OAuth conectado' : ''}`,
+          status: p.is_active ? 'Ativo' : 'Inativo',
         });
       });
 
