@@ -46,26 +46,26 @@ Deno.serve(async (req) => {
 
     const { data: config } = await admin.from("social_media_report_config").select("*").limit(1).maybeSingle();
 
-    // 2) WhatsApp
+    // 2) WhatsApp via Evolution (URL + Instance + Key)
     if (testPhone) {
       try {
-        let apiUrl: string | undefined, apiKey: string | undefined, instanceName: string | undefined;
-        if (config?.evolution_instance_id) {
-          const { data: inst } = await admin.from("billing_whatsapp_instances").select("*").eq("id", config.evolution_instance_id).maybeSingle();
-          if (inst) { apiUrl = inst.api_url; apiKey = inst.api_key; instanceName = inst.instance_name; }
-        }
-        if (!apiUrl) {
+        let apiUrl: string | undefined = config?.evolution_url;
+        let apiKey: string | undefined = config?.evolution_apikey;
+        let instanceName: string | undefined = config?.evolution_instance_name;
+
+        if (!apiUrl || !apiKey || !instanceName) {
           const { data: inst } = await admin.from("billing_whatsapp_instances").select("*").eq("is_active", true).limit(1).maybeSingle();
           if (inst) { apiUrl = inst.api_url; apiKey = inst.api_key; instanceName = inst.instance_name; }
         }
-        if (!apiUrl || !apiKey || !instanceName) throw new Error("Nenhuma instância Evolution ativa");
-        const r = await fetch(`${apiUrl}/message/sendText/${instanceName}`, {
+        if (!apiUrl || !apiKey || !instanceName) throw new Error("Evolution API não configurada (URL + Instance + Key)");
+
+        const r = await fetch(`${apiUrl.replace(/\/$/, "")}/message/sendText/${instanceName}`, {
           method: "POST", headers: { "Content-Type": "application/json", apikey: apiKey },
           body: JSON.stringify({ number: testPhone.replace(/\D/g, ""), text: "🧪 Teste de credenciais — Relatórios Social Media ✅" }),
         });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(`HTTP ${r.status}: ${JSON.stringify(j)}`);
-        result.whatsapp = { success: true };
+        result.whatsapp = { success: true, instance: instanceName };
       } catch (e: any) {
         result.whatsapp = { success: false, error: e.message };
       }

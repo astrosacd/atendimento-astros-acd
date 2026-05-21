@@ -64,6 +64,15 @@ async function computeMetrics(admin: any, profileId: string, month: string) {
 
   const prevFollowersGain = prevReport?.data?.followers?.gain ?? null;
 
+  // Últimos relatórios anteriores (pra comparativo 3 meses)
+  const { data: last3Reports } = await admin
+    .from("social_media_monthly_reports")
+    .select("month, data")
+    .eq("profile_id", profileId)
+    .lt("month", month)
+    .order("month", { ascending: false })
+    .limit(2);
+
   // Posts publicados no mês
   const { data: posts } = await admin
     .from("social_media_posts_collected")
@@ -96,6 +105,22 @@ async function computeMetrics(admin: any, profileId: string, month: string) {
     .eq("profile_id", profileId)
     .gte("snapshot_date", sixMonthsAgo.toISOString().slice(0, 10))
     .order("snapshot_date", { ascending: true });
+
+  // Comparativo 3 meses (cronológico: mais antigo → atual)
+  const last3Months = [
+    ...(last3Reports || []).map((r: any) => ({
+      month: r.month,
+      followers_gain: r.data?.followers?.gain ?? 0,
+      posts_total: r.data?.posts?.total ?? 0,
+      engagement_total: r.data?.engagement?.total ?? 0,
+    })),
+    {
+      month,
+      followers_gain: followersGain ?? 0,
+      posts_total: posts?.length || 0,
+      engagement_total: totalEng,
+    },
+  ].reverse().slice(0, 3).reverse();
 
   return {
     month,
@@ -134,6 +159,7 @@ async function computeMetrics(admin: any, profileId: string, month: string) {
       date: h.snapshot_date,
       followers: h.followers_count,
     })),
+    last_3_months: last3Months,
   };
 }
 

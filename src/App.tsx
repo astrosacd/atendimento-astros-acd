@@ -189,6 +189,7 @@ function AppRoutes() {
       
       {/* Instagram Module */}
       <Route path="/instagram" element={<ProtectedRoute permission="view_instagram"><InstagramModule /></ProtectedRoute>} />
+      <Route path="/instagram/oauth-callback" element={<ProtectedRoute permission="manage_social_media_reports"><InstagramOAuthCallback /></ProtectedRoute>} />
 
       {/* Ligações IA */}
       <Route path="/ligacoes-ia" element={<ProtectedRoute permission="view_ligacoes_ia"><LigacoesIA /></ProtectedRoute>} />

@@ -6,6 +6,10 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, TrendingUp, TrendingDown, Heart, MessageCircle, Image as ImgIcon, Film, Layers, Download, Instagram, ExternalLink } from "lucide-react";
+import {
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  CartesianGrid, Legend,
+} from "recharts";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -76,6 +80,8 @@ export default function SocialReportPublico() {
   const posts = d.posts || {};
   const eng = d.engagement || {};
   const top = d.top_post;
+  const history = (d.daily_history || []).filter((x: any) => x.followers != null);
+  const last3 = d.last_3_months || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-amber-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 py-6 px-4">
@@ -164,12 +170,60 @@ export default function SocialReportPublico() {
           </Card>
         )}
 
-        {/* Histórico simples */}
-        {d.daily_history?.length > 0 && (
+        {/* Evolução de seguidores - LineChart Recharts */}
+        {history.length >= 2 && (
           <Card>
             <CardHeader><CardTitle className="text-lg">📈 Evolução de seguidores</CardTitle></CardHeader>
             <CardContent>
-              <Sparkline data={d.daily_history} />
+              <div className="h-56 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={history} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 10 }}
+                      tickFormatter={(v) => v.slice(5)}
+                    />
+                    <YAxis tick={{ fontSize: 10 }} domain={['auto', 'auto']} />
+                    <Tooltip
+                      contentStyle={{ fontSize: 12 }}
+                      labelFormatter={(v) => `Data: ${v}`}
+                      formatter={(v: any) => [fmt(v), "Seguidores"]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="followers"
+                      stroke="#a855f7"
+                      strokeWidth={2}
+                      dot={{ r: 2 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Comparativo 3 meses - BarChart */}
+        {last3.length >= 2 && (
+          <Card>
+            <CardHeader><CardTitle className="text-lg">📊 Comparativo últimos {last3.length} meses</CardTitle></CardHeader>
+            <CardContent>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={last3} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <Tooltip contentStyle={{ fontSize: 12 }} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Bar dataKey="followers_gain" fill="#10b981" name="Saldo seguidores" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="posts_total" fill="#3b82f6" name="Posts" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="engagement_total" fill="#ec4899" name="Engajamento" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -202,31 +256,6 @@ function Metric({ label, value, color, icon }: { label: string; value: string; c
     <div className={`p-3 rounded-md ${c} text-center`}>
       <div className="text-2xl font-bold flex items-center justify-center gap-1">{icon}{value}</div>
       <div className="text-[11px] uppercase tracking-wide opacity-80 mt-1">{label}</div>
-    </div>
-  );
-}
-
-function Sparkline({ data }: { data: { date: string; followers: number }[] }) {
-  const valid = data.filter(d => d.followers != null);
-  if (valid.length < 2) return <p className="text-sm text-muted-foreground">Histórico ainda em coleta.</p>;
-  const max = Math.max(...valid.map(d => d.followers));
-  const min = Math.min(...valid.map(d => d.followers));
-  const range = max - min || 1;
-  const w = 600, h = 80;
-  const pts = valid.map((d, i) => {
-    const x = (i / (valid.length - 1)) * w;
-    const y = h - ((d.followers - min) / range) * h;
-    return `${x},${y}`;
-  }).join(" ");
-  return (
-    <div>
-      <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-20">
-        <polyline points={pts} fill="none" stroke="hsl(var(--primary))" strokeWidth="2" />
-      </svg>
-      <div className="flex justify-between text-xs text-muted-foreground mt-1">
-        <span>{valid[0].date} ({fmt(valid[0].followers)})</span>
-        <span>{valid[valid.length - 1].date} ({fmt(valid[valid.length - 1].followers)})</span>
-      </div>
     </div>
   );
 }

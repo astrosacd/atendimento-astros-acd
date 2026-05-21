@@ -22,14 +22,15 @@ import InstagramEspionage from "./InstagramEspionage";
 import InstagramClientReports from "./InstagramClientReports";
 
 const InstagramModule = () => {
-  const { 
-    canViewInstagram, 
-    canCreateInstagramPost, 
-    canManageInstagramSettings, 
+  const perms = usePermissions();
+  const {
+    canViewInstagram,
+    canCreateInstagramPost,
+    canManageInstagramSettings,
     canViewInstagramHistory,
     canManageInstagramEspionage,
     canManageTemporaryAccess,
-  } = usePermissions();
+  } = perms;
 
   const isTempAccess = !!sessionStorage.getItem("temp_access_token");
   const [tempAccessData, setTempAccessData] = useState<{ permissions?: string[] } | null>(null);
@@ -87,7 +88,7 @@ const InstagramModule = () => {
   const effectiveCanManageAutoReply = isTempAccess ? hasPermission("autoreply") : true; 
   const effectiveCanViewHistory = canViewInstagramHistory() || (isTempAccess && hasPermission("history"));
   const effectiveCanManageEspionage = isTempAccess ? hasPermission("espionage") : canManageInstagramEspionage();
-  const effectiveCanManageReports = isTempAccess ? hasPermission("reports") : true;
+  const effectiveCanManageReports = isTempAccess ? hasPermission("reports") : perms.hasPermission("manage_social_media_reports");
   const effectiveCanManageSettings = isTempAccess ? false : canManageInstagramSettings();
   const effectiveCanManageTempAccess = isTempAccess ? false : canManageTemporaryAccess();
   const firstAllowedTab = effectiveCanCreatePost ? "create" : 
