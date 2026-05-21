@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, TrendingUp, TrendingDown, Heart, MessageCircle, Image as ImgIcon, Film, Layers, Download, Instagram, ExternalLink } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, Heart, MessageCircle, Image as ImgIcon, Film, Layers, Download, Instagram, ExternalLink, Eye, Bookmark, Share2, Globe, Users as UsersIcon, KeyRound, MousePointerClick, Play } from "lucide-react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  CartesianGrid, Legend,
+  CartesianGrid, Legend, PieChart, Pie, Cell,
 } from "recharts";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -79,9 +79,12 @@ export default function SocialReportPublico() {
   const f = d.followers || {};
   const posts = d.posts || {};
   const eng = d.engagement || {};
+  const oauth = d.oauth || null;
   const top = d.top_post;
   const history = (d.daily_history || []).filter((x: any) => x.followers != null);
   const last3 = d.last_3_months || [];
+  const demo = oauth?.demographics || null;
+  const DEMO_COLORS = ["#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#ef4444", "#14b8a6", "#a855f7"];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-amber-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 py-6 px-4">
@@ -98,7 +101,10 @@ export default function SocialReportPublico() {
                 <h1 className="text-2xl font-bold">{profile?.display_name || profile?.username}</h1>
                 <p className="opacity-90 flex items-center gap-1"><Instagram className="h-4 w-4" />@{profile?.username}</p>
               </div>
-              <Badge className="bg-white/20 text-white border-white/30 text-base">{report.month}</Badge>
+              <div className="flex flex-col items-end gap-1">
+                <Badge className="bg-white/20 text-white border-white/30 text-base">{report.month}</Badge>
+                {oauth && <Badge className="bg-purple-700/80 text-white border-purple-300/40 text-[10px] gap-1"><KeyRound className="h-2.5 w-2.5" />Insights privados</Badge>}
+              </div>
             </div>
           </div>
         </Card>
@@ -143,6 +149,73 @@ export default function SocialReportPublico() {
             </div>
           </CardContent>
         </Card>
+
+        {/* ===== Bloco OAuth (insights privados) — só renderiza se disponível ===== */}
+        {oauth && (
+          <>
+            <Card className="border-purple-200 dark:border-purple-900">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2"><KeyRound className="h-5 w-5 text-purple-600" /> Alcance & Impressões</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Metric label="Alcance" value={fmt(oauth.reach)} color="emerald" icon={<Globe className="h-4 w-4" />} />
+                  <Metric label="Impressões" value={fmt(oauth.impressions)} color="blue" icon={<Eye className="h-4 w-4" />} />
+                  <Metric label="Visitas ao perfil" value={fmt(oauth.profile_views)} color="pink" icon={<UsersIcon className="h-4 w-4" />} />
+                  <Metric label="Cliques no site" value={fmt(oauth.website_clicks)} color="amber" icon={<MousePointerClick className="h-4 w-4" />} />
+                </div>
+                {oauth.avg_real_eng_rate != null && (
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Taxa real de engajamento média (likes+comentários+salvos+shares / alcance):{" "}
+                    <span className="font-semibold text-purple-700 dark:text-purple-400">{oauth.avg_real_eng_rate.toFixed(2)}%</span>
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-purple-200 dark:border-purple-900">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2"><Bookmark className="h-5 w-5 text-purple-600" /> Interações em posts</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Metric label="Salvos" value={fmt(oauth.total_saved)} color="amber" icon={<Bookmark className="h-4 w-4" />} />
+                  <Metric label="Compartilhamentos" value={fmt(oauth.total_shares)} color="blue" icon={<Share2 className="h-4 w-4" />} />
+                  <Metric label="Reproduções (Reels)" value={fmt(oauth.total_plays)} color="pink" icon={<Play className="h-4 w-4" />} />
+                  <Metric label="Alcance dos posts" value={fmt(oauth.total_reach_posts)} color="emerald" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Demografia */}
+            {demo && (
+              <Card className="border-purple-200 dark:border-purple-900">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2"><UsersIcon className="h-5 w-5 text-purple-600" /> Demografia da audiência</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {demo.gender?.length > 0 && (
+                      <DemoPie title="Gênero" data={demo.gender} colors={DEMO_COLORS} />
+                    )}
+                    {demo.age?.length > 0 && (
+                      <DemoBar title="Faixa etária" data={demo.age} />
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {demo.country?.length > 0 && (
+                      <DemoTop title="Top países" data={demo.country.slice(0, 5)} />
+                    )}
+                    {demo.city?.length > 0 && (
+                      <DemoTop title="Top cidades" data={demo.city.slice(0, 5)} />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
+
 
         {/* Top post */}
         {top && (
@@ -256,6 +329,66 @@ function Metric({ label, value, color, icon }: { label: string; value: string; c
     <div className={`p-3 rounded-md ${c} text-center`}>
       <div className="text-2xl font-bold flex items-center justify-center gap-1">{icon}{value}</div>
       <div className="text-[11px] uppercase tracking-wide opacity-80 mt-1">{label}</div>
+    </div>
+  );
+}
+
+function DemoPie({ title, data, colors }: { title: string; data: any[]; colors: string[] }) {
+  const total = data.reduce((a, b) => a + (b.value || 0), 0) || 1;
+  return (
+    <div>
+      <p className="text-xs font-semibold mb-2 text-muted-foreground uppercase tracking-wide">{title}</p>
+      <div className="h-44">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={data} dataKey="value" nameKey="key" outerRadius={60} label={(e: any) => `${e.key} ${Math.round((e.value / total) * 100)}%`} labelLine={false}>
+              {data.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
+            </Pie>
+            <Tooltip />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+function DemoBar({ title, data }: { title: string; data: any[] }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold mb-2 text-muted-foreground uppercase tracking-wide">{title}</p>
+      <div className="h-44">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+            <XAxis dataKey="key" tick={{ fontSize: 10 }} />
+            <YAxis tick={{ fontSize: 10 }} />
+            <Tooltip />
+            <Bar dataKey="value" fill="#a855f7" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+function DemoTop({ title, data }: { title: string; data: any[] }) {
+  const max = Math.max(...data.map((d: any) => d.value || 0), 1);
+  return (
+    <div>
+      <p className="text-xs font-semibold mb-2 text-muted-foreground uppercase tracking-wide">{title}</p>
+      <div className="space-y-1.5">
+        {data.map((d: any, i: number) => (
+          <div key={i} className="text-xs">
+            <div className="flex justify-between mb-0.5">
+              <span className="font-medium truncate">{d.key}</span>
+              <span className="text-muted-foreground">{(d.value || 0).toLocaleString("pt-BR")}</span>
+            </div>
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500" style={{ width: `${((d.value || 0) / max) * 100}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

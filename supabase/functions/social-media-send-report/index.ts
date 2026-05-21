@@ -19,6 +19,7 @@ function buildVars(profile: any, report: any, publicLink: string) {
   const f = d.followers || {};
   const p = d.posts || {};
   const e = d.engagement || {};
+  const o = d.oauth || {};
   const sign = (n: number | null | undefined) => (n == null ? "—" : n > 0 ? `+${n}` : `${n}`);
   return {
     cliente: profile.display_name || profile.username,
@@ -35,6 +36,15 @@ function buildVars(profile: any, report: any, publicLink: string) {
     comentarios: e.total_comments ?? 0,
     engajamento_total: e.total ?? 0,
     media_por_post: e.avg_per_post != null ? Math.round(e.avg_per_post) : 0,
+    // OAuth (vazio se não disponível)
+    alcance: o.reach ?? "—",
+    impressoes: o.impressions ?? "—",
+    visualizacoes_perfil: o.profile_views ?? "—",
+    cliques_site: o.website_clicks ?? "—",
+    salvos: o.total_saved ?? "—",
+    compartilhamentos: o.total_shares ?? "—",
+    reproducoes: o.total_plays ?? "—",
+    taxa_real_engajamento: o.avg_real_eng_rate != null ? o.avg_real_eng_rate.toFixed(2) + "%" : "—",
     link: publicLink,
   };
 }
