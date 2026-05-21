@@ -101,7 +101,10 @@ export default function SocialReportPublico() {
                 <h1 className="text-2xl font-bold">{profile?.display_name || profile?.username}</h1>
                 <p className="opacity-90 flex items-center gap-1"><Instagram className="h-4 w-4" />@{profile?.username}</p>
               </div>
-              <Badge className="bg-white/20 text-white border-white/30 text-base">{report.month}</Badge>
+              <div className="flex flex-col items-end gap-1">
+                <Badge className="bg-white/20 text-white border-white/30 text-base">{report.month}</Badge>
+                {oauth && <Badge className="bg-purple-700/80 text-white border-purple-300/40 text-[10px] gap-1"><KeyRound className="h-2.5 w-2.5" />Insights privados</Badge>}
+              </div>
             </div>
           </div>
         </Card>
