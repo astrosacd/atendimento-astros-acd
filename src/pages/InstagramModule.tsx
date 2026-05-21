@@ -132,6 +132,7 @@ const InstagramModule = () => {
     { id: "autoreply", label: "Auto-Resposta" },
     { id: "history", label: "Histórico" },
     { id: "espionage", label: "Espionagem" },
+    { id: "reports", label: "Relatórios Clientes" },
   ];
 
   const updateTokenPermissions = async () => {
