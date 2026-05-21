@@ -6,7 +6,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, TrendingUp, TrendingDown, Heart, MessageCircle, Image as ImgIcon, Film, Layers, Download, Instagram, ExternalLink } from "lucide-react";
-import { exportElementToPDF } from "@/utils/exportPDF";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 function fmt(n: number | null | undefined) {
   if (n == null) return "—";
