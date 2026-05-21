@@ -62,6 +62,7 @@ function ProfilesTab() {
   const save = useSaveProfile();
   const del = useDeleteProfile();
   const sync = useSyncProfile();
+  const siteUrl = useSiteUrl();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<SocialProfile | null>(null);
   const [oauthLoading, setOauthLoading] = useState(false);
