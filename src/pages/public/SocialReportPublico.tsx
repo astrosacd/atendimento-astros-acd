@@ -79,9 +79,12 @@ export default function SocialReportPublico() {
   const f = d.followers || {};
   const posts = d.posts || {};
   const eng = d.engagement || {};
+  const oauth = d.oauth || null;
   const top = d.top_post;
   const history = (d.daily_history || []).filter((x: any) => x.followers != null);
   const last3 = d.last_3_months || [];
+  const demo = oauth?.demographics || null;
+  const DEMO_COLORS = ["#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#ef4444", "#14b8a6", "#a855f7"];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-amber-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 py-6 px-4">
