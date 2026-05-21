@@ -31,6 +31,17 @@ export function CobrancaConfigTab() {
   const [syncing, setSyncing] = useState(false);
   const [cfg, setCfg] = useState<any>(null);
   const [roteiros, setRoteiros] = useState<any[]>([]);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [logsOpen, setLogsOpen] = useState(false);
+
+  const loadLogs = async () => {
+    const { data } = await supabase
+      .from("cobranca_ligacao_logs")
+      .select("*")
+      .order("executed_at", { ascending: false })
+      .limit(30);
+    setLogs(data ?? []);
+  };
 
   const load = async () => {
     setLoading(true);
@@ -40,6 +51,7 @@ export function CobrancaConfigTab() {
     ]);
     setCfg(c.data ?? { enabled: false, delay_minutes: 5, dias_disparo: [5], horario_inicio: "09:00", horario_fim: "18:00", apenas_cobranca_ativa: false });
     setRoteiros(r.data ?? []);
+    await loadLogs();
     setLoading(false);
   };
 
