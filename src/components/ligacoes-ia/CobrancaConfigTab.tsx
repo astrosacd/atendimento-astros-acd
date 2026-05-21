@@ -87,6 +87,7 @@ export function CobrancaConfigTab() {
     setSyncing(true);
     const { data, error } = await supabase.functions.invoke("cobranca-ligacoes-enqueue", { body: { force: true } });
     setSyncing(false);
+    await loadLogs();
     if (error) return toast({ title: "Erro ao sincronizar", description: error.message, variant: "destructive" });
     const d = data as any;
     toast({ title: "Fila sincronizada", description: `${d?.enqueued ?? 0} ligações enfileiradas hoje (${d?.scanned ?? 0} clientes encontrados).` });
