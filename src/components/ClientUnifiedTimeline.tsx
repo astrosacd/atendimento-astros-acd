@@ -120,6 +120,11 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         supabase.from('calendar_events').select('*').or(`client_email.eq.${clienteId},client_phone.eq.${clienteId}`).order('created_at', { ascending: false }).limit(50),
         supabase.from('gateway_orders').select('*').eq('customer_email', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('sms_validation_logs').select('*').eq('numero', clienteId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('ligacoes_ia_historico').select('*, roteiro:ligacoes_ia_roteiros(nome)').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('ligacoes_agendadas').select('*, roteiro:ligacoes_ia_roteiros(nome)').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('client_score_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('client_ai_upsell_suggestions').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20),
+        supabase.from('social_media_client_profiles').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20),
       ]);
 
       const clientInfo = clientDataRes.data;
