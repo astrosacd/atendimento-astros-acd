@@ -19,6 +19,7 @@ import InstagramHistory from "./InstagramHistory";
 import InstagramSettings from "./InstagramSettings";
 import InstagramAutoReply from "./InstagramAutoReply";
 import InstagramEspionage from "./InstagramEspionage";
+import InstagramClientReports from "./InstagramClientReports";
 
 const InstagramModule = () => {
   const { 
