@@ -21,6 +21,13 @@ export interface SocialProfile {
   last_sync_status: string | null;
   last_sync_error: string | null;
   created_at: string;
+  // OAuth Instagram (insights privados)
+  oauth_connected?: boolean | null;
+  oauth_access_token?: string | null;
+  oauth_token_expires_at?: string | null;
+  oauth_ig_business_id?: string | null;
+  oauth_fb_page_id?: string | null;
+  oauth_connected_at?: string | null;
 }
 
 export interface SocialReport {
