@@ -296,12 +296,6 @@ Deno.serve(async (req) => {
     const igUserId = settings?.ig_user_id;
     const accessToken = settings?.access_token || Deno.env.get("META_ACCESS_TOKEN");
 
-    if (!igUserId || !accessToken) {
-      return new Response(JSON.stringify({
-        error: "Instagram não configurado. Configure ig_user_id e access_token em Configurações do Instagram.",
-      }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
     let query = admin.from("social_media_client_profiles").select("*").eq("is_active", true);
     if (profileId && !syncAll) query = query.eq("id", profileId);
 
@@ -311,6 +305,14 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ results: [], message: "Nenhum perfil para sincronizar" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Se algum perfil precisar do fallback business_discovery e não tiver token, retorna erro só pra esses
+    const needsFallback = profiles.some((p: any) => !p.oauth_connected || !p.oauth_access_token);
+    if (needsFallback && (!igUserId || !accessToken)) {
+      return new Response(JSON.stringify({
+        error: "Há perfis sem OAuth conectado. Configure ig_user_id e access_token em Configurações do Instagram, ou conecte os perfis via OAuth.",
+      }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const results: any[] = [];
