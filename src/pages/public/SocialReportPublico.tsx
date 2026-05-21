@@ -41,7 +41,25 @@ export default function SocialReportPublico() {
   async function handlePDF() {
     setDownloading(true);
     try {
-      await exportElementToPDF("social-report-content", `relatorio-${profile?.username}-${report?.month}.pdf`);
+      const el = document.getElementById("social-report-content");
+      if (!el) return;
+      const canvas = await html2canvas(el, { backgroundColor: "#ffffff", scale: 2, useCORS: true });
+      const img = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgH = (canvas.height * pageW) / canvas.width;
+      let heightLeft = imgH;
+      let position = 0;
+      pdf.addImage(img, "PNG", 0, position, pageW, imgH);
+      heightLeft -= pageH;
+      while (heightLeft > 0) {
+        position = heightLeft - imgH;
+        pdf.addPage();
+        pdf.addImage(img, "PNG", 0, position, pageW, imgH);
+        heightLeft -= pageH;
+      }
+      pdf.save(`relatorio-${profile?.username}-${report?.month}.pdf`);
     } finally { setDownloading(false); }
   }
 
