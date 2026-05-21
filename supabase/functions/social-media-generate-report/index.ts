@@ -91,9 +91,45 @@ async function computeMetrics(admin: any, profileId: string, month: string) {
   const totalEng = totalLikes + totalComments;
   const avgEng = posts?.length ? totalEng / posts.length : 0;
 
-  // Top post
+  // === Métricas OAuth (privadas) — só populadas se snapshots/posts vierem com source='oauth' ===
+  const sumOauth = (key: string) =>
+    (snaps || []).filter((s: any) => s.source === "oauth" && s[key] != null).reduce((a: number, s: any) => a + Number(s[key] || 0), 0);
+  const hasOauthSnaps = (snaps || []).some((s: any) => s.source === "oauth");
+
+  const reachMonth = hasOauthSnaps ? sumOauth("reach") : null;
+  const impressionsMonth = hasOauthSnaps ? sumOauth("impressions") : null;
+  const profileViewsMonth = hasOauthSnaps ? sumOauth("profile_views") : null;
+  const websiteClicksMonth = hasOauthSnaps ? sumOauth("website_clicks") : null;
+  const totalInteractionsMonth = hasOauthSnaps ? sumOauth("total_interactions") : null;
+  const accountsEngagedAvg = hasOauthSnaps
+    ? Math.round(((snaps || []).filter((s: any) => s.source === "oauth" && s.accounts_engaged != null).reduce((a: number, s: any) => a + Number(s.accounts_engaged), 0)) / Math.max(1, (snaps || []).filter((s: any) => s.source === "oauth" && s.accounts_engaged != null).length))
+    : null;
+
+  const postsOauth = (posts || []).filter((p: any) => p.insights_source === "oauth");
+  const totalSaved = postsOauth.reduce((a: number, p: any) => a + (p.saved || 0), 0);
+  const totalShares = postsOauth.reduce((a: number, p: any) => a + (p.shares || 0), 0);
+  const totalReachPosts = postsOauth.reduce((a: number, p: any) => a + (p.reach || 0), 0);
+  const totalPlays = postsOauth.reduce((a: number, p: any) => a + (p.plays || 0), 0);
+
+  // Taxa real de engajamento (OAuth): interactions / reach por post
+  const realEngRates = postsOauth
+    .filter((p: any) => p.reach && p.reach > 0)
+    .map((p: any) => (((p.like_count || 0) + (p.comments_count || 0) + (p.saved || 0) + (p.shares || 0)) / p.reach) * 100);
+  const avgRealEngRate = realEngRates.length ? realEngRates.reduce((a: number, b: number) => a + b, 0) / realEngRates.length : null;
+
+  // Demografia (vem do profile.audience_demographics)
+  const { data: profileFull } = await admin
+    .from("social_media_client_profiles")
+    .select("audience_demographics, audience_demographics_updated_at, oauth_connected")
+    .eq("id", profileId)
+    .maybeSingle();
+
+  // Top post — agora considera engajamento estendido se OAuth
   const topPost = (posts || [])
-    .map((p: any) => ({ ...p, eng: (p.like_count || 0) + (p.comments_count || 0) }))
+    .map((p: any) => ({
+      ...p,
+      eng: (p.like_count || 0) + (p.comments_count || 0) + (p.saved || 0) + (p.shares || 0),
+    }))
     .sort((a: any, b: any) => b.eng - a.eng)[0] || null;
 
   // Histórico (últimos 6 meses de snapshots) p/ gráfico
@@ -101,7 +137,7 @@ async function computeMetrics(admin: any, profileId: string, month: string) {
   sixMonthsAgo.setUTCMonth(sixMonthsAgo.getUTCMonth() - 5);
   const { data: history } = await admin
     .from("social_media_daily_snapshots")
-    .select("snapshot_date, followers_count")
+    .select("snapshot_date, followers_count, reach, impressions, source")
     .eq("profile_id", profileId)
     .gte("snapshot_date", sixMonthsAgo.toISOString().slice(0, 10))
     .order("snapshot_date", { ascending: true });
@@ -113,18 +149,21 @@ async function computeMetrics(admin: any, profileId: string, month: string) {
       followers_gain: r.data?.followers?.gain ?? 0,
       posts_total: r.data?.posts?.total ?? 0,
       engagement_total: r.data?.engagement?.total ?? 0,
+      reach: r.data?.oauth?.reach ?? 0,
     })),
     {
       month,
       followers_gain: followersGain ?? 0,
       posts_total: posts?.length || 0,
       engagement_total: totalEng,
+      reach: reachMonth ?? 0,
     },
   ].reverse().slice(0, 3).reverse();
 
   return {
     month,
     period: { start: startISO, end: endISO },
+    source: hasOauthSnaps ? "oauth" : "business_discovery",
     followers: {
       start: followersStart,
       end: followersEnd,
@@ -144,6 +183,21 @@ async function computeMetrics(admin: any, profileId: string, month: string) {
       total: totalEng,
       avg_per_post: avgEng,
     },
+    oauth: hasOauthSnaps ? {
+      reach: reachMonth,
+      impressions: impressionsMonth,
+      profile_views: profileViewsMonth,
+      website_clicks: websiteClicksMonth,
+      total_interactions: totalInteractionsMonth,
+      accounts_engaged_avg: accountsEngagedAvg,
+      total_saved: totalSaved,
+      total_shares: totalShares,
+      total_reach_posts: totalReachPosts,
+      total_plays: totalPlays,
+      avg_real_eng_rate: avgRealEngRate,
+      demographics: profileFull?.audience_demographics || null,
+      demographics_updated_at: profileFull?.audience_demographics_updated_at || null,
+    } : null,
     top_post: topPost
       ? {
           id: topPost.ig_media_id,
@@ -152,16 +206,22 @@ async function computeMetrics(admin: any, profileId: string, month: string) {
           caption: (topPost.caption || "").slice(0, 200),
           likes: topPost.like_count,
           comments: topPost.comments_count,
+          saved: topPost.saved,
+          shares: topPost.shares,
+          reach: topPost.reach,
           posted_at: topPost.posted_at,
         }
       : null,
     daily_history: (history || []).map((h: any) => ({
       date: h.snapshot_date,
       followers: h.followers_count,
+      reach: h.reach,
+      impressions: h.impressions,
     })),
     last_3_months: last3Months,
   };
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
