@@ -424,6 +424,72 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         });
       });
 
+      // Ligações IA (histórico de chamadas feitas)
+      (iaCallsRes.data || []).forEach((c: any) => {
+        const roteiroNome = (c.roteiro as any)?.nome || 'Sem roteiro';
+        const dur = c.duration_seconds ? ` — ${c.duration_seconds}s` : '';
+        allEvents.push({
+          id: `ia-call-${c.id}`,
+          type: 'ia_call',
+          date: c.created_at,
+          title: `Ligação IA: ${roteiroNome}`,
+          description: `${c.numero_destino || ''} — ${c.status}${dur}${c.source ? ` (${c.source})` : ''}${c.error_message ? ` — ${c.error_message}` : ''}`,
+          status: c.status,
+        });
+      });
+
+      // Ligações Agendadas (fila de cobrança IA)
+      (scheduledCallsRes.data || []).forEach((s: any) => {
+        const roteiroNome = (s.roteiro as any)?.nome || 'Sem roteiro';
+        allEvents.push({
+          id: `sched-call-${s.id}`,
+          type: 'scheduled_call',
+          date: s.created_at,
+          title: `Ligação agendada: ${roteiroNome}`,
+          description: `${s.tipo_d || ''} — alvo: ${s.dia_alvo} — ${s.status}${s.tentativas ? ` (tent. ${s.tentativas})` : ''}${s.erro ? ` — ${s.erro}` : ''}`,
+          status: s.status,
+        });
+      });
+
+      // Histórico de Score IA
+      (scoreHistoryRes.data || []).forEach((s: any) => {
+        const delta = (s.score_novo ?? 0) - (s.score_anterior ?? 0);
+        const sign = delta > 0 ? '+' : '';
+        allEvents.push({
+          id: `score-${s.id}`,
+          type: 'score_change',
+          date: s.created_at,
+          title: `Score: ${s.score_anterior ?? 0} → ${s.score_novo ?? 0} (${sign}${delta})`,
+          description: `${s.faixa_anterior || '—'} → ${s.faixa_nova || '—'}${s.motivo ? ` — ${s.motivo}` : ''}`,
+          status: s.faixa_nova,
+        });
+      });
+
+      // Sugestões de Upsell IA
+      (upsellRes.data || []).forEach((u: any) => {
+        const count = Array.isArray(u.suggestions) ? u.suggestions.length : 0;
+        allEvents.push({
+          id: `upsell-${u.id}`,
+          type: 'upsell',
+          date: u.last_analysis_at || u.created_at,
+          title: `Sugestões de upsell geradas`,
+          description: `${count} sugestão(ões) — status: ${u.status || 'pendente'}`,
+          status: u.status,
+        });
+      });
+
+      // Perfis de Redes Sociais vinculados
+      (socialProfilesRes.data || []).forEach((p: any) => {
+        allEvents.push({
+          id: `social-profile-${p.id}`,
+          type: 'social_profile',
+          date: p.created_at,
+          title: `Perfil Instagram vinculado: @${p.username || 'sem usuário'}`,
+          description: `${p.display_name || ''}${p.followers_count ? ` — ${p.followers_count} seguidores` : ''}${p.oauth_connected ? ' — OAuth conectado' : ''}`,
+          status: p.is_active ? 'Ativo' : 'Inativo',
+        });
+      });
+
       setEvents(allEvents);
     } catch (err) {
       console.error('Error loading timeline:', err);
