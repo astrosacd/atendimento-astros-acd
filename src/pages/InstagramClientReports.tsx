@@ -1,17 +1,19 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Users, RefreshCw, Trash2, Plus, FileText, Eye, Send, Copy, Download, Loader2, Beaker, CheckCircle2, XCircle, Settings as SettingsIcon } from "lucide-react";
+import { Users, RefreshCw, Trash2, Plus, FileText, Eye, Send, Copy, Download, Loader2, Beaker, CheckCircle2, XCircle, Settings as SettingsIcon, MessageSquare, Mail, KeyRound, Link2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   useSocialProfiles, useSocialReports, useSocialReportConfig,
   useSaveProfile, useDeleteProfile, useSyncProfile,
@@ -40,10 +42,12 @@ export default function InstagramClientReports() {
       <TabsList>
         <TabsTrigger value="profiles" className="gap-2"><Users className="h-4 w-4" /> Perfis Monitorados</TabsTrigger>
         <TabsTrigger value="reports" className="gap-2"><FileText className="h-4 w-4" /> Relatórios</TabsTrigger>
+        <TabsTrigger value="templates" className="gap-2"><MessageSquare className="h-4 w-4" /> Templates</TabsTrigger>
         <TabsTrigger value="config" className="gap-2"><SettingsIcon className="h-4 w-4" /> Configurações</TabsTrigger>
       </TabsList>
       <TabsContent value="profiles" className="mt-4"><ProfilesTab /></TabsContent>
       <TabsContent value="reports" className="mt-4"><ReportsTab /></TabsContent>
+      <TabsContent value="templates" className="mt-4"><TemplatesTab /></TabsContent>
       <TabsContent value="config" className="mt-4"><ConfigTab /></TabsContent>
     </Tabs>
   );
@@ -54,11 +58,13 @@ export default function InstagramClientReports() {
    ============================================ */
 function ProfilesTab() {
   const { data: profiles = [], isLoading } = useSocialProfiles();
+  const { data: cfg } = useSocialReportConfig();
   const save = useSaveProfile();
   const del = useDeleteProfile();
   const sync = useSyncProfile();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<SocialProfile | null>(null);
+  const [oauthLoading, setOauthLoading] = useState(false);
 
   const empty: Partial<SocialProfile> = {
     username: "", display_name: "", is_active: true,
@@ -76,6 +82,39 @@ function ProfilesTab() {
     await save.mutateAsync(clean);
     setDialogOpen(false);
   }
+
+  async function startOAuth() {
+    if (!editing?.id) { toast.error("Salve o perfil primeiro"); return; }
+    setOauthLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("instagram-oauth-start", {
+        body: { profile_id: editing.id, return_url: window.location.href },
+      });
+      if (error) throw error;
+      if (data?.auth_url) window.location.href = data.auth_url;
+      else toast.error("URL OAuth não retornada");
+    } catch (e: any) {
+      toast.error("Erro OAuth: " + e.message);
+    } finally {
+      setOauthLoading(false);
+    }
+  }
+
+  async function disconnectOAuth() {
+    if (!editing?.id) return;
+    if (!confirm("Desconectar OAuth deste perfil?")) return;
+    await save.mutateAsync({
+      id: editing.id,
+      oauth_connected: false,
+      oauth_access_token: null,
+      oauth_ig_business_id: null,
+      oauth_fb_page_id: null,
+      oauth_token_expires_at: null,
+    } as any);
+    setForm({ ...form, oauth_connected: false } as any);
+  }
+
+  const oauthEnabled = !!cfg?.instagram_oauth_enabled;
 
   return (
     <Card>
@@ -110,11 +149,12 @@ function ProfilesTab() {
                     <AvatarFallback>{p.username.slice(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold truncate">@{p.username}</span>
                       {!p.is_active && <Badge variant="secondary">Inativo</Badge>}
                       {p.last_sync_status === "error" && <Badge variant="destructive" className="text-[10px]">Sync erro</Badge>}
                       {p.auto_send_enabled && <Badge className="text-[10px] bg-emerald-600">Envio auto dia {p.report_day}</Badge>}
+                      {(p as any).oauth_connected && <Badge className="text-[10px] bg-purple-600 gap-1"><KeyRound className="h-2.5 w-2.5" />OAuth</Badge>}
                     </div>
                     <div className="text-xs text-muted-foreground truncate">
                       {p.display_name || "—"} · {fmtNum(p.followers_count)} seguidores · {p.last_synced_at ? `sync ${format(new Date(p.last_synced_at), "dd/MM HH:mm")}` : "nunca sincronizado"}
@@ -141,7 +181,7 @@ function ProfilesTab() {
         )}
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editing ? "Editar perfil" : "Adicionar perfil"}</DialogTitle>
               <DialogDescription>O perfil precisa ser Business/Creator público no Instagram.</DialogDescription>
@@ -194,6 +234,37 @@ function ProfilesTab() {
                   </div>
                 </div>
               </div>
+
+              {/* OAuth Instagram */}
+              {editing && (
+                <div className="space-y-2 rounded-md border border-purple-200 dark:border-purple-900 bg-purple-50/40 dark:bg-purple-950/10 p-3">
+                  <div className="flex items-center gap-2">
+                    <KeyRound className="h-4 w-4 text-purple-600" />
+                    <p className="text-sm font-semibold">OAuth Instagram (insights privados)</p>
+                  </div>
+                  {!oauthEnabled ? (
+                    <p className="text-xs text-muted-foreground">OAuth desativado nas Configurações. Ative em Configurações → OAuth Instagram para liberar alcance, impressões, salvos, demografia, etc.</p>
+                  ) : (form as any).oauth_connected ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400">
+                        <CheckCircle2 className="h-4 w-4" />
+                        Conectado · IG Business ID: <code className="text-[10px]">{(form as any).oauth_ig_business_id || "—"}</code>
+                      </div>
+                      <Button size="sm" variant="outline" onClick={disconnectOAuth}>
+                        <XCircle className="h-3.5 w-3.5 mr-2" />Desconectar
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Conecte a conta Instagram Business do cliente via Facebook Login para liberar métricas privadas.</p>
+                      <Button size="sm" onClick={startOAuth} disabled={oauthLoading}>
+                        {oauthLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <Link2 className="h-3.5 w-3.5 mr-2" />}
+                        Conectar via Facebook
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancelar</Button>
@@ -303,7 +374,167 @@ function ReportsTab() {
 }
 
 /* ============================================
-   TAB 3 — Configurações
+   TAB 3 — Templates customizáveis por usuário
+   ============================================ */
+const DEFAULT_WA = `📊 *Relatório Social Media — {mes}*
+👤 *{cliente}* (@{username})
+
+*Seguidores*
+• Atual: {seguidores}
+• Saldo do mês: {saldo_seguidores}
+• Crescimento: {crescimento}
+
+*Posts publicados:* {posts_total}
+• Reels: {posts_reels}
+• Carrossel: {posts_carrossel}
+• Imagem: {posts_imagem}
+
+*Engajamento*
+❤️ {curtidas} curtidas
+💬 {comentarios} comentários
+📈 Total: {engajamento_total} | Média/post: {media_por_post}
+
+🔗 Relatório completo:
+{link}`;
+
+const DEFAULT_EMAIL_BODY = `Olá {cliente},
+
+Segue o relatório do mês {mes} do perfil @{username}:
+
+• Seguidores atuais: {seguidores}
+• Saldo do mês: {saldo_seguidores}
+• Crescimento: {crescimento}
+• Posts publicados: {posts_total} ({posts_reels} reels, {posts_carrossel} carrosséis, {posts_imagem} imagens)
+• Engajamento total: {engajamento_total}
+
+Acesse o relatório completo: {link}`;
+
+const VARIABLES = [
+  "cliente", "username", "mes", "seguidores", "saldo_seguidores",
+  "crescimento", "posts_total", "posts_reels", "posts_carrossel",
+  "posts_imagem", "curtidas", "comentarios", "engajamento_total",
+  "media_por_post", "link",
+];
+
+function TemplatesTab() {
+  const [waBody, setWaBody] = useState(DEFAULT_WA);
+  const [emailSubject, setEmailSubject] = useState("📊 Seu relatório de {mes} — @{username}");
+  const [emailBody, setEmailBody] = useState(DEFAULT_EMAIL_BODY);
+  const [waId, setWaId] = useState<string | null>(null);
+  const [emailId, setEmailId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { loadTemplates(); }, []);
+
+  async function loadTemplates() {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
+    const { data } = await supabase
+      .from("social_media_message_templates" as any)
+      .select("*")
+      .eq("user_id", user.id);
+    const wa = (data as any[])?.find(t => t.channel === "whatsapp");
+    const em = (data as any[])?.find(t => t.channel === "email");
+    if (wa) { setWaBody(wa.body); setWaId(wa.id); }
+    if (em) { setEmailSubject(em.subject || ""); setEmailBody(em.body); setEmailId(em.id); }
+    setLoading(false);
+  }
+
+  async function saveTemplate(channel: "whatsapp" | "email") {
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+      const payload: any = channel === "whatsapp"
+        ? { user_id: user.id, channel, body: waBody, is_default: true, name: "Padrão" }
+        : { user_id: user.id, channel, subject: emailSubject, body: emailBody, is_default: true, name: "Padrão" };
+      const id = channel === "whatsapp" ? waId : emailId;
+      if (id) {
+        const { error } = await supabase.from("social_media_message_templates" as any).update(payload).eq("id", id);
+        if (error) throw error;
+      } else {
+        const { data: ins, error } = await supabase.from("social_media_message_templates" as any).insert(payload).select().single();
+        if (error) throw error;
+        if (channel === "whatsapp") setWaId((ins as any).id);
+        else setEmailId((ins as any).id);
+      }
+      toast.success(`Template ${channel} salvo!`);
+    } catch (e: any) {
+      toast.error("Erro: " + e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function resetTemplate(channel: "whatsapp" | "email") {
+    if (channel === "whatsapp") setWaBody(DEFAULT_WA);
+    else { setEmailSubject("📊 Seu relatório de {mes} — @{username}"); setEmailBody(DEFAULT_EMAIL_BODY); }
+  }
+
+  if (loading) return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Variáveis disponíveis</CardTitle>
+          <CardDescription>Use estas chaves entre chaves no seu template — serão substituídas no envio.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {VARIABLES.map(v => (
+              <button key={v} className="text-xs px-2 py-1 rounded bg-muted hover:bg-accent border" onClick={() => { copyToClipboard(`{${v}}`); toast.success(`{${v}} copiado!`); }}>
+                <code>{`{${v}}`}</code>
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><MessageSquare className="h-5 w-5 text-emerald-600" /> Template WhatsApp</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Textarea value={waBody} onChange={(e) => setWaBody(e.target.value)} rows={14} className="font-mono text-xs" />
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => resetTemplate("whatsapp")}>Restaurar padrão</Button>
+            <Button onClick={() => saveTemplate("whatsapp")} disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Salvar WhatsApp
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Mail className="h-5 w-5 text-blue-600" /> Template Email</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div>
+            <Label className="text-xs">Assunto</Label>
+            <Input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs">Corpo (HTML simples — quebras de linha viram &lt;br&gt;)</Label>
+            <Textarea value={emailBody} onChange={(e) => setEmailBody(e.target.value)} rows={14} className="font-mono text-xs" />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => resetTemplate("email")}>Restaurar padrão</Button>
+            <Button onClick={() => saveTemplate("email")} disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Salvar Email
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+/* ============================================
+   TAB 4 — Configurações
    ============================================ */
 function ConfigTab() {
   const { data: cfg, isLoading } = useSocialReportConfig();
@@ -314,9 +545,14 @@ function ConfigTab() {
   const [testPhone, setTestPhone] = useState("");
   const [testEmail, setTestEmail] = useState("");
   const [testResult, setTestResult] = useState<any>(null);
+  const [hydrated, setHydrated] = useState(false);
 
-  // Hidrata quando carregar
-  useMemo(() => { if (cfg && Object.keys(form).length === 0) setForm(cfg); }, [cfg]);
+  useEffect(() => {
+    if (cfg && !hydrated) {
+      setForm(cfg);
+      setHydrated(true);
+    }
+  }, [cfg, hydrated]);
 
   async function handleSave() {
     await save.mutateAsync(form);
@@ -334,12 +570,36 @@ function ConfigTab() {
       <Card>
         <CardHeader>
           <CardTitle>WhatsApp (Evolution API)</CardTitle>
-          <CardDescription>Usa as instâncias já cadastradas no CRM. Se vazio, usa a primeira instância ativa.</CardDescription>
+          <CardDescription>Preencha os 3 campos da sua Evolution API. Se vazio, usa a primeira instância ativa do CRM.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
-            <Label>ID da instância Evolution (opcional)</Label>
-            <Input value={form.evolution_instance_id || ""} onChange={(e) => setForm({ ...form, evolution_instance_id: e.target.value || null })} placeholder="UUID da instância (deixe vazio para usar a padrão)" />
+            <Label>URL da Evolution API</Label>
+            <Input
+              value={form.evolution_url || ""}
+              onChange={(e) => setForm({ ...form, evolution_url: e.target.value })}
+              placeholder="https://sua-evolution.com"
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">Sem barra no final. Ex: <code>https://evo.meudominio.com.br</code></p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Nome da instância</Label>
+              <Input
+                value={form.evolution_instance_name || ""}
+                onChange={(e) => setForm({ ...form, evolution_instance_name: e.target.value })}
+                placeholder="minha-instancia"
+              />
+            </div>
+            <div>
+              <Label>API Key da instância</Label>
+              <Input
+                type="password"
+                value={form.evolution_apikey || ""}
+                onChange={(e) => setForm({ ...form, evolution_apikey: e.target.value })}
+                placeholder="••••••••••••"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -379,6 +639,40 @@ function ConfigTab() {
               <Label>SMTP senha (app password)</Label>
               <Input type="password" value={form.email_smtp_pass || ""} onChange={(e) => setForm({ ...form, email_smtp_pass: e.target.value })} />
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* OAuth Instagram */}
+      <Card className="border-purple-200 dark:border-purple-900">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><KeyRound className="h-5 w-5 text-purple-600" /> OAuth Instagram (insights privados)</CardTitle>
+          <CardDescription>Habilite para permitir que os clientes conectem suas contas Business via Facebook e liberem métricas privadas (alcance, impressões, salvos, demografia, horários, taxa real de engajamento).</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between rounded-md border p-3">
+            <div>
+              <p className="text-sm font-medium">Habilitar OAuth Instagram</p>
+              <p className="text-xs text-muted-foreground">Quando ativado, aparece o botão "Conectar via Facebook" no cadastro de cada perfil.</p>
+            </div>
+            <Switch checked={!!form.instagram_oauth_enabled} onCheckedChange={(v) => setForm({ ...form, instagram_oauth_enabled: v })} />
+          </div>
+          <div className={!form.instagram_oauth_enabled ? "opacity-50 pointer-events-none" : ""}>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Facebook App ID</Label>
+                <Input value={form.instagram_app_id || ""} onChange={(e) => setForm({ ...form, instagram_app_id: e.target.value })} placeholder="123456789012345" />
+              </div>
+              <div>
+                <Label>Facebook App Secret</Label>
+                <Input type="password" value={form.instagram_app_secret || ""} onChange={(e) => setForm({ ...form, instagram_app_secret: e.target.value })} placeholder="••••••••••••" />
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2">
+              Crie um App em <a href="https://developers.facebook.com" target="_blank" rel="noopener" className="underline">developers.facebook.com</a>, adicione produto "Facebook Login" e configure o redirect URI:
+              <br />
+              <code className="text-[10px]">{`${window.location.origin}/instagram/oauth-callback`}</code>
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -457,6 +751,7 @@ function TestRow({ label, result }: { label: string; result: any }) {
         <p className="font-medium">{label}: {result.success ? "OK" : "FALHOU"}</p>
         {result.error && <p className="text-xs text-red-700 dark:text-red-300 break-all">{result.error}</p>}
         {result.username && <p className="text-xs text-muted-foreground">Conectado como @{result.username}</p>}
+        {result.instance && <p className="text-xs text-muted-foreground">Instância: {result.instance}</p>}
       </div>
     </div>
   );
