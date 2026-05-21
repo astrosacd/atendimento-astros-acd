@@ -159,6 +159,7 @@ async function computeMetrics(admin: any, profileId: string, month: string) {
       date: h.snapshot_date,
       followers: h.followers_count,
     })),
+    last_3_months: last3Months,
   };
 }
 
