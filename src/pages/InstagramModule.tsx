@@ -329,6 +329,7 @@ const InstagramModule = () => {
                             { id: "autoreply", label: "Auto-Resposta" },
                             { id: "history", label: "Histórico" },
                             { id: "espionage", label: "Espionagem" },
+                            { id: "reports", label: "Relatórios Clientes" },
                           ].map((p) => (
                             <div key={p.id} className="flex items-center space-x-2">
                               <input 
