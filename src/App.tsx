@@ -208,6 +208,7 @@ function AppRoutes() {
       <Route path="/public/pipeline/:token" element={<SharedKanban />} />
       <Route path="/access/:token" element={<TemporaryAccessHandler />} />
       <Route path="/public/sala-agentes" element={<SalaAgentesPublica />} />
+      <Route path="/r/social/:token" element={<SocialReportPublico />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
