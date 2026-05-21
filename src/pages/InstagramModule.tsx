@@ -22,14 +22,15 @@ import InstagramEspionage from "./InstagramEspionage";
 import InstagramClientReports from "./InstagramClientReports";
 
 const InstagramModule = () => {
-  const { 
-    canViewInstagram, 
-    canCreateInstagramPost, 
-    canManageInstagramSettings, 
+  const perms = usePermissions();
+  const {
+    canViewInstagram,
+    canCreateInstagramPost,
+    canManageInstagramSettings,
     canViewInstagramHistory,
     canManageInstagramEspionage,
     canManageTemporaryAccess,
-  } = usePermissions();
+  } = perms;
 
   const isTempAccess = !!sessionStorage.getItem("temp_access_token");
   const [tempAccessData, setTempAccessData] = useState<{ permissions?: string[] } | null>(null);
