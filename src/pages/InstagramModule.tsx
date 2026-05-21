@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Instagram, History, Settings, Sparkles, Link as LinkIcon, Plus, Copy, Trash2, Clock, Check, X, Zap, Loader2, Eye } from "lucide-react";
+import { Instagram, History, Settings, Sparkles, Link as LinkIcon, Plus, Copy, Trash2, Clock, Check, X, Zap, Loader2, Eye, BarChart3 } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import InstagramHistory from "./InstagramHistory";
 import InstagramSettings from "./InstagramSettings";
 import InstagramAutoReply from "./InstagramAutoReply";
 import InstagramEspionage from "./InstagramEspionage";
+import InstagramClientReports from "./InstagramClientReports";
 
 const InstagramModule = () => {
   const { 
@@ -86,18 +87,21 @@ const InstagramModule = () => {
   const effectiveCanManageAutoReply = isTempAccess ? hasPermission("autoreply") : true; 
   const effectiveCanViewHistory = canViewInstagramHistory() || (isTempAccess && hasPermission("history"));
   const effectiveCanManageEspionage = isTempAccess ? hasPermission("espionage") : canManageInstagramEspionage();
+  const effectiveCanManageReports = isTempAccess ? hasPermission("reports") : true;
   const effectiveCanManageSettings = isTempAccess ? false : canManageInstagramSettings();
   const effectiveCanManageTempAccess = isTempAccess ? false : canManageTemporaryAccess();
   const firstAllowedTab = effectiveCanCreatePost ? "create" : 
     effectiveCanManageAutoReply ? "autoreply" : 
     effectiveCanViewHistory ? "history" : 
     effectiveCanManageEspionage ? "espionage" :
+    effectiveCanManageReports ? "reports" :
     effectiveCanManageSettings ? "settings" : "none";
   const allowedInstagramTabs = [
     effectiveCanCreatePost && "create",
     effectiveCanManageAutoReply && "autoreply",
     effectiveCanViewHistory && "history",
     effectiveCanManageEspionage && "espionage",
+    effectiveCanManageReports && "reports",
     effectiveCanManageSettings && "settings",
   ].filter(Boolean) as string[];
   const selectedInstagramTab = allowedInstagramTabs.includes(activeInstagramTab) ? activeInstagramTab : firstAllowedTab;
@@ -128,6 +132,7 @@ const InstagramModule = () => {
     { id: "autoreply", label: "Auto-Resposta" },
     { id: "history", label: "Histórico" },
     { id: "espionage", label: "Espionagem" },
+    { id: "reports", label: "Relatórios Clientes" },
   ];
 
   const updateTokenPermissions = async () => {
@@ -324,6 +329,7 @@ const InstagramModule = () => {
                             { id: "autoreply", label: "Auto-Resposta" },
                             { id: "history", label: "Histórico" },
                             { id: "espionage", label: "Espionagem" },
+                            { id: "reports", label: "Relatórios Clientes" },
                           ].map((p) => (
                             <div key={p.id} className="flex items-center space-x-2">
                               <input 
@@ -464,6 +470,11 @@ const InstagramModule = () => {
                 <Eye className="h-4 w-4" /> Espionagem
               </TabsTrigger>
             )}
+            {effectiveCanManageReports && (
+              <TabsTrigger value="reports" className="gap-2">
+                <BarChart3 className="h-4 w-4" /> Relatórios Clientes
+              </TabsTrigger>
+            )}
             {effectiveCanManageSettings && (
               <TabsTrigger value="settings" className="gap-2">
                 <Settings className="h-4 w-4" /> Configurações
@@ -489,6 +500,11 @@ const InstagramModule = () => {
           {effectiveCanManageEspionage && (
             <TabsContent value="espionage">
               <InstagramEspionage />
+            </TabsContent>
+          )}
+          {effectiveCanManageReports && (
+            <TabsContent value="reports">
+              <InstagramClientReports />
             </TabsContent>
           )}
           {effectiveCanManageSettings && (

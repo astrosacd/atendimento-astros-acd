@@ -75,6 +75,7 @@ import ResultadoSmsPublico from "./pages/public/ResultadoSmsPublico";
 import SharedKanban from "./pages/public/SharedKanban";
 import SalaAgentesPublica from "./pages/public/SalaAgentesPublica";
 import TemporaryAccessHandler from "./pages/public/TemporaryAccessHandler";
+import SocialReportPublico from "./pages/public/SocialReportPublico";
 import NotFound from "./pages/NotFound";
 import Perfil from "./pages/Perfil";
 import SalaAgentes from "./pages/SalaAgentes";
@@ -207,6 +208,7 @@ function AppRoutes() {
       <Route path="/public/pipeline/:token" element={<SharedKanban />} />
       <Route path="/access/:token" element={<TemporaryAccessHandler />} />
       <Route path="/public/sala-agentes" element={<SalaAgentesPublica />} />
+      <Route path="/r/social/:token" element={<SocialReportPublico />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
