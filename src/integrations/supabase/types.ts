@@ -2396,6 +2396,45 @@ export type Database = {
           },
         ]
       }
+      cobranca_ligacao_logs: {
+        Row: {
+          created_at: string
+          dia_alvo: string
+          dias_processados: number[]
+          enqueued: number
+          executed_at: string
+          id: string
+          message: string | null
+          scanned: number
+          status: string
+          triggered_by: string
+        }
+        Insert: {
+          created_at?: string
+          dia_alvo: string
+          dias_processados?: number[]
+          enqueued?: number
+          executed_at?: string
+          id?: string
+          message?: string | null
+          scanned?: number
+          status?: string
+          triggered_by?: string
+        }
+        Update: {
+          created_at?: string
+          dia_alvo?: string
+          dias_processados?: number[]
+          enqueued?: number
+          executed_at?: string
+          id?: string
+          message?: string | null
+          scanned?: number
+          status?: string
+          triggered_by?: string
+        }
+        Relationships: []
+      }
       consulta_numeros_api_keys: {
         Row: {
           api_key: string
