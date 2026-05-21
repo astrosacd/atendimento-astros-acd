@@ -171,6 +171,60 @@ export function CobrancaConfigTab() {
           Sincronizar fila de hoje
         </Button>
       </div>
+
+      <Collapsible open={logsOpen} onOpenChange={setLogsOpen}>
+        <div className="flex items-center justify-between border-t pt-4">
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="text-muted-foreground">
+              <History className="h-4 w-4 mr-2" />
+              {logsOpen ? "Ocultar histórico" : "Ver histórico de execuções"}
+              {logs.length > 0 && <Badge variant="outline" className="ml-2">{logs.length}</Badge>}
+            </Button>
+          </CollapsibleTrigger>
+          <Button variant="ghost" size="sm" onClick={loadLogs} className="text-muted-foreground">
+            <RefreshCw className="h-3 w-3" />
+          </Button>
+        </div>
+        <CollapsibleContent className="mt-3">
+          {logs.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">Nenhuma execução registrada ainda.</p>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {logs.map((log) => {
+                const Icon = log.status === "success" ? CheckCircle2 : log.status === "error" ? XCircle : Clock;
+                const iconColor = log.status === "success" ? "text-primary" : log.status === "error" ? "text-destructive" : "text-muted-foreground";
+                return (
+                  <div key={log.id} className="flex items-start justify-between gap-3 p-3 rounded-lg bg-muted/40 text-sm">
+                    <div className="flex items-start gap-2 min-w-0 flex-1">
+                      <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${iconColor}`} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium">
+                            {format(new Date(log.executed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </span>
+                          {log.triggered_by === "manual" && (
+                            <Badge variant="outline" className="text-xs h-5"><Hand className="h-3 w-3 mr-1" />Manual</Badge>
+                          )}
+                          {(log.dias_processados ?? []).length > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              Dias: {(log.dias_processados as number[]).map((d) => d === 0 ? "D+0" : d > 0 ? `D+${d}` : `D-${Math.abs(d)}`).join(", ")}
+                            </span>
+                          )}
+                        </div>
+                        {log.message && <p className="text-xs text-muted-foreground mt-1">{log.message}</p>}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      {log.enqueued > 0 && <Badge variant="outline" className="text-primary border-primary/30 text-xs">+{log.enqueued} enfileiradas</Badge>}
+                      {log.scanned > 0 && <Badge variant="outline" className="text-muted-foreground text-xs">{log.scanned} encontrados</Badge>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 }
