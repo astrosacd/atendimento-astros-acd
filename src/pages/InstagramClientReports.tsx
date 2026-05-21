@@ -86,10 +86,12 @@ function ProfilesTab() {
 
   async function startOAuth() {
     if (!editing?.id) { toast.error("Salve o perfil primeiro"); return; }
+    if (!siteUrl) { toast.error("URL do site não configurada. Vá em Gateway → Configurações e defina a URL pública."); return; }
     setOauthLoading(true);
     try {
+      const returnUrl = `${siteUrl}/instagram`;
       const { data, error } = await supabase.functions.invoke("instagram-oauth-start", {
-        body: { profile_id: editing.id, return_url: window.location.href },
+        body: { profile_id: editing.id, return_url: returnUrl, site_url: siteUrl },
       });
       if (error) throw error;
       if (data?.auth_url) window.location.href = data.auth_url;
