@@ -6,9 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Save, RefreshCw } from "lucide-react";
+import { Loader2, Save, RefreshCw, History, CheckCircle2, XCircle, Clock, Hand } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const D_OPCOES = [
   { value: -3, label: "D-3" },
@@ -28,6 +31,17 @@ export function CobrancaConfigTab() {
   const [syncing, setSyncing] = useState(false);
   const [cfg, setCfg] = useState<any>(null);
   const [roteiros, setRoteiros] = useState<any[]>([]);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [logsOpen, setLogsOpen] = useState(false);
+
+  const loadLogs = async () => {
+    const { data } = await supabase
+      .from("cobranca_ligacao_logs")
+      .select("*")
+      .order("executed_at", { ascending: false })
+      .limit(30);
+    setLogs(data ?? []);
+  };
 
   const load = async () => {
     setLoading(true);
@@ -37,6 +51,7 @@ export function CobrancaConfigTab() {
     ]);
     setCfg(c.data ?? { enabled: false, delay_minutes: 5, dias_disparo: [5], horario_inicio: "09:00", horario_fim: "18:00", apenas_cobranca_ativa: false });
     setRoteiros(r.data ?? []);
+    await loadLogs();
     setLoading(false);
   };
 
@@ -72,6 +87,7 @@ export function CobrancaConfigTab() {
     setSyncing(true);
     const { data, error } = await supabase.functions.invoke("cobranca-ligacoes-enqueue", { body: { force: true } });
     setSyncing(false);
+    await loadLogs();
     if (error) return toast({ title: "Erro ao sincronizar", description: error.message, variant: "destructive" });
     const d = data as any;
     toast({ title: "Fila sincronizada", description: `${d?.enqueued ?? 0} ligações enfileiradas hoje (${d?.scanned ?? 0} clientes encontrados).` });
@@ -155,6 +171,60 @@ export function CobrancaConfigTab() {
           Sincronizar fila de hoje
         </Button>
       </div>
+
+      <Collapsible open={logsOpen} onOpenChange={setLogsOpen}>
+        <div className="flex items-center justify-between border-t pt-4">
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="text-muted-foreground">
+              <History className="h-4 w-4 mr-2" />
+              {logsOpen ? "Ocultar histórico" : "Ver histórico de execuções"}
+              {logs.length > 0 && <Badge variant="outline" className="ml-2">{logs.length}</Badge>}
+            </Button>
+          </CollapsibleTrigger>
+          <Button variant="ghost" size="sm" onClick={loadLogs} className="text-muted-foreground">
+            <RefreshCw className="h-3 w-3" />
+          </Button>
+        </div>
+        <CollapsibleContent className="mt-3">
+          {logs.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">Nenhuma execução registrada ainda.</p>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {logs.map((log) => {
+                const Icon = log.status === "success" ? CheckCircle2 : log.status === "error" ? XCircle : Clock;
+                const iconColor = log.status === "success" ? "text-primary" : log.status === "error" ? "text-destructive" : "text-muted-foreground";
+                return (
+                  <div key={log.id} className="flex items-start justify-between gap-3 p-3 rounded-lg bg-muted/40 text-sm">
+                    <div className="flex items-start gap-2 min-w-0 flex-1">
+                      <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${iconColor}`} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium">
+                            {format(new Date(log.executed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </span>
+                          {log.triggered_by === "manual" && (
+                            <Badge variant="outline" className="text-xs h-5"><Hand className="h-3 w-3 mr-1" />Manual</Badge>
+                          )}
+                          {(log.dias_processados ?? []).length > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              Dias: {(log.dias_processados as number[]).map((d) => d === 0 ? "D+0" : d > 0 ? `D+${d}` : `D-${Math.abs(d)}`).join(", ")}
+                            </span>
+                          )}
+                        </div>
+                        {log.message && <p className="text-xs text-muted-foreground mt-1">{log.message}</p>}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      {log.enqueued > 0 && <Badge variant="outline" className="text-primary border-primary/30 text-xs">+{log.enqueued} enfileiradas</Badge>}
+                      {log.scanned > 0 && <Badge variant="outline" className="text-muted-foreground text-xs">{log.scanned} encontrados</Badge>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 }
