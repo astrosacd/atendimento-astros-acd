@@ -40,9 +40,25 @@ Deno.serve(async (req) => {
     const nonce = crypto.randomUUID();
     const state = btoa(JSON.stringify({ profileId, userId, returnUrl, nonce }));
 
-    // O frontend redireciona para /instagram/oauth-callback que chama a edge function instagram-oauth-callback
-    const origin = new URL(returnUrl || "https://atendimento-astros-acd.lovable.app").origin;
-    const redirectUri = `${origin}/instagram/oauth-callback`;
+    // Resolver site URL: prioridade = body.site_url > gateway_settings.site_base_url > returnUrl origin
+    let baseUrl: string | null = (body.site_url || "").toString().trim().replace(/\/+$/, "") || null;
+    if (!baseUrl) {
+      const { data: gw } = await admin
+        .from("gateway_settings")
+        .select("value")
+        .eq("key", "site_base_url")
+        .maybeSingle();
+      const u = String((gw?.value as any)?.url || "").trim().replace(/\/+$/, "");
+      if (u) baseUrl = u;
+    }
+    if (!baseUrl && returnUrl) {
+      try { baseUrl = new URL(returnUrl).origin; } catch { /* ignore */ }
+    }
+    if (!baseUrl) throw new Error("URL pública do site não configurada. Defina em Gateway → Configurações (site_base_url).");
+    if (baseUrl.includes("id-preview--")) {
+      throw new Error("Redirect URI aponta para a preview do editor (id-preview-*). Configure a URL pública publicada em Gateway → Configurações.");
+    }
+    const redirectUri = `${baseUrl}/instagram/oauth-callback`;
 
     const scopes = [
       "instagram_basic",
