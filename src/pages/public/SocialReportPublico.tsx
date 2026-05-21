@@ -150,6 +150,73 @@ export default function SocialReportPublico() {
           </CardContent>
         </Card>
 
+        {/* ===== Bloco OAuth (insights privados) — só renderiza se disponível ===== */}
+        {oauth && (
+          <>
+            <Card className="border-purple-200 dark:border-purple-900">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2"><KeyRound className="h-5 w-5 text-purple-600" /> Alcance & Impressões</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Metric label="Alcance" value={fmt(oauth.reach)} color="emerald" icon={<Globe className="h-4 w-4" />} />
+                  <Metric label="Impressões" value={fmt(oauth.impressions)} color="blue" icon={<Eye className="h-4 w-4" />} />
+                  <Metric label="Visitas ao perfil" value={fmt(oauth.profile_views)} color="pink" icon={<UsersIcon className="h-4 w-4" />} />
+                  <Metric label="Cliques no site" value={fmt(oauth.website_clicks)} color="amber" icon={<MousePointerClick className="h-4 w-4" />} />
+                </div>
+                {oauth.avg_real_eng_rate != null && (
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Taxa real de engajamento média (likes+comentários+salvos+shares / alcance):{" "}
+                    <span className="font-semibold text-purple-700 dark:text-purple-400">{oauth.avg_real_eng_rate.toFixed(2)}%</span>
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-purple-200 dark:border-purple-900">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2"><Bookmark className="h-5 w-5 text-purple-600" /> Interações em posts</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Metric label="Salvos" value={fmt(oauth.total_saved)} color="amber" icon={<Bookmark className="h-4 w-4" />} />
+                  <Metric label="Compartilhamentos" value={fmt(oauth.total_shares)} color="blue" icon={<Share2 className="h-4 w-4" />} />
+                  <Metric label="Reproduções (Reels)" value={fmt(oauth.total_plays)} color="pink" icon={<Play className="h-4 w-4" />} />
+                  <Metric label="Alcance dos posts" value={fmt(oauth.total_reach_posts)} color="emerald" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Demografia */}
+            {demo && (
+              <Card className="border-purple-200 dark:border-purple-900">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2"><UsersIcon className="h-5 w-5 text-purple-600" /> Demografia da audiência</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {demo.gender?.length > 0 && (
+                      <DemoPie title="Gênero" data={demo.gender} colors={DEMO_COLORS} />
+                    )}
+                    {demo.age?.length > 0 && (
+                      <DemoBar title="Faixa etária" data={demo.age} />
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {demo.country?.length > 0 && (
+                      <DemoTop title="Top países" data={demo.country.slice(0, 5)} />
+                    )}
+                    {demo.city?.length > 0 && (
+                      <DemoTop title="Top cidades" data={demo.city.slice(0, 5)} />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
+
+
         {/* Top post */}
         {top && (
           <Card>
