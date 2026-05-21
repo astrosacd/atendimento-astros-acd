@@ -7512,6 +7512,8 @@ export type Database = {
       }
       social_media_client_profiles: {
         Row: {
+          audience_demographics: Json | null
+          audience_demographics_updated_at: string | null
           auto_send_enabled: boolean
           cliente_id: string | null
           created_at: string
@@ -7540,6 +7542,8 @@ export type Database = {
           whatsapp_number: string | null
         }
         Insert: {
+          audience_demographics?: Json | null
+          audience_demographics_updated_at?: string | null
           auto_send_enabled?: boolean
           cliente_id?: string | null
           created_at?: string
@@ -7568,6 +7572,8 @@ export type Database = {
           whatsapp_number?: string | null
         }
         Update: {
+          audience_demographics?: Json | null
+          audience_demographics_updated_at?: string | null
           auto_send_enabled?: boolean
           cliente_id?: string | null
           created_at?: string
@@ -7607,31 +7613,52 @@ export type Database = {
       }
       social_media_daily_snapshots: {
         Row: {
+          accounts_engaged: number | null
           created_at: string
           followers_count: number | null
           following_count: number | null
           id: string
+          impressions: number | null
           media_count: number | null
           profile_id: string
+          profile_views: number | null
+          reach: number | null
           snapshot_date: string
+          source: string | null
+          total_interactions: number | null
+          website_clicks: number | null
         }
         Insert: {
+          accounts_engaged?: number | null
           created_at?: string
           followers_count?: number | null
           following_count?: number | null
           id?: string
+          impressions?: number | null
           media_count?: number | null
           profile_id: string
+          profile_views?: number | null
+          reach?: number | null
           snapshot_date?: string
+          source?: string | null
+          total_interactions?: number | null
+          website_clicks?: number | null
         }
         Update: {
+          accounts_engaged?: number | null
           created_at?: string
           followers_count?: number | null
           following_count?: number | null
           id?: string
+          impressions?: number | null
           media_count?: number | null
           profile_id?: string
+          profile_views?: number | null
+          reach?: number | null
           snapshot_date?: string
+          source?: string | null
+          total_interactions?: number | null
+          website_clicks?: number | null
         }
         Relationships: [
           {
@@ -7739,15 +7766,22 @@ export type Database = {
           hashtags: string[] | null
           id: string
           ig_media_id: string
+          impressions: number | null
+          insights_source: string | null
           like_count: number | null
           media_product_type: string | null
           media_type: string | null
           media_url: string | null
           permalink: string | null
+          plays: number | null
           posted_at: string | null
           profile_id: string
+          reach: number | null
+          saved: number | null
+          shares: number | null
           synced_at: string
           thumbnail_url: string | null
+          total_interactions: number | null
           views_count: number | null
         }
         Insert: {
@@ -7756,15 +7790,22 @@ export type Database = {
           hashtags?: string[] | null
           id?: string
           ig_media_id: string
+          impressions?: number | null
+          insights_source?: string | null
           like_count?: number | null
           media_product_type?: string | null
           media_type?: string | null
           media_url?: string | null
           permalink?: string | null
+          plays?: number | null
           posted_at?: string | null
           profile_id: string
+          reach?: number | null
+          saved?: number | null
+          shares?: number | null
           synced_at?: string
           thumbnail_url?: string | null
+          total_interactions?: number | null
           views_count?: number | null
         }
         Update: {
@@ -7773,15 +7814,22 @@ export type Database = {
           hashtags?: string[] | null
           id?: string
           ig_media_id?: string
+          impressions?: number | null
+          insights_source?: string | null
           like_count?: number | null
           media_product_type?: string | null
           media_type?: string | null
           media_url?: string | null
           permalink?: string | null
+          plays?: number | null
           posted_at?: string | null
           profile_id?: string
+          reach?: number | null
+          saved?: number | null
+          shares?: number | null
           synced_at?: string
           thumbnail_url?: string | null
+          total_interactions?: number | null
           views_count?: number | null
         }
         Relationships: [
