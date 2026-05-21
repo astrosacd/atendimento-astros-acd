@@ -470,6 +470,11 @@ const InstagramModule = () => {
                 <Eye className="h-4 w-4" /> Espionagem
               </TabsTrigger>
             )}
+            {effectiveCanManageReports && (
+              <TabsTrigger value="reports" className="gap-2">
+                <BarChart3 className="h-4 w-4" /> Relatórios Clientes
+              </TabsTrigger>
+            )}
             {effectiveCanManageSettings && (
               <TabsTrigger value="settings" className="gap-2">
                 <Settings className="h-4 w-4" /> Configurações
