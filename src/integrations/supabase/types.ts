@@ -7510,6 +7510,290 @@ export type Database = {
           },
         ]
       }
+      social_media_client_profiles: {
+        Row: {
+          auto_send_enabled: boolean
+          cliente_id: string | null
+          created_at: string
+          created_by: string | null
+          display_name: string | null
+          email: string | null
+          followers_count: number | null
+          id: string
+          ig_business_id: string | null
+          is_active: boolean
+          last_sync_error: string | null
+          last_sync_status: string | null
+          last_synced_at: string | null
+          notify_email: boolean
+          notify_whatsapp: boolean
+          profile_picture_url: string | null
+          report_day: number
+          updated_at: string
+          username: string
+          whatsapp_number: string | null
+        }
+        Insert: {
+          auto_send_enabled?: boolean
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          email?: string | null
+          followers_count?: number | null
+          id?: string
+          ig_business_id?: string | null
+          is_active?: boolean
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          last_synced_at?: string | null
+          notify_email?: boolean
+          notify_whatsapp?: boolean
+          profile_picture_url?: string | null
+          report_day?: number
+          updated_at?: string
+          username: string
+          whatsapp_number?: string | null
+        }
+        Update: {
+          auto_send_enabled?: boolean
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          email?: string | null
+          followers_count?: number | null
+          id?: string
+          ig_business_id?: string | null
+          is_active?: boolean
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          last_synced_at?: string | null
+          notify_email?: boolean
+          notify_whatsapp?: boolean
+          profile_picture_url?: string | null
+          report_day?: number
+          updated_at?: string
+          username?: string
+          whatsapp_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_media_client_profiles_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_media_daily_snapshots: {
+        Row: {
+          created_at: string
+          followers_count: number | null
+          following_count: number | null
+          id: string
+          media_count: number | null
+          profile_id: string
+          snapshot_date: string
+        }
+        Insert: {
+          created_at?: string
+          followers_count?: number | null
+          following_count?: number | null
+          id?: string
+          media_count?: number | null
+          profile_id: string
+          snapshot_date?: string
+        }
+        Update: {
+          created_at?: string
+          followers_count?: number | null
+          following_count?: number | null
+          id?: string
+          media_count?: number | null
+          profile_id?: string
+          snapshot_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_media_daily_snapshots_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "social_media_client_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_media_monthly_reports: {
+        Row: {
+          data: Json
+          generated_at: string
+          generated_by: string | null
+          id: string
+          month: string
+          pdf_url: string | null
+          profile_id: string
+          send_email_error: string | null
+          send_whatsapp_error: string | null
+          sent_email_at: string | null
+          sent_whatsapp_at: string | null
+          share_token: string
+        }
+        Insert: {
+          data?: Json
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          month: string
+          pdf_url?: string | null
+          profile_id: string
+          send_email_error?: string | null
+          send_whatsapp_error?: string | null
+          sent_email_at?: string | null
+          sent_whatsapp_at?: string | null
+          share_token?: string
+        }
+        Update: {
+          data?: Json
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          month?: string
+          pdf_url?: string | null
+          profile_id?: string
+          send_email_error?: string | null
+          send_whatsapp_error?: string | null
+          sent_email_at?: string | null
+          sent_whatsapp_at?: string | null
+          share_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_media_monthly_reports_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "social_media_client_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_media_posts_collected: {
+        Row: {
+          caption: string | null
+          comments_count: number | null
+          hashtags: string[] | null
+          id: string
+          ig_media_id: string
+          like_count: number | null
+          media_product_type: string | null
+          media_type: string | null
+          media_url: string | null
+          permalink: string | null
+          posted_at: string | null
+          profile_id: string
+          synced_at: string
+          thumbnail_url: string | null
+          views_count: number | null
+        }
+        Insert: {
+          caption?: string | null
+          comments_count?: number | null
+          hashtags?: string[] | null
+          id?: string
+          ig_media_id: string
+          like_count?: number | null
+          media_product_type?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          permalink?: string | null
+          posted_at?: string | null
+          profile_id: string
+          synced_at?: string
+          thumbnail_url?: string | null
+          views_count?: number | null
+        }
+        Update: {
+          caption?: string | null
+          comments_count?: number | null
+          hashtags?: string[] | null
+          id?: string
+          ig_media_id?: string
+          like_count?: number | null
+          media_product_type?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          permalink?: string | null
+          posted_at?: string | null
+          profile_id?: string
+          synced_at?: string
+          thumbnail_url?: string | null
+          views_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_media_posts_collected_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "social_media_client_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_media_report_config: {
+        Row: {
+          auto_send_enabled: boolean
+          created_at: string
+          email_from: string | null
+          email_from_name: string | null
+          email_provider: string | null
+          email_smtp_host: string | null
+          email_smtp_pass: string | null
+          email_smtp_port: number | null
+          email_smtp_user: string | null
+          evolution_instance_id: string | null
+          evolution_instance_name: string | null
+          evolution_phone_sender: string | null
+          id: string
+          send_hour: number
+          updated_at: string
+        }
+        Insert: {
+          auto_send_enabled?: boolean
+          created_at?: string
+          email_from?: string | null
+          email_from_name?: string | null
+          email_provider?: string | null
+          email_smtp_host?: string | null
+          email_smtp_pass?: string | null
+          email_smtp_port?: number | null
+          email_smtp_user?: string | null
+          evolution_instance_id?: string | null
+          evolution_instance_name?: string | null
+          evolution_phone_sender?: string | null
+          id?: string
+          send_hour?: number
+          updated_at?: string
+        }
+        Update: {
+          auto_send_enabled?: boolean
+          created_at?: string
+          email_from?: string | null
+          email_from_name?: string | null
+          email_provider?: string | null
+          email_smtp_host?: string | null
+          email_smtp_pass?: string | null
+          email_smtp_port?: number | null
+          email_smtp_user?: string | null
+          evolution_instance_id?: string | null
+          evolution_instance_name?: string | null
+          evolution_phone_sender?: string | null
+          id?: string
+          send_hour?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       system_activities: {
         Row: {
           action: string
@@ -7982,6 +8266,10 @@ export type Database = {
         }[]
       }
       get_sms_result_share: { Args: { p_token: string }; Returns: Json }
+      get_social_media_report_by_token: {
+        Args: { p_token: string }
+        Returns: Json
+      }
       get_user_id_by_email: { Args: { p_email: string }; Returns: string }
       has_custom_role: {
         Args: { role_name: string; user_uuid: string }
