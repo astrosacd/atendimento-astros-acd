@@ -50,6 +50,11 @@ const TYPE_CONFIG: Record<TimelineEvent['type'], { icon: React.ElementType; colo
   appointment: { icon: Clock, color: 'text-blue-400', label: 'Agendamento' },
   sale: { icon: ShoppingCart, color: 'text-emerald-500', label: 'Venda' },
   sms_validation: { icon: Zap, color: 'text-amber-400', label: 'Validação SMS' },
+  ia_call: { icon: PhoneCall, color: 'text-fuchsia-500', label: 'Ligação IA' },
+  scheduled_call: { icon: CalendarClock, color: 'text-fuchsia-400', label: 'Ligação Agendada' },
+  score_change: { icon: TrendingUp, color: 'text-emerald-400', label: 'Score IA' },
+  upsell: { icon: Lightbulb, color: 'text-yellow-400', label: 'Sugestão Upsell' },
+  social_profile: { icon: Instagram, color: 'text-pink-400', label: 'Perfil Social' },
 };
 
 export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedTimelineProps) {
