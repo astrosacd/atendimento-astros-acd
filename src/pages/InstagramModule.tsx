@@ -88,7 +88,7 @@ const InstagramModule = () => {
   const effectiveCanManageAutoReply = isTempAccess ? hasPermission("autoreply") : true; 
   const effectiveCanViewHistory = canViewInstagramHistory() || (isTempAccess && hasPermission("history"));
   const effectiveCanManageEspionage = isTempAccess ? hasPermission("espionage") : canManageInstagramEspionage();
-  const effectiveCanManageReports = isTempAccess ? hasPermission("reports") : (canViewInstagram() && (window as any).__bypassReports !== false && (typeof (usePermissions as any) === "function" ? false : false)) || (!isTempAccess && (() => { const fn = (usePermissions as any); return false; })()) || (!isTempAccess);
+  const effectiveCanManageReports = isTempAccess ? hasPermission("reports") : perms.hasPermission("manage_social_media_reports");
   const effectiveCanManageSettings = isTempAccess ? false : canManageInstagramSettings();
   const effectiveCanManageTempAccess = isTempAccess ? false : canManageTemporaryAccess();
   const firstAllowedTab = effectiveCanCreatePost ? "create" : 
