@@ -674,12 +674,19 @@ function RoteirosTab() {
         </div>
       ) : (
         <div className="grid md:grid-cols-2 gap-3">
-          {items.map((r) => (
+          {items.map((r) => {
+            const idiomaLabel = r.idioma === "en-US" ? "EN" : r.idioma === "es-ES" ? "ES" : "PT-BR";
+            const moedaLabel = r.moeda || "BRL";
+            const tipoLabel = r.tipo === "estrangeiro" ? "Estrangeiro" : "Brasileiro";
+            return (
             <div key={r.id} className="p-3 rounded-lg border bg-card">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant="outline">{r.categoria}</Badge>
+                    <Badge variant="secondary">{tipoLabel}</Badge>
+                    <Badge variant="outline" className="font-mono text-[10px]">{idiomaLabel}</Badge>
+                    <Badge variant="outline" className="font-mono text-[10px]">{moedaLabel}</Badge>
                     {!r.ativo && <Badge variant="secondary">inativo</Badge>}
                   </div>
                   <h3 className="font-medium mt-1">{r.nome}</h3>
@@ -690,6 +697,9 @@ function RoteirosTab() {
                   </p>
                 </div>
                 <div className="flex gap-1">
+                  <Button size="icon" variant="ghost" title="Duplicar e traduzir com IA" onClick={() => setEditing({ ...r, __duplicate: true })}>
+                    <Languages className="h-4 w-4" />
+                  </Button>
                   <Button size="icon" variant="ghost" onClick={() => setEditing(r)}>
                     <FileText className="h-4 w-4" />
                   </Button>
@@ -699,7 +709,8 @@ function RoteirosTab() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
