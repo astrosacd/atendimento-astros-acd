@@ -240,10 +240,17 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
                 {roteiros.length === 0 ? (
                   <div className="p-2 text-xs text-muted-foreground">Nenhum roteiro ativo. Crie um em Ligações IA.</div>
                 ) : roteiros.map(r => (
-                  <SelectItem key={r.id} value={r.id}>{r.nome} ({r.categoria})</SelectItem>
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.nome} ({r.categoria}) · {r.moeda ?? "BRL"}{r.idioma && r.idioma !== "pt-BR" ? ` · ${r.idioma}` : ""}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {moedaMismatch && preview && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" /> Moeda do roteiro ({moedaUsada}) difere da moeda do cliente ({(selectedCliente as any)?.moeda ?? "BRL"}). O valor será falado em {moedaUsada}.
+              </p>
+            )}
           </div>
 
           {preview && (
