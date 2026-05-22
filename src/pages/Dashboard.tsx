@@ -691,10 +691,6 @@ export default function Dashboard() {
     { title: t('sidebar.settings'), description: t('dashboard.passwordRecoveryAndMore'), icon: Settings, path: '/admin' },
   ];
 
-  const billingData = [
-    { name: t('common.success'), value: stats.billingSuccess, fill: 'hsl(152, 76%, 45%)' },
-    { name: t('common.error'), value: stats.billingErrors, fill: 'hsl(0, 84%, 60%)' },
-  ];
 
   const failedFollowups = followups.filter(f => f.status === 'failed');
 
