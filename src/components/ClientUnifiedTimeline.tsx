@@ -668,19 +668,18 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
                   {dayEvents.map((event) => {
                     const config = TYPE_CONFIG[event.type];
                     const Icon = config.icon;
+                    const isClickable = event.type === 'ia_call' || event.type === 'scheduled_call';
+                    const href = isClickable ? `/ligacoes-ia?tab=historico&cliente=${clienteId}` : null;
 
-                    return (
-                      <div key={event.id} className="relative flex gap-3 group">
-                        {/* Icon dot */}
+                    const inner = (
+                      <>
                         <div className={`relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-card border border-border shrink-0 ${config.color} group-hover:border-current transition-colors`}>
                           <Icon className="h-3.5 w-3.5" />
                         </div>
-
-                        {/* Content */}
                         <div className="flex-1 min-w-0 pb-3">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
-                              <p className="text-sm font-medium text-foreground truncate">
+                              <p className={`text-sm font-medium text-foreground truncate ${isClickable ? 'group-hover:text-primary group-hover:underline' : ''}`}>
                                 {event.title}
                               </p>
                               {event.description && (
@@ -701,6 +700,21 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
                             </div>
                           </div>
                         </div>
+                      </>
+                    );
+
+                    return href ? (
+                      <Link
+                        key={event.id}
+                        to={href}
+                        className="relative flex gap-3 group cursor-pointer"
+                        title="Abrir no módulo Ligações IA filtrado por este cliente"
+                      >
+                        {inner}
+                      </Link>
+                    ) : (
+                      <div key={event.id} className="relative flex gap-3 group">
+                        {inner}
                       </div>
                     );
                   })}
