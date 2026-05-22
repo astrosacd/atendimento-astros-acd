@@ -124,11 +124,15 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
   const preview = roteiros.find(r => r.id === roteiroId);
 
   // Build preview text with variables filled (same formatting as backend)
-  const filledPreview = useMemo(() => {
-    if (!preview || !selectedCliente) return preview?.texto ?? "";
-    const c: any = selectedCliente;
-    const valorFmt = c.valor != null && c.valor !== ""
-      ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(c.valor))
+  // + detect variables used in the script that have no value in the client record.
+  const { filledPreview, missingVars, usedVars } = useMemo(() => {
+    if (!preview) return { filledPreview: "", missingVars: [] as string[], usedVars: [] as string[] };
+    const c: any = selectedCliente ?? {};
+    const valorRaw = c.valor;
+    const valorFmt = valorRaw != null && valorRaw !== ""
+      ? (valorExtenso
+          ? valorPorExtensoBRL(Number(valorRaw))
+          : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(valorRaw)))
       : "";
     let dataFmt = "";
     if (c.data_renovacao) {
@@ -142,8 +146,15 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
       valor: valorFmt,
       data_renovacao: dataFmt,
     };
-    return preview.texto.replace(/\{(\w+)\}/g, (_: string, k: string) => vars[k] ?? `{${k}}`);
-  }, [preview, selectedCliente]);
+    const used = Array.from(new Set([...preview.texto.matchAll(/\{(\w+)\}/g)].map((m: any) => m[1])));
+    const missing = used.filter((k) => !vars[k] || vars[k] === "");
+    const filled = preview.texto.replace(/\{(\w+)\}/g, (_: string, k: string) => {
+      const v = vars[k];
+      if (!v) return `⚠️[${k} não cadastrado]`;
+      return v;
+    });
+    return { filledPreview: filled, missingVars: missing, usedVars: used };
+  }, [preview, selectedCliente, valorExtenso]);
 
   const isMensal = (c: any) => !!c.cobranca_ativa;
   const isRegistro = (c: any) => !c.cobranca_ativa;
