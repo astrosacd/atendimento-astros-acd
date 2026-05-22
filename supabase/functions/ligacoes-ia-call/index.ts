@@ -56,7 +56,34 @@ Deno.serve(async (req) => {
     }
 
     // Auto-merge cliente fields into variables
-    const finalVars = { ...(cliente ? { nome: cliente.nome, produto: cliente.produto, valor: String(cliente.valor ?? ""), data_renovacao: cliente.data_renovacao ?? "" } : {}), ...variables };
+    // Auto-merge cliente fields into variables (with friendly formatting for TTS)
+    const fmtValorBR = (v: any) => {
+      if (v == null || v === "") return "";
+      const num = Number(v);
+      if (Number.isNaN(num)) return String(v);
+      try {
+        return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(num);
+      } catch {
+        return `R$ ${num.toFixed(2).replace(".", ",")}`;
+      }
+    };
+    const fmtDataBR = (d: any) => {
+      if (!d) return "";
+      const s = String(d).split("T")[0];
+      const [y, m, day] = s.split("-");
+      return (y && m && day) ? `${day}/${m}/${y}` : s;
+    };
+    const finalVars = {
+      ...(cliente
+        ? {
+            nome: cliente.nome ?? "",
+            produto: cliente.produto ?? "",
+            valor: fmtValorBR(cliente.valor),
+            data_renovacao: fmtDataBR(cliente.data_renovacao),
+          }
+        : {}),
+      ...variables,
+    };
 
     // Generate (or get cached) audio
     const ttsRes = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/ligacoes-ia-tts`, {

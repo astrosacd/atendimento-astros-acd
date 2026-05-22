@@ -28,6 +28,7 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
   const [clientes, setClientes] = useState<any[]>([]);
   const [selectedClienteId, setSelectedClienteId] = useState<string>(clienteId ?? "");
   const [loadingClientes, setLoadingClientes] = useState(false);
+  const [fetchedCliente, setFetchedCliente] = useState<any | null>(null);
 
   useEffect(() => { setSelectedClienteId(clienteId ?? ""); }, [clienteId, open]);
 
@@ -55,10 +56,25 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
     })();
   }, [open, clienteId]);
 
+  // When opened from a client card (clienteId in props), fetch the full record
+  // so the preview can fill {valor}, {produto}, {data_renovacao}.
+  useEffect(() => {
+    if (!open || !clienteId) { setFetchedCliente(null); return; }
+    let cancelled = false;
+    supabase.from("clientes")
+      .select("id, nome, numero, produto, valor, data_renovacao")
+      .eq("id", clienteId).maybeSingle()
+      .then(({ data }) => { if (!cancelled) setFetchedCliente(data ?? null); });
+    return () => { cancelled = true; };
+  }, [open, clienteId]);
+
   const selectedCliente = useMemo(() => {
-    if (clienteId) return { id: clienteId, nome: clienteNome ?? "", numero: clienteNumero ?? "" };
+    if (clienteId) {
+      if (fetchedCliente) return fetchedCliente;
+      return { id: clienteId, nome: clienteNome ?? "", numero: clienteNumero ?? "" };
+    }
     return clientes.find(c => c.id === selectedClienteId) ?? null;
-  }, [clienteId, clienteNome, clienteNumero, clientes, selectedClienteId]);
+  }, [clienteId, clienteNome, clienteNumero, clientes, selectedClienteId, fetchedCliente]);
 
   const [callStatus, setCallStatus] = useState<string>("");
   const callRef = useRef<ActiveCallHandle | null>(null);
@@ -103,15 +119,24 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
 
   const preview = roteiros.find(r => r.id === roteiroId);
 
-  // Build preview text with variables filled
+  // Build preview text with variables filled (same formatting as backend)
   const filledPreview = useMemo(() => {
     if (!preview || !selectedCliente) return preview?.texto ?? "";
     const c: any = selectedCliente;
+    const valorFmt = c.valor != null && c.valor !== ""
+      ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(c.valor))
+      : "";
+    let dataFmt = "";
+    if (c.data_renovacao) {
+      const [y, m, d] = String(c.data_renovacao).split("T")[0].split("-");
+      if (y && m && d) dataFmt = `${d}/${m}/${y}`;
+      else dataFmt = String(c.data_renovacao);
+    }
     const vars: Record<string, string> = {
       nome: c.nome ?? "",
       produto: c.produto ?? "",
-      valor: c.valor != null ? String(c.valor) : "",
-      data_renovacao: c.data_renovacao ?? "",
+      valor: valorFmt,
+      data_renovacao: dataFmt,
     };
     return preview.texto.replace(/\{(\w+)\}/g, (_: string, k: string) => vars[k] ?? `{${k}}`);
   }, [preview, selectedCliente]);
