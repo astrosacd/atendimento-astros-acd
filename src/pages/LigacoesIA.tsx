@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { useSearchParams } from "react-router-dom";
-import { Phone, Plus, Play, Trash2, Loader2, PhoneCall, PhoneOff, History, Settings as SettingsIcon, FileText, Sparkles, AlertCircle, RefreshCw, CheckCircle2, Link as LinkIcon, Copy, Clock, Check, X, Filter } from "lucide-react";
+import { Phone, Plus, Play, Trash2, Loader2, PhoneCall, PhoneOff, History, Settings as SettingsIcon, FileText, Sparkles, AlertCircle, RefreshCw, CheckCircle2, Link as LinkIcon, Copy, Clock, Check, X, Filter, Languages } from "lucide-react";
 import { format, subDays, startOfDay, addHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LigarComIADialog } from "@/components/LigarComIADialog";
