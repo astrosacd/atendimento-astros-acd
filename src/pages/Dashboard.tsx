@@ -685,54 +685,11 @@ export default function Dashboard() {
     }
   };
 
-  const COLORS = ['hsl(152, 76%, 45%)', 'hsl(217, 91%, 60%)', 'hsl(271, 81%, 56%)', 'hsl(38, 92%, 50%)'];
-
-  const clientActions = [
-    {
-      title: t('sidebar.register'),
-      description: t('dashboard.addNewClient'),
-      icon: UserPlus,
-      path: '/cadastrar',
-      adminOnly: true,
-      color: 'from-primary to-primary/80',
-      glow: 'glow-green',
-    },
-    {
-      title: t('sidebar.search'),
-      description: t('dashboard.searchViewClients'),
-      icon: Search,
-      path: '/consultar',
-      adminOnly: false,
-      color: 'from-info to-info/80',
-      glow: 'glow-blue',
-    },
-    {
-      title: t('sidebar.update'),
-      description: t('dashboard.editClientInfo'),
-      icon: Edit,
-      path: '/atualizar',
-      adminOnly: true,
-      color: 'from-update to-update/80',
-      glow: 'glow-violet',
-    },
-    {
-      title: t('sidebar.delete'),
-      description: t('dashboard.removeClient'),
-      icon: Trash2,
-      path: '/excluir',
-      adminOnly: true,
-      color: 'from-destructive to-destructive/80',
-      glow: 'glow-red',
-    },
-  ];
-
   const adminActions = [
     { title: t('dashboard.manageUsers'), description: t('dashboard.manageUsersDesc'), icon: Users, path: '/usuarios' },
     { title: t('sidebar.webhooks'), description: t('dashboard.integrations'), icon: Webhook, path: '/admin/webhooks' },
     { title: t('sidebar.settings'), description: t('dashboard.passwordRecoveryAndMore'), icon: Settings, path: '/admin' },
   ];
-
-  const visibleClientActions = clientActions.filter(item => isAdmin || !item.adminOnly);
 
   const billingData = [
     { name: t('common.success'), value: stats.billingSuccess, fill: 'hsl(152, 76%, 45%)' },
