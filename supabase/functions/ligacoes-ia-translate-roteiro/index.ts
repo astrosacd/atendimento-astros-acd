@@ -1,7 +1,7 @@
 // Translates an existing roteiro (script) to another language using Lovable AI Gateway.
 // Returns translated nome + texto. Variables {nome}, {valor}, {produto}, {data_renovacao}
 // must be preserved literally.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
