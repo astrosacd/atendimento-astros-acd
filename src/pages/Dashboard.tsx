@@ -7,21 +7,18 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  UserPlus, Search, Edit, Trash2, Users, Settings, ChevronRight, TrendingUp, 
+  Search, Edit, Trash2, Users, Settings, ChevronRight, TrendingUp, 
   Webhook, DollarSign, Clock, AlertTriangle, 
   Bell, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle,
-  ShieldCheck, 
+  ShieldCheck, UserPlus,
   Wallet, Phone, Headphones, ThumbsUp, User, Instagram
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useToast } from '@/hooks/use-toast';
 import { useClientTasks, ClientTask } from '@/hooks/useClientTasks';
 import { usePermissions } from '@/hooks/usePermissions';
-// Removed unused imports
 import { NumerosAquecimentoSection } from '@/components/dashboard/NumerosAquecimentoSection';
 import { ConsultaNumerosSection } from '@/components/dashboard/ConsultaNumerosSection';
-import { NumerosAquecimentoAlertBanner } from '@/components/dashboard/NumerosAquecimentoAlertBanner';
 import { MonthlyPurchasesCard } from '@/components/dashboard/MonthlyPurchasesCard';
 import { ProposalsStatsCard } from '@/components/dashboard/ProposalsStatsCard';
 import { CollapsibleSection } from '@/components/dashboard/CollapsibleSection';
@@ -30,15 +27,15 @@ import { FollowupsChart } from '@/components/followups/FollowupsChart';
 import { useFollowups } from '@/hooks/useFollowups';
 import { Badge } from '@/components/ui/badge';
 import { QuickActions } from '@/components/dashboard/QuickActions';
-import { SecurityAlertsCard } from '@/components/dashboard/SecurityAlertsCard';
 import { RecentActivityCard } from '@/components/dashboard/RecentActivityCard';
 import { ConversionFunnelCard } from '@/components/dashboard/ConversionFunnelCard';
 import { RevenueGoalCard } from '@/components/dashboard/RevenueGoalCard';
 import { ChurnRateCard } from '@/components/dashboard/ChurnRateCard';
 import { RevenueByCurrencyCard } from '@/components/dashboard/RevenueByCurrencyCard';
-import { PaymentSecurityAlertBanner } from '@/components/dashboard/PaymentSecurityAlertBanner';
 import { SystemHealthCard } from '@/components/dashboard/SystemHealthCard';
 import { LigacoesAgendadasCard } from '@/components/dashboard/LigacoesAgendadasCard';
+import { AlertsCenter } from '@/components/dashboard/sections/AlertsCenter';
+import { AnaliseAvancadaSection } from '@/components/dashboard/sections/AnaliseAvancadaSection';
 
 // Mapping of billing cycles to months
 const CICLO_MESES: Record<string, number> = {
