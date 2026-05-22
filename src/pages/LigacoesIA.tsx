@@ -777,19 +777,55 @@ function useElevenVoices() {
 }
 
 function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: () => void; onSaved: () => void }) {
+  const isDuplicate = !!roteiro.__duplicate;
   const [form, setForm] = useState({
-    nome: roteiro.nome ?? "",
+    nome: isDuplicate ? `${roteiro.nome ?? ""} (cópia)` : (roteiro.nome ?? ""),
     categoria: roteiro.categoria ?? "cobranca",
     descricao: roteiro.descricao ?? "",
-    texto: roteiro.texto ?? "Olá {nome}, aqui é da empresa. Sua fatura de R$ {valor} vence em breve. Conto com você!",
+    texto: roteiro.texto ?? "Olá {nome}, aqui é da empresa. Sua fatura de {valor} vence em breve. Conto com você!",
     voice_id: roteiro.voice_id ?? "",
     ativo: roteiro.ativo ?? true,
+    tipo: roteiro.tipo ?? "brasileiro",
+    idioma: roteiro.idioma ?? "pt-BR",
+    moeda: roteiro.moeda ?? "BRL",
   });
   const [saving, setSaving] = useState(false);
   const [previewing, setPreviewing] = useState(false);
+  const [translating, setTranslating] = useState(false);
   const { voices, loading: loadingVoices, fetch: fetchVoices } = useElevenVoices();
 
   useEffect(() => { fetchVoices(undefined, { silent: true }); /* eslint-disable-next-line */ }, []);
+
+  // Sincroniza idioma/moeda padrão quando troca tipo
+  const setTipo = (tipo: string) => {
+    if (tipo === "brasileiro") {
+      setForm(f => ({ ...f, tipo, idioma: "pt-BR", moeda: "BRL" }));
+    } else {
+      setForm(f => ({ ...f, tipo, idioma: f.idioma === "pt-BR" ? "en-US" : f.idioma, moeda: f.moeda === "BRL" ? "USD" : f.moeda }));
+    }
+  };
+
+  const translate = async () => {
+    if (!form.texto) return toast({ title: "Sem texto para traduzir", variant: "destructive" });
+    setTranslating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ligacoes-ia-translate-roteiro", {
+        body: { texto: form.texto, idioma_destino: form.idioma, moeda: form.moeda },
+      });
+      if (error) throw error;
+      const translated = (data as any)?.texto;
+      if (translated) {
+        setForm(f => ({ ...f, texto: translated }));
+        toast({ title: "Texto traduzido", description: "Revise antes de salvar." });
+      } else {
+        toast({ title: "Falha na tradução", description: (data as any)?.error ?? "Resposta vazia", variant: "destructive" });
+      }
+    } catch (e: any) {
+      toast({ title: "Erro ao traduzir", description: e.message, variant: "destructive" });
+    } finally {
+      setTranslating(false);
+    }
+  };
 
   const save = async () => {
     if (!form.nome || !form.texto) {
@@ -800,7 +836,7 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
     const variaveis = Array.from(form.texto.matchAll(/\{(\w+)\}/g)).map(m => m[1]);
     const basePayload = { ...form, variaveis: [...new Set(variaveis)], voice_id: form.voice_id || null };
     let error: any = null;
-    if (roteiro.id) {
+    if (roteiro.id && !isDuplicate) {
       ({ error } = await supabase.from("ligacoes_ia_roteiros").update(basePayload).eq("id", roteiro.id));
     } else {
       const { data: auth } = await supabase.auth.getUser();
@@ -815,7 +851,14 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
   const preview = async () => {
     setPreviewing(true);
     try {
-      const exemploVars: Record<string, string> = { nome: "João", valor: "99,90", produto: "Plano Pro", data_renovacao: "30/12/2025" };
+      const valorExemplo = form.moeda === "USD" ? "99.90" : form.moeda === "EUR" ? "99,90" : "99,90";
+      const dataExemplo = form.idioma === "pt-BR" ? "30/12/2025" : "12/30/2025";
+      const exemploVars: Record<string, string> = {
+        nome: form.idioma === "pt-BR" ? "João" : form.idioma === "es-ES" ? "Juan" : "John",
+        valor: valorExemplo,
+        produto: form.idioma === "pt-BR" ? "Plano Pro" : form.idioma === "es-ES" ? "Plan Pro" : "Pro Plan",
+        data_renovacao: dataExemplo,
+      };
       const { data, error } = await supabase.functions.invoke("ligacoes-ia-tts", {
         body: { preview_text: form.texto.replace(/\{(\w+)\}/g, (_: any, k: string) => exemploVars[k] ?? `{${k}}`), preview_voice_id: form.voice_id || undefined },
       });
@@ -832,10 +875,12 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
     }
   };
 
+  const title = isDuplicate ? "Duplicar roteiro" : (roteiro.id ? "Editar" : "Novo") + " roteiro";
+
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader><DialogTitle>{roteiro.id ? "Editar" : "Novo"} roteiro</DialogTitle></DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -852,6 +897,45 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
               </Select>
             </div>
           </div>
+
+          <div className="grid grid-cols-3 gap-3 p-3 rounded-md border bg-muted/30">
+            <div>
+              <Label>Público</Label>
+              <Select value={form.tipo} onValueChange={setTipo}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="brasileiro">Brasileiro</SelectItem>
+                  <SelectItem value="estrangeiro">Estrangeiro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Idioma</Label>
+              <Select value={form.idioma} onValueChange={v => setForm({ ...form, idioma: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pt-BR">Português (BR)</SelectItem>
+                  <SelectItem value="en-US">English (US)</SelectItem>
+                  <SelectItem value="es-ES">Español (ES)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Moeda</Label>
+              <Select value={form.moeda} onValueChange={v => setForm({ ...form, moeda: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BRL">BRL (R$)</SelectItem>
+                  <SelectItem value="USD">USD ($)</SelectItem>
+                  <SelectItem value="EUR">EUR (€)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-3 text-[11px] text-muted-foreground">
+              A cobrança automática escolhe o roteiro de acordo com a moeda do cliente. Variável <code>{"{valor}"}</code> é formatada pela moeda deste roteiro.
+            </div>
+          </div>
+
           <div>
             <Label>Voz {loadingVoices && <Loader2 className="h-3 w-3 inline animate-spin ml-1" />}</Label>
             <Select value={form.voice_id || "default"} onValueChange={v => setForm({ ...form, voice_id: v === "default" ? "" : v })}>
@@ -865,17 +949,29 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
                 ))}
               </SelectContent>
             </Select>
-            {voices.length === 0 && !loadingVoices && (
-              <p className="text-xs text-muted-foreground mt-1">Configure a API Key ElevenLabs em Configurações para listar suas vozes.</p>
+            {form.idioma !== "pt-BR" && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Dica: para {form.idioma === "en-US" ? "inglês" : "espanhol"}, escolha uma voz nativa (ex: Sarah, Brian).
+              </p>
             )}
           </div>
+
           <div>
-            <Label>Texto (use {"{nome}"}, {"{valor}"}, {"{produto}"}, {"{data_renovacao}"})</Label>
+            <div className="flex items-center justify-between">
+              <Label>Texto (use {"{nome}"}, {"{valor}"}, {"{produto}"}, {"{data_renovacao}"})</Label>
+              {form.idioma !== "pt-BR" && (
+                <Button type="button" size="sm" variant="outline" onClick={translate} disabled={translating}>
+                  {translating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Languages className="h-3 w-3 mr-1" />}
+                  Traduzir com IA
+                </Button>
+              )}
+            </div>
             <Textarea rows={5} value={form.texto} onChange={e => setForm({ ...form, texto: e.target.value })} />
             <p className="text-xs text-muted-foreground mt-1">
-              Variáveis serão preenchidas automaticamente quando vincular a um cliente.
+              Variáveis preenchidas automaticamente ao vincular cliente. {"{valor}"} respeita a moeda deste roteiro.
             </p>
           </div>
+
           <div className="flex items-center gap-2">
             <Switch checked={form.ativo} onCheckedChange={c => setForm({ ...form, ativo: c })} />
             <Label>Ativo</Label>
