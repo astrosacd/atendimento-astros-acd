@@ -145,7 +145,17 @@ export default function LigacoesIA() {
 
   const allOk = configStatus?.wavoip && configStatus?.dialer && configStatus?.eleven;
   const allowedTabs = LIGACOES_PERMISSION_OPTIONS.map(p => p.id).filter(tabAllowed);
-  const defaultTab = isTempAccess ? (allowedTabs[0] ?? "historico") : "historico";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get("tab");
+  const urlCliente = searchParams.get("cliente");
+  const initialTab = (urlTab && allowedTabs.includes(urlTab))
+    ? urlTab
+    : (isTempAccess ? (allowedTabs[0] ?? "historico") : "historico");
+  const [activeTab, setActiveTab] = useState(initialTab);
+  useEffect(() => {
+    if (urlTab && allowedTabs.includes(urlTab) && urlTab !== activeTab) setActiveTab(urlTab);
+    // eslint-disable-next-line
+  }, [urlTab]);
 
   const Wrapper = React.useMemo(() => {
     return ({ children }: { children: React.ReactNode }) =>
