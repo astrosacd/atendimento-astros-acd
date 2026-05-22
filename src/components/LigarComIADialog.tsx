@@ -246,10 +246,28 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
           </div>
 
           {preview && (
-            <div className="rounded-lg border bg-muted/30 p-3 text-xs">
-              <p className="font-medium mb-1">Pré-visualização do texto (variáveis preenchidas):</p>
+            <div className="rounded-lg border bg-muted/30 p-3 text-xs space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-medium">Pré-visualização (variáveis preenchidas):</p>
+                {usedVars.includes("valor") && (
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <Switch checked={valorExtenso} onCheckedChange={setValorExtenso} />
+                    <span className="text-[10px] text-muted-foreground">Valor por extenso</span>
+                  </label>
+                )}
+              </div>
               <p className="text-foreground whitespace-pre-wrap">{filledPreview}</p>
-              <p className="mt-2 text-[10px] text-muted-foreground">
+              {missingVars.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1 pt-1 border-t border-border/50">
+                  <span className="text-[10px] text-muted-foreground">Faltando no cadastro:</span>
+                  {missingVars.map((v) => (
+                    <Badge key={v} variant="outline" className="text-[10px] border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                      ⚠ {v} não cadastrado
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground">
                 Variáveis suportadas: {"{nome}"}, {"{valor}"}, {"{produto}"}, {"{data_renovacao}"}.
               </p>
             </div>
