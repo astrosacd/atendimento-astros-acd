@@ -246,7 +246,13 @@ export default function LigacoesIA() {
           </div>
         )}
 
-        <Tabs defaultValue={defaultTab} className="space-y-4">
+        <Tabs value={activeTab} onValueChange={(v) => {
+          setActiveTab(v);
+          const next = new URLSearchParams(searchParams);
+          next.set("tab", v);
+          if (v !== "historico") next.delete("cliente");
+          setSearchParams(next, { replace: true });
+        }} className="space-y-4">
           <TabsList className="flex flex-wrap w-full max-w-5xl h-auto">
             {tabAllowed("historico") && <TabsTrigger value="historico"><History className="h-4 w-4 mr-2" />Histórico</TabsTrigger>}
             {tabAllowed("fila") && <TabsTrigger value="fila"><ListChecks className="h-4 w-4 mr-2" />Fila do dia</TabsTrigger>}
@@ -257,7 +263,7 @@ export default function LigacoesIA() {
             {tabAllowed("config") && <TabsTrigger value="config"><SettingsIcon className="h-4 w-4 mr-2" />Configurações</TabsTrigger>}
           </TabsList>
 
-          {tabAllowed("historico") && <TabsContent value="historico"><HistoricoTab /></TabsContent>}
+          {tabAllowed("historico") && <TabsContent value="historico"><HistoricoTab clienteIdFilter={urlCliente} onClearFilter={() => { const n = new URLSearchParams(searchParams); n.delete("cliente"); setSearchParams(n, { replace: true }); }} /></TabsContent>}
           {tabAllowed("fila") && <TabsContent value="fila"><FilaLigacoesTab /></TabsContent>}
           {tabAllowed("roteiros") && <TabsContent value="roteiros"><RoteirosTab /></TabsContent>}
           {tabAllowed("disparo") && <TabsContent value="disparo"><DisparoTab /></TabsContent>}
