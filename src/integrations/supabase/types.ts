@@ -5353,8 +5353,11 @@ export type Database = {
           created_by: string | null
           descricao: string | null
           id: string
+          idioma: string
+          moeda: string
           nome: string
           texto: string
+          tipo: string
           updated_at: string
           variaveis: string[]
           voice_id: string | null
@@ -5367,8 +5370,11 @@ export type Database = {
           created_by?: string | null
           descricao?: string | null
           id?: string
+          idioma?: string
+          moeda?: string
           nome: string
           texto: string
+          tipo?: string
           updated_at?: string
           variaveis?: string[]
           voice_id?: string | null
@@ -5381,8 +5387,11 @@ export type Database = {
           created_by?: string | null
           descricao?: string | null
           id?: string
+          idioma?: string
+          moeda?: string
           nome?: string
           texto?: string
+          tipo?: string
           updated_at?: string
           variaveis?: string[]
           voice_id?: string | null

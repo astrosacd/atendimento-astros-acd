@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 import { placeCallWithTTS, type ActiveCallHandle } from "@/lib/wavoipCall";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { valorPorExtensoBRL } from "@/lib/valorExtenso";
+import { valorPorExtenso, formatMoeda, type MoedaExtenso } from "@/lib/valorExtenso";
 
 interface Props {
   clienteId?: string;
@@ -39,7 +39,7 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
     if (!open) return;
     (async () => {
       const promises: any[] = [
-        supabase.from("ligacoes_ia_roteiros").select("id, nome, categoria, texto").eq("ativo", true).order("nome"),
+        supabase.from("ligacoes_ia_roteiros").select("id, nome, categoria, texto, moeda, idioma, tipo").eq("ativo", true).order("nome"),
         supabase.from("ligacoes_ia_config").select("config_key, config_value").in("config_key", ["wavoip_token", "wavoip_dialer_number", "elevenlabs_api_key"]),
       ];
       if (!clienteId) {
@@ -65,7 +65,7 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
     if (!open || !clienteId) { setFetchedCliente(null); return; }
     let cancelled = false;
     supabase.from("clientes")
-      .select("id, nome, numero, produto, valor, data_renovacao")
+      .select("id, nome, numero, produto, valor, moeda, data_renovacao")
       .eq("id", clienteId).maybeSingle()
       .then(({ data }) => { if (!cancelled) setFetchedCliente(data ?? null); });
     return () => { cancelled = true; };
@@ -125,20 +125,21 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
 
   // Build preview text with variables filled (same formatting as backend)
   // + detect variables used in the script that have no value in the client record.
-  const { filledPreview, missingVars, usedVars } = useMemo(() => {
-    if (!preview) return { filledPreview: "", missingVars: [] as string[], usedVars: [] as string[] };
+  const { filledPreview, missingVars, usedVars, moedaUsada, moedaMismatch } = useMemo(() => {
+    if (!preview) return { filledPreview: "", missingVars: [] as string[], usedVars: [] as string[], moedaUsada: "BRL" as MoedaExtenso, moedaMismatch: false };
     const c: any = selectedCliente ?? {};
+    const moeda: MoedaExtenso = (preview.moeda ?? "BRL") as MoedaExtenso;
+    const clienteMoeda: MoedaExtenso = (c.moeda ?? "BRL") as MoedaExtenso;
     const valorRaw = c.valor;
     const valorFmt = valorRaw != null && valorRaw !== ""
-      ? (valorExtenso
-          ? valorPorExtensoBRL(Number(valorRaw))
-          : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(valorRaw)))
+      ? (valorExtenso ? valorPorExtenso(Number(valorRaw), moeda) : formatMoeda(Number(valorRaw), moeda))
       : "";
     let dataFmt = "";
     if (c.data_renovacao) {
       const [y, m, d] = String(c.data_renovacao).split("T")[0].split("-");
-      if (y && m && d) dataFmt = `${d}/${m}/${y}`;
-      else dataFmt = String(c.data_renovacao);
+      if (y && m && d) {
+        dataFmt = preview.idioma === "pt-BR" ? `${d}/${m}/${y}` : `${m}/${d}/${y}`;
+      } else dataFmt = String(c.data_renovacao);
     }
     const vars: Record<string, string> = {
       nome: c.nome ?? "",
@@ -153,7 +154,7 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
       if (!v) return `⚠️[${k} não cadastrado]`;
       return v;
     });
-    return { filledPreview: filled, missingVars: missing, usedVars: used };
+    return { filledPreview: filled, missingVars: missing, usedVars: used, moedaUsada: moeda, moedaMismatch: clienteMoeda !== moeda };
   }, [preview, selectedCliente, valorExtenso]);
 
   const isMensal = (c: any) => !!c.cobranca_ativa;
@@ -239,10 +240,17 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
                 {roteiros.length === 0 ? (
                   <div className="p-2 text-xs text-muted-foreground">Nenhum roteiro ativo. Crie um em Ligações IA.</div>
                 ) : roteiros.map(r => (
-                  <SelectItem key={r.id} value={r.id}>{r.nome} ({r.categoria})</SelectItem>
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.nome} ({r.categoria}) · {r.moeda ?? "BRL"}{r.idioma && r.idioma !== "pt-BR" ? ` · ${r.idioma}` : ""}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {moedaMismatch && preview && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" /> Moeda do roteiro ({moedaUsada}) difere da moeda do cliente ({(selectedCliente as any)?.moeda ?? "BRL"}). O valor será falado em {moedaUsada}.
+              </p>
+            )}
           </div>
 
           {preview && (
