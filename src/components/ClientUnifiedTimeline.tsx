@@ -58,6 +58,33 @@ const TYPE_CONFIG: Record<TimelineEvent['type'], { icon: React.ElementType; colo
   social_profile: { icon: Instagram, color: 'text-pink-400', label: 'Perfil Social' },
 };
 
+const IA_CALL_STATUS_LABEL: Record<string, string> = {
+  iniciando: 'Iniciando',
+  pronto_para_discar: 'Pronta para discar',
+  discando: 'Discando',
+  tocando: 'Tocando',
+  atendida: 'Atendida',
+  finalizada: 'Finalizada',
+  audio_concluido: 'Áudio concluído',
+  nao_atendeu: 'Não atendeu',
+  ocupado: 'Ocupado',
+  rejeitada: 'Rejeitada',
+  cliente_desligou_antes_audio: 'Cliente desligou antes do áudio',
+  cliente_desligou_durante_audio: 'Cliente desligou durante o áudio',
+  cancelada: 'Cancelada',
+  erro: 'Erro',
+};
+
+const SCHEDULED_CALL_STATUS_LABEL: Record<string, string> = {
+  pendente: 'Pendente',
+  agendada: 'Agendada',
+  em_andamento: 'Em andamento',
+  concluida: 'Concluída',
+  falhou: 'Falhou',
+  cancelada: 'Cancelada',
+  pulada: 'Pulada',
+};
+
 export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedTimelineProps) {
   const { canViewClientAI } = usePermissions();
   const [events, setEvents] = useState<TimelineEvent[]>([]);
