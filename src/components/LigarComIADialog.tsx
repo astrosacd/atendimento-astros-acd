@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 import { placeCallWithTTS, type ActiveCallHandle } from "@/lib/wavoipCall";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { valorPorExtensoBRL } from "@/lib/valorExtenso";
+import { valorPorExtenso, formatMoeda, type MoedaExtenso } from "@/lib/valorExtenso";
 
 interface Props {
   clienteId?: string;
