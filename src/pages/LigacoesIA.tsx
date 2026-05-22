@@ -810,12 +810,13 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
     setTranslating(true);
     try {
       const { data, error } = await supabase.functions.invoke("ligacoes-ia-translate-roteiro", {
-        body: { texto: form.texto, idioma_destino: form.idioma, moeda: form.moeda },
+        body: { nome: form.nome, texto: form.texto, source_idioma: "pt-BR", target_idioma: form.idioma },
       });
       if (error) throw error;
-      const translated = (data as any)?.texto;
+      const translated = (data as any)?.texto_traduzido;
+      const novoNome = (data as any)?.nome_traduzido;
       if (translated) {
-        setForm(f => ({ ...f, texto: translated }));
+        setForm(f => ({ ...f, texto: translated, nome: novoNome || f.nome }));
         toast({ title: "Texto traduzido", description: "Revise antes de salvar." });
       } else {
         toast({ title: "Falha na tradução", description: (data as any)?.error ?? "Resposta vazia", variant: "destructive" });
