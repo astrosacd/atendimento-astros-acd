@@ -157,25 +157,24 @@ serve(async (req) => {
       });
     }
 
-    // 2) Renovação de data: SOMENTE quando for renovação (não no primeiro cadastro).
-    // Detecta automaticamente: se já existe outro pagamento "paid" pra esse cliente,
-    // é renovação → avança a data_renovacao em +CYCLE_MONTHS.
-    // Se for o primeiro pagamento aprovado (cadastro), mantém a data exata que o
-    // operador digitou no cadastro do cliente.
+    // 2) Renovação de data (regra oficial do billing):
+    //    - Se hoje >= data_renovacao (vencimento hoje ou atrasado) → É RENOVAÇÃO.
+    //      Nova data = MAX(hoje, data_renovacao) + ciclo. Para pagamento antecipado/no dia,
+    //      isso resulta em data_renovacao + ciclo, preservando o ciclo de faturamento.
+    //    - Se data_renovacao ainda está no futuro → é cadastro recente, preserva a data.
     const cliente: any = payment.cliente;
 
     if (cliente?.id && cliente?.cobranca_ativa !== false && cliente?.data_renovacao && cliente?.ciclo_cobranca) {
-      const { count: priorPaidCount } = await supabase
-        .from("client_payments")
-        .select("id", { count: "exact", head: true })
-        .eq("cliente_id", cliente.id)
-        .eq("status", "paid")
-        .neq("id", paymentId);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const venc = new Date(cliente.data_renovacao);
+      venc.setHours(0, 0, 0, 0);
 
-      const isRenewal = (priorPaidCount ?? 0) > 0;
+      const isRenewal = today.getTime() >= venc.getTime();
 
       if (isRenewal) {
-        const renewalDate = new Date(cliente.data_renovacao);
+        const base = today.getTime() > venc.getTime() ? today : venc;
+        const renewalDate = new Date(base);
         const months = CYCLE_MONTHS[cliente.ciclo_cobranca] || 1;
         renewalDate.setMonth(renewalDate.getMonth() + months);
         const newRenewalDate = renewalDate.toISOString().split("T")[0];
@@ -185,9 +184,9 @@ serve(async (req) => {
           .update({ data_renovacao: newRenewalDate })
           .eq("id", cliente.id);
 
-        console.log(`[approve-pixpague] Renovação detectada (cliente ${cliente.id}): data avançada para ${newRenewalDate}`);
+        console.log(`[approve-pixpague] Renovação (cliente ${cliente.id}): vencimento ${cliente.data_renovacao} → ${newRenewalDate}`);
       } else {
-        console.log(`[approve-pixpague] Primeiro pagamento (cadastro) — data_renovacao preservada: ${cliente.data_renovacao}`);
+        console.log(`[approve-pixpague] Cadastro recente (vencimento futuro) — data_renovacao preservada: ${cliente.data_renovacao}`);
       }
     }
 
