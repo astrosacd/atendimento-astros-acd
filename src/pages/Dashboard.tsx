@@ -7,21 +7,18 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  UserPlus, Search, Edit, Trash2, Users, Settings, ChevronRight, TrendingUp, 
+  Users, Settings, ChevronRight, TrendingUp, 
   Webhook, DollarSign, Clock, AlertTriangle, 
   Bell, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle,
-  ShieldCheck, 
+  ShieldCheck,
   Wallet, Phone, Headphones, ThumbsUp, User, Instagram
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useToast } from '@/hooks/use-toast';
 import { useClientTasks, ClientTask } from '@/hooks/useClientTasks';
 import { usePermissions } from '@/hooks/usePermissions';
-// Removed unused imports
 import { NumerosAquecimentoSection } from '@/components/dashboard/NumerosAquecimentoSection';
 import { ConsultaNumerosSection } from '@/components/dashboard/ConsultaNumerosSection';
-import { NumerosAquecimentoAlertBanner } from '@/components/dashboard/NumerosAquecimentoAlertBanner';
 import { MonthlyPurchasesCard } from '@/components/dashboard/MonthlyPurchasesCard';
 import { ProposalsStatsCard } from '@/components/dashboard/ProposalsStatsCard';
 import { CollapsibleSection } from '@/components/dashboard/CollapsibleSection';
@@ -30,15 +27,15 @@ import { FollowupsChart } from '@/components/followups/FollowupsChart';
 import { useFollowups } from '@/hooks/useFollowups';
 import { Badge } from '@/components/ui/badge';
 import { QuickActions } from '@/components/dashboard/QuickActions';
-import { SecurityAlertsCard } from '@/components/dashboard/SecurityAlertsCard';
 import { RecentActivityCard } from '@/components/dashboard/RecentActivityCard';
 import { ConversionFunnelCard } from '@/components/dashboard/ConversionFunnelCard';
 import { RevenueGoalCard } from '@/components/dashboard/RevenueGoalCard';
 import { ChurnRateCard } from '@/components/dashboard/ChurnRateCard';
 import { RevenueByCurrencyCard } from '@/components/dashboard/RevenueByCurrencyCard';
-import { PaymentSecurityAlertBanner } from '@/components/dashboard/PaymentSecurityAlertBanner';
 import { SystemHealthCard } from '@/components/dashboard/SystemHealthCard';
 import { LigacoesAgendadasCard } from '@/components/dashboard/LigacoesAgendadasCard';
+import { AlertsCenter } from '@/components/dashboard/sections/AlertsCenter';
+import { AnaliseAvancadaSection } from '@/components/dashboard/sections/AnaliseAvancadaSection';
 
 // Mapping of billing cycles to months
 const CICLO_MESES: Record<string, number> = {
@@ -688,59 +685,12 @@ export default function Dashboard() {
     }
   };
 
-  const COLORS = ['hsl(152, 76%, 45%)', 'hsl(217, 91%, 60%)', 'hsl(271, 81%, 56%)', 'hsl(38, 92%, 50%)'];
-
-  const clientActions = [
-    {
-      title: t('sidebar.register'),
-      description: t('dashboard.addNewClient'),
-      icon: UserPlus,
-      path: '/cadastrar',
-      adminOnly: true,
-      color: 'from-primary to-primary/80',
-      glow: 'glow-green',
-    },
-    {
-      title: t('sidebar.search'),
-      description: t('dashboard.searchViewClients'),
-      icon: Search,
-      path: '/consultar',
-      adminOnly: false,
-      color: 'from-info to-info/80',
-      glow: 'glow-blue',
-    },
-    {
-      title: t('sidebar.update'),
-      description: t('dashboard.editClientInfo'),
-      icon: Edit,
-      path: '/atualizar',
-      adminOnly: true,
-      color: 'from-update to-update/80',
-      glow: 'glow-violet',
-    },
-    {
-      title: t('sidebar.delete'),
-      description: t('dashboard.removeClient'),
-      icon: Trash2,
-      path: '/excluir',
-      adminOnly: true,
-      color: 'from-destructive to-destructive/80',
-      glow: 'glow-red',
-    },
-  ];
-
   const adminActions = [
     { title: t('dashboard.manageUsers'), description: t('dashboard.manageUsersDesc'), icon: Users, path: '/usuarios' },
     { title: t('sidebar.webhooks'), description: t('dashboard.integrations'), icon: Webhook, path: '/admin/webhooks' },
     { title: t('sidebar.settings'), description: t('dashboard.passwordRecoveryAndMore'), icon: Settings, path: '/admin' },
   ];
 
-  const visibleClientActions = clientActions.filter(item => isAdmin || !item.adminOnly);
-
-  const billingData = [
-    { name: t('common.success'), value: stats.billingSuccess, fill: 'hsl(152, 76%, 45%)' },
-    { name: t('common.error'), value: stats.billingErrors, fill: 'hsl(0, 84%, 60%)' },
-  ];
 
   const failedFollowups = followups.filter(f => f.status === 'failed');
 
@@ -851,7 +801,7 @@ export default function Dashboard() {
   return (
     <DashboardLayout>
       <div className="p-4 sm:p-6 max-w-7xl mx-auto">
-        {/* Header */}
+        {/* ===================== HEADER ===================== */}
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl sm:text-4xl font-bold font-display text-gradient">
@@ -861,7 +811,7 @@ export default function Dashboard() {
               {user?.email} • <span className="text-primary font-medium">{roleDisplayName || t('common.loading')}</span>
             </p>
           </div>
-          
+
           {isAdmin && (
             <div className="flex items-center gap-2">
               {isSupported && permission !== 'granted' && (
@@ -878,89 +828,28 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* ===================== AÇÕES RÁPIDAS ===================== */}
         <QuickActions />
 
-        <div className="mb-6">
-          <LigacoesAgendadasCard />
-        </div>
+        {/* ===================== CENTRAL DE ALERTAS (unificada) ===================== */}
+        <AlertsCenter priorityAlerts={priorityAlerts} />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <SecurityAlertsCard />
-          {hasPermission('manage_system_health') && <SystemHealthCard />}
-        </div>
+        {/* ===================== OPERAÇÃO DO DIA ===================== */}
+        <section className="mb-8 space-y-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <Phone className="h-4 w-4 text-cyan-500" />
+            Operação do Dia
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <LigacoesAgendadasCard />
+            {hasPermission('manage_system_health') && <SystemHealthCard />}
+          </div>
+        </section>
 
-        {priorityAlerts.length > 0 && (
-          <section className="mb-8 space-y-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <Bell className="h-4 w-4 text-primary" />
-                  Central de atenção
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Os avisos mais importantes ficam destacados aqui para não passarem despercebidos.
-                </p>
-              </div>
-              <Badge variant="outline" className="w-fit border-border/60 bg-background/80 text-foreground">
-                {priorityAlerts.length} alerta(s) ativo(s)
-              </Badge>
-            </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              {priorityAlerts.map((alert) => {
-                const Icon = alert.icon;
-                const isCritical = alert.tone === 'critical';
-
-                return (
-                  <Card
-                    key={alert.id}
-                    className={`cursor-pointer transition-all duration-300 group ${
-                      isCritical
-                        ? 'border-destructive/30 bg-gradient-to-br from-destructive/10 to-destructive/5 hover:border-destructive/50'
-                        : 'border-update/30 bg-gradient-to-br from-update/10 to-update/5 hover:border-update/50'
-                    }`}
-                    onClick={alert.onClick}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div
-                          className={`h-12 w-12 shrink-0 rounded-xl flex items-center justify-center ${
-                            isCritical ? 'bg-destructive/15 text-destructive' : 'bg-update/15 text-update'
-                          } ${alert.pulse ? 'animate-pulse' : ''}`}
-                        >
-                          <Icon className="h-6 w-6" />
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-3">
-                            <h3 className="text-sm font-semibold text-foreground">{alert.title}</h3>
-                            {isCritical ? (
-                              <Badge variant="destructive">{alert.count}</Badge>
-                            ) : (
-                              <Badge variant="outline" className="border-update/40 bg-update/10 text-update">
-                                {alert.count}
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="mt-1 text-sm text-muted-foreground">{alert.description}</p>
-                          <div className="mt-3 flex items-center gap-2 text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-                            Abrir agora
-                            <ChevronRight className="h-4 w-4" />
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* ===================== ÁREA FINANCEIRA ===================== */}
-        <CollapsibleSection 
-          title="Financeiro" 
-          icon={Wallet} 
+        {/* ===================== FINANCEIRO ===================== */}
+        <CollapsibleSection
+          title="Financeiro"
+          icon={Wallet}
           iconColor="bg-gradient-to-br from-info to-info/80"
           defaultOpen={true}
         >
@@ -993,7 +882,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card 
+            <Card
               className="bg-gradient-to-br from-update/10 to-update/5 border-update/20 hover:border-update/40 transition-colors cursor-pointer group"
               onClick={() => navigate('/consultar?filter=renovacao-proxima')}
             >
@@ -1010,7 +899,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card 
+            <Card
               className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:border-destructive/40 transition-colors cursor-pointer group"
               onClick={() => navigate('/consultar?filter=inadimplente')}
             >
@@ -1045,45 +934,48 @@ export default function Dashboard() {
               <RecentActivityCard />
             </div>
           </div>
-          
+
           {canViewProposalsDashboard() && canViewCharts && <ProposalsStatsCard />}
+
+          {/* Despesas dentro de Financeiro */}
+          {canViewDespesas() && (
+            <div className="mt-6">
+              <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                <span className="h-4 w-0.5 bg-orange-500 rounded-full"></span>
+                Despesas
+              </h4>
+              <DespesasSummaryCard />
+            </div>
+          )}
+
+          {/* Follow-ups dentro de Financeiro */}
+          {followups.length > 0 && canViewCharts && (
+            <div className="mt-6">
+              <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                <span className="h-4 w-0.5 bg-blue-500 rounded-full"></span>
+                Follow-ups
+              </h4>
+              <FollowupsChart stats={followupStats} />
+            </div>
+          )}
         </CollapsibleSection>
 
-        {/* ===================== ÁREA FOLLOW-UPS ===================== */}
-        {followups.length > 0 && canViewCharts && (
-          <CollapsibleSection
-            title="Follow-ups"
-            icon={MessageSquare}
-            iconColor="bg-gradient-to-br from-blue-500 to-blue-500/80"
-            defaultOpen={true}
-          >
-            <FollowupsChart stats={followupStats} />
-          </CollapsibleSection>
-        )}
-
-        {/* Alert Banners */}
-        <PaymentSecurityAlertBanner />
-        <NumerosAquecimentoAlertBanner />
-
-        {/* ===================== ÁREA OPERACIONAL ===================== */}
-        <CollapsibleSection 
-          title="Operacional" 
-          icon={Phone} 
+        {/* ===================== OPERACIONAL ===================== */}
+        <CollapsibleSection
+          title="Operacional"
+          icon={Phone}
           iconColor="bg-gradient-to-br from-cyan-500 to-cyan-500/80"
           defaultOpen={true}
         >
-          {/* Status de Números */}
           <NumerosAquecimentoSection />
-
-          {/* Consulta Números */}
           <ConsultaNumerosSection />
         </CollapsibleSection>
 
-        {/* ===================== ÁREA SUPORTE E GESTÃO ===================== */}
+        {/* ===================== SUPORTE E GESTÃO ===================== */}
         {(canViewChamados() || canManageTasks()) && (
-          <CollapsibleSection 
-            title="Suporte e Gestão" 
-            icon={Headphones} 
+          <CollapsibleSection
+            title="Suporte e Gestão"
+            icon={Headphones}
             iconColor="bg-gradient-to-br from-amber-500 to-amber-500/80"
             defaultOpen={true}
             badge={
@@ -1094,7 +986,6 @@ export default function Dashboard() {
               ) : null
             }
           >
-            {/* Chamados */}
             {canViewChamados() && (
               <>
                 <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
@@ -1102,7 +993,7 @@ export default function Dashboard() {
                   {t('sidebar.tickets')}
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <Card 
+                  <Card
                     className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20 hover:border-amber-500/40 transition-colors cursor-pointer group"
                     onClick={() => navigate('/admin/chamados')}
                   >
@@ -1122,7 +1013,7 @@ export default function Dashboard() {
                     </CardContent>
                   </Card>
 
-                  <Card 
+                  <Card
                     className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/40 transition-colors cursor-pointer group"
                     onClick={() => navigate('/admin/chamados')}
                   >
@@ -1142,7 +1033,7 @@ export default function Dashboard() {
                     </CardContent>
                   </Card>
 
-                  <Card 
+                  <Card
                     className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20 hover:border-purple-500/40 transition-colors cursor-pointer group"
                     onClick={() => navigate('/admin/chamados')}
                   >
@@ -1170,7 +1061,7 @@ export default function Dashboard() {
                       Segurança de Pagamento
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <Card 
+                      <Card
                         className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:border-destructive/40 transition-colors cursor-pointer group"
                         onClick={() => navigate('/admin/seguranca-pagamento')}
                       >
@@ -1195,92 +1086,82 @@ export default function Dashboard() {
               </>
             )}
 
-            {/* Tarefas */}
             {canManageTasks() && (
               <>
-                <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                <h4 className="text-sm font-medium text-muted-foreground mb-3 mt-6 flex items-center gap-2">
                   <span className="h-4 w-0.5 bg-primary rounded-full"></span>
                   {t('sidebar.tasks')}
                 </h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <Card 
+                  <Card
                     className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20 hover:border-amber-500/40 transition-colors cursor-pointer group"
                     onClick={() => navigate('/tarefas')}
                   >
                     <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
-                            <ListTodo className="h-5 w-5 text-amber-500" />
-                          </div>
-                          <div>
-                            <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasPendentes}</p>
-                            <p className="text-xs text-muted-foreground">{t('dashboard.pendingTasks')}</p>
-                          </div>
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                          <ListTodo className="h-5 w-5 text-amber-500" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasPendentes}</p>
+                          <p className="text-xs text-muted-foreground">{t('dashboard.pendingTasks')}</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card 
+                  <Card
                     className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/40 transition-colors cursor-pointer group"
                     onClick={() => navigate('/tarefas')}
                   >
                     <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
-                            <Loader2 className="h-5 w-5 text-cyan-500" />
-                          </div>
-                          <div>
-                            <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasEmAndamento}</p>
-                            <p className="text-xs text-muted-foreground">{t('dashboard.tasksInProgress')}</p>
-                          </div>
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+                          <Loader2 className="h-5 w-5 text-cyan-500" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasEmAndamento}</p>
+                          <p className="text-xs text-muted-foreground">{t('dashboard.tasksInProgress')}</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card 
+                  <Card
                     className={`bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:border-destructive/40 transition-colors cursor-pointer group ${stats.tarefasAtrasadas > 0 ? 'animate-pulse' : ''}`}
                     onClick={() => navigate('/tarefas')}
                   >
                     <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-xl bg-destructive/20 flex items-center justify-center">
-                            <AlertCircle className="h-5 w-5 text-destructive" />
-                          </div>
-                          <div>
-                            <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasAtrasadas}</p>
-                            <p className="text-xs text-muted-foreground">{t('dashboard.overdueTasks')}</p>
-                          </div>
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-destructive/20 flex items-center justify-center">
+                          <AlertCircle className="h-5 w-5 text-destructive" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasAtrasadas}</p>
+                          <p className="text-xs text-muted-foreground">{t('dashboard.overdueTasks')}</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card 
+                  <Card
                     className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors cursor-pointer group"
                     onClick={() => navigate('/tarefas')}
                   >
                     <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                            <CheckCircle2 className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasConcluidas}</p>
-                            <p className="text-xs text-muted-foreground">{t('dashboard.completedTasks')}</p>
-                          </div>
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasConcluidas}</p>
+                          <p className="text-xs text-muted-foreground">{t('dashboard.completedTasks')}</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
 
-                {/* Urgent Tasks Alert */}
                 {(urgentTasks.overdue.length > 0 || urgentTasks.dueSoon.length > 0) && (
                   <Card className="bg-gradient-to-br from-destructive/5 to-amber-500/5 border-destructive/30 mb-4">
                     <CardContent className="p-4">
@@ -1308,8 +1189,8 @@ export default function Dashboard() {
                               </div>
                             ))}
                           </div>
-                          <Button 
-                            variant="link" 
+                          <Button
+                            variant="link"
                             className="p-0 h-auto mt-2 text-primary"
                             onClick={() => navigate('/tarefas')}
                           >
@@ -1325,340 +1206,25 @@ export default function Dashboard() {
           </CollapsibleSection>
         )}
 
-        {/* ===================== ÁREA MÉTRICAS ADMIN ===================== */}
+        {/* ===================== ANÁLISE AVANÇADA (admin, fechada) ===================== */}
         {isAdmin && (
-          <CollapsibleSection 
-            title="Métricas Detalhadas" 
-            icon={TrendingUp} 
-            iconColor="bg-gradient-to-br from-update to-update/80"
-            defaultOpen={false}
-          >
-            <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-4">
-              <Card className="bg-card border-border">
-                <CardContent className="p-4 text-center">
-                  <p className="text-2xl font-bold text-foreground font-display">{stats.taxaInadimplencia.toFixed(1)}%</p>
-                  <p className="text-xs text-muted-foreground">{t('dashboard.delinquencyRate')}</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4 text-center">
-                  <p className="text-2xl font-bold text-foreground font-display">{formatCurrency(stats.previsaoFaturamento)}</p>
-                  <p className="text-xs text-muted-foreground">{t('dashboard.forecast30DaysBrl')}</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4 text-center">
-                  <p className="text-2xl font-bold text-foreground font-display">{formatCurrencyUsd(stats.previsaoFaturamentoUsd)}</p>
-                  <p className="text-xs text-muted-foreground">{t('dashboard.forecast30DaysUsd')}</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4 text-center">
-                  <p className="text-2xl font-bold text-foreground font-display">{stats.clientesNovos30d}</p>
-                  <p className="text-xs text-muted-foreground">{t('dashboard.newClientsLast30Days')}</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4 text-center">
-                  <p className="text-2xl font-bold text-foreground font-display">{stats.pendingUsers}</p>
-                  <p className="text-xs text-muted-foreground">{t('dashboard.pendingApprovals')}</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4 text-center">
-                  <p className="text-2xl font-bold text-foreground font-display">{stats.activeWebhooks}</p>
-                  <p className="text-xs text-muted-foreground">{t('dashboard.activeWebhooks')}</p>
-                </CardContent>
-              </Card>
-            </div>
-          </CollapsibleSection>
+          <AnaliseAvancadaSection
+            stats={stats}
+            formatCurrency={formatCurrency}
+            formatCurrencyUsd={formatCurrencyUsd}
+          />
         )}
 
-        {/* ===================== ÁREA DESPESAS ===================== */}
-        {canViewDespesas() && (
-          <CollapsibleSection 
-            title="Despesas" 
-            icon={Wallet} 
-            iconColor="bg-gradient-to-br from-orange-500 to-orange-500/80"
-            defaultOpen={true}
-          >
-            <DespesasSummaryCard />
-          </CollapsibleSection>
-        )}
-
-        {/* Charts Row - Admin Only */}
-        {isAdmin && stats.clientesPorMes.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            {/* Cadastros por Mês - Area Chart melhorado */}
-            <Card className="bg-card border-border overflow-hidden">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-display text-foreground flex items-center gap-2">
-                    <div className="h-3 w-3 rounded-full bg-primary animate-pulse" />
-                    {t('dashboard.clientsByMonth')}
-                  </CardTitle>
-                  <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
-                    {t('dashboard.last6Months')}
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[220px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={stats.clientesPorMes} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorQtd" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(152, 76%, 45%)" stopOpacity={0.4}/>
-                          <stop offset="50%" stopColor="hsl(152, 76%, 45%)" stopOpacity={0.15}/>
-                          <stop offset="95%" stopColor="hsl(152, 76%, 45%)" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 18%)" vertical={false} />
-                      <XAxis 
-                        dataKey="mes" 
-                        stroke="hsl(220, 10%, 55%)" 
-                        fontSize={11}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <YAxis 
-                        stroke="hsl(220, 10%, 55%)" 
-                        fontSize={11}
-                        tickLine={false}
-                        axisLine={false}
-                        allowDecimals={false}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(220, 18%, 12%)', 
-                          border: '1px solid hsl(152, 76%, 35%)',
-                          borderRadius: '12px',
-                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
-                        }}
-                        labelStyle={{ color: 'hsl(0, 0%, 98%)', fontWeight: 'bold', marginBottom: '4px' }}
-                        itemStyle={{ color: 'hsl(152, 76%, 55%)' }}
-                        formatter={(value: number) => [`${value} ${t('dashboard.clients')}`, t('dashboard.registrations')]}
-                        cursor={{ stroke: 'hsl(152, 76%, 45%)', strokeWidth: 1, strokeDasharray: '5 5' }}
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="quantidade" 
-                        stroke="hsl(152, 76%, 45%)" 
-                        strokeWidth={3}
-                        fillOpacity={1} 
-                        fill="url(#colorQtd)"
-                        dot={{ fill: 'hsl(152, 76%, 45%)', strokeWidth: 2, r: 4, stroke: 'hsl(220, 18%, 8%)' }}
-                        activeDot={{ r: 6, stroke: 'hsl(152, 76%, 45%)', strokeWidth: 2, fill: 'hsl(220, 18%, 8%)' }}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex items-center justify-center gap-4 mt-3 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1.5">
-                    <div className="h-2 w-2 rounded-full bg-primary" />
-                    <span>{t('common.total')}: {stats.clientesPorMes.reduce((acc, item) => acc + item.quantidade, 0)} {t('dashboard.registrations')}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Clientes por Plano - Pie Chart melhorado */}
-            <Card className="bg-card border-border overflow-hidden">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-display text-foreground flex items-center gap-2">
-                    <div className="h-3 w-3 rounded-full bg-info animate-pulse" />
-                    {t('dashboard.clientsByPlan')}
-                  </CardTitle>
-                  <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
-                    {stats.clientesPorPlano.reduce((acc, item) => acc + item.quantidade, 0)} {t('dashboard.clients')}
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[180px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <defs>
-                        {stats.clientesPorPlano.map((_, index) => (
-                          <linearGradient key={`gradient-${index}`} id={`pieGradient-${index}`} x1="0" y1="0" x2="1" y2="1">
-                            <stop offset="0%" stopColor={COLORS[index % COLORS.length]} stopOpacity={1}/>
-                            <stop offset="100%" stopColor={COLORS[index % COLORS.length]} stopOpacity={0.7}/>
-                          </linearGradient>
-                        ))}
-                      </defs>
-                      <Pie
-                        data={stats.clientesPorPlano}
-                        dataKey="quantidade"
-                        nameKey="plano"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={40}
-                        outerRadius={70}
-                        paddingAngle={3}
-                        stroke="hsl(220, 18%, 8%)"
-                        strokeWidth={2}
-                      >
-                        {stats.clientesPorPlano.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={`url(#pieGradient-${index})`} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(220, 18%, 12%)', 
-                          border: '1px solid hsl(217, 91%, 50%)',
-                          borderRadius: '12px',
-                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
-                          color: 'hsl(0, 0%, 98%)'
-                        }}
-                        labelStyle={{ color: 'hsl(0, 0%, 98%)' }}
-                        itemStyle={{ color: 'hsl(0, 0%, 98%)' }}
-                        formatter={(value: number, name: string) => [`${value} clientes`, name || 'Sem plano']}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                {/* Legenda customizada */}
-                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-2">
-                  {stats.clientesPorPlano.map((item, index) => (
-                    <div key={item.plano} className="flex items-center gap-1.5 text-xs">
-                      <div 
-                        className="h-3 w-3 rounded-sm" 
-                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                      />
-                      <span className="text-muted-foreground">
-                        {item.plano} <span className="text-foreground font-medium">({item.quantidade})</span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Cobranças - Bar Chart melhorado */}
-            <Card className="bg-card border-border overflow-hidden">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-display text-foreground flex items-center gap-2">
-                    <div className="h-3 w-3 rounded-full bg-warning animate-pulse" />
-                    Cobranças (30 dias)
-                  </CardTitle>
-                  <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
-                    {stats.billingSuccess + stats.billingErrors} total
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[140px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={billingData} layout="vertical" margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                      <defs>
-                        <linearGradient id="successGradient" x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="0%" stopColor="hsl(152, 76%, 35%)" />
-                          <stop offset="100%" stopColor="hsl(152, 76%, 50%)" />
-                        </linearGradient>
-                        <linearGradient id="errorGradient" x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="0%" stopColor="hsl(0, 84%, 50%)" />
-                          <stop offset="100%" stopColor="hsl(0, 84%, 65%)" />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 18%)" horizontal={false} />
-                      <XAxis 
-                        type="number" 
-                        stroke="hsl(220, 10%, 55%)" 
-                        fontSize={11}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <YAxis 
-                        type="category" 
-                        dataKey="name" 
-                        stroke="hsl(220, 10%, 55%)" 
-                        fontSize={11} 
-                        width={55}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(220, 18%, 12%)', 
-                          border: '1px solid hsl(38, 92%, 50%)',
-                          borderRadius: '12px',
-                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
-                        }}
-                        formatter={(value: number, name: string) => [`${value} cobranças`, '']}
-                        cursor={{ fill: 'hsl(220, 15%, 15%)' }}
-                      />
-                      <Bar 
-                        dataKey="value" 
-                        radius={[0, 8, 8, 0]}
-                        barSize={28}
-                      >
-                        {billingData.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={index === 0 ? 'url(#successGradient)' : 'url(#errorGradient)'} 
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                {/* Stats cards */}
-                <div className="grid grid-cols-2 gap-3 mt-4">
-                  <div className="bg-primary/10 rounded-lg p-3 text-center border border-primary/20">
-                    <p className="text-2xl font-bold text-primary">{stats.billingSuccess}</p>
-                    <p className="text-xs text-muted-foreground">Enviadas com sucesso</p>
-                  </div>
-                  <div className="bg-destructive/10 rounded-lg p-3 text-center border border-destructive/20">
-                    <p className="text-2xl font-bold text-destructive">{stats.billingErrors}</p>
-                    <p className="text-xs text-muted-foreground">Falhas no envio</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Client Actions */}
-        <section className="mb-10">
-          <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2 font-display">
-            <span className="h-6 w-1.5 bg-primary rounded-full"></span>
-            {t('sidebar.clients')}
-          </h3>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {visibleClientActions.map((item) => (
-              <Card 
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className={`group cursor-pointer border-border/40 bg-card/50 backdrop-blur-sm hover:bg-card hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${item.glow}`}
-              >
-                <CardContent className="p-6">
-                  <div className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
-                    <item.icon className="h-7 w-7 text-white" />
-                  </div>
-                  <h4 className="font-bold text-lg text-foreground mb-1 group-hover:text-primary transition-colors font-display">
-                    {item.title}
-                  </h4>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {item.description}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        {/* Admin Actions */}
+        {/* ===================== ADMIN ACTIONS ===================== */}
         {isAdmin && (
-          <section>
+          <section className="mt-8">
             <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2 font-display">
               <span className="h-6 w-1.5 bg-warning rounded-full"></span>
               {t('sidebar.administration')}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {adminActions.map((item) => (
-                <Card 
+                <Card
                   key={item.path}
                   onClick={() => navigate(item.path)}
                   className="group cursor-pointer border-border/40 bg-card/50 backdrop-blur-sm hover:bg-card hover:shadow-xl transition-all duration-300"
