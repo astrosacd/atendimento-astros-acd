@@ -55,18 +55,29 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Número de destino ausente" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Auto-merge cliente fields into variables
-    // Auto-merge cliente fields into variables (with friendly formatting for TTS)
-    const fmtValorBR = (v: any) => {
+    // Load roteiro early so we know moeda/idioma for formatting valor/data
+    let roteiro: any = null;
+    if (roteiro_id) {
+      const { data: r } = await supabase.from("ligacoes_ia_roteiros").select("*").eq("id", roteiro_id).single();
+      roteiro = r;
+    }
+    const moedaRoteiro: "BRL" | "USD" | "EUR" = (roteiro?.moeda ?? "BRL") as any;
+    const idiomaRoteiro: string = roteiro?.idioma ?? "pt-BR";
+
+    // Format currency numerically (symbol + amount) per moeda
+    const fmtValor = (v: any, moeda: "BRL" | "USD" | "EUR") => {
       if (v == null || v === "") return "";
       const num = Number(v);
       if (Number.isNaN(num)) return String(v);
+      const locale = moeda === "BRL" ? "pt-BR" : "en-US";
       try {
-        return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(num);
+        return new Intl.NumberFormat(locale, { style: "currency", currency: moeda }).format(num);
       } catch {
-        return `R$ ${num.toFixed(2).replace(".", ",")}`;
+        const sym = moeda === "BRL" ? "R$" : moeda === "USD" ? "$" : "€";
+        return `${sym} ${num.toFixed(2)}`;
       }
     };
+
     // pt-BR currency to spoken words (for TTS naturalness)
     const valorPorExtensoBRL = (v: any): string => {
       const num = typeof v === "number" ? v : Number(String(v).replace(",", "."));
@@ -105,19 +116,74 @@ Deno.serve(async (req) => {
       if (partes.length === 0) return "zero real";
       return partes.join(" e ");
     };
-    const fmtDataBR = (d: any) => {
+
+    // en-US currency to spoken words for USD/EUR
+    const valorPorExtensoEN = (v: any, currency: "USD" | "EUR"): string => {
+      const num = typeof v === "number" ? v : Number(String(v).replace(",", "."));
+      if (!Number.isFinite(num) || num < 0) return "";
+      const U = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+      const TE = ["ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+      const T = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+      const under1000 = (n: number): string => {
+        if (n === 0) return "";
+        const p: string[] = [];
+        const h = Math.floor(n / 100), r = n % 100;
+        if (h > 0) p.push(`${U[h]} hundred`);
+        if (r > 0) {
+          if (r < 10) p.push(U[r]);
+          else if (r < 20) p.push(TE[r - 10]);
+          else { const d = Math.floor(r / 10), u = r % 10; p.push(u === 0 ? T[d] : `${T[d]}-${U[u]}`); }
+        }
+        return p.join(" ");
+      };
+      const intExt = (n: number): string => {
+        if (n === 0) return "zero";
+        const mi = Math.floor(n / 1_000_000), th = Math.floor((n % 1_000_000) / 1000), r = n % 1000;
+        const p: string[] = [];
+        if (mi > 0) p.push(`${under1000(mi)} million`);
+        if (th > 0) p.push(`${under1000(th)} thousand`);
+        if (r > 0) p.push(under1000(r));
+        return p.join(" ");
+      };
+      const whole = Math.floor(num);
+      const cents = Math.round((num - whole) * 100);
+      const sing = currency === "USD" ? "dollar" : "euro";
+      const plur = currency === "USD" ? "dollars" : "euros";
+      const parts: string[] = [];
+      if (whole > 0) parts.push(`${intExt(whole)} ${whole === 1 ? sing : plur}`);
+      if (cents > 0) parts.push(`${intExt(cents)} ${cents === 1 ? "cent" : "cents"}`);
+      if (parts.length === 0) return `zero ${plur}`;
+      return parts.join(" and ");
+    };
+
+    const formatarValorFinal = (v: any): string => {
+      if (!valor_extenso) return fmtValor(v, moedaRoteiro);
+      if (moedaRoteiro === "BRL") return valorPorExtensoBRL(v);
+      return valorPorExtensoEN(v, moedaRoteiro);
+    };
+
+    // Date: BR locale for pt-BR scripts, en-US for foreign ones
+    const fmtData = (d: any): string => {
       if (!d) return "";
       const s = String(d).split("T")[0];
       const [y, m, day] = s.split("-");
-      return (y && m && day) ? `${day}/${m}/${y}` : s;
+      if (!y || !m || !day) return s;
+      if (idiomaRoteiro === "pt-BR") return `${day}/${m}/${y}`;
+      // en-US: "November 30, 2025"
+      try {
+        const dt = new Date(`${y}-${m}-${day}T00:00:00Z`);
+        return new Intl.DateTimeFormat("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" }).format(dt);
+      } catch {
+        return `${m}/${day}/${y}`;
+      }
     };
     const finalVars = {
       ...(cliente
         ? {
             nome: cliente.nome ?? "",
             produto: cliente.produto ?? "",
-            valor: valor_extenso ? valorPorExtensoBRL(cliente.valor) : fmtValorBR(cliente.valor),
-            data_renovacao: fmtDataBR(cliente.data_renovacao),
+            valor: formatarValorFinal(cliente.valor),
+            data_renovacao: fmtData(cliente.data_renovacao),
           }
         : {}),
       ...variables,
