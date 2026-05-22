@@ -4,18 +4,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useTranslation } from 'react-i18next';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Users, Settings, ChevronRight, TrendingUp, 
-  Webhook, DollarSign, Clock, AlertTriangle, 
+import {
+  Users, Settings, ChevronRight, TrendingUp,
+  Webhook, DollarSign, Clock, AlertTriangle,
   Bell, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle,
   ShieldCheck,
   Wallet, Phone, Headphones, ThumbsUp, User, Instagram
 } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useToast } from '@/hooks/use-toast';
-import { useClientTasks, ClientTask } from '@/hooks/useClientTasks';
 import { usePermissions } from '@/hooks/usePermissions';
 import { NumerosAquecimentoSection } from '@/components/dashboard/NumerosAquecimentoSection';
 import { ConsultaNumerosSection } from '@/components/dashboard/ConsultaNumerosSection';
@@ -36,61 +35,7 @@ import { SystemHealthCard } from '@/components/dashboard/SystemHealthCard';
 import { LigacoesAgendadasCard } from '@/components/dashboard/LigacoesAgendadasCard';
 import { AlertsCenter } from '@/components/dashboard/sections/AlertsCenter';
 import { AnaliseAvancadaSection } from '@/components/dashboard/sections/AnaliseAvancadaSection';
-
-// Mapping of billing cycles to months
-const CICLO_MESES: Record<string, number> = {
-  mensal: 1,
-  bimestral: 2,
-  trimestral: 3,
-  semestral: 6,
-  anual: 12,
-};
-
-interface ClienteStats {
-  totalClientes: number;
-  clientesRecorrentes: number; // Clients with cobranca_ativa = true
-  clientesRegistro: number; // Clients with cobranca_ativa = false
-  pendingUsers: number;
-  activeWebhooks: number;
-  totalValor: number;
-  renovacoesProximas: number;
-  clientesPorMes: { mes: string; quantidade: number }[];
-  clientesPorPlano: { plano: string; quantidade: number }[];
-  // New metrics
-  inadimplentes: number;
-  taxaInadimplencia: number;
-  mrr: number; // Monthly Recurring Revenue (normalized) in BRL
-  mrrUsd: number; // Monthly Recurring Revenue (normalized) in USD
-  previsaoFaturamento: number;
-  previsaoFaturamentoUsd: number;
-  clientesNovos30d: number;
-  billingSuccess: number;
-  billingErrors: number;
-  // Chamados
-  chamadosAbertos: number;
-  chamadosEmAndamento: number;
-  chamadosAguardandoCliente: number;
-  // Tasks
-  tarefasPendentes: number;
-  tarefasEmAndamento: number;
-  tarefasAtrasadas: number;
-  tarefasConcluidas: number;
-  // Vendas Únicas (clientes registro)
-  vendasUnicasBrl: number;
-  vendasUnicasUsd: number;
-  clientesRegistroSemValor: number;
-  recuperacaoPendentes: number;
-  billingSkipped: number;
-  billingErrorsUnresolved: number;
-  churnRate: number;
-    instagramTokenExpiring: boolean;
-    instagramTokenExpiryDate: string | null;
-    pagamentosPendentes: number;
-    offlineIntegrations: number;
-    criticalQuotas: number;
-  }
-
-// Removed unused interface
+import { useDashboardStats, formatCurrency, formatCurrencyUsd } from '@/hooks/useDashboardStats';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -99,53 +44,14 @@ export default function Dashboard() {
   const { user, userRole, isAdmin, isApproved } = useAuth();
   const { isSupported, permission, requestPermission } = useNotifications();
   const { canManageTasks, canViewChamados, canViewProposalsDashboard, canViewDespesas, canViewPaymentSecurity, hasPermission } = usePermissions();
-  const { getTaskStats, getUrgentTasks } = useClientTasks();
   const canViewClients = hasPermission('view_clients');
   const canViewCharts = hasPermission('view_dashboard_charts');
   const { followups } = useFollowups();
   const [roleDisplayName, setRoleDisplayName] = useState<string>('');
   const [isBackingUp, setIsBackingUp] = useState(false);
-  const [urgentTasks, setUrgentTasks] = useState<{ overdue: ClientTask[]; dueSoon: ClientTask[] }>({ overdue: [], dueSoon: [] });
-  const [alertsShown, setAlertsShown] = useState(false);
-  const [stats, setStats] = useState<ClienteStats>({
-    totalClientes: 0,
-    clientesRecorrentes: 0,
-    clientesRegistro: 0,
-    pendingUsers: 0,
-    activeWebhooks: 0,
-    totalValor: 0,
-    renovacoesProximas: 0,
-    clientesPorMes: [],
-    clientesPorPlano: [],
-    inadimplentes: 0,
-    taxaInadimplencia: 0,
-    mrr: 0,
-    mrrUsd: 0,
-    previsaoFaturamento: 0,
-    previsaoFaturamentoUsd: 0,
-    clientesNovos30d: 0,
-    billingSuccess: 0,
-    billingErrors: 0,
-    chamadosAbertos: 0,
-    chamadosEmAndamento: 0,
-    chamadosAguardandoCliente: 0,
-    tarefasPendentes: 0,
-    tarefasEmAndamento: 0,
-    tarefasAtrasadas: 0,
-    tarefasConcluidas: 0,
-    vendasUnicasBrl: 0,
-    vendasUnicasUsd: 0,
-    clientesRegistroSemValor: 0,
-    recuperacaoPendentes: 0,
-    billingSkipped: 0,
-    billingErrorsUnresolved: 0,
-    churnRate: 0,
-    instagramTokenExpiring: false,
-    instagramTokenExpiryDate: null,
-    pagamentosPendentes: 0,
-    offlineIntegrations: 0,
-    criticalQuotas: 0,
-  });
+
+  const { stats, urgentTasks } = useDashboardStats();
+
 
   useEffect(() => {
     if (user && !isApproved) {
