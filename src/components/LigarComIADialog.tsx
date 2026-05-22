@@ -80,6 +80,7 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
   }, [clienteId, clienteNome, clienteNumero, clientes, selectedClienteId, fetchedCliente]);
 
   const [callStatus, setCallStatus] = useState<string>("");
+  const [valorExtenso, setValorExtenso] = useState<boolean>(false);
   const callRef = useRef<ActiveCallHandle | null>(null);
 
   const ligar = async () => {
