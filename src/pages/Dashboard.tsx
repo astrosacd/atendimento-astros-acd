@@ -7,10 +7,10 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  Search, Edit, Trash2, Users, Settings, ChevronRight, TrendingUp, 
+  Users, Settings, ChevronRight, TrendingUp, 
   Webhook, DollarSign, Clock, AlertTriangle, 
   Bell, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle,
-  ShieldCheck, UserPlus,
+  ShieldCheck,
   Wallet, Phone, Headphones, ThumbsUp, User, Instagram
 } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
