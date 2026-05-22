@@ -28,6 +28,7 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
   const [clientes, setClientes] = useState<any[]>([]);
   const [selectedClienteId, setSelectedClienteId] = useState<string>(clienteId ?? "");
   const [loadingClientes, setLoadingClientes] = useState(false);
+  const [fetchedCliente, setFetchedCliente] = useState<any | null>(null);
 
   useEffect(() => { setSelectedClienteId(clienteId ?? ""); }, [clienteId, open]);
 
@@ -55,10 +56,25 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
     })();
   }, [open, clienteId]);
 
+  // When opened from a client card (clienteId in props), fetch the full record
+  // so the preview can fill {valor}, {produto}, {data_renovacao}.
+  useEffect(() => {
+    if (!open || !clienteId) { setFetchedCliente(null); return; }
+    let cancelled = false;
+    supabase.from("clientes")
+      .select("id, nome, numero, produto, valor, data_renovacao")
+      .eq("id", clienteId).maybeSingle()
+      .then(({ data }) => { if (!cancelled) setFetchedCliente(data ?? null); });
+    return () => { cancelled = true; };
+  }, [open, clienteId]);
+
   const selectedCliente = useMemo(() => {
-    if (clienteId) return { id: clienteId, nome: clienteNome ?? "", numero: clienteNumero ?? "" };
+    if (clienteId) {
+      if (fetchedCliente) return fetchedCliente;
+      return { id: clienteId, nome: clienteNome ?? "", numero: clienteNumero ?? "" };
+    }
     return clientes.find(c => c.id === selectedClienteId) ?? null;
-  }, [clienteId, clienteNome, clienteNumero, clientes, selectedClienteId]);
+  }, [clienteId, clienteNome, clienteNumero, clientes, selectedClienteId, fetchedCliente]);
 
   const [callStatus, setCallStatus] = useState<string>("");
   const callRef = useRef<ActiveCallHandle | null>(null);
