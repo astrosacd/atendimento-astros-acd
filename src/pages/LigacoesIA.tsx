@@ -40,6 +40,7 @@ const CATEGORIAS = [
 
 const STATUS_COLOR: Record<string, string> = {
   iniciando: "bg-slate-500",
+  pronto_para_discar: "bg-slate-500",
   discando: "bg-blue-500",
   tocando: "bg-cyan-500",
   atendida: "bg-emerald-500",
@@ -47,7 +48,28 @@ const STATUS_COLOR: Record<string, string> = {
   nao_atendeu: "bg-amber-500",
   ocupado: "bg-orange-500",
   rejeitada: "bg-rose-500",
+  cliente_desligou_antes_audio: "bg-amber-600",
+  cliente_desligou_durante_audio: "bg-amber-600",
+  audio_concluido: "bg-emerald-500",
+  cancelada: "bg-muted",
   erro: "bg-destructive",
+};
+
+export const STATUS_LABEL: Record<string, string> = {
+  iniciando: "Iniciando",
+  pronto_para_discar: "Pronta para discar",
+  discando: "Discando",
+  tocando: "Tocando",
+  atendida: "Atendida",
+  finalizada: "Finalizada",
+  audio_concluido: "Áudio concluído",
+  nao_atendeu: "Não atendeu",
+  ocupado: "Ocupado",
+  rejeitada: "Rejeitada",
+  cliente_desligou_antes_audio: "Cliente desligou antes do áudio",
+  cliente_desligou_durante_audio: "Cliente desligou durante o áudio",
+  cancelada: "Cancelada",
+  erro: "Erro",
 };
 
 const CATEGORY_LABEL: Record<string, string> = {
