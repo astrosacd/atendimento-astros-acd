@@ -52,22 +52,32 @@ Deno.serve(async (req) => {
       await writeLog("skipped", 0, 0, "Cron desativado");
       return new Response(JSON.stringify({ ok: true, skipped: "disabled" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    let roteiroId = cfg?.roteiro_id;
+    // Default roteiro (BRL) from config — kept as fallback for clients without a matching foreign script
+    const defaultRoteiroId: string | null = cfg?.roteiro_id ?? null;
+
+    // Load ALL active billing roteiros, indexed by moeda so we can auto-pick per client
+    const { data: allRoteiros } = await supabase
+      .from("ligacoes_ia_roteiros")
+      .select("id, nome, moeda, categoria")
+      .eq("ativo", true)
+      .in("categoria", ["cobranca", "recuperacao", "geral"])
+      .order("categoria", { ascending: true })
+      .order("created_at", { ascending: true });
+
+    const roteiroByMoeda: Record<string, string> = {};
+    (allRoteiros ?? []).forEach((r: any) => {
+      if (r.moeda && !roteiroByMoeda[r.moeda]) roteiroByMoeda[r.moeda] = r.id;
+    });
+
+    // Resolve the fallback roteiro nome for logs (config-defined OR first BRL active)
     let roteiroFallback: string | null = null;
-    if (!roteiroId) {
-      const { data: roteiro } = await supabase
-        .from("ligacoes_ia_roteiros")
-        .select("id, nome")
-        .eq("ativo", true)
-        .in("categoria", ["cobranca", "recuperacao", "geral"])
-        .order("categoria", { ascending: true })
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      roteiroId = roteiro?.id;
-      roteiroFallback = roteiro?.nome ?? null;
+    let fallbackRoteiroId: string | null = defaultRoteiroId ?? roteiroByMoeda["BRL"] ?? (allRoteiros?.[0]?.id ?? null);
+    if (fallbackRoteiroId) {
+      const fb = (allRoteiros ?? []).find((r: any) => r.id === fallbackRoteiroId);
+      roteiroFallback = fb?.nome ?? null;
     }
-    if (!roteiroId) {
+
+    if (!fallbackRoteiroId && Object.keys(roteiroByMoeda).length === 0) {
       await writeLog("error", 0, 0, "Nenhum roteiro ativo encontrado");
       return new Response(JSON.stringify({ ok: false, error: "Nenhum roteiro ativo encontrado. Crie ou ative um roteiro antes de sincronizar." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -82,7 +92,7 @@ Deno.serve(async (req) => {
     for (const d of dias) {
       const targetStr = addDays(hojeStr, -d);
 
-      let q = supabase.from("clientes").select("id, numero, cobranca_ativa, data_renovacao").not("numero", "is", null).neq("numero", "").eq("data_renovacao", targetStr);
+      let q = supabase.from("clientes").select("id, numero, cobranca_ativa, moeda, data_renovacao").not("numero", "is", null).neq("numero", "").eq("data_renovacao", targetStr);
       if (cfg.apenas_cobranca_ativa) q = q.eq("cobranca_ativa", true);
       const { data: clientes, error } = await q;
       if (error) continue;
@@ -91,13 +101,20 @@ Deno.serve(async (req) => {
 
       const rows = clientes
         .filter((c: any) => c.numero)
-        .map((c: any) => ({
-          cliente_id: c.id,
-          roteiro_id: roteiroId,
-          dia_alvo: hojeStr,
-          tipo_d: tipoDFromDays(d),
-          status: "pendente",
-        }));
+        .map((c: any) => {
+          const moedaCliente = c.moeda ?? "BRL";
+          // Pick roteiro matching client's moeda; fallback to default
+          const roteiroIdForCliente = roteiroByMoeda[moedaCliente] ?? fallbackRoteiroId;
+          if (!roteiroIdForCliente) return null;
+          return {
+            cliente_id: c.id,
+            roteiro_id: roteiroIdForCliente,
+            dia_alvo: hojeStr,
+            tipo_d: tipoDFromDays(d),
+            status: "pendente",
+          };
+        })
+        .filter((r: any) => r !== null);
       if (!rows.length) continue;
 
       const { data: existing } = await supabase
