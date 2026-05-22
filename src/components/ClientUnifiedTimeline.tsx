@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { usePermissions } from '@/hooks/usePermissions';
 import { 
@@ -55,6 +56,33 @@ const TYPE_CONFIG: Record<TimelineEvent['type'], { icon: React.ElementType; colo
   score_change: { icon: TrendingUp, color: 'text-emerald-400', label: 'Score IA' },
   upsell: { icon: Lightbulb, color: 'text-yellow-400', label: 'Sugestão Upsell' },
   social_profile: { icon: Instagram, color: 'text-pink-400', label: 'Perfil Social' },
+};
+
+const IA_CALL_STATUS_LABEL: Record<string, string> = {
+  iniciando: 'Iniciando',
+  pronto_para_discar: 'Pronta para discar',
+  discando: 'Discando',
+  tocando: 'Tocando',
+  atendida: 'Atendida',
+  finalizada: 'Finalizada',
+  audio_concluido: 'Áudio concluído',
+  nao_atendeu: 'Não atendeu',
+  ocupado: 'Ocupado',
+  rejeitada: 'Rejeitada',
+  cliente_desligou_antes_audio: 'Cliente desligou antes do áudio',
+  cliente_desligou_durante_audio: 'Cliente desligou durante o áudio',
+  cancelada: 'Cancelada',
+  erro: 'Erro',
+};
+
+const SCHEDULED_CALL_STATUS_LABEL: Record<string, string> = {
+  pendente: 'Pendente',
+  agendada: 'Agendada',
+  em_andamento: 'Em andamento',
+  concluida: 'Concluída',
+  falhou: 'Falhou',
+  cancelada: 'Cancelada',
+  pulada: 'Pulada',
 };
 
 export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedTimelineProps) {
@@ -428,26 +456,28 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
       (iaCallsRes.data || []).forEach((c: any) => {
         const roteiroNome = (c.roteiro as any)?.nome || 'Sem roteiro';
         const dur = c.duration_seconds ? ` — ${c.duration_seconds}s` : '';
+        const statusLabel = IA_CALL_STATUS_LABEL[c.status] || c.status;
         allEvents.push({
           id: `ia-call-${c.id}`,
           type: 'ia_call',
           date: c.created_at,
           title: `Ligação IA: ${roteiroNome}`,
-          description: `${c.numero_destino || ''} — ${c.status}${dur}${c.source ? ` (${c.source})` : ''}${c.error_message ? ` — ${c.error_message}` : ''}`,
-          status: c.status,
+          description: `${c.numero_destino || ''} — ${statusLabel}${dur}${c.source ? ` (${c.source})` : ''}${c.error_message ? ` — ${c.error_message}` : ''}`,
+          status: statusLabel,
         });
       });
 
       // Ligações Agendadas (fila de cobrança IA)
       (scheduledCallsRes.data || []).forEach((s: any) => {
         const roteiroNome = (s.roteiro as any)?.nome || 'Sem roteiro';
+        const statusLabel = SCHEDULED_CALL_STATUS_LABEL[s.status] || s.status;
         allEvents.push({
           id: `sched-call-${s.id}`,
           type: 'scheduled_call',
           date: s.created_at,
           title: `Ligação agendada: ${roteiroNome}`,
-          description: `${s.tipo_d || ''} — alvo: ${s.dia_alvo} — ${s.status}${s.tentativas ? ` (tent. ${s.tentativas})` : ''}${s.erro ? ` — ${s.erro}` : ''}`,
-          status: s.status,
+          description: `${s.tipo_d || ''} — alvo: ${s.dia_alvo} — ${statusLabel}${s.tentativas ? ` (tent. ${s.tentativas})` : ''}${s.erro ? ` — ${s.erro}` : ''}`,
+          status: statusLabel,
         });
       });
 
@@ -638,19 +668,18 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
                   {dayEvents.map((event) => {
                     const config = TYPE_CONFIG[event.type];
                     const Icon = config.icon;
+                    const isClickable = event.type === 'ia_call' || event.type === 'scheduled_call';
+                    const href = isClickable ? `/ligacoes-ia?tab=historico&cliente=${clienteId}` : null;
 
-                    return (
-                      <div key={event.id} className="relative flex gap-3 group">
-                        {/* Icon dot */}
+                    const inner = (
+                      <>
                         <div className={`relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-card border border-border shrink-0 ${config.color} group-hover:border-current transition-colors`}>
                           <Icon className="h-3.5 w-3.5" />
                         </div>
-
-                        {/* Content */}
                         <div className="flex-1 min-w-0 pb-3">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
-                              <p className="text-sm font-medium text-foreground truncate">
+                              <p className={`text-sm font-medium text-foreground truncate ${isClickable ? 'group-hover:text-primary group-hover:underline' : ''}`}>
                                 {event.title}
                               </p>
                               {event.description && (
@@ -671,6 +700,21 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
                             </div>
                           </div>
                         </div>
+                      </>
+                    );
+
+                    return href ? (
+                      <Link
+                        key={event.id}
+                        to={href}
+                        className="relative flex gap-3 group cursor-pointer"
+                        title="Abrir no módulo Ligações IA filtrado por este cliente"
+                      >
+                        {inner}
+                      </Link>
+                    ) : (
+                      <div key={event.id} className="relative flex gap-3 group">
+                        {inner}
                       </div>
                     );
                   })}

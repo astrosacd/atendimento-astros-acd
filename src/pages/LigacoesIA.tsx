@@ -14,7 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
-import { Phone, Plus, Play, Trash2, Loader2, PhoneCall, PhoneOff, History, Settings as SettingsIcon, FileText, Sparkles, AlertCircle, RefreshCw, CheckCircle2, Link as LinkIcon, Copy, Clock, Check, X } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { Phone, Plus, Play, Trash2, Loader2, PhoneCall, PhoneOff, History, Settings as SettingsIcon, FileText, Sparkles, AlertCircle, RefreshCw, CheckCircle2, Link as LinkIcon, Copy, Clock, Check, X, Filter } from "lucide-react";
 import { format, subDays, startOfDay, addHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LigarComIADialog } from "@/components/LigarComIADialog";
@@ -39,6 +40,7 @@ const CATEGORIAS = [
 
 const STATUS_COLOR: Record<string, string> = {
   iniciando: "bg-slate-500",
+  pronto_para_discar: "bg-slate-500",
   discando: "bg-blue-500",
   tocando: "bg-cyan-500",
   atendida: "bg-emerald-500",
@@ -46,7 +48,28 @@ const STATUS_COLOR: Record<string, string> = {
   nao_atendeu: "bg-amber-500",
   ocupado: "bg-orange-500",
   rejeitada: "bg-rose-500",
+  cliente_desligou_antes_audio: "bg-amber-600",
+  cliente_desligou_durante_audio: "bg-amber-600",
+  audio_concluido: "bg-emerald-500",
+  cancelada: "bg-muted",
   erro: "bg-destructive",
+};
+
+export const STATUS_LABEL: Record<string, string> = {
+  iniciando: "Iniciando",
+  pronto_para_discar: "Pronta para discar",
+  discando: "Discando",
+  tocando: "Tocando",
+  atendida: "Atendida",
+  finalizada: "Finalizada",
+  audio_concluido: "Áudio concluído",
+  nao_atendeu: "Não atendeu",
+  ocupado: "Ocupado",
+  rejeitada: "Rejeitada",
+  cliente_desligou_antes_audio: "Cliente desligou antes do áudio",
+  cliente_desligou_durante_audio: "Cliente desligou durante o áudio",
+  cancelada: "Cancelada",
+  erro: "Erro",
 };
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -122,7 +145,17 @@ export default function LigacoesIA() {
 
   const allOk = configStatus?.wavoip && configStatus?.dialer && configStatus?.eleven;
   const allowedTabs = LIGACOES_PERMISSION_OPTIONS.map(p => p.id).filter(tabAllowed);
-  const defaultTab = isTempAccess ? (allowedTabs[0] ?? "historico") : "historico";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get("tab");
+  const urlCliente = searchParams.get("cliente");
+  const initialTab = (urlTab && allowedTabs.includes(urlTab))
+    ? urlTab
+    : (isTempAccess ? (allowedTabs[0] ?? "historico") : "historico");
+  const [activeTab, setActiveTab] = useState(initialTab);
+  useEffect(() => {
+    if (urlTab && allowedTabs.includes(urlTab) && urlTab !== activeTab) setActiveTab(urlTab);
+    // eslint-disable-next-line
+  }, [urlTab]);
 
   const Wrapper = React.useMemo(() => {
     return ({ children }: { children: React.ReactNode }) =>
@@ -213,7 +246,13 @@ export default function LigacoesIA() {
           </div>
         )}
 
-        <Tabs defaultValue={defaultTab} className="space-y-4">
+        <Tabs value={activeTab} onValueChange={(v) => {
+          setActiveTab(v);
+          const next = new URLSearchParams(searchParams);
+          next.set("tab", v);
+          if (v !== "historico") next.delete("cliente");
+          setSearchParams(next, { replace: true });
+        }} className="space-y-4">
           <TabsList className="flex flex-wrap w-full max-w-5xl h-auto">
             {tabAllowed("historico") && <TabsTrigger value="historico"><History className="h-4 w-4 mr-2" />Histórico</TabsTrigger>}
             {tabAllowed("fila") && <TabsTrigger value="fila"><ListChecks className="h-4 w-4 mr-2" />Fila do dia</TabsTrigger>}
@@ -224,7 +263,7 @@ export default function LigacoesIA() {
             {tabAllowed("config") && <TabsTrigger value="config"><SettingsIcon className="h-4 w-4 mr-2" />Configurações</TabsTrigger>}
           </TabsList>
 
-          {tabAllowed("historico") && <TabsContent value="historico"><HistoricoTab /></TabsContent>}
+          {tabAllowed("historico") && <TabsContent value="historico"><HistoricoTab clienteIdFilter={urlCliente} onClearFilter={() => { const n = new URLSearchParams(searchParams); n.delete("cliente"); setSearchParams(n, { replace: true }); }} /></TabsContent>}
           {tabAllowed("fila") && <TabsContent value="fila"><FilaLigacoesTab /></TabsContent>}
           {tabAllowed("roteiros") && <TabsContent value="roteiros"><RoteirosTab /></TabsContent>}
           {tabAllowed("disparo") && <TabsContent value="disparo"><DisparoTab /></TabsContent>}
@@ -472,10 +511,11 @@ function AcessoProvisorioButton({ siteUrl }: { siteUrl: string }) {
 }
 
 // ============ HISTÓRICO ============
-function HistoricoTab() {
+function HistoricoTab({ clienteIdFilter, onClearFilter }: { clienteIdFilter?: string | null; onClearFilter?: () => void } = {}) {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [periodo, setPeriodo] = useState("7"); // dias
+  const [clienteNome, setClienteNome] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -488,11 +528,20 @@ function HistoricoTab() {
       const since = startOfDay(subDays(new Date(), Number(periodo))).toISOString();
       q = q.gte("created_at", since);
     }
+    if (clienteIdFilter) {
+      q = q.eq("cliente_id", clienteIdFilter);
+    }
     const { data } = await q;
     setItems(data ?? []);
     setLoading(false);
   };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [periodo]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [periodo, clienteIdFilter]);
+
+  useEffect(() => {
+    if (!clienteIdFilter) { setClienteNome(null); return; }
+    supabase.from("clientes").select("nome").eq("id", clienteIdFilter).maybeSingle()
+      .then(({ data }) => setClienteNome(data?.nome ?? null));
+  }, [clienteIdFilter]);
 
   // Realtime updates
   useEffect(() => {
@@ -501,7 +550,7 @@ function HistoricoTab() {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line
-  }, []);
+  }, [clienteIdFilter, periodo]);
 
   return (
     <Card className="p-4">
@@ -522,11 +571,26 @@ function HistoricoTab() {
           </Button>
         </div>
       </div>
+
+      {clienteIdFilter && (
+        <div className="flex items-center justify-between gap-2 mb-3 p-2 rounded-md border border-primary/30 bg-primary/5 text-sm">
+          <div className="flex items-center gap-2 min-w-0">
+            <Filter className="h-4 w-4 text-primary shrink-0" />
+            <span className="truncate">Filtrando por cliente: <strong>{clienteNome || clienteIdFilter}</strong></span>
+          </div>
+          {onClearFilter && (
+            <Button size="sm" variant="ghost" onClick={onClearFilter}>
+              <X className="h-3 w-3 mr-1" /> Limpar
+            </Button>
+          )}
+        </div>
+      )}
+
       {loading && items.length === 0 ? (
         <div className="text-center py-10 text-muted-foreground">Carregando...</div>
       ) : items.length === 0 ? (
         <div className="text-center py-10 text-muted-foreground">
-          Nenhuma ligação no período. Vá para a aba <strong>Disparo</strong> para testar.
+          {clienteIdFilter ? "Nenhuma ligação para este cliente no período." : <>Nenhuma ligação no período. Vá para a aba <strong>Disparo</strong> para testar.</>}
         </div>
       ) : (
         <div className="space-y-2">
@@ -534,7 +598,7 @@ function HistoricoTab() {
             <div key={it.id} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/30">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge className={`${STATUS_COLOR[it.status] || "bg-muted"} text-white`}>{it.status}</Badge>
+                  <Badge className={`${STATUS_COLOR[it.status] || "bg-muted"} text-white`}>{STATUS_LABEL[it.status] || it.status}</Badge>
                   <span className="font-medium truncate">{it.clientes?.nome || it.numero_destino}</span>
                   {it.ligacoes_ia_roteiros?.nome && (
                     <span className="text-xs text-muted-foreground">• {it.ligacoes_ia_roteiros.nome}</span>
