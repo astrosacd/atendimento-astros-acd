@@ -65,7 +65,7 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
     if (!open || !clienteId) { setFetchedCliente(null); return; }
     let cancelled = false;
     supabase.from("clientes")
-      .select("id, nome, numero, produto, valor, data_renovacao")
+      .select("id, nome, numero, produto, valor, moeda, data_renovacao")
       .eq("id", clienteId).maybeSingle()
       .then(({ data }) => { if (!cancelled) setFetchedCliente(data ?? null); });
     return () => { cancelled = true; };
