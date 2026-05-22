@@ -119,15 +119,24 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
 
   const preview = roteiros.find(r => r.id === roteiroId);
 
-  // Build preview text with variables filled
+  // Build preview text with variables filled (same formatting as backend)
   const filledPreview = useMemo(() => {
     if (!preview || !selectedCliente) return preview?.texto ?? "";
     const c: any = selectedCliente;
+    const valorFmt = c.valor != null && c.valor !== ""
+      ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(c.valor))
+      : "";
+    let dataFmt = "";
+    if (c.data_renovacao) {
+      const [y, m, d] = String(c.data_renovacao).split("T")[0].split("-");
+      if (y && m && d) dataFmt = `${d}/${m}/${y}`;
+      else dataFmt = String(c.data_renovacao);
+    }
     const vars: Record<string, string> = {
       nome: c.nome ?? "",
       produto: c.produto ?? "",
-      valor: c.valor != null ? String(c.valor) : "",
-      data_renovacao: c.data_renovacao ?? "",
+      valor: valorFmt,
+      data_renovacao: dataFmt,
     };
     return preview.texto.replace(/\{(\w+)\}/g, (_: string, k: string) => vars[k] ?? `{${k}}`);
   }, [preview, selectedCliente]);
