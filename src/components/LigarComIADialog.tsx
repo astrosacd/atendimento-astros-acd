@@ -39,7 +39,7 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
     if (!open) return;
     (async () => {
       const promises: any[] = [
-        supabase.from("ligacoes_ia_roteiros").select("id, nome, categoria, texto").eq("ativo", true).order("nome"),
+        supabase.from("ligacoes_ia_roteiros").select("id, nome, categoria, texto, moeda, idioma, tipo").eq("ativo", true).order("nome"),
         supabase.from("ligacoes_ia_config").select("config_key, config_value").in("config_key", ["wavoip_token", "wavoip_dialer_number", "elevenlabs_api_key"]),
       ];
       if (!clienteId) {
