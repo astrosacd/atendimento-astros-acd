@@ -28,6 +28,7 @@ import { ListChecks, CalendarClock, Megaphone } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSiteUrl } from "@/hooks/useSiteUrl";
 import { copyToClipboard } from "@/utils/clipboard";
+import { invokeFunction } from "@/utils/invokeFunction";
 
 const CATEGORIAS = [
   { value: "cobranca", label: "Cobrança" },
@@ -809,10 +810,9 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
     if (!form.texto) return toast({ title: "Sem texto para traduzir", variant: "destructive" });
     setTranslating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("ligacoes-ia-translate-roteiro", {
+      const data = await invokeFunction("ligacoes-ia-translate-roteiro", {
         body: { nome: form.nome, texto: form.texto, source_idioma: "pt-BR", target_idioma: form.idioma },
       });
-      if (error) throw error;
       const translated = (data as any)?.texto_traduzido;
       const novoNome = (data as any)?.nome_traduzido;
       if (translated) {
