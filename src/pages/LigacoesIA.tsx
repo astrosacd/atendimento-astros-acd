@@ -511,10 +511,11 @@ function AcessoProvisorioButton({ siteUrl }: { siteUrl: string }) {
 }
 
 // ============ HISTÓRICO ============
-function HistoricoTab() {
+function HistoricoTab({ clienteIdFilter, onClearFilter }: { clienteIdFilter?: string | null; onClearFilter?: () => void } = {}) {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [periodo, setPeriodo] = useState("7"); // dias
+  const [clienteNome, setClienteNome] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -527,11 +528,20 @@ function HistoricoTab() {
       const since = startOfDay(subDays(new Date(), Number(periodo))).toISOString();
       q = q.gte("created_at", since);
     }
+    if (clienteIdFilter) {
+      q = q.eq("cliente_id", clienteIdFilter);
+    }
     const { data } = await q;
     setItems(data ?? []);
     setLoading(false);
   };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [periodo]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [periodo, clienteIdFilter]);
+
+  useEffect(() => {
+    if (!clienteIdFilter) { setClienteNome(null); return; }
+    supabase.from("clientes").select("nome").eq("id", clienteIdFilter).maybeSingle()
+      .then(({ data }) => setClienteNome(data?.nome ?? null));
+  }, [clienteIdFilter]);
 
   // Realtime updates
   useEffect(() => {
@@ -540,7 +550,7 @@ function HistoricoTab() {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line
-  }, []);
+  }, [clienteIdFilter, periodo]);
 
   return (
     <Card className="p-4">
@@ -561,11 +571,26 @@ function HistoricoTab() {
           </Button>
         </div>
       </div>
+
+      {clienteIdFilter && (
+        <div className="flex items-center justify-between gap-2 mb-3 p-2 rounded-md border border-primary/30 bg-primary/5 text-sm">
+          <div className="flex items-center gap-2 min-w-0">
+            <Filter className="h-4 w-4 text-primary shrink-0" />
+            <span className="truncate">Filtrando por cliente: <strong>{clienteNome || clienteIdFilter}</strong></span>
+          </div>
+          {onClearFilter && (
+            <Button size="sm" variant="ghost" onClick={onClearFilter}>
+              <X className="h-3 w-3 mr-1" /> Limpar
+            </Button>
+          )}
+        </div>
+      )}
+
       {loading && items.length === 0 ? (
         <div className="text-center py-10 text-muted-foreground">Carregando...</div>
       ) : items.length === 0 ? (
         <div className="text-center py-10 text-muted-foreground">
-          Nenhuma ligação no período. Vá para a aba <strong>Disparo</strong> para testar.
+          {clienteIdFilter ? "Nenhuma ligação para este cliente no período." : <>Nenhuma ligação no período. Vá para a aba <strong>Disparo</strong> para testar.</>}
         </div>
       ) : (
         <div className="space-y-2">
@@ -573,7 +598,7 @@ function HistoricoTab() {
             <div key={it.id} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/30">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge className={`${STATUS_COLOR[it.status] || "bg-muted"} text-white`}>{it.status}</Badge>
+                  <Badge className={`${STATUS_COLOR[it.status] || "bg-muted"} text-white`}>{STATUS_LABEL[it.status] || it.status}</Badge>
                   <span className="font-medium truncate">{it.clientes?.nome || it.numero_destino}</span>
                   {it.ligacoes_ia_roteiros?.nome && (
                     <span className="text-xs text-muted-foreground">• {it.ligacoes_ia_roteiros.nome}</span>
