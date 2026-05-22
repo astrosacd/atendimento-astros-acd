@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
-import { useSearchParams, Link as RouterLink } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Phone, Plus, Play, Trash2, Loader2, PhoneCall, PhoneOff, History, Settings as SettingsIcon, FileText, Sparkles, AlertCircle, RefreshCw, CheckCircle2, Link as LinkIcon, Copy, Clock, Check, X, Filter } from "lucide-react";
 import { format, subDays, startOfDay, addHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
