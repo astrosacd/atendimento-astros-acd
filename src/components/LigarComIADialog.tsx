@@ -125,20 +125,21 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
 
   // Build preview text with variables filled (same formatting as backend)
   // + detect variables used in the script that have no value in the client record.
-  const { filledPreview, missingVars, usedVars } = useMemo(() => {
-    if (!preview) return { filledPreview: "", missingVars: [] as string[], usedVars: [] as string[] };
+  const { filledPreview, missingVars, usedVars, moedaUsada, moedaMismatch } = useMemo(() => {
+    if (!preview) return { filledPreview: "", missingVars: [] as string[], usedVars: [] as string[], moedaUsada: "BRL" as MoedaExtenso, moedaMismatch: false };
     const c: any = selectedCliente ?? {};
+    const moeda: MoedaExtenso = (preview.moeda ?? "BRL") as MoedaExtenso;
+    const clienteMoeda: MoedaExtenso = (c.moeda ?? "BRL") as MoedaExtenso;
     const valorRaw = c.valor;
     const valorFmt = valorRaw != null && valorRaw !== ""
-      ? (valorExtenso
-          ? valorPorExtensoBRL(Number(valorRaw))
-          : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(valorRaw)))
+      ? (valorExtenso ? valorPorExtenso(Number(valorRaw), moeda) : formatMoeda(Number(valorRaw), moeda))
       : "";
     let dataFmt = "";
     if (c.data_renovacao) {
       const [y, m, d] = String(c.data_renovacao).split("T")[0].split("-");
-      if (y && m && d) dataFmt = `${d}/${m}/${y}`;
-      else dataFmt = String(c.data_renovacao);
+      if (y && m && d) {
+        dataFmt = preview.idioma === "pt-BR" ? `${d}/${m}/${y}` : `${m}/${d}/${y}`;
+      } else dataFmt = String(c.data_renovacao);
     }
     const vars: Record<string, string> = {
       nome: c.nome ?? "",
@@ -153,7 +154,7 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
       if (!v) return `⚠️[${k} não cadastrado]`;
       return v;
     });
-    return { filledPreview: filled, missingVars: missing, usedVars: used };
+    return { filledPreview: filled, missingVars: missing, usedVars: used, moedaUsada: moeda, moedaMismatch: clienteMoeda !== moeda };
   }, [preview, selectedCliente, valorExtenso]);
 
   const isMensal = (c: any) => !!c.cobranca_ativa;
