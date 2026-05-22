@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const body = await req.json();
-    const { cliente_id, roteiro_id, variables = {}, numero_destino: numDestino, source = "manual", voice_id_override } = body;
+    const { cliente_id, roteiro_id, variables = {}, numero_destino: numDestino, source = "manual", voice_id_override, valor_extenso = false } = body;
 
     // Load config
     const { data: configRows } = await supabase.from("ligacoes_ia_config").select("config_key, config_value");
@@ -67,6 +67,44 @@ Deno.serve(async (req) => {
         return `R$ ${num.toFixed(2).replace(".", ",")}`;
       }
     };
+    // pt-BR currency to spoken words (for TTS naturalness)
+    const valorPorExtensoBRL = (v: any): string => {
+      const num = typeof v === "number" ? v : Number(String(v).replace(",", "."));
+      if (!Number.isFinite(num) || num < 0) return "";
+      const U = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove"];
+      const D10 = ["dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+      const D = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
+      const C = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
+      const ate999 = (n: number): string => {
+        if (n === 0) return "";
+        if (n === 100) return "cem";
+        const c = Math.floor(n / 100), r = n % 100;
+        const p: string[] = [];
+        if (c > 0) p.push(C[c]);
+        if (r > 0) {
+          if (r < 10) p.push(U[r]);
+          else if (r < 20) p.push(D10[r - 10]);
+          else { const d = Math.floor(r / 10), u = r % 10; p.push(u === 0 ? D[d] : `${D[d]} e ${U[u]}`); }
+        }
+        return p.join(" e ");
+      };
+      const inteiroExt = (n: number): string => {
+        if (n === 0) return "zero";
+        const mi = Math.floor(n / 1_000_000), ml = Math.floor((n % 1_000_000) / 1000), r = n % 1000;
+        const p: string[] = [];
+        if (mi > 0) p.push(mi === 1 ? "um milhão" : `${ate999(mi)} milhões`);
+        if (ml > 0) p.push(ml === 1 ? "mil" : `${ate999(ml)} mil`);
+        if (r > 0) p.push(ate999(r));
+        return p.join(" e ");
+      };
+      const inteiros = Math.floor(num);
+      const centavos = Math.round((num - inteiros) * 100);
+      const partes: string[] = [];
+      if (inteiros > 0) partes.push(`${inteiroExt(inteiros)} ${inteiros === 1 ? "real" : "reais"}`);
+      if (centavos > 0) partes.push(`${inteiroExt(centavos)} ${centavos === 1 ? "centavo" : "centavos"}`);
+      if (partes.length === 0) return "zero real";
+      return partes.join(" e ");
+    };
     const fmtDataBR = (d: any) => {
       if (!d) return "";
       const s = String(d).split("T")[0];
@@ -78,7 +116,7 @@ Deno.serve(async (req) => {
         ? {
             nome: cliente.nome ?? "",
             produto: cliente.produto ?? "",
-            valor: fmtValorBR(cliente.valor),
+            valor: valor_extenso ? valorPorExtensoBRL(cliente.valor) : fmtValorBR(cliente.valor),
             data_renovacao: fmtDataBR(cliente.data_renovacao),
           }
         : {}),

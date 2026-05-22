@@ -9,6 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { placeCallWithTTS, type ActiveCallHandle } from "@/lib/wavoipCall";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { valorPorExtensoBRL } from "@/lib/valorExtenso";
 
 interface Props {
   clienteId?: string;
@@ -77,6 +80,7 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
   }, [clienteId, clienteNome, clienteNumero, clientes, selectedClienteId, fetchedCliente]);
 
   const [callStatus, setCallStatus] = useState<string>("");
+  const [valorExtenso, setValorExtenso] = useState<boolean>(false);
   const callRef = useRef<ActiveCallHandle | null>(null);
 
   const ligar = async () => {
@@ -86,7 +90,7 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
     setCallStatus("Gerando áudio do roteiro...");
     try {
       const { data, error } = await supabase.functions.invoke("ligacoes-ia-call", {
-        body: { cliente_id: selectedCliente.id, roteiro_id: roteiroId, source: "cliente_card" },
+        body: { cliente_id: selectedCliente.id, roteiro_id: roteiroId, source: "cliente_card", valor_extenso: valorExtenso },
       });
       if (error) throw error;
       const d = data as any;
@@ -120,11 +124,15 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
   const preview = roteiros.find(r => r.id === roteiroId);
 
   // Build preview text with variables filled (same formatting as backend)
-  const filledPreview = useMemo(() => {
-    if (!preview || !selectedCliente) return preview?.texto ?? "";
-    const c: any = selectedCliente;
-    const valorFmt = c.valor != null && c.valor !== ""
-      ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(c.valor))
+  // + detect variables used in the script that have no value in the client record.
+  const { filledPreview, missingVars, usedVars } = useMemo(() => {
+    if (!preview) return { filledPreview: "", missingVars: [] as string[], usedVars: [] as string[] };
+    const c: any = selectedCliente ?? {};
+    const valorRaw = c.valor;
+    const valorFmt = valorRaw != null && valorRaw !== ""
+      ? (valorExtenso
+          ? valorPorExtensoBRL(Number(valorRaw))
+          : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(valorRaw)))
       : "";
     let dataFmt = "";
     if (c.data_renovacao) {
@@ -138,8 +146,15 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
       valor: valorFmt,
       data_renovacao: dataFmt,
     };
-    return preview.texto.replace(/\{(\w+)\}/g, (_: string, k: string) => vars[k] ?? `{${k}}`);
-  }, [preview, selectedCliente]);
+    const used = Array.from(new Set([...preview.texto.matchAll(/\{(\w+)\}/g)].map((m: any) => m[1])));
+    const missing = used.filter((k) => !vars[k] || vars[k] === "");
+    const filled = preview.texto.replace(/\{(\w+)\}/g, (_: string, k: string) => {
+      const v = vars[k];
+      if (!v) return `⚠️[${k} não cadastrado]`;
+      return v;
+    });
+    return { filledPreview: filled, missingVars: missing, usedVars: used };
+  }, [preview, selectedCliente, valorExtenso]);
 
   const isMensal = (c: any) => !!c.cobranca_ativa;
   const isRegistro = (c: any) => !c.cobranca_ativa;
@@ -231,10 +246,28 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
           </div>
 
           {preview && (
-            <div className="rounded-lg border bg-muted/30 p-3 text-xs">
-              <p className="font-medium mb-1">Pré-visualização do texto (variáveis preenchidas):</p>
+            <div className="rounded-lg border bg-muted/30 p-3 text-xs space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-medium">Pré-visualização (variáveis preenchidas):</p>
+                {usedVars.includes("valor") && (
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <Switch checked={valorExtenso} onCheckedChange={setValorExtenso} />
+                    <span className="text-[10px] text-muted-foreground">Valor por extenso</span>
+                  </label>
+                )}
+              </div>
               <p className="text-foreground whitespace-pre-wrap">{filledPreview}</p>
-              <p className="mt-2 text-[10px] text-muted-foreground">
+              {missingVars.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1 pt-1 border-t border-border/50">
+                  <span className="text-[10px] text-muted-foreground">Faltando no cadastro:</span>
+                  {missingVars.map((v) => (
+                    <Badge key={v} variant="outline" className="text-[10px] border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                      ⚠ {v} não cadastrado
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground">
                 Variáveis suportadas: {"{nome}"}, {"{valor}"}, {"{produto}"}, {"{data_renovacao}"}.
               </p>
             </div>
