@@ -90,7 +90,7 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
     setCallStatus("Gerando áudio do roteiro...");
     try {
       const { data, error } = await supabase.functions.invoke("ligacoes-ia-call", {
-        body: { cliente_id: selectedCliente.id, roteiro_id: roteiroId, source: "cliente_card" },
+        body: { cliente_id: selectedCliente.id, roteiro_id: roteiroId, source: "cliente_card", valor_extenso: valorExtenso },
       });
       if (error) throw error;
       const d = data as any;
