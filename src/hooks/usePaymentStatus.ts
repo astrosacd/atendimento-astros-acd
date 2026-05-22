@@ -174,19 +174,13 @@ export function usePaymentStatus() {
           .single();
         
         if (!clienteError && cliente) {
-          // Use the later of today or the current renewal date as base,
-          // then add the billing cycle period (default 1 month).
-          // This prevents inactive clients from getting a renewal date still in the past.
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const renewalDate = new Date(cliente.data_renovacao);
-          const baseDate = renewalDate > today ? renewalDate : today;
-          
-          // Respect billing cycle
+          // Regra: sempre avança 1 ciclo a partir da data_renovacao existente
+          // (independente de estar atrasada, no dia ou antecipada).
           const cycleMonths: Record<string, number> = {
             mensal: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12,
           };
           const months = cycleMonths[cliente.ciclo_cobranca] || 1;
+          const baseDate = new Date(cliente.data_renovacao);
           baseDate.setMonth(baseDate.getMonth() + months);
           const newRenewalDate = baseDate.toISOString().split('T')[0];
           
