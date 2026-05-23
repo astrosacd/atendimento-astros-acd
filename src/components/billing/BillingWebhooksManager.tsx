@@ -16,6 +16,10 @@ import {
   Copy, Webhook, CheckCircle2, AlertTriangle, ExternalLink, Save, Loader2,
   Eye, EyeOff, Info, PlugZap, XCircle, RefreshCw, History, Trash2, Search,
 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const MP_WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/client-payment-mp-webhook`;
@@ -129,12 +133,11 @@ export function BillingWebhooksManager() {
     toast.info(`${data?.length || 0} pagamento(s) órfão(s) encontrado(s)`);
   };
 
+  const [confirmCleanupOpen, setConfirmCleanupOpen] = useState(false);
+
   const cleanupOrphans = async () => {
     if (!canCleanup) return;
-    const confirmed = window.confirm(
-      `Excluir ${orphanPayments.length} pagamento(s) órfão(s)? Apenas registros sem quitação serão removidos.`,
-    );
-    if (!confirmed) return;
+    setConfirmCleanupOpen(false);
     setCleaningOrphans(true);
     const { data, error } = await supabase.rpc("cleanup_cobranca_orphan_payments" as any, { p_days_old: 30 });
     setCleaningOrphans(false);
@@ -449,10 +452,26 @@ export function BillingWebhooksManager() {
             {loadingOrphans ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
             Verificar órfãos
           </Button>
-          <Button variant="destructive" size="sm" onClick={cleanupOrphans} disabled={cleaningOrphans || orphanPayments.length === 0 || !canCleanup}>
+          <Button variant="destructive" size="sm" onClick={() => setConfirmCleanupOpen(true)} disabled={cleaningOrphans || orphanPayments.length === 0 || !canCleanup}>
             {cleaningOrphans ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
             Excluir encontrados ({orphanPayments.length})
           </Button>
+          <AlertDialog open={confirmCleanupOpen} onOpenChange={setConfirmCleanupOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir pagamentos órfãos?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Serão excluídos <strong>{orphanPayments.length}</strong> pagamento(s) órfão(s). Apenas registros sem quitação serão removidos. Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={cleanupOrphans} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Excluir
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
         {!canCleanup && <p className="text-xs text-muted-foreground italic">Sem permissão para limpar pagamentos órfãos.</p>}
         {orphanPayments.length > 0 && (
