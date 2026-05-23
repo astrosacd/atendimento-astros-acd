@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,34 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
+type InstagramSettingsState = {
+  ig_user_id: string;
+  page_id: string;
+  account_username: string;
+  access_token: string;
+  app_id: string;
+  app_secret: string;
+  token_expires_at: string | null;
+  renewal_webhook: string;
+  notify_whatsapp: boolean;
+  manager_numbers: string[];
+};
+
+const getDraftKey = (userId?: string) => `instagram-settings-draft:${userId ?? "anonymous"}`;
+
+const hasMeaningfulDraft = (draft: InstagramSettingsState) =>
+  Boolean(
+    draft.ig_user_id ||
+      draft.page_id ||
+      draft.account_username ||
+      draft.access_token ||
+      draft.app_id ||
+      draft.app_secret ||
+      draft.renewal_webhook ||
+      draft.notify_whatsapp ||
+      draft.manager_numbers.length,
+  );
+
 const InstagramSettings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -33,7 +61,9 @@ const InstagramSettings = () => {
   const [isDirty, setIsDirty] = useState(false);
   const [activeTab, setActiveTab] = useState("meta-api");
   const [pendingTab, setPendingTab] = useState<string | null>(null);
-  const [settings, setSettings] = useState({
+  const dirtyRef = useRef(false);
+  const settingsRef = useRef<InstagramSettingsState | null>(null);
+  const [settings, setSettings] = useState<InstagramSettingsState>({
     ig_user_id: "",
     page_id: "",
     account_username: "",
@@ -47,7 +77,15 @@ const InstagramSettings = () => {
   });
 
   const updateField = <K extends keyof typeof settings>(key: K, value: (typeof settings)[K]) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
+    setSettings((prev) => {
+      const next = { ...prev, [key]: value };
+      settingsRef.current = next;
+      if (user?.id) {
+        localStorage.setItem(getDraftKey(user.id), JSON.stringify(next));
+      }
+      return next;
+    });
+    dirtyRef.current = true;
     setIsDirty(true);
   };
 
