@@ -4,8 +4,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { usePermissions } from '@/hooks/usePermissions';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   CreditCard, 
   CheckCircle, 
@@ -58,6 +60,7 @@ const isLinkPaymentType = (paymentType: string): boolean => {
 
 export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, onPaymentUpdate }: ClientPaymentHistoryProps) {
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [dataRenovacao, setDataRenovacao] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showEarlyPayment, setShowEarlyPayment] = useState(false);
@@ -80,10 +83,24 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
 
   const loadPayments = async () => {
     setIsLoading(true);
-    const data = await fetchClientPayments(clienteId);
+    const [data, clienteRes] = await Promise.all([
+      fetchClientPayments(clienteId),
+      supabase.from('clientes').select('data_renovacao').eq('id', clienteId).maybeSingle(),
+    ]);
     setPayments(data);
+    setDataRenovacao(clienteRes.data?.data_renovacao ?? null);
     setIsLoading(false);
   };
+
+  // Sacada 1: botão "Registrar pagamento antecipado" só fica habilitado até D-1.
+  // A partir de D0 (dia do vencimento) a cobrança automática do dia já existe abaixo.
+  const isAntecipadoDisabled = (() => {
+    if (!dataRenovacao) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const venc = new Date(dataRenovacao + 'T00:00:00');
+    return today.getTime() >= venc.getTime();
+  })();
 
   const openApprovalDialog = (payment: Payment) => {
     setApprovalPayment(payment);
@@ -322,15 +339,29 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
 
             {/* Early Payment Button / Form — restricted by permission */}
             {!canRegisterPixpaguePayment() ? null : !showEarlyPayment ? (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full border-dashed border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
-                onClick={() => setShowEarlyPayment(true)}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Registrar pagamento antecipado (PixPague)
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="w-full">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full border-dashed border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => setShowEarlyPayment(true)}
+                        disabled={isAntecipadoDisabled}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Registrar pagamento antecipado (PixPague)
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  {isAntecipadoDisabled && (
+                    <TooltipContent side="top">
+                      Pagamento do dia já disponível abaixo — use a cobrança automática.
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             ) : (
               <div className="p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 space-y-3">
                 <p className="text-sm font-medium text-emerald-400">Pagamento antecipado (PixPague)</p>

@@ -177,6 +177,40 @@ serve(async (req) => {
       console.log(`[approve-pixpague] Renovação (cliente ${cliente.id}): ${cliente.data_renovacao} → ${newRenewalDate}`);
     }
 
+    // 2.1) SACADA 2: Auto-cancelar outras cobranças pendentes do mesmo ciclo.
+    // Quando uma cobrança é aprovada (qualquer canal), as outras (Pix/Boleto/Link/Cartão)
+    // do mesmo cliente dentro da janela de ±20 dias da billing_date vão para 'cancelled'.
+    if (cliente?.id) {
+      try {
+        const billingDate = new Date(payment.billing_date);
+        const windowStart = new Date(billingDate);
+        windowStart.setDate(windowStart.getDate() - 20);
+        const windowEnd = new Date(billingDate);
+        windowEnd.setDate(windowEnd.getDate() + 20);
+
+        const { data: cancelled, error: cancelErr } = await supabase
+          .from("client_payments")
+          .update({
+            status: "cancelled",
+            approval_reason: `Cancelado automaticamente — pago via ${payment.payment_type}`,
+          })
+          .eq("cliente_id", cliente.id)
+          .in("status", ["pending", "pending_approval"])
+          .neq("id", paymentId)
+          .gte("billing_date", windowStart.toISOString().split("T")[0])
+          .lte("billing_date", windowEnd.toISOString().split("T")[0])
+          .select("id, payment_type");
+
+        if (cancelErr) {
+          console.error("[approve-pixpague] Erro ao auto-cancelar outras cobranças:", cancelErr);
+        } else if (cancelled && cancelled.length > 0) {
+          console.log(`[approve-pixpague] Auto-canceladas ${cancelled.length} cobranças do mesmo ciclo:`, cancelled.map((c: any) => `${c.id}(${c.payment_type})`).join(", "));
+        }
+      } catch (e) {
+        console.error("[approve-pixpague] Exceção no auto-cancelamento:", e);
+      }
+    }
+
     // 3) Send receipt — ONLY if it is a monthly client (cobranca_ativa !== false)
     let receiptResult: any = null;
     let receiptError: string | null = null;

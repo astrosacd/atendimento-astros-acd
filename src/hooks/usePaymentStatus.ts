@@ -142,14 +142,15 @@ export function usePaymentStatus() {
   // Also updates the client's renewal date to next month and sends receipt
   const markPaymentAsPaid = async (paymentId: string): Promise<boolean> => {
     try {
-      // First get the payment to find the cliente_id
+      // First get the payment to find the cliente_id + billing_date + type
       const { data: payment, error: fetchError } = await supabase
         .from('client_payments')
-        .select('cliente_id')
+        .select('cliente_id, billing_date, payment_type')
         .eq('id', paymentId)
         .single();
       
       if (fetchError) throw fetchError;
+      
       
       const paidAt = new Date().toISOString();
       
@@ -189,6 +190,36 @@ export function usePaymentStatus() {
             .from('clientes')
             .update({ data_renovacao: newRenewalDate })
             .eq('id', payment.cliente_id);
+        }
+
+        // SACADA 2: Auto-cancelar outras cobranças pendentes do mesmo ciclo (±20 dias).
+        try {
+          const billingDate = new Date(payment.billing_date);
+          const windowStart = new Date(billingDate);
+          windowStart.setDate(windowStart.getDate() - 20);
+          const windowEnd = new Date(billingDate);
+          windowEnd.setDate(windowEnd.getDate() + 20);
+
+          const { data: cancelled, error: cancelErr } = await supabase
+            .from('client_payments')
+            .update({
+              status: 'cancelled',
+              approval_reason: `Cancelado automaticamente — pago via ${payment.payment_type}`,
+            })
+            .eq('cliente_id', payment.cliente_id)
+            .in('status', ['pending', 'pending_approval'])
+            .neq('id', paymentId)
+            .gte('billing_date', windowStart.toISOString().split('T')[0])
+            .lte('billing_date', windowEnd.toISOString().split('T')[0])
+            .select('id');
+
+          if (cancelErr) {
+            console.error('Erro ao auto-cancelar outras cobranças:', cancelErr);
+          } else if (cancelled && cancelled.length > 0) {
+            console.log(`Auto-canceladas ${cancelled.length} cobranças do mesmo ciclo`);
+          }
+        } catch (e) {
+          console.error('Exceção no auto-cancelamento:', e);
         }
         
         // Send receipt via edge function
