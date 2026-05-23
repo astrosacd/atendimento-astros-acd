@@ -658,6 +658,26 @@ const InstagramSettings = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={pendingTab !== null} onOpenChange={(open) => !open && setPendingTab(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair sem salvar?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem alterações não salvas nesta aba. Se sair agora, todas as mudanças serão descartadas e não serão refletidas no banco de dados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar editando</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDiscardAndChangeTab}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Descartar alterações
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
