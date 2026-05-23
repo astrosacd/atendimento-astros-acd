@@ -162,13 +162,6 @@ const InstagramSettings = () => {
     }
   };
 
-  useEffect(() => {
-    if (user) {
-      fetchSettings();
-    }
-  }, [user]);
-
-
   const fetchSettings = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
     if (dirtyRef.current && !force) {
       return;
@@ -230,6 +223,12 @@ const InstagramSettings = () => {
       setIsDirty(false);
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    if (user) {
+      fetchSettings();
+    }
+  }, [user, fetchSettings]);
 
   const handleTokenAction = async (action: "debug" | "refresh") => {
     if (!settings.app_id || !settings.app_secret || !settings.access_token) {
