@@ -339,15 +339,29 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
 
             {/* Early Payment Button / Form — restricted by permission */}
             {!canRegisterPixpaguePayment() ? null : !showEarlyPayment ? (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full border-dashed border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
-                onClick={() => setShowEarlyPayment(true)}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Registrar pagamento antecipado (PixPague)
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="w-full">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full border-dashed border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => setShowEarlyPayment(true)}
+                        disabled={isAntecipadoDisabled}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Registrar pagamento antecipado (PixPague)
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  {isAntecipadoDisabled && (
+                    <TooltipContent side="top">
+                      Pagamento do dia já disponível abaixo — use a cobrança automática.
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             ) : (
               <div className="p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 space-y-3">
                 <p className="text-sm font-medium text-emerald-400">Pagamento antecipado (PixPague)</p>
