@@ -8357,6 +8357,11 @@ export type Database = {
         Args: { token_val: string }
         Returns: boolean
       }
+      cleanup_cobranca_orphan_payments: {
+        Args: { p_days_old?: number }
+        Returns: Json
+      }
+      cleanup_old_billing_webhook_logs: { Args: never; Returns: number }
       create_password_reset_token: {
         Args: {
           p_email: string
@@ -8523,6 +8528,21 @@ export type Database = {
       mark_password_reset_token_used: {
         Args: { p_token: string }
         Returns: boolean
+      }
+      preview_cobranca_orphan_payments: {
+        Args: { p_days_old?: number }
+        Returns: {
+          amount: number
+          billing_date: string
+          cliente_id: string
+          cliente_nome: string
+          created_at: string
+          id: string
+          payment_id: string
+          payment_type: string
+          reason: string
+          status: string
+        }[]
       }
       record_proposal_view: {
         Args: {
