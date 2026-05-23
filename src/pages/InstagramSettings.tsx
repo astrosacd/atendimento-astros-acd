@@ -20,6 +20,7 @@ const InstagramSettings = () => {
   const [loading, setLoading] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const [newManagerNumber, setNewManagerNumber] = useState("");
+  const [isDirty, setIsDirty] = useState(false);
   const [settings, setSettings] = useState({
     ig_user_id: "",
     page_id: "",
@@ -32,6 +33,11 @@ const InstagramSettings = () => {
     notify_whatsapp: false,
     manager_numbers: [] as string[],
   });
+
+  const updateField = <K extends keyof typeof settings>(key: K, value: (typeof settings)[K]) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+    setIsDirty(true);
+  };
 
   useEffect(() => {
     if (user) {
