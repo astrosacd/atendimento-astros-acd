@@ -232,10 +232,10 @@ const InstagramSettings = () => {
   };
 
   const handleTokenAction = async (action: "debug" | "refresh") => {
-    if (!settings.app_id || !settings.app_secret) {
+    if (!settings.app_id || !settings.app_secret || !settings.access_token) {
       toast({
         title: "Campos obrigatórios",
-        description: "App ID e App Secret são necessários para esta ação.",
+        description: "App ID, App Secret e Access Token são necessários para esta ação.",
         variant: "destructive",
       });
       return;
@@ -243,14 +243,33 @@ const InstagramSettings = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("instagram-token-manager", {
-        body: { action },
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      if (!accessToken) {
+        throw new Error("Sessão expirada. Faça login novamente para verificar o token.");
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/instagram-token-manager`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ action }),
       });
 
-      // The function returns { error } in the body on non-2xx; surface that message
-      const fnError = (data as { error?: string } | null)?.error;
-      if (error || fnError) {
-        throw new Error(fnError || (error as Error)?.message || "Falha ao chamar função");
+      const rawBody = await response.text();
+      let data: { error?: string; message?: string } | null = null;
+      try {
+        data = rawBody ? JSON.parse(rawBody) : null;
+      } catch {
+        data = null;
+      }
+
+      if (!response.ok || data?.error) {
+        throw new Error(data?.error || data?.message || `Falha ao verificar token (${response.status})`);
       }
 
       toast({
