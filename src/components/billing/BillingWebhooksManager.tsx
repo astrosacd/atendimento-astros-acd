@@ -7,18 +7,20 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { copyToClipboard } from "@/utils/clipboard";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import {
   Copy, Webhook, CheckCircle2, AlertTriangle, ExternalLink, Save, Loader2,
-  Eye, EyeOff, Info, PlugZap, XCircle, RefreshCw, History,
+  Eye, EyeOff, Info, PlugZap, XCircle, RefreshCw, History, Trash2, Search,
 } from "lucide-react";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const MP_WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/client-payment-mp-webhook`;
 const STRIPE_WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/client-payment-stripe-webhook`;
+const LOG_PAGE_SIZE = 100;
 
 // Snippet pronto pro nó HTTP Request do n8n espelhar o evento do MP
 const N8N_MP_CURL = `curl -X POST '${MP_WEBHOOK_URL}' \\
