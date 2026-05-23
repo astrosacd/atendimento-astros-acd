@@ -16,6 +16,10 @@ import {
   Copy, Webhook, CheckCircle2, AlertTriangle, ExternalLink, Save, Loader2,
   Eye, EyeOff, Info, PlugZap, XCircle, RefreshCw, History, Trash2, Search,
 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const MP_WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/client-payment-mp-webhook`;
