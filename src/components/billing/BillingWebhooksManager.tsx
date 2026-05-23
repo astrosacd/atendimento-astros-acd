@@ -9,13 +9,22 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { copyToClipboard } from "@/utils/clipboard";
 import { toast } from "sonner";
-import { Copy, Webhook, CheckCircle2, AlertTriangle, ExternalLink, Save, Loader2, Eye, EyeOff, Info } from "lucide-react";
+import { usePermissions } from "@/hooks/usePermissions";
+import {
+  Copy, Webhook, CheckCircle2, AlertTriangle, ExternalLink, Save, Loader2,
+  Eye, EyeOff, Info, PlugZap, XCircle,
+} from "lucide-react";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const MP_WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/client-payment-mp-webhook`;
 const STRIPE_WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/client-payment-stripe-webhook`;
 
+type TestResult = { ok: boolean; message: string; raw?: any } | null;
+
 export function BillingWebhooksManager() {
+  const { canManageCobrancaWebhooks } = usePermissions();
+  const canManage = canManageCobrancaWebhooks(); // admin já inclui tudo
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
@@ -23,6 +32,11 @@ export function BillingWebhooksManager() {
   const [stripeEnabled, setStripeEnabled] = useState(false);
   const [secret, setSecret] = useState("");
   const [savedSecret, setSavedSecret] = useState("");
+
+  const [testingMp, setTestingMp] = useState(false);
+  const [testingStripe, setTestingStripe] = useState(false);
+  const [mpResult, setMpResult] = useState<TestResult>(null);
+  const [stripeResult, setStripeResult] = useState<TestResult>(null);
 
   const load = async () => {
     setLoading(true);
@@ -49,6 +63,7 @@ export function BillingWebhooksManager() {
   };
 
   const handleSaveSecret = async () => {
+    if (!canManage) return;
     if (!secret.startsWith("whsec_")) {
       toast.error("O Signing Secret da Stripe deve começar com 'whsec_'");
       return;
@@ -65,7 +80,42 @@ export function BillingWebhooksManager() {
     load();
   };
 
-  const mpConfigured = true; // MP usa MERCADOPAGO_ACCESS_TOKEN dos Secrets — sempre pronto
+  const testWebhook = async (
+    url: string,
+    setBusy: (v: boolean) => void,
+    setResult: (r: TestResult) => void,
+    providerLabel: string,
+  ) => {
+    setBusy(true);
+    setResult(null);
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-webhook-test": "ping",
+        },
+        body: "{}",
+      });
+      const text = await res.text();
+      let body: any = {};
+      try { body = JSON.parse(text); } catch { body = { raw: text }; }
+      if (res.ok && body?.ok) {
+        setResult({ ok: true, message: body.message || `Webhook ${providerLabel} acessível.`, raw: body });
+        toast.success(`Webhook ${providerLabel}: OK`);
+      } else {
+        setResult({ ok: false, message: body?.message || body?.error || `HTTP ${res.status}`, raw: body });
+        toast.error(`Webhook ${providerLabel} falhou`);
+      }
+    } catch (e: any) {
+      setResult({ ok: false, message: e?.message || "Falha de rede" });
+      toast.error(`Erro ao chamar webhook: ${e?.message || ""}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const mpConfigured = true;
   const stripeConfigured = !!savedSecret;
 
   return (
@@ -123,7 +173,24 @@ export function BillingWebhooksManager() {
               <Button variant="outline" size="icon" onClick={() => handleCopy(MP_WEBHOOK_URL, "URL")}>
                 <Copy className="w-4 h-4" />
               </Button>
+              <Button
+                variant="outline"
+                onClick={() => testWebhook(MP_WEBHOOK_URL, setTestingMp, setMpResult, "Mercado Pago")}
+                disabled={testingMp || !canManage}
+                title={!canManage ? "Sem permissão" : "Testar webhook"}
+              >
+                {testingMp ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <PlugZap className="w-4 h-4 mr-2" />}
+                Testar webhook
+              </Button>
             </div>
+            {mpResult && (
+              <div className={`mt-2 flex items-start gap-2 rounded-md border p-2 text-xs ${
+                mpResult.ok ? "border-green-500/30 bg-green-500/5 text-green-600" : "border-red-500/30 bg-red-500/5 text-red-600"
+              }`}>
+                {mpResult.ok ? <CheckCircle2 className="w-4 h-4 mt-0.5" /> : <XCircle className="w-4 h-4 mt-0.5" />}
+                <span>{mpResult.message}</span>
+              </div>
+            )}
           </div>
 
           <details className="text-xs text-muted-foreground">
@@ -136,6 +203,40 @@ export function BillingWebhooksManager() {
               <li>Salve. Não é preciso configurar segredo — usamos o <code>MERCADOPAGO_ACCESS_TOKEN</code> dos Secrets para validar.</li>
             </ol>
           </details>
+
+          <Alert className="border-amber-500/40 bg-amber-500/5">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            <AlertDescription className="text-xs space-y-2">
+              <p className="font-semibold text-amber-600">
+                Já tenho um webhook do Mercado Pago apontando para outro lugar (ex.: n8n)
+              </p>
+              <p>
+                O Mercado Pago aceita <strong>apenas 1 webhook por aplicação</strong>. Se ele já aponta para o seu n8n
+                (que cuida do módulo de Link de Pagamento), <strong>NÃO troque a URL</strong>. Em vez disso, faça o
+                n8n "espelhar" o evento também para este endpoint:
+              </p>
+              <ol className="list-decimal pl-5 space-y-1">
+                <li>Abra o workflow do n8n que recebe o webhook do MP.</li>
+                <li>Depois do nó <em>"Obter detalhes pagamento"</em> (que faz GET em <code>api.mercadopago.com/v1/payments/{`{id}`}</code>), adicione um novo nó <strong>HTTP Request</strong> em paralelo ao nó atual que chama <code>payment-link-webhook</code>.</li>
+                <li>Method: <code>POST</code> &nbsp;|&nbsp; URL: <code className="break-all">{MP_WEBHOOK_URL}</code></li>
+                <li>Header: <code>Content-Type: application/json</code></li>
+                <li>
+                  Body (JSON):
+                  <pre className="mt-1 bg-background border rounded p-2 overflow-x-auto">{`{
+  "type": "payment",
+  "data": {
+    "id": "{{ $('Obter detalhes pagamento').item.json.id }}"
+  }
+}`}</pre>
+                </li>
+                <li>Salve e ative o workflow. Pronto — quando o MP disparar, o n8n entrega para <strong>os dois módulos</strong> (Link de Pagamento e Cobrança).</li>
+              </ol>
+              <p>
+                Este endpoint busca o pagamento na API do MP por conta própria para confirmar (anti-spoof), então não importa
+                que ele venha do n8n e não direto do MP — funciona igual.
+              </p>
+            </AlertDescription>
+          </Alert>
         </div>
 
         {/* STRIPE */}
@@ -171,7 +272,24 @@ export function BillingWebhooksManager() {
               <Button variant="outline" size="icon" onClick={() => handleCopy(STRIPE_WEBHOOK_URL, "URL")}>
                 <Copy className="w-4 h-4" />
               </Button>
+              <Button
+                variant="outline"
+                onClick={() => testWebhook(STRIPE_WEBHOOK_URL, setTestingStripe, setStripeResult, "Stripe")}
+                disabled={testingStripe || !canManage}
+                title={!canManage ? "Sem permissão" : "Testar webhook"}
+              >
+                {testingStripe ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <PlugZap className="w-4 h-4 mr-2" />}
+                Testar webhook
+              </Button>
             </div>
+            {stripeResult && (
+              <div className={`mt-2 flex items-start gap-2 rounded-md border p-2 text-xs ${
+                stripeResult.ok ? "border-green-500/30 bg-green-500/5 text-green-600" : "border-red-500/30 bg-red-500/5 text-red-600"
+              }`}>
+                {stripeResult.ok ? <CheckCircle2 className="w-4 h-4 mt-0.5" /> : <XCircle className="w-4 h-4 mt-0.5" />}
+                <span>{stripeResult.message}</span>
+              </div>
+            )}
           </div>
 
           <Separator />
@@ -185,12 +303,12 @@ export function BillingWebhooksManager() {
                 onChange={(e) => setSecret(e.target.value)}
                 placeholder="whsec_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
                 className="font-mono text-xs bg-background"
-                disabled={loading || saving}
+                disabled={loading || saving || !canManage}
               />
               <Button variant="outline" size="icon" onClick={() => setShowSecret((v) => !v)}>
                 {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </Button>
-              <Button onClick={handleSaveSecret} disabled={saving || loading || secret === savedSecret}>
+              <Button onClick={handleSaveSecret} disabled={saving || loading || secret === savedSecret || !canManage}>
                 {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                 Salvar
               </Button>
@@ -212,6 +330,13 @@ export function BillingWebhooksManager() {
             </ol>
           </details>
         </div>
+
+        {!canManage && (
+          <p className="text-xs text-muted-foreground italic">
+            Você está em modo somente-leitura. Para salvar o Signing Secret ou testar os webhooks, é necessária a permissão
+            <strong> "Gerenciar Webhooks de Cobrança"</strong> (admin já tem por padrão).
+          </p>
+        )}
       </CardContent>
     </Card>
   );
