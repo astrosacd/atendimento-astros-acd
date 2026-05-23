@@ -16,7 +16,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-signature, x-request-id",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-signature, x-request-id, x-webhook-test",
 };
 
 const CYCLE_MONTHS: Record<string, number> = {
@@ -25,6 +25,27 @@ const CYCLE_MONTHS: Record<string, number> = {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // ===== TEST MODE =====
+  // Permite o painel admin verificar que o endpoint está vivo e acessível
+  // sem disparar nenhuma lógica de pagamento. Header: x-webhook-test: ping
+  if (req.headers.get("x-webhook-test") === "ping") {
+    const tokenOk = !!Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        test: true,
+        provider: "mercadopago",
+        url_reachable: true,
+        access_token_configured: tokenOk,
+        message: tokenOk
+          ? "Webhook do Mercado Pago acessível e MERCADOPAGO_ACCESS_TOKEN está configurado."
+          : "Webhook acessível, mas falta MERCADOPAGO_ACCESS_TOKEN nos Secrets.",
+        timestamp: new Date().toISOString(),
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
 
   try {
     const supabase = createClient(

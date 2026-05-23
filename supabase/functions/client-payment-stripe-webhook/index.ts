@@ -21,7 +21,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature, x-webhook-test",
 };
 
 const CYCLE_MONTHS: Record<string, number> = {
@@ -136,6 +136,34 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // ===== TEST MODE =====
+    // Header x-webhook-test: ping → não valida assinatura, só responde diagnóstico.
+    if (req.headers.get("x-webhook-test") === "ping") {
+      const { data: cfg } = await supabase
+        .from("billing_stripe_config")
+        .select("stripe_enabled, stripe_webhook_secret")
+        .maybeSingle();
+      const secretOk = !!cfg?.stripe_webhook_secret;
+      const enabled = !!cfg?.stripe_enabled;
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          test: true,
+          provider: "stripe",
+          url_reachable: true,
+          stripe_enabled: enabled,
+          signing_secret_configured: secretOk,
+          message: !enabled
+            ? "Endpoint acessível, mas a Stripe está desabilitada em billing_stripe_config."
+            : !secretOk
+              ? "Endpoint acessível, mas falta o Signing Secret (whsec_...)."
+              : "Webhook da Stripe acessível e pronto para validar assinaturas.",
+          timestamp: new Date().toISOString(),
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const { data: cfg } = await supabase
       .from("billing_stripe_config")
