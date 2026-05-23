@@ -1,10 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version, x-temp-access-token',
 };
 
 // Helper function to add 1 month to a date
@@ -12,6 +11,25 @@ function addOneMonth(dateStr: string): string {
   const date = new Date(dateStr);
   date.setMonth(date.getMonth() + 1);
   return date.toISOString().split('T')[0]; // Return YYYY-MM-DD format
+}
+
+function getStripeAuthHeader(secretKey: string): string {
+  const normalizedKey = secretKey.replace(/^Bearer\s+/i, '').trim();
+  return `Basic ${btoa(`${normalizedKey}:`)}`;
+}
+
+async function stripeGet(stripeSecretKey: string, path: string, params?: Record<string, string | number>) {
+  const query = params ? `?${new URLSearchParams(Object.entries(params).map(([key, value]) => [key, String(value)])).toString()}` : '';
+  const response = await fetch(`https://api.stripe.com/v1/${path}${query}`, {
+    headers: { Authorization: getStripeAuthHeader(stripeSecretKey) },
+  });
+
+  if (!response.ok) {
+    console.error(`Stripe API error for ${path}: ${response.status}`);
+    return null;
+  }
+
+  return response.json();
 }
 
 // Update client renewal date when payment is confirmed
@@ -48,7 +66,7 @@ async function updateClientRenewalDate(supabase: any, clienteId: string) {
 }
 
 // Check Stripe payment status
-async function checkStripePayment(stripe: Stripe, payment: any, supabase: any, results: any) {
+async function checkStripePayment(stripeSecretKey: string, payment: any, supabase: any, results: any) {
   try {
     // payment_id for Stripe is the PaymentIntent ID (starts with pi_) or Session ID (starts with cs_)
     const paymentId = payment.payment_id;
@@ -58,7 +76,11 @@ async function checkStripePayment(stripe: Stripe, payment: any, supabase: any, r
     
     if (paymentId.startsWith('pi_')) {
       // It's a PaymentIntent
-      const paymentIntent = await stripe.paymentIntents.retrieve(paymentId);
+      const paymentIntent = await stripeGet(stripeSecretKey, `payment_intents/${paymentId}`);
+      if (!paymentIntent) {
+        results.errors++;
+        return;
+      }
       console.log(`Stripe PaymentIntent ${paymentId} status: ${paymentIntent.status}`);
       
       if (paymentIntent.status === 'succeeded') {
@@ -69,7 +91,11 @@ async function checkStripePayment(stripe: Stripe, payment: any, supabase: any, r
       }
     } else if (paymentId.startsWith('cs_')) {
       // It's a Checkout Session
-      const session = await stripe.checkout.sessions.retrieve(paymentId);
+      const session = await stripeGet(stripeSecretKey, `checkout/sessions/${paymentId}`);
+      if (!session) {
+        results.errors++;
+        return;
+      }
       console.log(`Stripe Session ${paymentId} status: ${session.payment_status}`);
       
       if (session.payment_status === 'paid') {
@@ -80,12 +106,12 @@ async function checkStripePayment(stripe: Stripe, payment: any, supabase: any, r
       }
     } else {
       // Try to search by payment ID in metadata
-      const paymentIntents = await stripe.paymentIntents.search({
+      const paymentIntents = await stripeGet(stripeSecretKey, 'payment_intents/search', {
         query: `metadata['payment_id']:'${paymentId}'`,
         limit: 1,
       });
       
-      if (paymentIntents.data.length > 0) {
+      if (paymentIntents?.data?.length > 0) {
         const pi = paymentIntents.data[0];
         console.log(`Stripe PaymentIntent found via search, status: ${pi.status}`);
         
@@ -150,14 +176,10 @@ serve(async (req) => {
       .select('stripe_enabled, stripe_secret_key')
       .single();
     
-    const stripeEnabled = stripeConfig?.stripe_enabled && stripeConfig?.stripe_secret_key;
-    let stripe: Stripe | null = null;
+    const stripeEnabled = Boolean(stripeConfig?.stripe_enabled && stripeConfig?.stripe_secret_key);
     
     if (stripeEnabled) {
-      stripe = new Stripe(stripeConfig.stripe_secret_key, {
-        apiVersion: '2023-10-16',
-      });
-      console.log('Stripe verification enabled');
+      console.log('Stripe verification enabled via REST API');
     }
 
     // Get all pending payments
@@ -188,8 +210,8 @@ serve(async (req) => {
 
       if (isStripePayment) {
         results.stripeChecked++;
-        if (stripe) {
-          await checkStripePayment(stripe, payment, supabase, results);
+        if (stripeEnabled) {
+          await checkStripePayment(stripeConfig.stripe_secret_key, payment, supabase, results);
         } else {
           console.log(`Stripe payment ${payment.payment_id} skipped - Stripe not configured`);
         }
