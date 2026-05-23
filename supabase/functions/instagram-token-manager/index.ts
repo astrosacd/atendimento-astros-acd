@@ -18,6 +18,8 @@ const formatGraphError = (result: any, actionLabel: string) => {
   return `Erro ao ${actionLabel} token na Meta: ${details || JSON.stringify(metaError)}`;
 };
 
+const optionalString = (value: unknown) => (typeof value === "string" ? value.trim() : "");
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -35,7 +37,8 @@ serve(async (req) => {
     );
     if (authError || !user) throw new Error("Unauthorized");
 
-    const { action } = await req.json();
+    const body = await req.json();
+    const { action } = body;
 
     const { data: settings, error: settingsError } = await supabase
       .from('instagram_settings')
@@ -45,7 +48,10 @@ serve(async (req) => {
 
     if (settingsError || !settings) throw new Error("Configurações do Instagram não encontradas");
 
-    const { access_token, app_id, app_secret, manager_numbers, notify_whatsapp, renewal_webhook_url } = settings;
+    const access_token = optionalString(body.access_token) || settings.access_token;
+    const app_id = optionalString(body.app_id) || settings.app_id;
+    const app_secret = optionalString(body.app_secret) || settings.app_secret;
+    const { manager_numbers, notify_whatsapp, renewal_webhook_url } = settings;
     if (!access_token) throw new Error("Token de acesso não configurado");
 
     const graphHost = "https://graph.facebook.com/v23.0";
