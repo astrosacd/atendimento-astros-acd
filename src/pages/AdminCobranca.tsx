@@ -2268,6 +2268,9 @@ const AdminCobranca = () => {
               </CardContent>
             </Card>
 
+            {/* Webhooks de Pagamento (recebimento automático MP + Stripe) */}
+            <BillingWebhooksManager />
+
             {/* Pending Payments List */}
             <PendingPaymentsList onPaymentUpdated={loadPaymentStats} />
 
