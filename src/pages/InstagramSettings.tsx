@@ -239,7 +239,7 @@ const InstagramSettings = () => {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="meta-api" className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="bg-muted p-1 mb-6">
           <TabsTrigger value="meta-api" className="gap-2">
             <ShieldCheck className="h-4 w-4" /> API Meta
