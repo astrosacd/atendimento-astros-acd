@@ -166,7 +166,11 @@ const InstagramSettings = () => {
   }, [user]);
 
 
-  const fetchSettings = async () => {
+  const fetchSettings = async ({ force = false }: { force?: boolean } = {}) => {
+    if (dirtyRef.current && !force) {
+      return;
+    }
+
     const { data, error } = await supabase
       .from("instagram_settings")
       .select("*")
@@ -182,7 +186,7 @@ const InstagramSettings = () => {
     if (error) {
       console.error("Error fetching settings:", error);
     } else {
-      setSettings({
+      const databaseSettings: InstagramSettingsState = {
         ig_user_id: data?.ig_user_id || "",
         page_id: data?.page_id || "",
         account_username: data?.account_username || "",
@@ -193,7 +197,29 @@ const InstagramSettings = () => {
         renewal_webhook: webhookConfig?.config_value || "",
         notify_whatsapp: data?.notify_whatsapp || false,
         manager_numbers: (data?.manager_numbers as string[]) || [],
-      });
+      };
+
+      const draftKey = getDraftKey(user?.id);
+      const draftRaw = user?.id ? localStorage.getItem(draftKey) : null;
+
+      if (!force && draftRaw) {
+        try {
+          const draft = JSON.parse(draftRaw) as InstagramSettingsState;
+          if (hasMeaningfulDraft(draft)) {
+            settingsRef.current = draft;
+            dirtyRef.current = true;
+            setSettings(draft);
+            setIsDirty(true);
+            return;
+          }
+        } catch {
+          localStorage.removeItem(draftKey);
+        }
+      }
+
+      settingsRef.current = databaseSettings;
+      dirtyRef.current = false;
+      setSettings(databaseSettings);
       setIsDirty(false);
     }
   };
