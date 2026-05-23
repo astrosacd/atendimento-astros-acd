@@ -21,6 +21,7 @@ import { exportBillingReportPDF } from '@/utils/exportPDF';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { PendingPaymentsList } from '@/components/PendingPaymentsList';
 import { ClientRecoveryManager } from '@/components/billing/ClientRecoveryManager';
+import { BillingWebhooksManager } from '@/components/billing/BillingWebhooksManager';
 import { BillingBaserowConfig } from '@/components/billing/BillingBaserowConfig';
 import { useTranslation } from 'react-i18next';
 import { usePermissions } from '@/hooks/usePermissions';
