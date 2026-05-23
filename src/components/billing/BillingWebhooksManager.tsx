@@ -100,18 +100,48 @@ export function BillingWebhooksManager() {
     setLoading(false);
   };
 
-  const loadLogs = async () => {
+  const loadLogs = async (page = logPage, provider = logProvider) => {
     setLoadingLogs(true);
-    const { data, error } = await supabase
+    const from = (page - 1) * LOG_PAGE_SIZE;
+    const to = from + LOG_PAGE_SIZE - 1;
+    let query = supabase
       .from("billing_webhook_logs" as any)
-      .select("id, provider, event_type, external_id, http_status, result, message, is_test, created_at")
+      .select("id, provider, event_type, external_id, http_status, result, message, is_test, created_at", { count: "exact" })
       .order("created_at", { ascending: false })
-      .limit(30);
+      .range(from, to);
+    if (provider !== "all") query = query.eq("provider", provider);
+    const { data, error, count } = await query;
     if (!error && data) setLogs(data as any);
+    setLogTotal(count || 0);
     setLoadingLogs(false);
   };
 
   useEffect(() => { load(); loadLogs(); }, []);
+  useEffect(() => { loadLogs(logPage, logProvider); }, [logPage, logProvider]);
+
+  const previewOrphans = async () => {
+    if (!canCleanup) return;
+    setLoadingOrphans(true);
+    const { data, error } = await supabase.rpc("preview_cobranca_orphan_payments" as any, { p_days_old: 30 });
+    setLoadingOrphans(false);
+    if (error) return toast.error("Erro ao buscar órfãos: " + error.message);
+    setOrphanPayments((data || []) as any);
+    toast.info(`${data?.length || 0} pagamento(s) órfão(s) encontrado(s)`);
+  };
+
+  const cleanupOrphans = async () => {
+    if (!canCleanup) return;
+    const confirmed = window.confirm(
+      `Excluir ${orphanPayments.length} pagamento(s) órfão(s)? Apenas registros sem quitação serão removidos.`,
+    );
+    if (!confirmed) return;
+    setCleaningOrphans(true);
+    const { data, error } = await supabase.rpc("cleanup_cobranca_orphan_payments" as any, { p_days_old: 30 });
+    setCleaningOrphans(false);
+    if (error) return toast.error("Erro ao limpar órfãos: " + error.message);
+    toast.success(`${Number((data as any)?.deleted || 0)} pagamento(s) órfão(s) excluído(s)`);
+    setOrphanPayments([]);
+  };
 
   const handleCopy = async (text: string, label: string) => {
     const ok = await copyToClipboard(text);
