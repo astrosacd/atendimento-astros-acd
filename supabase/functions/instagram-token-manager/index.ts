@@ -20,6 +20,15 @@ const formatGraphError = (result: any, actionLabel: string) => {
 
 const optionalString = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 
+const jsonResponse = (payload: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+const isMetaTokenError = (message: string) =>
+  message.includes("Erro ao depurar token na Meta") || message.includes("Erro ao renovar token na Meta");
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -37,21 +46,23 @@ serve(async (req) => {
     );
     if (authError || !user) throw new Error("Unauthorized");
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const { action } = body;
 
     const { data: settings, error: settingsError } = await supabase
       .from('instagram_settings')
       .select('*')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (settingsError || !settings) throw new Error("Configurações do Instagram não encontradas");
+    if (settingsError) throw new Error("Erro ao carregar configurações do Instagram");
 
-    const access_token = optionalString(body.access_token) || settings.access_token;
-    const app_id = optionalString(body.app_id) || settings.app_id;
-    const app_secret = optionalString(body.app_secret) || settings.app_secret;
-    const { manager_numbers, notify_whatsapp, renewal_webhook_url } = settings;
+    const access_token = optionalString(body.access_token) || settings?.access_token || "";
+    const app_id = optionalString(body.app_id) || settings?.app_id || "";
+    const app_secret = optionalString(body.app_secret) || settings?.app_secret || "";
+    const manager_numbers = settings?.manager_numbers || [];
+    const notify_whatsapp = settings?.notify_whatsapp || false;
+    const renewal_webhook_url = settings?.renewal_webhook_url || "";
     if (!access_token) throw new Error("Token de acesso não configurado");
 
     const graphHost = "https://graph.facebook.com/v23.0";
@@ -80,14 +91,14 @@ serve(async (req) => {
       }
 
       // Update the database with the expiration date
-      if (expirationDate) {
+      if (expirationDate && settings) {
         await supabase
           .from('instagram_settings')
           .update({ token_expires_at: expirationDate })
           .eq('user_id', user.id);
       }
 
-      return new Response(JSON.stringify({ 
+      return jsonResponse({ 
         success: true, 
         data: {
           is_valid: data.is_valid,
@@ -95,8 +106,6 @@ serve(async (req) => {
           scopes: data.scopes,
           user_id: data.user_id
         } 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -195,14 +204,12 @@ serve(async (req) => {
         }
       }
 
-      return new Response(JSON.stringify({ 
+      return jsonResponse({ 
         success: true, 
         message: "Token renovado com sucesso! Nova validade: " + (expirationDate ? new Date(expirationDate).toLocaleDateString('pt-BR') : 'indeterminada'),
         data: {
           expires_at: expirationDate
         } 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -210,9 +217,12 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error("Error managing Instagram token:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    const message = error?.message || "Erro inesperado ao processar a operação";
+    return jsonResponse({
+      success: false,
+      error: message,
+      meta_error: isMetaTokenError(message),
+      fallback: isMetaTokenError(message),
     });
   }
 });

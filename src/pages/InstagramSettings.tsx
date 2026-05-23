@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -162,14 +162,7 @@ const InstagramSettings = () => {
     }
   };
 
-  useEffect(() => {
-    if (user) {
-      fetchSettings();
-    }
-  }, [user]);
-
-
-  const fetchSettings = async ({ force = false }: { force?: boolean } = {}) => {
+  const fetchSettings = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
     if (dirtyRef.current && !force) {
       return;
     }
@@ -229,7 +222,13 @@ const InstagramSettings = () => {
       setSettings(databaseSettings);
       setIsDirty(false);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user) {
+      fetchSettings();
+    }
+  }, [user, fetchSettings]);
 
   const handleTokenAction = async (action: "debug" | "refresh") => {
     if (!settings.app_id || !settings.app_secret || !settings.access_token) {
@@ -266,15 +265,24 @@ const InstagramSettings = () => {
       });
 
       const rawBody = await response.text();
-      let data: { error?: string; message?: string } | null = null;
+      let data: { success?: boolean; error?: string; message?: string; meta_error?: boolean; fallback?: boolean } | null = null;
       try {
         data = rawBody ? JSON.parse(rawBody) : null;
       } catch {
         data = null;
       }
 
-      if (!response.ok || data?.error) {
+      if (!response.ok) {
         throw new Error(data?.error || data?.message || `Falha ao verificar token (${response.status})`);
+      }
+
+      if (data?.success === false || data?.error) {
+        toast({
+          title: data?.meta_error ? "Token não validado pela Meta" : "Erro na operação",
+          description: data?.error || data?.message || "Não foi possível verificar o token agora.",
+          variant: "destructive",
+        });
+        return;
       }
 
       toast({
