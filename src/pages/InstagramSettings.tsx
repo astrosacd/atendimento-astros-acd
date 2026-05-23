@@ -183,6 +183,10 @@ const InstagramSettings = () => {
       .eq('config_key', 'instagram_renewal_webhook')
       .maybeSingle();
 
+    if (dirtyRef.current && !force) {
+      return;
+    }
+
     if (error) {
       console.error("Error fetching settings:", error);
     } else {
