@@ -7,6 +7,17 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const formatGraphError = (result: any, actionLabel: string) => {
+  const metaError = result?.error;
+  if (!metaError) return `Erro ao ${actionLabel} token: resposta inválida da Meta`;
+
+  const details = [metaError.message, metaError.type, metaError.code ? `código ${metaError.code}` : null]
+    .filter(Boolean)
+    .join(" — ");
+
+  return `Erro ao ${actionLabel} token na Meta: ${details || JSON.stringify(metaError)}`;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -45,13 +56,13 @@ serve(async (req) => {
       }
 
       const appAccessToken = `${app_id}|${app_secret}`;
-      const debugUrl = `${graphHost}/debug_token?input_token=${access_token}&access_token=${appAccessToken}`;
+      const debugUrl = `${graphHost}/debug_token?input_token=${encodeURIComponent(access_token)}&access_token=${encodeURIComponent(appAccessToken)}`;
       
       const res = await fetch(debugUrl);
       const result = await res.json();
 
       if (!res.ok) {
-        throw new Error(`Erro ao depurar token: ${JSON.stringify(result)}`);
+        throw new Error(formatGraphError(result, "depurar"));
       }
 
       const { data } = result;
@@ -88,13 +99,13 @@ serve(async (req) => {
         throw new Error("App ID e App Secret são necessários para renovar o token");
       }
 
-      const refreshUrl = `${graphHost}/oauth/access_token?grant_type=fb_exchange_token&client_id=${app_id}&client_secret=${app_secret}&fb_exchange_token=${access_token}`;
+      const refreshUrl = `${graphHost}/oauth/access_token?grant_type=fb_exchange_token&client_id=${encodeURIComponent(app_id)}&client_secret=${encodeURIComponent(app_secret)}&fb_exchange_token=${encodeURIComponent(access_token)}`;
       
       const res = await fetch(refreshUrl);
       const result = await res.json();
 
       if (!res.ok) {
-        throw new Error(`Erro ao renovar token: ${JSON.stringify(result)}`);
+        throw new Error(formatGraphError(result, "renovar"));
       }
 
       const newAccessToken = result.access_token;
