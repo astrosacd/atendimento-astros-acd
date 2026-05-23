@@ -6,24 +6,45 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { copyToClipboard } from "@/utils/clipboard";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import {
   Copy, Webhook, CheckCircle2, AlertTriangle, ExternalLink, Save, Loader2,
-  Eye, EyeOff, Info, PlugZap, XCircle,
+  Eye, EyeOff, Info, PlugZap, XCircle, RefreshCw, History,
 } from "lucide-react";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const MP_WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/client-payment-mp-webhook`;
 const STRIPE_WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/client-payment-stripe-webhook`;
 
+// Snippet pronto pro nó HTTP Request do n8n espelhar o evento do MP
+const N8N_MP_CURL = `curl -X POST '${MP_WEBHOOK_URL}' \\
+  -H 'Content-Type: application/json' \\
+  -d '{
+    "type": "payment",
+    "data": { "id": "{{ $(\\'Obter detalhes pagamento\\').item.json.id }}" }
+  }'`;
+
 type TestResult = { ok: boolean; message: string; raw?: any } | null;
+
+type WebhookLog = {
+  id: string;
+  provider: "mercadopago" | "stripe";
+  event_type: string | null;
+  external_id: string | null;
+  http_status: number | null;
+  result: string;
+  message: string | null;
+  is_test: boolean;
+  created_at: string;
+};
 
 export function BillingWebhooksManager() {
   const { canManageCobrancaWebhooks } = usePermissions();
-  const canManage = canManageCobrancaWebhooks(); // admin já inclui tudo
+  const canManage = canManageCobrancaWebhooks();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,6 +58,9 @@ export function BillingWebhooksManager() {
   const [testingStripe, setTestingStripe] = useState(false);
   const [mpResult, setMpResult] = useState<TestResult>(null);
   const [stripeResult, setStripeResult] = useState<TestResult>(null);
+
+  const [logs, setLogs] = useState<WebhookLog[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -54,12 +78,33 @@ export function BillingWebhooksManager() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  const loadLogs = async () => {
+    setLoadingLogs(true);
+    const { data, error } = await supabase
+      .from("billing_webhook_logs" as any)
+      .select("id, provider, event_type, external_id, http_status, result, message, is_test, created_at")
+      .order("created_at", { ascending: false })
+      .limit(30);
+    if (!error && data) setLogs(data as any);
+    setLoadingLogs(false);
+  };
+
+  useEffect(() => { load(); loadLogs(); }, []);
 
   const handleCopy = async (text: string, label: string) => {
     const ok = await copyToClipboard(text);
     if (ok) toast.success(`${label} copiada`);
     else toast.error("Não foi possível copiar");
+  };
+
+  // Abre em nova aba contornando o iframe da preview (resolve ERR_BLOCKED_BY_RESPONSE)
+  const openExternal = (url: string) => {
+    const win = window.open(url, "_blank", "noopener,noreferrer");
+    if (!win) {
+      // popup bloqueado — copia URL como fallback
+      copyToClipboard(url);
+      toast.info("Popup bloqueado — URL copiada. Cole numa nova aba do navegador.");
+    }
   };
 
   const handleSaveSecret = async () => {
@@ -91,10 +136,7 @@ export function BillingWebhooksManager() {
     try {
       const res = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-webhook-test": "ping",
-        },
+        headers: { "Content-Type": "application/json", "x-webhook-test": "ping" },
         body: "{}",
       });
       const text = await res.text();
@@ -105,13 +147,14 @@ export function BillingWebhooksManager() {
         toast.success(`Webhook ${providerLabel}: OK`);
       } else {
         setResult({ ok: false, message: body?.message || body?.error || `HTTP ${res.status}`, raw: body });
-        toast.error(`Webhook ${providerLabel} falhou`);
+        toast.error(`Webhook ${providerLabel}: pendência detectada`);
       }
     } catch (e: any) {
       setResult({ ok: false, message: e?.message || "Falha de rede" });
       toast.error(`Erro ao chamar webhook: ${e?.message || ""}`);
     } finally {
       setBusy(false);
+      loadLogs();
     }
   };
 
@@ -119,6 +162,7 @@ export function BillingWebhooksManager() {
   const stripeConfigured = !!savedSecret;
 
   return (
+    <div className="space-y-4">
     <Card className="border-border/50">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -156,14 +200,12 @@ export function BillingWebhooksManager() {
                 </Badge>
               )}
             </div>
-            <a
-              href="https://www.mercadopago.com.br/developers/panel/app"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+            <Button
+              variant="ghost" size="sm" className="h-7 text-xs gap-1"
+              onClick={() => openExternal("https://www.mercadopago.com.br/developers/panel/app")}
             >
               Abrir painel MP <ExternalLink className="w-3 h-3" />
-            </a>
+            </Button>
           </div>
 
           <div>
@@ -212,28 +254,27 @@ export function BillingWebhooksManager() {
               </p>
               <p>
                 O Mercado Pago aceita <strong>apenas 1 webhook por aplicação</strong>. Se ele já aponta para o seu n8n
-                (que cuida do módulo de Link de Pagamento), <strong>NÃO troque a URL</strong>. Em vez disso, faça o
-                n8n "espelhar" o evento também para este endpoint:
+                (Link de Pagamento), <strong>NÃO troque a URL</strong>. Em vez disso, faça o n8n "espelhar" o evento
+                também para este endpoint. Copie o cURL abaixo e cole num nó <strong>HTTP Request</strong> em paralelo
+                ao nó que chama <code>payment-link-webhook</code>:
               </p>
-              <ol className="list-decimal pl-5 space-y-1">
-                <li>Abra o workflow do n8n que recebe o webhook do MP.</li>
-                <li>Depois do nó <em>"Obter detalhes pagamento"</em> (que faz GET em <code>api.mercadopago.com/v1/payments/{`{id}`}</code>), adicione um novo nó <strong>HTTP Request</strong> em paralelo ao nó atual que chama <code>payment-link-webhook</code>.</li>
-                <li>Method: <code>POST</code> &nbsp;|&nbsp; URL: <code className="break-all">{MP_WEBHOOK_URL}</code></li>
-                <li>Header: <code>Content-Type: application/json</code></li>
-                <li>
-                  Body (JSON):
-                  <pre className="mt-1 bg-background border rounded p-2 overflow-x-auto">{`{
-  "type": "payment",
-  "data": {
-    "id": "{{ $('Obter detalhes pagamento').item.json.id }}"
-  }
-}`}</pre>
-                </li>
-                <li>Salve e ative o workflow. Pronto — quando o MP disparar, o n8n entrega para <strong>os dois módulos</strong> (Link de Pagamento e Cobrança).</li>
-              </ol>
+              <div className="relative">
+                <pre className="mt-1 bg-background border rounded p-2 overflow-x-auto pr-10 text-[11px] leading-relaxed">{N8N_MP_CURL}</pre>
+                <Button
+                  size="icon" variant="ghost"
+                  className="absolute top-1 right-1 h-7 w-7"
+                  onClick={() => handleCopy(N8N_MP_CURL, "cURL")}
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                </Button>
+              </div>
               <p>
-                Este endpoint busca o pagamento na API do MP por conta própria para confirmar (anti-spoof), então não importa
-                que ele venha do n8n e não direto do MP — funciona igual.
+                No n8n, configure o nó assim: <strong>Method</strong> POST · <strong>URL</strong> <code className="break-all">{MP_WEBHOOK_URL}</code> ·
+                <strong> Body</strong> JSON com <code>{`{ "type": "payment", "data": { "id": "{{ $('Obter detalhes pagamento').item.json.id }} " } }`}</code>.
+              </p>
+              <p>
+                Este endpoint busca o pagamento na API do MP por conta própria (anti-spoof), então funciona igual recebendo
+                via n8n ou direto do MP.
               </p>
             </AlertDescription>
           </Alert>
@@ -255,14 +296,12 @@ export function BillingWebhooksManager() {
                 </Badge>
               )}
             </div>
-            <a
-              href="https://dashboard.stripe.com/webhooks"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+            <Button
+              variant="ghost" size="sm" className="h-7 text-xs gap-1"
+              onClick={() => openExternal("https://dashboard.stripe.com/webhooks")}
             >
               Abrir painel Stripe <ExternalLink className="w-3 h-3" />
-            </a>
+            </Button>
           </div>
 
           <div>
@@ -339,5 +378,75 @@ export function BillingWebhooksManager() {
         )}
       </CardContent>
     </Card>
+
+    {/* LOGS */}
+    <Card className="border-border/50">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <History className="w-4 h-4 text-muted-foreground" />
+              Histórico de Webhooks
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Últimas 30 chamadas recebidas (testes e notificações reais do MP/Stripe)
+            </CardDescription>
+          </div>
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={loadLogs} disabled={loadingLogs}>
+            <RefreshCw className={`w-4 h-4 ${loadingLogs ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {logs.length === 0 ? (
+          <p className="text-center text-muted-foreground text-sm py-4">
+            Nenhum log ainda. Clique em "Testar webhook" acima para gerar a primeira entrada.
+          </p>
+        ) : (
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">Quando</TableHead>
+                  <TableHead className="text-xs">Provider</TableHead>
+                  <TableHead className="text-xs">Evento</TableHead>
+                  <TableHead className="text-xs">Resultado</TableHead>
+                  <TableHead className="text-xs">HTTP</TableHead>
+                  <TableHead className="text-xs">Detalhes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {logs.map(l => {
+                  const ok = ["ok", "paid", "received", "already_paid"].includes(l.result);
+                  return (
+                    <TableRow key={l.id}>
+                      <TableCell className="text-xs font-mono">{new Date(l.created_at).toLocaleString("pt-BR")}</TableCell>
+                      <TableCell className="text-xs">
+                        <Badge variant="outline" className={l.provider === "stripe" ? "border-[#635bff]/40 text-[#635bff]" : "border-[#00b1ea]/40 text-[#00b1ea]"}>
+                          {l.provider === "stripe" ? "Stripe" : "Mercado Pago"}
+                        </Badge>
+                        {l.is_test && <Badge variant="secondary" className="ml-1 text-[10px]">teste</Badge>}
+                      </TableCell>
+                      <TableCell className="text-xs font-mono">{l.event_type || "-"}</TableCell>
+                      <TableCell className="text-xs">
+                        <span className={`inline-flex items-center gap-1 ${ok ? "text-emerald-500" : "text-red-500"}`}>
+                          {ok ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                          {l.result}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-xs font-mono">{l.http_status ?? "-"}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-[280px] truncate" title={l.message || ""}>
+                        {l.message || "-"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+    </div>
   );
 }
