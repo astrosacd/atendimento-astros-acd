@@ -280,21 +280,27 @@ const InstagramSettings = () => {
 
   const handleAddNumber = () => {
     if (newManagerNumber.trim()) {
-      setSettings(prev => ({
-        ...prev,
-        manager_numbers: [...prev.manager_numbers, newManagerNumber.trim()]
-      }));
+      setSettings(prev => {
+        const next = {
+          ...prev,
+          manager_numbers: [...prev.manager_numbers, newManagerNumber.trim()]
+        };
+        markDirtySettings(next);
+        return next;
+      });
       setNewManagerNumber("");
-      setIsDirty(true);
     }
   };
 
   const handleRemoveNumber = (index: number) => {
-    setSettings(prev => ({
-      ...prev,
-      manager_numbers: prev.manager_numbers.filter((_, i) => i !== index)
-    }));
-    setIsDirty(true);
+    setSettings(prev => {
+      const next = {
+        ...prev,
+        manager_numbers: prev.manager_numbers.filter((_, i) => i !== index)
+      };
+      markDirtySettings(next);
+      return next;
+    });
   };
 
   const handleSave = async () => {
@@ -328,8 +334,13 @@ const InstagramSettings = () => {
         title: "Sucesso!",
         description: "Configurações salvas.",
       });
-      
-      fetchSettings();
+
+      if (user?.id) {
+        localStorage.removeItem(getDraftKey(user.id));
+      }
+      dirtyRef.current = false;
+      setIsDirty(false);
+      fetchSettings({ force: true });
     } catch (error: any) {
       toast({
         title: "Erro ao salvar",
