@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -169,7 +169,7 @@ const InstagramSettings = () => {
   }, [user]);
 
 
-  const fetchSettings = async ({ force = false }: { force?: boolean } = {}) => {
+  const fetchSettings = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
     if (dirtyRef.current && !force) {
       return;
     }
@@ -229,7 +229,7 @@ const InstagramSettings = () => {
       setSettings(databaseSettings);
       setIsDirty(false);
     }
-  };
+  }, [user?.id]);
 
   const handleTokenAction = async (action: "debug" | "refresh") => {
     if (!settings.app_id || !settings.app_secret || !settings.access_token) {
