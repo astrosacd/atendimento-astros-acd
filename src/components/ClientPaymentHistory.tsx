@@ -60,6 +60,7 @@ const isLinkPaymentType = (paymentType: string): boolean => {
 
 export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, onPaymentUpdate }: ClientPaymentHistoryProps) {
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [dataRenovacao, setDataRenovacao] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showEarlyPayment, setShowEarlyPayment] = useState(false);
@@ -82,10 +83,24 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
 
   const loadPayments = async () => {
     setIsLoading(true);
-    const data = await fetchClientPayments(clienteId);
+    const [data, clienteRes] = await Promise.all([
+      fetchClientPayments(clienteId),
+      supabase.from('clientes').select('data_renovacao').eq('id', clienteId).maybeSingle(),
+    ]);
     setPayments(data);
+    setDataRenovacao(clienteRes.data?.data_renovacao ?? null);
     setIsLoading(false);
   };
+
+  // Sacada 1: botão "Registrar pagamento antecipado" só fica habilitado até D-1.
+  // A partir de D0 (dia do vencimento) a cobrança automática do dia já existe abaixo.
+  const isAntecipadoDisabled = (() => {
+    if (!dataRenovacao) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const venc = new Date(dataRenovacao + 'T00:00:00');
+    return today.getTime() >= venc.getTime();
+  })();
 
   const openApprovalDialog = (payment: Payment) => {
     setApprovalPayment(payment);
