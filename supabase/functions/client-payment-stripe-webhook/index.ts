@@ -186,6 +186,12 @@ serve(async (req) => {
     const valid = await verifyStripeSignature(rawBody, sigHeader, cfg.stripe_webhook_secret);
     if (!valid) {
       console.error("[stripe-webhook] assinatura inválida");
+      try {
+        await supabase.from("billing_webhook_logs").insert({
+          provider: "stripe", event_type: "invalid_signature", http_status: 400,
+          result: "invalid_signature", message: "Assinatura HMAC inválida ou expirada",
+        });
+      } catch { /* ignore */ }
       return new Response(JSON.stringify({ error: "invalid_signature" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -193,6 +199,12 @@ serve(async (req) => {
 
     const event = JSON.parse(rawBody);
     console.log("[stripe-webhook] event:", event.type, "id:", event.id);
+    try {
+      await supabase.from("billing_webhook_logs").insert({
+        provider: "stripe", event_type: event.type, external_id: event.id,
+        http_status: 200, result: "received", message: `Evento ${event.type} recebido`,
+      });
+    } catch { /* ignore */ }
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;

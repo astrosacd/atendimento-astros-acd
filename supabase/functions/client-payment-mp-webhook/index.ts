@@ -201,12 +201,31 @@ serve(async (req) => {
       }
     }
 
+    try {
+      await supabase.from("billing_webhook_logs").insert({
+        provider: "mercadopago",
+        event_type: String(eventType || "payment"),
+        external_id: String(mpPaymentId || ""),
+        http_status: 200,
+        result: "paid",
+        message: `Pagamento ${mpPaymentId} marcado como pago`,
+        matched_payment_id: payment.id,
+        payload: { mpStatus, externalRef },
+      });
+    } catch { /* ignore */ }
+
     return new Response(JSON.stringify({ ok: true, status: "paid" }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
     console.error("[mp-webhook] erro:", e);
-    // Sempre 200 para MP não retentar em loop por erro nosso
+    try {
+      const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      await sb.from("billing_webhook_logs").insert({
+        provider: "mercadopago", event_type: "error", http_status: 200,
+        result: "error", message: e?.message || String(e),
+      });
+    } catch { /* ignore */ }
     return new Response(JSON.stringify({ ok: false, error: e?.message }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
