@@ -31,6 +31,8 @@ const InstagramSettings = () => {
   const [showToken, setShowToken] = useState(false);
   const [newManagerNumber, setNewManagerNumber] = useState("");
   const [isDirty, setIsDirty] = useState(false);
+  const [activeTab, setActiveTab] = useState("meta-api");
+  const [pendingTab, setPendingTab] = useState<string | null>(null);
   const [settings, setSettings] = useState({
     ig_user_id: "",
     page_id: "",
@@ -49,11 +51,42 @@ const InstagramSettings = () => {
     setIsDirty(true);
   };
 
+  // Aviso ao fechar/recarregar a aba com alterações não salvas
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
+  // Troca de tab com proteção
+  const handleTabChange = (value: string) => {
+    if (isDirty && value !== activeTab) {
+      setPendingTab(value);
+      return;
+    }
+    setActiveTab(value);
+  };
+
+  const confirmDiscardAndChangeTab = () => {
+    if (pendingTab) {
+      setActiveTab(pendingTab);
+      setPendingTab(null);
+      setIsDirty(false);
+      fetchSettings();
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchSettings();
     }
   }, [user]);
+
 
   const fetchSettings = async () => {
     const { data, error } = await supabase
