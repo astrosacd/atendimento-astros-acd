@@ -73,6 +73,7 @@ const InstagramSettings = () => {
         notify_whatsapp: data?.notify_whatsapp || false,
         manager_numbers: (data?.manager_numbers as string[]) || [],
       });
+      setIsDirty(false);
     }
   };
 
