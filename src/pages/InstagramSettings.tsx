@@ -538,7 +538,7 @@ const InstagramSettings = () => {
                     id="webhook"
                     placeholder="https://seu-n8n.com/webhook/..."
                     value={settings.renewal_webhook}
-                    onChange={(e) => setSettings({ ...settings, renewal_webhook: e.target.value })}
+                    onChange={(e) => updateField("renewal_webhook", e.target.value)}
                   />
                   <p className="text-xs text-muted-foreground leading-relaxed italic">
                     Sempre que você clicar em "Renovar", enviaremos um POST com o novo token, data de expiração e usuário.
