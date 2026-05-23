@@ -247,7 +247,11 @@ const InstagramSettings = () => {
         body: { action },
       });
 
-      if (error) throw error;
+      // The function returns { error } in the body on non-2xx; surface that message
+      const fnError = (data as { error?: string } | null)?.error;
+      if (error || fnError) {
+        throw new Error(fnError || (error as Error)?.message || "Falha ao chamar função");
+      }
 
       toast({
         title: action === "debug" ? "Token Verificado" : "Token Renovado",
