@@ -89,6 +89,23 @@ const InstagramSettings = () => {
     setIsDirty(true);
   };
 
+  const markDirtySettings = (next: InstagramSettingsState) => {
+    settingsRef.current = next;
+    if (user?.id) {
+      localStorage.setItem(getDraftKey(user.id), JSON.stringify(next));
+    }
+    dirtyRef.current = true;
+    setIsDirty(true);
+  };
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
+  useEffect(() => {
+    dirtyRef.current = isDirty;
+  }, [isDirty]);
+
   // Aviso ao fechar/recarregar a aba com alterações não salvas
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -101,6 +118,25 @@ const InstagramSettings = () => {
     return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty]);
 
+  // Preserva rascunho ao trocar de guia/app e ao voltar do painel da Meta/Facebook.
+  useEffect(() => {
+    const persistDraft = () => {
+      if (dirtyRef.current && user?.id && settingsRef.current) {
+        localStorage.setItem(getDraftKey(user.id), JSON.stringify(settingsRef.current));
+      }
+    };
+
+    document.addEventListener("visibilitychange", persistDraft);
+    window.addEventListener("pagehide", persistDraft);
+    window.addEventListener("blur", persistDraft);
+
+    return () => {
+      document.removeEventListener("visibilitychange", persistDraft);
+      window.removeEventListener("pagehide", persistDraft);
+      window.removeEventListener("blur", persistDraft);
+    };
+  }, [user?.id]);
+
   // Troca de tab com proteção
   const handleTabChange = (value: string) => {
     if (isDirty && value !== activeTab) {
@@ -112,10 +148,14 @@ const InstagramSettings = () => {
 
   const confirmDiscardAndChangeTab = () => {
     if (pendingTab) {
+      if (user?.id) {
+        localStorage.removeItem(getDraftKey(user.id));
+      }
       setActiveTab(pendingTab);
       setPendingTab(null);
+      dirtyRef.current = false;
       setIsDirty(false);
-      fetchSettings();
+      fetchSettings({ force: true });
     }
   };
 
