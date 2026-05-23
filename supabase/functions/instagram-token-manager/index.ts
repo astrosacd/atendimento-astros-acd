@@ -3,9 +3,22 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-temp-access-token",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+const formatGraphError = (result: any, actionLabel: string) => {
+  const metaError = result?.error;
+  if (!metaError) return `Erro ao ${actionLabel} token: resposta inválida da Meta`;
+
+  const details = [metaError.message, metaError.type, metaError.code ? `código ${metaError.code}` : null]
+    .filter(Boolean)
+    .join(" — ");
+
+  return `Erro ao ${actionLabel} token na Meta: ${details || JSON.stringify(metaError)}`;
+};
+
+const optionalString = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -24,7 +37,8 @@ serve(async (req) => {
     );
     if (authError || !user) throw new Error("Unauthorized");
 
-    const { action } = await req.json();
+    const body = await req.json();
+    const { action } = body;
 
     const { data: settings, error: settingsError } = await supabase
       .from('instagram_settings')
@@ -34,7 +48,10 @@ serve(async (req) => {
 
     if (settingsError || !settings) throw new Error("Configurações do Instagram não encontradas");
 
-    const { access_token, app_id, app_secret, manager_numbers, notify_whatsapp, renewal_webhook_url } = settings;
+    const access_token = optionalString(body.access_token) || settings.access_token;
+    const app_id = optionalString(body.app_id) || settings.app_id;
+    const app_secret = optionalString(body.app_secret) || settings.app_secret;
+    const { manager_numbers, notify_whatsapp, renewal_webhook_url } = settings;
     if (!access_token) throw new Error("Token de acesso não configurado");
 
     const graphHost = "https://graph.facebook.com/v23.0";
@@ -45,13 +62,13 @@ serve(async (req) => {
       }
 
       const appAccessToken = `${app_id}|${app_secret}`;
-      const debugUrl = `${graphHost}/debug_token?input_token=${access_token}&access_token=${appAccessToken}`;
+      const debugUrl = `${graphHost}/debug_token?input_token=${encodeURIComponent(access_token)}&access_token=${encodeURIComponent(appAccessToken)}`;
       
       const res = await fetch(debugUrl);
       const result = await res.json();
 
       if (!res.ok) {
-        throw new Error(`Erro ao depurar token: ${JSON.stringify(result)}`);
+        throw new Error(formatGraphError(result, "depurar"));
       }
 
       const { data } = result;
@@ -88,13 +105,13 @@ serve(async (req) => {
         throw new Error("App ID e App Secret são necessários para renovar o token");
       }
 
-      const refreshUrl = `${graphHost}/oauth/access_token?grant_type=fb_exchange_token&client_id=${app_id}&client_secret=${app_secret}&fb_exchange_token=${access_token}`;
+      const refreshUrl = `${graphHost}/oauth/access_token?grant_type=fb_exchange_token&client_id=${encodeURIComponent(app_id)}&client_secret=${encodeURIComponent(app_secret)}&fb_exchange_token=${encodeURIComponent(access_token)}`;
       
       const res = await fetch(refreshUrl);
       const result = await res.json();
 
       if (!res.ok) {
-        throw new Error(`Erro ao renovar token: ${JSON.stringify(result)}`);
+        throw new Error(formatGraphError(result, "renovar"));
       }
 
       const newAccessToken = result.access_token;
