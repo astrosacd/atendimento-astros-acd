@@ -88,6 +88,18 @@ serve(async (req) => {
 
     console.log("[mp-webhook] event:", eventType, "id:", mpPaymentId);
 
+    try {
+      await supabase.from("billing_webhook_logs").insert({
+        provider: "mercadopago",
+        event_type: String(eventType || "unknown"),
+        external_id: mpPaymentId ? String(mpPaymentId) : null,
+        http_status: 200,
+        result: "received",
+        message: "Chamada real recebida no webhook Mercado Pago/n8n",
+        payload: body,
+      });
+    } catch { /* ignore */ }
+
     // MP envia vários tipos. Só nos interessa "payment".
     if (eventType && !String(eventType).includes("payment")) {
       return new Response(JSON.stringify({ ok: true, ignored: true }), {
@@ -108,6 +120,12 @@ serve(async (req) => {
 
     if (!mpRes.ok) {
       console.error(`[mp-webhook] MP API ${mpRes.status} para ${mpPaymentId}`);
+      try {
+        await supabase.from("billing_webhook_logs").insert({
+          provider: "mercadopago", event_type: String(eventType || "payment"), external_id: String(mpPaymentId),
+          http_status: 200, result: "gateway_error", message: `Mercado Pago API retornou ${mpRes.status}`,
+        });
+      } catch { /* ignore */ }
       // 200 para o MP não retentar infinitamente em casos de id inválido
       return new Response(JSON.stringify({ ok: false, mpStatus: mpRes.status }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -139,6 +157,13 @@ serve(async (req) => {
 
     if (!payment) {
       console.warn(`[mp-webhook] Sem client_payments para mpId=${mpPaymentId} ext_ref=${externalRef}`);
+      try {
+        await supabase.from("billing_webhook_logs").insert({
+          provider: "mercadopago", event_type: String(eventType || "payment"), external_id: String(mpPaymentId),
+          http_status: 200, result: "unmatched", message: `Pagamento recebido, mas sem vínculo em client_payments`,
+          payload: { mpStatus, externalRef },
+        });
+      } catch { /* ignore */ }
       return new Response(JSON.stringify({ ok: true, matched: false }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
