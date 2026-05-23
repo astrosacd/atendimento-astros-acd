@@ -138,6 +138,7 @@ const InstagramSettings = () => {
         manager_numbers: [...prev.manager_numbers, newManagerNumber.trim()]
       }));
       setNewManagerNumber("");
+      setIsDirty(true);
     }
   };
 
@@ -146,6 +147,7 @@ const InstagramSettings = () => {
       ...prev,
       manager_numbers: prev.manager_numbers.filter((_, i) => i !== index)
     }));
+    setIsDirty(true);
   };
 
   const handleSave = async () => {
