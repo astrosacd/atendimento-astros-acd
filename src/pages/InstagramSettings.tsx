@@ -52,6 +52,9 @@ const hasMeaningfulDraft = (draft: InstagramSettingsState) =>
       draft.manager_numbers.length,
   );
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Erro inesperado ao processar a operação.";
+
 const InstagramSettings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -254,10 +257,10 @@ const InstagramSettings = () => {
       });
 
       fetchSettings(); // Refresh UI
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro na operação",
-        description: error.message,
+        description: getErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -341,10 +344,10 @@ const InstagramSettings = () => {
       dirtyRef.current = false;
       setIsDirty(false);
       fetchSettings({ force: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao salvar",
-        description: error.message,
+        description: getErrorMessage(error),
         variant: "destructive",
       });
     } finally {
