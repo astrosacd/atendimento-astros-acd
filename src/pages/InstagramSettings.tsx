@@ -247,7 +247,11 @@ const InstagramSettings = () => {
         body: { action },
       });
 
-      if (error) throw error;
+      // The function returns { error } in the body on non-2xx; surface that message
+      const fnError = (data as { error?: string } | null)?.error;
+      if (error || fnError) {
+        throw new Error(fnError || (error as Error)?.message || "Falha ao chamar função");
+      }
 
       toast({
         title: action === "debug" ? "Token Verificado" : "Token Renovado",
@@ -320,7 +324,7 @@ const InstagramSettings = () => {
         updated_at: new Date().toISOString(),
         notify_whatsapp: settings.notify_whatsapp,
         manager_numbers: settings.manager_numbers,
-      });
+      }, { onConflict: 'user_id' });
 
       if (settingsError) throw settingsError;
 
@@ -329,7 +333,7 @@ const InstagramSettings = () => {
         .upsert({
           config_key: 'instagram_renewal_webhook',
           config_value: settings.renewal_webhook
-        });
+        }, { onConflict: 'config_key' });
 
       if (webhookError) throw webhookError;
 
