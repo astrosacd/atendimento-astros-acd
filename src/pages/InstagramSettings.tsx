@@ -20,6 +20,7 @@ const InstagramSettings = () => {
   const [loading, setLoading] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const [newManagerNumber, setNewManagerNumber] = useState("");
+  const [isDirty, setIsDirty] = useState(false);
   const [settings, setSettings] = useState({
     ig_user_id: "",
     page_id: "",
@@ -32,6 +33,11 @@ const InstagramSettings = () => {
     notify_whatsapp: false,
     manager_numbers: [] as string[],
   });
+
+  const updateField = <K extends keyof typeof settings>(key: K, value: (typeof settings)[K]) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+    setIsDirty(true);
+  };
 
   useEffect(() => {
     if (user) {
@@ -67,6 +73,7 @@ const InstagramSettings = () => {
         notify_whatsapp: data?.notify_whatsapp || false,
         manager_numbers: (data?.manager_numbers as string[]) || [],
       });
+      setIsDirty(false);
     }
   };
 
@@ -131,6 +138,7 @@ const InstagramSettings = () => {
         manager_numbers: [...prev.manager_numbers, newManagerNumber.trim()]
       }));
       setNewManagerNumber("");
+      setIsDirty(true);
     }
   };
 
@@ -139,6 +147,7 @@ const InstagramSettings = () => {
       ...prev,
       manager_numbers: prev.manager_numbers.filter((_, i) => i !== index)
     }));
+    setIsDirty(true);
   };
 
   const handleSave = async () => {
@@ -220,140 +229,175 @@ const InstagramSettings = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="app_id">Meta App ID</Label>
-                    <Input
-                      id="app_id"
-                      placeholder="ID do seu App Meta"
-                      value={settings.app_id}
-                      onChange={(e) => setSettings({ ...settings, app_id: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="app_secret">Meta App Secret</Label>
-                    <Input
-                      id="app_secret"
-                      type="password"
-                      placeholder="Secret do seu App Meta"
-                      value={settings.app_secret}
-                      onChange={(e) => setSettings({ ...settings, app_secret: e.target.value })}
-                    />
-                  </div>
-                </div>
+                <form autoComplete="off" onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
+                  {/* Honeypot fields to absorb browser autofill and prevent it from wiping real inputs */}
+                  <input type="text" name="fake-user" autoComplete="username" tabIndex={-1} aria-hidden="true" className="hidden" />
+                  <input type="password" name="fake-pass" autoComplete="new-password" tabIndex={-1} aria-hidden="true" className="hidden" />
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="ig_id">Instagram User ID (Obrigatório)</Label>
-                    <Input
-                      id="ig_id"
-                      placeholder="ID da conta Instagram Business"
-                      value={settings.ig_user_id}
-                      onChange={(e) => setSettings({ ...settings, ig_user_id: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="page_id">Facebook Page ID (Opcional)</Label>
-                    <Input
-                      id="page_id"
-                      placeholder="ID da página vinculada"
-                      value={settings.page_id}
-                      onChange={(e) => setSettings({ ...settings, page_id: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="username">@Username (Opcional)</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-muted-foreground font-medium">@</span>
-                    <Input
-                      id="username"
-                      className="pl-8"
-                      placeholder="seu_perfil"
-                      value={settings.account_username}
-                      onChange={(e) => setSettings({ ...settings, account_username: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-3 pt-4 border-t border-border/50">
-                  <Label htmlFor="token" className="text-base font-semibold">Meta Access Token</Label>
-                  <div className="relative">
-                    <Input
-                      id="token"
-                      type={showToken ? "text" : "password"}
-                      placeholder="Token de acesso (long-lived)"
-                      value={settings.access_token}
-                      onChange={(e) => setSettings({ ...settings, access_token: e.target.value })}
-                      className="pr-12 h-11"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowToken(!showToken)}
-                      className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showToken ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-
-                  {expirationStatus && (
-                    <div className={cn(
-                      "flex items-center gap-3 p-4 rounded-xl border-2 transition-all",
-                      expirationStatus.isExpired 
-                        ? "bg-red-50/50 border-red-200 text-red-700 dark:bg-red-900/10 dark:border-red-800" 
-                        : expirationStatus.isWarning 
-                        ? "bg-amber-50/50 border-amber-200 text-amber-700 dark:bg-amber-900/10 dark:border-amber-800"
-                        : "bg-green-50/50 border-green-200 text-green-700 dark:bg-green-900/10 dark:border-green-800"
-                    )}>
-                      {expirationStatus.isExpired ? (
-                        <AlertTriangle className="h-6 w-6 shrink-0" />
-                      ) : expirationStatus.isWarning ? (
-                        <Info className="h-6 w-6 shrink-0" />
-                      ) : (
-                        <CheckCircle2 className="h-6 w-6 shrink-0" />
-                      )}
-                      <div className="flex-1 text-sm">
-                        <p className="font-bold text-base">
-                          {expirationStatus.isExpired ? "Token Expirado" : "Validade do Token"}
-                        </p>
-                        <p className="opacity-90">Expira em: {expirationStatus.date}</p>
-                      </div>
-                      {!expirationStatus.isExpired && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleTokenAction("refresh")}
-                          disabled={loading}
-                          className="bg-background/50 hover:bg-background border-current"
-                        >
-                          <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
-                          Renovar Agora
-                        </Button>
-                      )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="app_id">Meta App ID</Label>
+                      <Input
+                        id="app_id"
+                        name="meta_app_id"
+                        autoComplete="off"
+                        placeholder="ID do seu App Meta"
+                        value={settings.app_id}
+                        onChange={(e) => updateField("app_id", e.target.value)}
+                      />
                     </div>
-                  )}
+                    <div className="space-y-2">
+                      <Label htmlFor="app_secret">Meta App Secret</Label>
+                      <Input
+                        id="app_secret"
+                        name="meta_app_secret"
+                        type="password"
+                        autoComplete="new-password"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        placeholder="Secret do seu App Meta"
+                        value={settings.app_secret}
+                        onChange={(e) => updateField("app_secret", e.target.value)}
+                      />
+                    </div>
+                  </div>
 
-                  {settings.access_token && !expirationStatus && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => handleTokenAction("debug")}
-                      disabled={loading}
-                      className="w-full h-11 border-dashed"
-                    >
-                      <ShieldCheck className="h-4 w-4 mr-2" />
-                      Verificar Validade do Token
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="ig_id">Instagram User ID (Obrigatório)</Label>
+                      <Input
+                        id="ig_id"
+                        name="ig_user_id"
+                        autoComplete="off"
+                        placeholder="ID da conta Instagram Business"
+                        value={settings.ig_user_id}
+                        onChange={(e) => updateField("ig_user_id", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="page_id">Facebook Page ID (Opcional)</Label>
+                      <Input
+                        id="page_id"
+                        name="fb_page_id"
+                        autoComplete="off"
+                        placeholder="ID da página vinculada"
+                        value={settings.page_id}
+                        onChange={(e) => updateField("page_id", e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="username">@Username (Opcional)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-muted-foreground font-medium">@</span>
+                      <Input
+                        id="username"
+                        name="ig_username"
+                        autoComplete="off"
+                        className="pl-8"
+                        placeholder="seu_perfil"
+                        value={settings.account_username}
+                        onChange={(e) => updateField("account_username", e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 pt-4 border-t border-border/50">
+                    <Label htmlFor="token" className="text-base font-semibold">Meta Access Token</Label>
+                    <div className="relative">
+                      <Input
+                        id="token"
+                        name="meta_access_token"
+                        type={showToken ? "text" : "password"}
+                        autoComplete="new-password"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        placeholder="Token de acesso (long-lived)"
+                        value={settings.access_token}
+                        onChange={(e) => updateField("access_token", e.target.value)}
+                        className="pr-12 h-11"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowToken(!showToken)}
+                        className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showToken ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
+                    </div>
+
+                    {expirationStatus && (
+                      <div className={cn(
+                        "flex items-center gap-3 p-4 rounded-xl border-2 transition-all",
+                        expirationStatus.isExpired 
+                          ? "bg-red-50/50 border-red-200 text-red-700 dark:bg-red-900/10 dark:border-red-800" 
+                          : expirationStatus.isWarning 
+                          ? "bg-amber-50/50 border-amber-200 text-amber-700 dark:bg-amber-900/10 dark:border-amber-800"
+                          : "bg-green-50/50 border-green-200 text-green-700 dark:bg-green-900/10 dark:border-green-800"
+                      )}>
+                        {expirationStatus.isExpired ? (
+                          <AlertTriangle className="h-6 w-6 shrink-0" />
+                        ) : expirationStatus.isWarning ? (
+                          <Info className="h-6 w-6 shrink-0" />
+                        ) : (
+                          <CheckCircle2 className="h-6 w-6 shrink-0" />
+                        )}
+                        <div className="flex-1 text-sm">
+                          <p className="font-bold text-base">
+                            {expirationStatus.isExpired ? "Token Expirado" : "Validade do Token"}
+                          </p>
+                          <p className="opacity-90">Expira em: {expirationStatus.date}</p>
+                        </div>
+                        {!expirationStatus.isExpired && (
+                          <Button 
+                            type="button"
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleTokenAction("refresh")}
+                            disabled={loading}
+                            className="bg-background/50 hover:bg-background border-current"
+                          >
+                            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+                            Renovar Agora
+                          </Button>
+                        )}
+                      </div>
+                    )}
+
+                    {settings.access_token && !expirationStatus && (
+                      <Button 
+                        type="button"
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleTokenAction("debug")}
+                        disabled={loading}
+                        className="w-full h-11 border-dashed"
+                      >
+                        <ShieldCheck className="h-4 w-4 mr-2" />
+                        Verificar Validade do Token
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 pt-4 border-t border-border/50">
+                    {isDirty ? (
+                      <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-500 font-medium">
+                        <AlertTriangle className="h-4 w-4" />
+                        Você tem alterações não salvas
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        Tudo salvo
+                      </div>
+                    )}
+                    <Button type="submit" disabled={loading || !isDirty} className="px-8 h-11 shadow-lg shadow-primary/20">
+                      {loading ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                      Salvar Configurações
                     </Button>
-                  )}
-                </div>
-
-                <div className="flex justify-end gap-3 pt-4">
-                   <Button onClick={handleSave} disabled={loading} className="px-8 h-11 shadow-lg shadow-primary/20">
-                    {loading ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                    Salvar Configurações
-                  </Button>
-                </div>
+                  </div>
+                </form>
               </CardContent>
             </Card>
 
@@ -433,7 +477,7 @@ const InstagramSettings = () => {
                   </div>
                   <Switch 
                     checked={settings.notify_whatsapp} 
-                    onCheckedChange={(v) => setSettings({...settings, notify_whatsapp: v})} 
+                    onCheckedChange={(v) => updateField("notify_whatsapp", v)} 
                   />
                 </div>
               </CardHeader>
@@ -494,7 +538,7 @@ const InstagramSettings = () => {
                     id="webhook"
                     placeholder="https://seu-n8n.com/webhook/..."
                     value={settings.renewal_webhook}
-                    onChange={(e) => setSettings({ ...settings, renewal_webhook: e.target.value })}
+                    onChange={(e) => updateField("renewal_webhook", e.target.value)}
                   />
                   <p className="text-xs text-muted-foreground leading-relaxed italic">
                     Sempre que você clicar em "Renovar", enviaremos um POST com o novo token, data de expiração e usuário.
