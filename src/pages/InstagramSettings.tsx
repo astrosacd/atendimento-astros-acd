@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,37 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
+type InstagramSettingsState = {
+  ig_user_id: string;
+  page_id: string;
+  account_username: string;
+  access_token: string;
+  app_id: string;
+  app_secret: string;
+  token_expires_at: string | null;
+  renewal_webhook: string;
+  notify_whatsapp: boolean;
+  manager_numbers: string[];
+};
+
+const getDraftKey = (userId?: string) => `instagram-settings-draft:${userId ?? "anonymous"}`;
+
+const hasMeaningfulDraft = (draft: InstagramSettingsState) =>
+  Boolean(
+    draft.ig_user_id ||
+      draft.page_id ||
+      draft.account_username ||
+      draft.access_token ||
+      draft.app_id ||
+      draft.app_secret ||
+      draft.renewal_webhook ||
+      draft.notify_whatsapp ||
+      draft.manager_numbers.length,
+  );
+
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Erro inesperado ao processar a operação.";
+
 const InstagramSettings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -33,7 +64,9 @@ const InstagramSettings = () => {
   const [isDirty, setIsDirty] = useState(false);
   const [activeTab, setActiveTab] = useState("meta-api");
   const [pendingTab, setPendingTab] = useState<string | null>(null);
-  const [settings, setSettings] = useState({
+  const dirtyRef = useRef(false);
+  const settingsRef = useRef<InstagramSettingsState | null>(null);
+  const [settings, setSettings] = useState<InstagramSettingsState>({
     ig_user_id: "",
     page_id: "",
     account_username: "",
@@ -47,9 +80,34 @@ const InstagramSettings = () => {
   });
 
   const updateField = <K extends keyof typeof settings>(key: K, value: (typeof settings)[K]) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
+    setSettings((prev) => {
+      const next = { ...prev, [key]: value };
+      settingsRef.current = next;
+      if (user?.id) {
+        localStorage.setItem(getDraftKey(user.id), JSON.stringify(next));
+      }
+      return next;
+    });
+    dirtyRef.current = true;
     setIsDirty(true);
   };
+
+  const markDirtySettings = (next: InstagramSettingsState) => {
+    settingsRef.current = next;
+    if (user?.id) {
+      localStorage.setItem(getDraftKey(user.id), JSON.stringify(next));
+    }
+    dirtyRef.current = true;
+    setIsDirty(true);
+  };
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
+  useEffect(() => {
+    dirtyRef.current = isDirty;
+  }, [isDirty]);
 
   // Aviso ao fechar/recarregar a aba com alterações não salvas
   useEffect(() => {
@@ -63,6 +121,25 @@ const InstagramSettings = () => {
     return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty]);
 
+  // Preserva rascunho ao trocar de guia/app e ao voltar do painel da Meta/Facebook.
+  useEffect(() => {
+    const persistDraft = () => {
+      if (dirtyRef.current && user?.id && settingsRef.current) {
+        localStorage.setItem(getDraftKey(user.id), JSON.stringify(settingsRef.current));
+      }
+    };
+
+    document.addEventListener("visibilitychange", persistDraft);
+    window.addEventListener("pagehide", persistDraft);
+    window.addEventListener("blur", persistDraft);
+
+    return () => {
+      document.removeEventListener("visibilitychange", persistDraft);
+      window.removeEventListener("pagehide", persistDraft);
+      window.removeEventListener("blur", persistDraft);
+    };
+  }, [user?.id]);
+
   // Troca de tab com proteção
   const handleTabChange = (value: string) => {
     if (isDirty && value !== activeTab) {
@@ -74,10 +151,14 @@ const InstagramSettings = () => {
 
   const confirmDiscardAndChangeTab = () => {
     if (pendingTab) {
+      if (user?.id) {
+        localStorage.removeItem(getDraftKey(user.id));
+      }
       setActiveTab(pendingTab);
       setPendingTab(null);
+      dirtyRef.current = false;
       setIsDirty(false);
-      fetchSettings();
+      fetchSettings({ force: true });
     }
   };
 
@@ -88,7 +169,11 @@ const InstagramSettings = () => {
   }, [user]);
 
 
-  const fetchSettings = async () => {
+  const fetchSettings = async ({ force = false }: { force?: boolean } = {}) => {
+    if (dirtyRef.current && !force) {
+      return;
+    }
+
     const { data, error } = await supabase
       .from("instagram_settings")
       .select("*")
@@ -101,10 +186,14 @@ const InstagramSettings = () => {
       .eq('config_key', 'instagram_renewal_webhook')
       .maybeSingle();
 
+    if (dirtyRef.current && !force) {
+      return;
+    }
+
     if (error) {
       console.error("Error fetching settings:", error);
     } else {
-      setSettings({
+      const databaseSettings: InstagramSettingsState = {
         ig_user_id: data?.ig_user_id || "",
         page_id: data?.page_id || "",
         account_username: data?.account_username || "",
@@ -115,7 +204,29 @@ const InstagramSettings = () => {
         renewal_webhook: webhookConfig?.config_value || "",
         notify_whatsapp: data?.notify_whatsapp || false,
         manager_numbers: (data?.manager_numbers as string[]) || [],
-      });
+      };
+
+      const draftKey = getDraftKey(user?.id);
+      const draftRaw = user?.id ? localStorage.getItem(draftKey) : null;
+
+      if (!force && draftRaw) {
+        try {
+          const draft = JSON.parse(draftRaw) as InstagramSettingsState;
+          if (hasMeaningfulDraft(draft)) {
+            settingsRef.current = draft;
+            dirtyRef.current = true;
+            setSettings(draft);
+            setIsDirty(true);
+            return;
+          }
+        } catch {
+          localStorage.removeItem(draftKey);
+        }
+      }
+
+      settingsRef.current = databaseSettings;
+      dirtyRef.current = false;
+      setSettings(databaseSettings);
       setIsDirty(false);
     }
   };
@@ -146,10 +257,10 @@ const InstagramSettings = () => {
       });
 
       fetchSettings(); // Refresh UI
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro na operação",
-        description: error.message,
+        description: getErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -176,21 +287,23 @@ const InstagramSettings = () => {
 
   const handleAddNumber = () => {
     if (newManagerNumber.trim()) {
-      setSettings(prev => ({
-        ...prev,
-        manager_numbers: [...prev.manager_numbers, newManagerNumber.trim()]
-      }));
+      const next = {
+        ...settings,
+        manager_numbers: [...settings.manager_numbers, newManagerNumber.trim()]
+      };
+      markDirtySettings(next);
+      setSettings(next);
       setNewManagerNumber("");
-      setIsDirty(true);
     }
   };
 
   const handleRemoveNumber = (index: number) => {
-    setSettings(prev => ({
-      ...prev,
-      manager_numbers: prev.manager_numbers.filter((_, i) => i !== index)
-    }));
-    setIsDirty(true);
+    const next = {
+      ...settings,
+      manager_numbers: settings.manager_numbers.filter((_, i) => i !== index)
+    };
+    markDirtySettings(next);
+    setSettings(next);
   };
 
   const handleSave = async () => {
@@ -224,12 +337,17 @@ const InstagramSettings = () => {
         title: "Sucesso!",
         description: "Configurações salvas.",
       });
-      
-      fetchSettings();
-    } catch (error: any) {
+
+      if (user?.id) {
+        localStorage.removeItem(getDraftKey(user.id));
+      }
+      dirtyRef.current = false;
+      setIsDirty(false);
+      fetchSettings({ force: true });
+    } catch (error: unknown) {
       toast({
         title: "Erro ao salvar",
-        description: error.message,
+        description: getErrorMessage(error),
         variant: "destructive",
       });
     } finally {
