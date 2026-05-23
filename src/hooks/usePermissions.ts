@@ -330,6 +330,7 @@ export function usePermissions() {
     canViewCobrancaRelatorios,
     canViewCobrancaLogs,
     canManageCobrancaMetaTemplates,
+    canManageCobrancaWebhooks,
     canViewRevendedor,
     canManageRevendedorPlanos,
     canManageRevendedorConfig,
