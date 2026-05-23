@@ -176,14 +176,10 @@ serve(async (req) => {
       .select('stripe_enabled, stripe_secret_key')
       .single();
     
-    const stripeEnabled = stripeConfig?.stripe_enabled && stripeConfig?.stripe_secret_key;
-    let stripe: Stripe | null = null;
+    const stripeEnabled = Boolean(stripeConfig?.stripe_enabled && stripeConfig?.stripe_secret_key);
     
     if (stripeEnabled) {
-      stripe = new Stripe(stripeConfig.stripe_secret_key, {
-        apiVersion: '2023-10-16',
-      });
-      console.log('Stripe verification enabled');
+      console.log('Stripe verification enabled via REST API');
     }
 
     // Get all pending payments
@@ -214,8 +210,8 @@ serve(async (req) => {
 
       if (isStripePayment) {
         results.stripeChecked++;
-        if (stripe) {
-          await checkStripePayment(stripe, payment, supabase, results);
+        if (stripeEnabled) {
+          await checkStripePayment(stripeConfig.stripe_secret_key, payment, supabase, results);
         } else {
           console.log(`Stripe payment ${payment.payment_id} skipped - Stripe not configured`);
         }
