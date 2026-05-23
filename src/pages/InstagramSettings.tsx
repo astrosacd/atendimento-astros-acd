@@ -477,7 +477,7 @@ const InstagramSettings = () => {
                   </div>
                   <Switch 
                     checked={settings.notify_whatsapp} 
-                    onCheckedChange={(v) => setSettings({...settings, notify_whatsapp: v})} 
+                    onCheckedChange={(v) => updateField("notify_whatsapp", v)} 
                   />
                 </div>
               </CardHeader>
