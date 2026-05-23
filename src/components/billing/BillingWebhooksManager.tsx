@@ -133,12 +133,11 @@ export function BillingWebhooksManager() {
     toast.info(`${data?.length || 0} pagamento(s) órfão(s) encontrado(s)`);
   };
 
+  const [confirmCleanupOpen, setConfirmCleanupOpen] = useState(false);
+
   const cleanupOrphans = async () => {
     if (!canCleanup) return;
-    const confirmed = window.confirm(
-      `Excluir ${orphanPayments.length} pagamento(s) órfão(s)? Apenas registros sem quitação serão removidos.`,
-    );
-    if (!confirmed) return;
+    setConfirmCleanupOpen(false);
     setCleaningOrphans(true);
     const { data, error } = await supabase.rpc("cleanup_cobranca_orphan_payments" as any, { p_days_old: 30 });
     setCleaningOrphans(false);
