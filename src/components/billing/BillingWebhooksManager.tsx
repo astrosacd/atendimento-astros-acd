@@ -44,9 +44,22 @@ type WebhookLog = {
   created_at: string;
 };
 
+type OrphanPayment = {
+  id: string;
+  cliente_nome: string | null;
+  payment_id: string;
+  payment_type: string;
+  amount: number;
+  status: string;
+  billing_date: string;
+  created_at: string;
+  reason: string;
+};
+
 export function BillingWebhooksManager() {
-  const { canManageCobrancaWebhooks } = usePermissions();
+  const { canManageCobrancaWebhooks, canCleanupCobrancaOrphanPayments } = usePermissions();
   const canManage = canManageCobrancaWebhooks();
+  const canCleanup = canCleanupCobrancaOrphanPayments();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -63,6 +76,13 @@ export function BillingWebhooksManager() {
 
   const [logs, setLogs] = useState<WebhookLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [logProvider, setLogProvider] = useState<"all" | "mercadopago" | "stripe">("all");
+  const [logPage, setLogPage] = useState(1);
+  const [logTotal, setLogTotal] = useState(0);
+
+  const [orphanPayments, setOrphanPayments] = useState<OrphanPayment[]>([]);
+  const [loadingOrphans, setLoadingOrphans] = useState(false);
+  const [cleaningOrphans, setCleaningOrphans] = useState(false);
 
   const load = async () => {
     setLoading(true);
