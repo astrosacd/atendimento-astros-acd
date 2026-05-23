@@ -257,7 +257,12 @@ const InstagramSettings = () => {
           Authorization: `Bearer ${accessToken}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({
+          action,
+          app_id: settings.app_id.trim(),
+          app_secret: settings.app_secret.trim(),
+          access_token: settings.access_token.trim(),
+        }),
       });
 
       const rawBody = await response.text();
