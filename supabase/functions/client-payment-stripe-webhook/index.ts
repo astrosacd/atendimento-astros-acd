@@ -146,20 +146,23 @@ serve(async (req) => {
         .maybeSingle();
       const secretOk = !!cfg?.stripe_webhook_secret;
       const enabled = !!cfg?.stripe_enabled;
+      const ready = secretOk;
+      const msg = !secretOk
+        ? "Endpoint acessível, mas falta o Signing Secret (whsec_...) — webhook NÃO vai validar notificações da Stripe."
+        : !enabled
+          ? "Endpoint e Signing Secret OK, mas a Stripe está desabilitada em billing_stripe_config (ative para começar a receber)."
+          : "Webhook da Stripe acessível e pronto para validar assinaturas.";
+      try {
+        await supabase.from("billing_webhook_logs").insert({
+          provider: "stripe", event_type: "ping", http_status: 200,
+          result: ready ? "ok" : "missing_secret", message: msg, is_test: true,
+        });
+      } catch { /* ignore */ }
       return new Response(
         JSON.stringify({
-          ok: true,
-          test: true,
-          provider: "stripe",
-          url_reachable: true,
-          stripe_enabled: enabled,
-          signing_secret_configured: secretOk,
-          message: !enabled
-            ? "Endpoint acessível, mas a Stripe está desabilitada em billing_stripe_config."
-            : !secretOk
-              ? "Endpoint acessível, mas falta o Signing Secret (whsec_...)."
-              : "Webhook da Stripe acessível e pronto para validar assinaturas.",
-          timestamp: new Date().toISOString(),
+          ok: ready, test: true, provider: "stripe", url_reachable: true,
+          stripe_enabled: enabled, signing_secret_configured: secretOk,
+          message: msg, timestamp: new Date().toISOString(),
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

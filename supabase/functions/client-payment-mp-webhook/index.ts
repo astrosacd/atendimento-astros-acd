@@ -31,17 +31,20 @@ serve(async (req) => {
   // sem disparar nenhuma lógica de pagamento. Header: x-webhook-test: ping
   if (req.headers.get("x-webhook-test") === "ping") {
     const tokenOk = !!Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
+    const msg = tokenOk
+      ? "Webhook do Mercado Pago acessível e MERCADOPAGO_ACCESS_TOKEN está configurado."
+      : "Webhook acessível, mas falta MERCADOPAGO_ACCESS_TOKEN nos Secrets.";
+    try {
+      const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      await sb.from("billing_webhook_logs").insert({
+        provider: "mercadopago", event_type: "ping", http_status: 200,
+        result: tokenOk ? "ok" : "missing_token", message: msg, is_test: true,
+      });
+    } catch { /* ignore */ }
     return new Response(
       JSON.stringify({
-        ok: true,
-        test: true,
-        provider: "mercadopago",
-        url_reachable: true,
-        access_token_configured: tokenOk,
-        message: tokenOk
-          ? "Webhook do Mercado Pago acessível e MERCADOPAGO_ACCESS_TOKEN está configurado."
-          : "Webhook acessível, mas falta MERCADOPAGO_ACCESS_TOKEN nos Secrets.",
-        timestamp: new Date().toISOString(),
+        ok: tokenOk, test: true, provider: "mercadopago", url_reachable: true,
+        access_token_configured: tokenOk, message: msg, timestamp: new Date().toISOString(),
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
