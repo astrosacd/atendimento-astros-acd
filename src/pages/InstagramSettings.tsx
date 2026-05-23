@@ -12,6 +12,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
 const InstagramSettings = () => {
@@ -21,6 +31,8 @@ const InstagramSettings = () => {
   const [showToken, setShowToken] = useState(false);
   const [newManagerNumber, setNewManagerNumber] = useState("");
   const [isDirty, setIsDirty] = useState(false);
+  const [activeTab, setActiveTab] = useState("meta-api");
+  const [pendingTab, setPendingTab] = useState<string | null>(null);
   const [settings, setSettings] = useState({
     ig_user_id: "",
     page_id: "",
@@ -39,11 +51,42 @@ const InstagramSettings = () => {
     setIsDirty(true);
   };
 
+  // Aviso ao fechar/recarregar a aba com alterações não salvas
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
+  // Troca de tab com proteção
+  const handleTabChange = (value: string) => {
+    if (isDirty && value !== activeTab) {
+      setPendingTab(value);
+      return;
+    }
+    setActiveTab(value);
+  };
+
+  const confirmDiscardAndChangeTab = () => {
+    if (pendingTab) {
+      setActiveTab(pendingTab);
+      setPendingTab(null);
+      setIsDirty(false);
+      fetchSettings();
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchSettings();
     }
   }, [user]);
+
 
   const fetchSettings = async () => {
     const { data, error } = await supabase
@@ -196,7 +239,7 @@ const InstagramSettings = () => {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="meta-api" className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="bg-muted p-1 mb-6">
           <TabsTrigger value="meta-api" className="gap-2">
             <ShieldCheck className="h-4 w-4" /> API Meta
@@ -251,16 +294,19 @@ const InstagramSettings = () => {
                       <Input
                         id="app_secret"
                         name="meta_app_secret"
-                        type="password"
-                        autoComplete="new-password"
+                        type="text"
+                        autoComplete="off"
                         data-lpignore="true"
                         data-1p-ignore="true"
+                        data-form-type="other"
+                        style={{ WebkitTextSecurity: "disc" } as React.CSSProperties}
                         placeholder="Secret do seu App Meta"
                         value={settings.app_secret}
                         onChange={(e) => updateField("app_secret", e.target.value)}
                       />
                     </div>
                   </div>
+
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
                     <div className="space-y-2">
@@ -309,10 +355,12 @@ const InstagramSettings = () => {
                       <Input
                         id="token"
                         name="meta_access_token"
-                        type={showToken ? "text" : "password"}
-                        autoComplete="new-password"
+                        type="text"
+                        autoComplete="off"
                         data-lpignore="true"
                         data-1p-ignore="true"
+                        data-form-type="other"
+                        style={!showToken ? ({ WebkitTextSecurity: "disc" } as React.CSSProperties) : undefined}
                         placeholder="Token de acesso (long-lived)"
                         value={settings.access_token}
                         onChange={(e) => updateField("access_token", e.target.value)}
@@ -610,6 +658,26 @@ const InstagramSettings = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={pendingTab !== null} onOpenChange={(open) => !open && setPendingTab(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair sem salvar?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem alterações não salvas nesta aba. Se sair agora, todas as mudanças serão descartadas e não serão refletidas no banco de dados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar editando</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDiscardAndChangeTab}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Descartar alterações
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
