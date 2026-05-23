@@ -591,6 +591,48 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_webhook_logs: {
+        Row: {
+          created_at: string
+          event_type: string | null
+          external_id: string | null
+          http_status: number | null
+          id: string
+          is_test: boolean
+          matched_payment_id: string | null
+          message: string | null
+          payload: Json | null
+          provider: string
+          result: string
+        }
+        Insert: {
+          created_at?: string
+          event_type?: string | null
+          external_id?: string | null
+          http_status?: number | null
+          id?: string
+          is_test?: boolean
+          matched_payment_id?: string | null
+          message?: string | null
+          payload?: Json | null
+          provider: string
+          result: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string | null
+          external_id?: string | null
+          http_status?: number | null
+          id?: string
+          is_test?: boolean
+          matched_payment_id?: string | null
+          message?: string | null
+          payload?: Json | null
+          provider?: string
+          result?: string
+        }
+        Relationships: []
+      }
       billing_whatsapp_instances: {
         Row: {
           api_key: string
