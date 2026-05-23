@@ -2,3 +2,9 @@ project_id = "udxaxemoozddkwpitngq"
 
 [functions.ligacoes-ia-webhook]
 verify_jwt = false
+
+[functions.client-payment-mp-webhook]
+verify_jwt = false
+
+[functions.client-payment-stripe-webhook]
+verify_jwt = false

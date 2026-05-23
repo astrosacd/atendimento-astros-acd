@@ -199,10 +199,19 @@ serve(async (req) => {
       checked: 0,
       updated: 0,
       errors: 0,
+      orphansSkipped: 0,
+      orphansCancelled: 0,
       details: [] as any[],
       mercadoPagoChecked: 0,
       stripeChecked: 0
     };
+
+    // Detecta IDs sintéticos do billing-cron (pix_<uuid>_<ts>, link_<uuid>_<ts>)
+    // que nunca foram criados de fato no gateway — nada a verificar.
+    const isSyntheticMpId = (id: string) =>
+      /^(pix|link)_[0-9a-f-]{36}_\d+$/i.test(id || "");
+
+    const ORPHAN_DAYS = 60;
 
     // Process a single payment (Stripe or Mercado Pago)
     const processPayment = async (payment: any) => {
@@ -222,6 +231,25 @@ serve(async (req) => {
 
       if (!mercadoPagoToken) {
         console.log(`MP payment ${payment.payment_id} skipped - Mercado Pago not configured`);
+        return;
+      }
+
+      // ID sintético sem preference_id: pula (não conta erro). Se >60 dias, cancela.
+      if (isSyntheticMpId(payment.payment_id) && !payment.preference_id) {
+        const ageDays = (Date.now() - new Date(payment.billing_date).getTime()) / (1000 * 60 * 60 * 24);
+        if (ageDays > ORPHAN_DAYS) {
+          await supabase
+            .from('client_payments')
+            .update({
+              status: 'cancelled',
+              approval_reason: 'Cancelado automaticamente — cobrança órfã (sem ID válido no gateway, >60 dias)',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', payment.id);
+          results.orphansCancelled++;
+        } else {
+          results.orphansSkipped++;
+        }
         return;
       }
 
