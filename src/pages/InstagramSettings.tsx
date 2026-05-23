@@ -284,27 +284,23 @@ const InstagramSettings = () => {
 
   const handleAddNumber = () => {
     if (newManagerNumber.trim()) {
-      setSettings(prev => {
-        const next = {
-          ...prev,
-          manager_numbers: [...prev.manager_numbers, newManagerNumber.trim()]
-        };
-        markDirtySettings(next);
-        return next;
-      });
+      const next = {
+        ...settings,
+        manager_numbers: [...settings.manager_numbers, newManagerNumber.trim()]
+      };
+      markDirtySettings(next);
+      setSettings(next);
       setNewManagerNumber("");
     }
   };
 
   const handleRemoveNumber = (index: number) => {
-    setSettings(prev => {
-      const next = {
-        ...prev,
-        manager_numbers: prev.manager_numbers.filter((_, i) => i !== index)
-      };
-      markDirtySettings(next);
-      return next;
-    });
+    const next = {
+      ...settings,
+      manager_numbers: settings.manager_numbers.filter((_, i) => i !== index)
+    };
+    markDirtySettings(next);
+    setSettings(next);
   };
 
   const handleSave = async () => {
