@@ -144,24 +144,36 @@ serve(async (req) => {
         .from("billing_stripe_config")
         .select("stripe_enabled, stripe_webhook_secret")
         .maybeSingle();
+      const { data: lastRealHit } = await supabase
+        .from("billing_webhook_logs")
+        .select("id, created_at, result")
+        .eq("provider", "stripe")
+        .eq("is_test", false)
+        .in("result", ["received", "paid", "already_paid"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
       const secretOk = !!cfg?.stripe_webhook_secret;
       const enabled = !!cfg?.stripe_enabled;
-      const ready = secretOk;
+      const ready = secretOk && !!lastRealHit;
       const msg = !secretOk
         ? "Endpoint acessível, mas falta o Signing Secret (whsec_...) — webhook NÃO vai validar notificações da Stripe."
         : !enabled
-          ? "Endpoint e Signing Secret OK, mas a Stripe está desabilitada em billing_stripe_config (ative para começar a receber)."
-          : "Webhook da Stripe acessível e pronto para validar assinaturas.";
+          ? "Endpoint tem Signing Secret, mas a Stripe está desabilitada em billing_stripe_config."
+          : !lastRealHit
+            ? "Endpoint acessível e Signing Secret salvo, mas ainda NÃO existe chamada real/simulada da Stripe registrada. Use 'Send test event' no painel da Stripe para validar de verdade."
+            : `Stripe já bateu neste endpoint em ${new Date(lastRealHit.created_at).toLocaleString("pt-BR")}.`;
       try {
         await supabase.from("billing_webhook_logs").insert({
           provider: "stripe", event_type: "ping", http_status: 200,
-          result: ready ? "ok" : "missing_secret", message: msg, is_test: true,
+          result: ready ? "ok" : (secretOk ? "not_confirmed_on_provider" : "missing_secret"), message: msg, is_test: true,
         });
       } catch { /* ignore */ }
       return new Response(
         JSON.stringify({
           ok: ready, test: true, provider: "stripe", url_reachable: true,
           stripe_enabled: enabled, signing_secret_configured: secretOk,
+          provider_delivery_confirmed: !!lastRealHit, last_real_hit_at: lastRealHit?.created_at || null,
           message: msg, timestamp: new Date().toISOString(),
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

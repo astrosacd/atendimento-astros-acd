@@ -27,24 +27,37 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   // ===== TEST MODE =====
-  // Permite o painel admin verificar que o endpoint está vivo e acessível
-  // sem disparar nenhuma lógica de pagamento. Header: x-webhook-test: ping
+  // Não retorna OK só porque o endpoint existe: considera pronto apenas depois
+  // que houver chamada real/simulada vinda do Mercado Pago/n8n registrada.
   if (req.headers.get("x-webhook-test") === "ping") {
+    const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const tokenOk = !!Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
-    const msg = tokenOk
-      ? "Webhook do Mercado Pago acessível e MERCADOPAGO_ACCESS_TOKEN está configurado."
-      : "Webhook acessível, mas falta MERCADOPAGO_ACCESS_TOKEN nos Secrets.";
+    const { data: lastRealHit } = await sb
+      .from("billing_webhook_logs")
+      .select("id, created_at, result")
+      .eq("provider", "mercadopago")
+      .eq("is_test", false)
+      .in("result", ["received", "paid", "already_paid", "unmatched", "ignored", "gateway_error"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const ready = tokenOk && !!lastRealHit;
+    const msg = !tokenOk
+      ? "Endpoint acessível, mas falta MERCADOPAGO_ACCESS_TOKEN nos Secrets."
+      : !lastRealHit
+        ? "Endpoint acessível e token salvo, mas ainda NÃO existe chamada real/simulada do Mercado Pago registrada. Configure no painel do MP ou espelhe pelo n8n e envie uma simulação para validar de verdade."
+        : `Mercado Pago já bateu neste endpoint em ${new Date(lastRealHit.created_at).toLocaleString("pt-BR")}.`;
     try {
-      const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       await sb.from("billing_webhook_logs").insert({
         provider: "mercadopago", event_type: "ping", http_status: 200,
-        result: tokenOk ? "ok" : "missing_token", message: msg, is_test: true,
+        result: ready ? "ok" : (tokenOk ? "not_confirmed_on_provider" : "missing_token"), message: msg, is_test: true,
       });
     } catch { /* ignore */ }
     return new Response(
       JSON.stringify({
-        ok: tokenOk, test: true, provider: "mercadopago", url_reachable: true,
-        access_token_configured: tokenOk, message: msg, timestamp: new Date().toISOString(),
+        ok: ready, test: true, provider: "mercadopago", url_reachable: true,
+        access_token_configured: tokenOk, provider_delivery_confirmed: !!lastRealHit,
+        last_real_hit_at: lastRealHit?.created_at || null, message: msg, timestamp: new Date().toISOString(),
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -75,6 +88,18 @@ serve(async (req) => {
 
     console.log("[mp-webhook] event:", eventType, "id:", mpPaymentId);
 
+    try {
+      await supabase.from("billing_webhook_logs").insert({
+        provider: "mercadopago",
+        event_type: String(eventType || "unknown"),
+        external_id: mpPaymentId ? String(mpPaymentId) : null,
+        http_status: 200,
+        result: "received",
+        message: "Chamada real recebida no webhook Mercado Pago/n8n",
+        payload: body,
+      });
+    } catch { /* ignore */ }
+
     // MP envia vários tipos. Só nos interessa "payment".
     if (eventType && !String(eventType).includes("payment")) {
       return new Response(JSON.stringify({ ok: true, ignored: true }), {
@@ -95,6 +120,12 @@ serve(async (req) => {
 
     if (!mpRes.ok) {
       console.error(`[mp-webhook] MP API ${mpRes.status} para ${mpPaymentId}`);
+      try {
+        await supabase.from("billing_webhook_logs").insert({
+          provider: "mercadopago", event_type: String(eventType || "payment"), external_id: String(mpPaymentId),
+          http_status: 200, result: "gateway_error", message: `Mercado Pago API retornou ${mpRes.status}`,
+        });
+      } catch { /* ignore */ }
       // 200 para o MP não retentar infinitamente em casos de id inválido
       return new Response(JSON.stringify({ ok: false, mpStatus: mpRes.status }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -126,6 +157,13 @@ serve(async (req) => {
 
     if (!payment) {
       console.warn(`[mp-webhook] Sem client_payments para mpId=${mpPaymentId} ext_ref=${externalRef}`);
+      try {
+        await supabase.from("billing_webhook_logs").insert({
+          provider: "mercadopago", event_type: String(eventType || "payment"), external_id: String(mpPaymentId),
+          http_status: 200, result: "unmatched", message: `Pagamento recebido, mas sem vínculo em client_payments`,
+          payload: { mpStatus, externalRef },
+        });
+      } catch { /* ignore */ }
       return new Response(JSON.stringify({ ok: true, matched: false }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

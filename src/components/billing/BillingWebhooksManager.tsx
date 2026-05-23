@@ -7,18 +7,20 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { copyToClipboard } from "@/utils/clipboard";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import {
   Copy, Webhook, CheckCircle2, AlertTriangle, ExternalLink, Save, Loader2,
-  Eye, EyeOff, Info, PlugZap, XCircle, RefreshCw, History,
+  Eye, EyeOff, Info, PlugZap, XCircle, RefreshCw, History, Trash2, Search,
 } from "lucide-react";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const MP_WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/client-payment-mp-webhook`;
 const STRIPE_WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/client-payment-stripe-webhook`;
+const LOG_PAGE_SIZE = 100;
 
 // Snippet pronto pro nó HTTP Request do n8n espelhar o evento do MP
 const N8N_MP_CURL = `curl -X POST '${MP_WEBHOOK_URL}' \\
@@ -42,9 +44,22 @@ type WebhookLog = {
   created_at: string;
 };
 
+type OrphanPayment = {
+  id: string;
+  cliente_nome: string | null;
+  payment_id: string;
+  payment_type: string;
+  amount: number;
+  status: string;
+  billing_date: string;
+  created_at: string;
+  reason: string;
+};
+
 export function BillingWebhooksManager() {
-  const { canManageCobrancaWebhooks } = usePermissions();
+  const { canManageCobrancaWebhooks, canCleanupCobrancaOrphanPayments } = usePermissions();
   const canManage = canManageCobrancaWebhooks();
+  const canCleanup = canCleanupCobrancaOrphanPayments();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -61,6 +76,13 @@ export function BillingWebhooksManager() {
 
   const [logs, setLogs] = useState<WebhookLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [logProvider, setLogProvider] = useState<"all" | "mercadopago" | "stripe">("all");
+  const [logPage, setLogPage] = useState(1);
+  const [logTotal, setLogTotal] = useState(0);
+
+  const [orphanPayments, setOrphanPayments] = useState<OrphanPayment[]>([]);
+  const [loadingOrphans, setLoadingOrphans] = useState(false);
+  const [cleaningOrphans, setCleaningOrphans] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -78,18 +100,48 @@ export function BillingWebhooksManager() {
     setLoading(false);
   };
 
-  const loadLogs = async () => {
+  const loadLogs = async (page = logPage, provider = logProvider) => {
     setLoadingLogs(true);
-    const { data, error } = await supabase
+    const from = (page - 1) * LOG_PAGE_SIZE;
+    const to = from + LOG_PAGE_SIZE - 1;
+    let query = supabase
       .from("billing_webhook_logs" as any)
-      .select("id, provider, event_type, external_id, http_status, result, message, is_test, created_at")
+      .select("id, provider, event_type, external_id, http_status, result, message, is_test, created_at", { count: "exact" })
       .order("created_at", { ascending: false })
-      .limit(30);
+      .range(from, to);
+    if (provider !== "all") query = query.eq("provider", provider);
+    const { data, error, count } = await query;
     if (!error && data) setLogs(data as any);
+    setLogTotal(count || 0);
     setLoadingLogs(false);
   };
 
   useEffect(() => { load(); loadLogs(); }, []);
+  useEffect(() => { loadLogs(logPage, logProvider); }, [logPage, logProvider]);
+
+  const previewOrphans = async () => {
+    if (!canCleanup) return;
+    setLoadingOrphans(true);
+    const { data, error } = await supabase.rpc("preview_cobranca_orphan_payments" as any, { p_days_old: 30 });
+    setLoadingOrphans(false);
+    if (error) return toast.error("Erro ao buscar órfãos: " + error.message);
+    setOrphanPayments((data || []) as any);
+    toast.info(`${data?.length || 0} pagamento(s) órfão(s) encontrado(s)`);
+  };
+
+  const cleanupOrphans = async () => {
+    if (!canCleanup) return;
+    const confirmed = window.confirm(
+      `Excluir ${orphanPayments.length} pagamento(s) órfão(s)? Apenas registros sem quitação serão removidos.`,
+    );
+    if (!confirmed) return;
+    setCleaningOrphans(true);
+    const { data, error } = await supabase.rpc("cleanup_cobranca_orphan_payments" as any, { p_days_old: 30 });
+    setCleaningOrphans(false);
+    if (error) return toast.error("Erro ao limpar órfãos: " + error.message);
+    toast.success(`${Number((data as any)?.deleted || 0)} pagamento(s) órfão(s) excluído(s)`);
+    setOrphanPayments([]);
+  };
 
   const handleCopy = async (text: string, label: string) => {
     const ok = await copyToClipboard(text);
@@ -160,6 +212,7 @@ export function BillingWebhooksManager() {
 
   const mpConfigured = true;
   const stripeConfigured = !!savedSecret;
+  const totalLogPages = Math.max(1, Math.ceil(logTotal / LOG_PAGE_SIZE));
 
   return (
     <div className="space-y-4">
@@ -382,6 +435,48 @@ export function BillingWebhooksManager() {
     {/* LOGS */}
     <Card className="border-border/50">
       <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Trash2 className="w-4 h-4 text-muted-foreground" />
+          Limpeza de Pagamentos Órfãos
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Remove somente cobranças sem quitação, antigas/canceladas/rejeitadas ou com ID sintético sem vínculo real no gateway.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={previewOrphans} disabled={loadingOrphans || !canCleanup}>
+            {loadingOrphans ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
+            Verificar órfãos
+          </Button>
+          <Button variant="destructive" size="sm" onClick={cleanupOrphans} disabled={cleaningOrphans || orphanPayments.length === 0 || !canCleanup}>
+            {cleaningOrphans ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+            Excluir encontrados ({orphanPayments.length})
+          </Button>
+        </div>
+        {!canCleanup && <p className="text-xs text-muted-foreground italic">Sem permissão para limpar pagamentos órfãos.</p>}
+        {orphanPayments.length > 0 && (
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow><TableHead className="text-xs">Cliente</TableHead><TableHead className="text-xs">Tipo</TableHead><TableHead className="text-xs">Status</TableHead><TableHead className="text-xs">Motivo</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {orphanPayments.slice(0, 10).map(p => (
+                  <TableRow key={p.id}>
+                    <TableCell className="text-xs">{p.cliente_nome || "Sem cliente"}</TableCell>
+                    <TableCell className="text-xs font-mono">{p.payment_type}</TableCell>
+                    <TableCell className="text-xs">{p.status}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{p.reason}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+
+    <Card className="border-border/50">
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
           <div>
             <CardTitle className="text-base flex items-center gap-2">
@@ -389,12 +484,22 @@ export function BillingWebhooksManager() {
               Histórico de Webhooks
             </CardTitle>
             <CardDescription className="text-xs">
-              Últimas 30 chamadas recebidas (testes e notificações reais do MP/Stripe)
+              {logTotal} chamada(s) encontrada(s). Logs acima de 90 dias são apagados automaticamente.
             </CardDescription>
           </div>
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={loadLogs} disabled={loadingLogs}>
-            <RefreshCw className={`w-4 h-4 ${loadingLogs ? "animate-spin" : ""}`} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select value={logProvider} onValueChange={(v: any) => { setLogPage(1); setLogProvider(v); }}>
+              <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="Provider" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="mercadopago">Mercado Pago</SelectItem>
+                <SelectItem value="stripe">Stripe</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => loadLogs()} disabled={loadingLogs}>
+              <RefreshCw className={`w-4 h-4 ${loadingLogs ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -443,6 +548,13 @@ export function BillingWebhooksManager() {
                 })}
               </TableBody>
             </Table>
+          </div>
+        )}
+        {logTotal > LOG_PAGE_SIZE && (
+          <div className="mt-3 flex items-center justify-end gap-2 text-xs text-muted-foreground">
+            <Button variant="outline" size="sm" disabled={logPage <= 1 || loadingLogs} onClick={() => setLogPage(p => Math.max(1, p - 1))}>Anterior</Button>
+            <span>Página {logPage} de {totalLogPages}</span>
+            <Button variant="outline" size="sm" disabled={logPage >= totalLogPages || loadingLogs} onClick={() => setLogPage(p => Math.min(totalLogPages, p + 1))}>Próxima</Button>
           </div>
         )}
       </CardContent>
