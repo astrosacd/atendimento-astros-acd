@@ -212,6 +212,7 @@ export function BillingWebhooksManager() {
 
   const mpConfigured = true;
   const stripeConfigured = !!savedSecret;
+  const totalLogPages = Math.max(1, Math.ceil(logTotal / LOG_PAGE_SIZE));
 
   return (
     <div className="space-y-4">
@@ -444,7 +445,7 @@ export function BillingWebhooksManager() {
               Últimas 30 chamadas recebidas (testes e notificações reais do MP/Stripe)
             </CardDescription>
           </div>
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={loadLogs} disabled={loadingLogs}>
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => loadLogs()} disabled={loadingLogs}>
             <RefreshCw className={`w-4 h-4 ${loadingLogs ? "animate-spin" : ""}`} />
           </Button>
         </div>
