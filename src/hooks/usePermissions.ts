@@ -120,6 +120,7 @@ export function usePermissions() {
   const canViewCobrancaLogs = () => hasPermission('view_cobranca_logs');
   const canManageCobrancaMetaTemplates = () => hasPermission('manage_cobranca_meta_templates');
   const canManageCobrancaWebhooks = () => hasPermission('manage_cobranca_webhooks');
+  const canCleanupCobrancaOrphanPayments = () => hasPermission('cleanup_cobranca_orphan_payments');
 
 
   // Revendedor permissions
@@ -331,6 +332,7 @@ export function usePermissions() {
     canViewCobrancaLogs,
     canManageCobrancaMetaTemplates,
     canManageCobrancaWebhooks,
+    canCleanupCobrancaOrphanPayments,
     canViewRevendedor,
     canManageRevendedorPlanos,
     canManageRevendedorConfig,
