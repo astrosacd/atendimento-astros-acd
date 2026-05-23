@@ -568,6 +568,7 @@ export type Database = {
           stripe_enabled: boolean | null
           stripe_secret_key: string | null
           stripe_tax_percent: number | null
+          stripe_webhook_secret: string | null
           updated_at: string
         }
         Insert: {
@@ -576,6 +577,7 @@ export type Database = {
           stripe_enabled?: boolean | null
           stripe_secret_key?: string | null
           stripe_tax_percent?: number | null
+          stripe_webhook_secret?: string | null
           updated_at?: string
         }
         Update: {
@@ -584,6 +586,7 @@ export type Database = {
           stripe_enabled?: boolean | null
           stripe_secret_key?: string | null
           stripe_tax_percent?: number | null
+          stripe_webhook_secret?: string | null
           updated_at?: string
         }
         Relationships: []

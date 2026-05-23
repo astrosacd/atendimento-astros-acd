@@ -1,0 +1,1 @@
+ALTER TABLE public.billing_stripe_config ADD COLUMN IF NOT EXISTS stripe_webhook_secret text;
