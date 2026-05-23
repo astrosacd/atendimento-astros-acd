@@ -192,14 +192,11 @@ export function usePaymentStatus() {
             .eq('id', payment.cliente_id);
         }
 
-        // SACADA 2: Auto-cancelar outras cobranças pendentes do mesmo ciclo (±20 dias).
+        // SACADA 2: Auto-cancelar TODAS as outras cobranças pendentes deste cliente
+        // (D-3, D+1, D+2, D+15, D+30 etc). Uma vez paga uma forma, as demais do mesmo
+        // ciclo ficam sem efeito. Como data_renovacao já avançou 1 ciclo acima, o cron
+        // só vai gerar novas cobranças quando chegar a D-3 do novo vencimento.
         try {
-          const billingDate = new Date(payment.billing_date);
-          const windowStart = new Date(billingDate);
-          windowStart.setDate(windowStart.getDate() - 20);
-          const windowEnd = new Date(billingDate);
-          windowEnd.setDate(windowEnd.getDate() + 20);
-
           const { data: cancelled, error: cancelErr } = await supabase
             .from('client_payments')
             .update({
@@ -209,14 +206,12 @@ export function usePaymentStatus() {
             .eq('cliente_id', payment.cliente_id)
             .in('status', ['pending', 'pending_approval'])
             .neq('id', paymentId)
-            .gte('billing_date', windowStart.toISOString().split('T')[0])
-            .lte('billing_date', windowEnd.toISOString().split('T')[0])
             .select('id');
 
           if (cancelErr) {
             console.error('Erro ao auto-cancelar outras cobranças:', cancelErr);
           } else if (cancelled && cancelled.length > 0) {
-            console.log(`Auto-canceladas ${cancelled.length} cobranças do mesmo ciclo`);
+            console.log(`Auto-canceladas ${cancelled.length} cobranças pendentes do cliente`);
           }
         } catch (e) {
           console.error('Exceção no auto-cancelamento:', e);
