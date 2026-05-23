@@ -452,10 +452,26 @@ export function BillingWebhooksManager() {
             {loadingOrphans ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
             Verificar órfãos
           </Button>
-          <Button variant="destructive" size="sm" onClick={cleanupOrphans} disabled={cleaningOrphans || orphanPayments.length === 0 || !canCleanup}>
+          <Button variant="destructive" size="sm" onClick={() => setConfirmCleanupOpen(true)} disabled={cleaningOrphans || orphanPayments.length === 0 || !canCleanup}>
             {cleaningOrphans ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
             Excluir encontrados ({orphanPayments.length})
           </Button>
+          <AlertDialog open={confirmCleanupOpen} onOpenChange={setConfirmCleanupOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir pagamentos órfãos?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Serão excluídos <strong>{orphanPayments.length}</strong> pagamento(s) órfão(s). Apenas registros sem quitação serão removidos. Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={cleanupOrphans} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Excluir
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
         {!canCleanup && <p className="text-xs text-muted-foreground italic">Sem permissão para limpar pagamentos órfãos.</p>}
         {orphanPayments.length > 0 && (
