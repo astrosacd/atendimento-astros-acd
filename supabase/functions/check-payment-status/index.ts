@@ -182,39 +182,31 @@ serve(async (req) => {
       stripeChecked: 0
     };
 
-    for (const payment of pendingPayments || []) {
-      results.checked++;
-      
-      // Check if it's a Stripe payment
+    // Process a single payment (Stripe or Mercado Pago)
+    const processPayment = async (payment: any) => {
       const isStripePayment = payment.payment_type?.toLowerCase().includes('stripe');
-      
+
       if (isStripePayment) {
         results.stripeChecked++;
-        
         if (stripe) {
           await checkStripePayment(stripe, payment, supabase, results);
         } else {
           console.log(`Stripe payment ${payment.payment_id} skipped - Stripe not configured`);
         }
-        continue;
+        return;
       }
-      
-      // Mercado Pago payment
+
       results.mercadoPagoChecked++;
-      
+
       if (!mercadoPagoToken) {
         console.log(`MP payment ${payment.payment_id} skipped - Mercado Pago not configured`);
-        continue;
+        return;
       }
-      
+
       try {
         const mpResponse = await fetch(
           `https://api.mercadopago.com/v1/payments/${payment.payment_id}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${mercadoPagoToken}`,
-            },
-          }
+          { headers: { 'Authorization': `Bearer ${mercadoPagoToken}` } }
         );
 
         if (mpResponse.ok) {
@@ -255,22 +247,17 @@ serve(async (req) => {
                 cliente_id: payment.cliente_id,
                 gateway: 'mercadopago'
               });
-              
+
               if (newStatus === 'paid' && payment.cliente_id) {
                 await updateClientRenewalDate(supabase, payment.cliente_id);
               }
             }
           }
         } else if (mpResponse.status === 404) {
-          // Payment not found - might be a preference, try checking by preference
           if (payment.preference_id) {
             const searchResponse = await fetch(
               `https://api.mercadopago.com/v1/payments/search?external_reference=${payment.preference_id}`,
-              {
-                headers: {
-                  'Authorization': `Bearer ${mercadoPagoToken}`,
-                },
-              }
+              { headers: { 'Authorization': `Bearer ${mercadoPagoToken}` } }
             );
 
             if (searchResponse.ok) {
@@ -306,7 +293,7 @@ serve(async (req) => {
                       cliente_id: payment.cliente_id,
                       gateway: 'mercadopago'
                     });
-                    
+
                     if (newStatus === 'paid' && payment.cliente_id) {
                       await updateClientRenewalDate(supabase, payment.cliente_id);
                     }
@@ -323,6 +310,16 @@ serve(async (req) => {
         console.error(`Error checking payment ${payment.payment_id}:`, err);
         results.errors++;
       }
+    };
+
+    // Process payments in parallel batches of 10 to avoid client timeout
+    const BATCH_SIZE = 10;
+    const allPayments = pendingPayments || [];
+    results.checked = allPayments.length;
+
+    for (let i = 0; i < allPayments.length; i += BATCH_SIZE) {
+      const batch = allPayments.slice(i, i + BATCH_SIZE);
+      await Promise.allSettled(batch.map(processPayment));
     }
 
     console.log('Payment status check completed:', results);
