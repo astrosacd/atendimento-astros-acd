@@ -355,10 +355,12 @@ const InstagramSettings = () => {
                       <Input
                         id="token"
                         name="meta_access_token"
-                        type={showToken ? "text" : "password"}
-                        autoComplete="new-password"
+                        type="text"
+                        autoComplete="off"
                         data-lpignore="true"
                         data-1p-ignore="true"
+                        data-form-type="other"
+                        style={!showToken ? ({ WebkitTextSecurity: "disc" } as React.CSSProperties) : undefined}
                         placeholder="Token de acesso (long-lived)"
                         value={settings.access_token}
                         onChange={(e) => updateField("access_token", e.target.value)}
