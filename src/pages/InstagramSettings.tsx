@@ -266,15 +266,24 @@ const InstagramSettings = () => {
       });
 
       const rawBody = await response.text();
-      let data: { error?: string; message?: string } | null = null;
+      let data: { success?: boolean; error?: string; message?: string; meta_error?: boolean; fallback?: boolean } | null = null;
       try {
         data = rawBody ? JSON.parse(rawBody) : null;
       } catch {
         data = null;
       }
 
-      if (!response.ok || data?.error) {
+      if (!response.ok) {
         throw new Error(data?.error || data?.message || `Falha ao verificar token (${response.status})`);
+      }
+
+      if (data?.success === false || data?.error) {
+        toast({
+          title: data?.meta_error ? "Token não validado pela Meta" : "Erro na operação",
+          description: data?.error || data?.message || "Não foi possível verificar o token agora.",
+          variant: "destructive",
+        });
+        return;
       }
 
       toast({
