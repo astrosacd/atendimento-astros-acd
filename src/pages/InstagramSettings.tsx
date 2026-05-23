@@ -294,16 +294,19 @@ const InstagramSettings = () => {
                       <Input
                         id="app_secret"
                         name="meta_app_secret"
-                        type="password"
-                        autoComplete="new-password"
+                        type="text"
+                        autoComplete="off"
                         data-lpignore="true"
                         data-1p-ignore="true"
+                        data-form-type="other"
+                        style={{ WebkitTextSecurity: "disc" } as React.CSSProperties}
                         placeholder="Secret do seu App Meta"
                         value={settings.app_secret}
                         onChange={(e) => updateField("app_secret", e.target.value)}
                       />
                     </div>
                   </div>
+
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
                     <div className="space-y-2">
