@@ -435,6 +435,48 @@ export function BillingWebhooksManager() {
     {/* LOGS */}
     <Card className="border-border/50">
       <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Trash2 className="w-4 h-4 text-muted-foreground" />
+          Limpeza de Pagamentos Órfãos
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Remove somente cobranças sem quitação, antigas/canceladas/rejeitadas ou com ID sintético sem vínculo real no gateway.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={previewOrphans} disabled={loadingOrphans || !canCleanup}>
+            {loadingOrphans ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
+            Verificar órfãos
+          </Button>
+          <Button variant="destructive" size="sm" onClick={cleanupOrphans} disabled={cleaningOrphans || orphanPayments.length === 0 || !canCleanup}>
+            {cleaningOrphans ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+            Excluir encontrados ({orphanPayments.length})
+          </Button>
+        </div>
+        {!canCleanup && <p className="text-xs text-muted-foreground italic">Sem permissão para limpar pagamentos órfãos.</p>}
+        {orphanPayments.length > 0 && (
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow><TableHead className="text-xs">Cliente</TableHead><TableHead className="text-xs">Tipo</TableHead><TableHead className="text-xs">Status</TableHead><TableHead className="text-xs">Motivo</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {orphanPayments.slice(0, 10).map(p => (
+                  <TableRow key={p.id}>
+                    <TableCell className="text-xs">{p.cliente_nome || "Sem cliente"}</TableCell>
+                    <TableCell className="text-xs font-mono">{p.payment_type}</TableCell>
+                    <TableCell className="text-xs">{p.status}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{p.reason}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+
+    <Card className="border-border/50">
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
           <div>
             <CardTitle className="text-base flex items-center gap-2">
@@ -442,12 +484,22 @@ export function BillingWebhooksManager() {
               Histórico de Webhooks
             </CardTitle>
             <CardDescription className="text-xs">
-              Últimas 30 chamadas recebidas (testes e notificações reais do MP/Stripe)
+              {logTotal} chamada(s) encontrada(s). Logs acima de 90 dias são apagados automaticamente.
             </CardDescription>
           </div>
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => loadLogs()} disabled={loadingLogs}>
-            <RefreshCw className={`w-4 h-4 ${loadingLogs ? "animate-spin" : ""}`} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select value={logProvider} onValueChange={(v: any) => { setLogPage(1); setLogProvider(v); }}>
+              <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="Provider" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="mercadopago">Mercado Pago</SelectItem>
+                <SelectItem value="stripe">Stripe</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => loadLogs()} disabled={loadingLogs}>
+              <RefreshCw className={`w-4 h-4 ${loadingLogs ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -496,6 +548,13 @@ export function BillingWebhooksManager() {
                 })}
               </TableBody>
             </Table>
+          </div>
+        )}
+        {logTotal > LOG_PAGE_SIZE && (
+          <div className="mt-3 flex items-center justify-end gap-2 text-xs text-muted-foreground">
+            <Button variant="outline" size="sm" disabled={logPage <= 1 || loadingLogs} onClick={() => setLogPage(p => Math.max(1, p - 1))}>Anterior</Button>
+            <span>Página {logPage} de {totalLogPages}</span>
+            <Button variant="outline" size="sm" disabled={logPage >= totalLogPages || loadingLogs} onClick={() => setLogPage(p => Math.min(totalLogPages, p + 1))}>Próxima</Button>
           </div>
         )}
       </CardContent>
