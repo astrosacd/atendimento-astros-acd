@@ -142,14 +142,15 @@ export function usePaymentStatus() {
   // Also updates the client's renewal date to next month and sends receipt
   const markPaymentAsPaid = async (paymentId: string): Promise<boolean> => {
     try {
-      // First get the payment to find the cliente_id
+      // First get the payment to find the cliente_id + billing_date + type
       const { data: payment, error: fetchError } = await supabase
         .from('client_payments')
-        .select('cliente_id')
+        .select('cliente_id, billing_date, payment_type')
         .eq('id', paymentId)
         .single();
       
       if (fetchError) throw fetchError;
+      
       
       const paidAt = new Date().toISOString();
       
