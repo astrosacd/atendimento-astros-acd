@@ -550,7 +550,11 @@ const InstagramSettings = () => {
                         )}
                         <div className="flex-1 text-sm">
                           <p className="font-bold text-base">
-                            {expirationStatus.isExpired ? "Token Expirado" : "Validade do Token"}
+                            {expirationStatus.isExpired
+                              ? "Token Expirado"
+                              : expirationStatus.isWarning
+                              ? `Expira em ${expirationStatus.daysLeft} dia(s)`
+                              : `Token Válido (${expirationStatus.daysLeft} dias restantes)`}
                           </p>
                           <p className="opacity-90">Expira em: {expirationStatus.date}</p>
                         </div>

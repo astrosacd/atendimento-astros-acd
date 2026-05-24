@@ -161,25 +161,33 @@ serve(async (req) => {
     }
 
     if (action === "refresh") {
-      if (!app_id || !app_secret) {
-        throw new Error("App ID e App Secret são necessários para renovar o token");
-      }
+      const isIgToken = access_token.startsWith("IGA");
+      let newAccessToken = access_token;
+      let expirationDate: string | null = null;
 
-      const refreshUrl = `${graphHost}/oauth/access_token?grant_type=fb_exchange_token&client_id=${encodeURIComponent(app_id)}&client_secret=${encodeURIComponent(app_secret)}&fb_exchange_token=${encodeURIComponent(access_token)}`;
-      
-      const res = await fetch(refreshUrl);
-      const result = await res.json();
-
-      if (!res.ok) {
-        throw new Error(formatGraphError(result, "renovar"));
-      }
-
-      const newAccessToken = result.access_token;
-      const expiresIn = result.expires_in; // seconds
-      
-      let expirationDate = null;
-      if (expiresIn) {
-        expirationDate = new Date(Date.now() + expiresIn * 1000).toISOString();
+      if (isIgToken) {
+        // Instagram Login long-lived token refresh
+        const refreshUrl = `https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${encodeURIComponent(access_token)}`;
+        const res = await fetch(refreshUrl);
+        const result = await res.json();
+        if (!res.ok) throw new Error(formatGraphError(result, "renovar"));
+        newAccessToken = result.access_token;
+        if (result.expires_in) {
+          expirationDate = new Date(Date.now() + result.expires_in * 1000).toISOString();
+        }
+      } else {
+        // Facebook long-lived token refresh
+        if (!app_id || !app_secret) {
+          throw new Error("App ID e App Secret são necessários para renovar o token");
+        }
+        const refreshUrl = `${graphHost}/oauth/access_token?grant_type=fb_exchange_token&client_id=${encodeURIComponent(app_id)}&client_secret=${encodeURIComponent(app_secret)}&fb_exchange_token=${encodeURIComponent(access_token)}`;
+        const res = await fetch(refreshUrl);
+        const result = await res.json();
+        if (!res.ok) throw new Error(formatGraphError(result, "renovar"));
+        newAccessToken = result.access_token;
+        if (result.expires_in) {
+          expirationDate = new Date(Date.now() + result.expires_in * 1000).toISOString();
+        }
       }
 
       // Update the database with the new token and expiration date
