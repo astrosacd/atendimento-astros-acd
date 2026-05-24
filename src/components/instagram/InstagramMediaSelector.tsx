@@ -49,12 +49,16 @@ const InstagramMediaSelector = ({ onSelect, selectedId }: InstagramMediaSelector
       }
 
       // 2. Fetch from Instagram API
-      const response = await fetch(
-        `https://graph.facebook.com/v19.0/${settings.ig_user_id}/media?fields=id,media_type,media_url,permalink,thumbnail_url,timestamp,caption&access_token=${settings.access_token}&limit=20`
-      );
-      
+      // Tokens "IGA..." (Instagram Login) usam graph.instagram.com com "me/media"
+      // Tokens "EAA..." (Facebook Login) usam graph.facebook.com com IG user id
+      const isInstagramLoginToken = settings.access_token.startsWith("IGA");
+      const url = isInstagramLoginToken
+        ? `https://graph.instagram.com/v23.0/me/media?fields=id,media_type,media_url,permalink,thumbnail_url,timestamp,caption&access_token=${settings.access_token}&limit=20`
+        : `https://graph.facebook.com/v19.0/${settings.ig_user_id}/media?fields=id,media_type,media_url,permalink,thumbnail_url,timestamp,caption&access_token=${settings.access_token}&limit=20`;
+
+      const response = await fetch(url);
       const data = await response.json();
-      
+
       if (data.error) {
         throw new Error(data.error.message || "Erro ao buscar mídias do Instagram.");
       }
