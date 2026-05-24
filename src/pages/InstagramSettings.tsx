@@ -260,6 +260,7 @@ const InstagramSettings = () => {
           action,
           app_id: settings.app_id.trim(),
           app_secret: settings.app_secret.trim(),
+          ig_user_id: settings.ig_user_id.trim(),
           access_token: settings.access_token.trim(),
         }),
       });
