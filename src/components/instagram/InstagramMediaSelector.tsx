@@ -132,16 +132,20 @@ const InstagramMediaSelector = ({ onSelect, selectedId }: InstagramMediaSelector
                 )}
                 
                 <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <a 
-                    href={item.permalink} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    onClick={(e) => e.stopPropagation()}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      window.open(item.permalink, "_blank", "noopener,noreferrer");
+                    }}
                     className="p-1 bg-black/50 rounded-full text-white hover:bg-black/70"
+                    title="Abrir no Instagram"
                   >
                     <Eye className="h-3 w-3" />
-                  </a>
+                  </button>
                 </div>
+
 
                 {item.media_type !== "IMAGE" && (
                   <Badge variant="secondary" className="absolute bottom-1 left-1 text-[8px] px-1 h-3.5">
