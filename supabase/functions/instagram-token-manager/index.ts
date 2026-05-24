@@ -29,6 +29,20 @@ const jsonResponse = (payload: Record<string, unknown>, status = 200) =>
 const isMetaTokenError = (message: string) =>
   message.includes("Erro ao depurar token na Meta") || message.includes("Erro ao renovar token na Meta");
 
+const normalizeId = (value: unknown) => (typeof value === "string" ? value.replace(/\D/g, "") : "");
+
+const fetchJson = async (url: string) => {
+  const response = await fetch(url);
+  const text = await response.text();
+  let payload: any = null;
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch {
+    payload = { raw: text };
+  }
+  return { response, payload };
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -60,12 +74,14 @@ serve(async (req) => {
     const access_token = optionalString(body.access_token) || settings?.access_token || "";
     const app_id = optionalString(body.app_id) || settings?.app_id || "";
     const app_secret = optionalString(body.app_secret) || settings?.app_secret || "";
+    const ig_user_id = optionalString(body.ig_user_id) || settings?.ig_user_id || "";
     const manager_numbers = settings?.manager_numbers || [];
     const notify_whatsapp = settings?.notify_whatsapp || false;
     const renewal_webhook_url = settings?.renewal_webhook_url || "";
     if (!access_token) throw new Error("Token de acesso não configurado");
 
     const graphHost = "https://graph.facebook.com/v23.0";
+    const instagramGraphHost = "https://graph.instagram.com/v23.0";
 
     if (action === "debug") {
       if (!app_id || !app_secret) {
@@ -75,11 +91,46 @@ serve(async (req) => {
       const appAccessToken = `${app_id}|${app_secret}`;
       const debugUrl = `${graphHost}/debug_token?input_token=${encodeURIComponent(access_token)}&access_token=${encodeURIComponent(appAccessToken)}`;
       
-      const res = await fetch(debugUrl);
-      const result = await res.json();
+      const { response: res, payload: result } = await fetchJson(debugUrl);
 
       if (!res.ok) {
-        throw new Error(formatGraphError(result, "depurar"));
+        const instagramMeUrl = `${instagramGraphHost}/me?fields=user_id,username&access_token=${encodeURIComponent(access_token)}`;
+        const { response: igRes, payload: igResult } = await fetchJson(instagramMeUrl);
+
+        if (!igRes.ok) {
+          throw new Error(formatGraphError(result, "depurar"));
+        }
+
+        const tokenUserId = normalizeId(igResult?.user_id || igResult?.id);
+        const expectedUserId = normalizeId(ig_user_id);
+
+        if (expectedUserId && tokenUserId && expectedUserId !== tokenUserId) {
+          return jsonResponse({
+            success: false,
+            meta_error: true,
+            fallback: true,
+            error: `Token válido, mas pertence ao Instagram ID ${tokenUserId}. O Instagram User ID informado é ${expectedUserId}.`,
+            data: {
+              is_valid: false,
+              user_id: tokenUserId,
+              username: igResult?.username,
+              validation_method: "instagram_login_me",
+            },
+          });
+        }
+
+        return jsonResponse({
+          success: true,
+          fallback: true,
+          data: {
+            is_valid: true,
+            expires_at: null,
+            scopes: [],
+            user_id: tokenUserId || null,
+            username: igResult?.username || null,
+            validation_method: "instagram_login_me",
+          },
+        });
       }
 
       const { data } = result;
