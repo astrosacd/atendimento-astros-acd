@@ -307,16 +307,18 @@ const InstagramSettings = () => {
 
   const getExpirationStatus = () => {
     if (!settings.token_expires_at) return null;
-    
+
     const expiryDate = new Date(settings.token_expires_at);
     const now = new Date();
     const isExpired = isBefore(expiryDate, now);
-    const isWarning = isBefore(expiryDate, addDays(now, 15)); // 15 days warning
+    const daysLeft = Math.max(0, Math.ceil((expiryDate.getTime() - now.getTime()) / 86_400_000));
+    const isWarning = !isExpired && isBefore(expiryDate, addDays(now, 15));
 
     return {
       date: format(expiryDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }),
       isExpired,
       isWarning,
+      daysLeft,
     };
   };
 
@@ -548,7 +550,11 @@ const InstagramSettings = () => {
                         )}
                         <div className="flex-1 text-sm">
                           <p className="font-bold text-base">
-                            {expirationStatus.isExpired ? "Token Expirado" : "Validade do Token"}
+                            {expirationStatus.isExpired
+                              ? "Token Expirado"
+                              : expirationStatus.isWarning
+                              ? `Expira em ${expirationStatus.daysLeft} dia(s)`
+                              : `Token Válido (${expirationStatus.daysLeft} dias restantes)`}
                           </p>
                           <p className="opacity-90">Expira em: {expirationStatus.date}</p>
                         </div>
@@ -618,15 +624,47 @@ const InstagramSettings = () => {
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Token:</span>
-                    <Badge variant={settings.access_token ? "outline" : "secondary"}>
-                      {settings.access_token ? "Ativo" : "Ausente"}
-                    </Badge>
+                    {(() => {
+                      if (!settings.access_token) {
+                        return <Badge variant="secondary">Ausente</Badge>;
+                      }
+                      if (!expirationStatus) {
+                        return <Badge variant="secondary">Não verificado</Badge>;
+                      }
+                      if (expirationStatus.isExpired) {
+                        return <Badge className="bg-red-600 hover:bg-red-700 text-white">Expirado</Badge>;
+                      }
+                      if (expirationStatus.isWarning) {
+                        return (
+                          <Badge className="bg-amber-500 hover:bg-amber-600 text-white">
+                            Expira em {expirationStatus.daysLeft}d
+                          </Badge>
+                        );
+                      }
+                      return (
+                        <Badge className="bg-green-600 hover:bg-green-700 text-white">
+                          Válido ({expirationStatus.daysLeft}d)
+                        </Badge>
+                      );
+                    })()}
                   </div>
+                  {expirationStatus && (
+                    <div className="flex items-center justify-between text-xs text-muted-foreground -mt-2">
+                      <span>Expira em:</span>
+                      <span className="font-medium">{expirationStatus.date}</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Instagram ID:</span>
                     <Badge variant={settings.ig_user_id ? "outline" : "secondary"}>
                       {settings.ig_user_id ? "Vínculo OK" : "Pendente"}
                     </Badge>
+                  </div>
+                  <div className="pt-3 border-t border-border/50 space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Renovação Automática</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Verificação diária às 03:00 (Brasília). Quando faltarem menos de 10 dias para expirar, o token é renovado e os gestores são notificados via WhatsApp.
+                    </p>
                   </div>
                 </CardContent>
               </Card>
