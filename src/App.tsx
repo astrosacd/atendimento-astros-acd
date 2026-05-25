@@ -192,7 +192,8 @@ function AppRoutes() {
       
       {/* Instagram Module */}
       <Route path="/instagram" element={<ProtectedRoute permission="view_instagram"><InstagramModule /></ProtectedRoute>} />
-      <Route path="/instagram/oauth-callback" element={<ProtectedRoute permission="manage_social_media_reports"><InstagramOAuthCallback /></ProtectedRoute>} />
+      {/* Callback OAuth do Instagram/Facebook: NÃO pode estar protegido — o Facebook abre direto e o state+edge function fazem a validação */}
+      <Route path="/instagram/oauth-callback" element={<InstagramOAuthCallback />} />
 
       {/* Ligações IA */}
       <Route path="/ligacoes-ia" element={<ProtectedRoute permission="view_ligacoes_ia"><LigacoesIA /></ProtectedRoute>} />
