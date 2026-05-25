@@ -22,6 +22,8 @@ import {
 const FILA_FLAG_KEY = "ligacoes_fila_executando";
 const FILA_STANDALONE_PATH = "/ligacoes-ia/fila-executando";
 import { placeCallWithTTS, type ActiveCallHandle } from "@/lib/wavoipCall";
+import { usePermissions } from "@/hooks/usePermissions";
+import { copyToClipboard } from "@/utils/clipboard";
 
 type Agendada = {
   id: string;
@@ -103,6 +105,24 @@ function todayInBrazil() {
 
 export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standalone" } = {}) {
   const isStandalone = mode === "standalone";
+  const { hasPermission } = usePermissions();
+  const canExecute = hasPermission("execute_ligacoes_fila");
+
+  // Abre a guia executora. Se o navegador bloquear pop-up, oferece copiar o link.
+  const openFilaTab = () => {
+    const url = window.location.origin + FILA_STANDALONE_PATH;
+    const win = window.open(url, "_blank", "noopener");
+    if (!win) {
+      // Pop-up bloqueado — copia o link e avisa
+      copyToClipboard(url);
+      toast({
+        title: "Pop-up bloqueado",
+        description: "Link copiado. Cole numa nova guia (Ctrl+T → Ctrl+V → Enter) ou libere pop-ups deste site.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const [items, setItems] = useState<Agendada[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
@@ -425,15 +445,21 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
               <Trash2 className="h-4 w-4 mr-1" /> Limpar fila de hoje
             </Button>
 
-            {/* Aba normal: só oferece abrir em nova guia (sem rodar aqui) */}
-            {!isStandalone && !remoteRunning && (
+            {/* Aba normal: só oferece abrir em nova guia (sem rodar aqui).
+                Bloqueado por permissão — só quem tem execute_ligacoes_fila dispara. */}
+            {!isStandalone && !remoteRunning && canExecute && (
               <Button
-                onClick={() => window.open(FILA_STANDALONE_PATH, "_blank", "noopener")}
+                onClick={openFilaTab}
                 disabled={pendentes.length === 0}
               >
                 <ExternalLink className="h-4 w-4 mr-1" />
                 {finalizadas + falhadas > 0 ? "Retomar fila em nova guia" : "Abrir fila em nova guia"}
               </Button>
+            )}
+            {!isStandalone && !remoteRunning && !canExecute && pendentes.length > 0 && (
+              <div className="text-xs text-muted-foreground self-center">
+                🔒 Sem permissão para disparar a fila
+              </div>
             )}
 
             {/* Guia standalone: controles reais da fila em execução */}
@@ -463,14 +489,16 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
             <span>
               <strong>Fila rodando em outra guia.</strong> Ações desta aba ficam bloqueadas até a fila terminar (evita ligação dupla).
             </span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="ml-auto"
-              onClick={() => window.open(FILA_STANDALONE_PATH, "_blank", "noopener")}
-            >
-              <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir a guia da fila
-            </Button>
+            {canExecute && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-auto"
+                onClick={openFilaTab}
+              >
+                <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir a guia da fila
+              </Button>
+            )}
           </div>
         )}
 
