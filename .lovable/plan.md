@@ -1,156 +1,104 @@
-# 📊 MVP — Relatórios de Social Media para Clientes
 
-Módulo **separado** da Espionagem, focado em monitorar perfis dos **seus clientes** (não concorrentes), gerar relatório mensal automático com comparativo, entregar via PDF + link público, e enviar automaticamente por WhatsApp/Email no dia configurado.
+# Plano: Espionagem e Rastreio funcionais
+
+## Contexto atual
+
+**Espionagem** (`/instagram/espionage`)
+- Backend já usa **Business Discovery API** (correto pra concorrentes)
+- Problema: depende de `instagram_settings.access_token` (token antigo) + `ig_user_id`. Tabela tem dados, mas token tá inválido (erro "cannot parse access token" que você viu).
+- Solução: trocar a fonte do token pra usar **qualquer perfil OAuth conectado** em `social_media_client_profiles` (que renova automático). Fallback pro `instagram_settings` se nada estiver conectado.
+
+**Rastreio de Clientes** (`/instagram` → Perfis Monitorados)
+- Hoje: só dá pra conectar via OAuth se VOCÊ logar com o Facebook do cliente
+- Você quer: gerar um **link público** pra mandar pro cliente no WhatsApp; cliente clica, autoriza no Facebook DELE, e o token cai direto no perfil cadastrado.
 
 ---
 
-## 🗂️ Estrutura geral
+## O que vou implementar
 
+### 1. Espionagem funcional
+- **Edge function `instagram-spy-sync`**: trocar lógica de busca de token:
+  1. Primeiro tenta qualquer perfil de `social_media_client_profiles` com `oauth_connected=true` e token válido
+  2. Se não tiver, usa `instagram_settings` (legado)
+  3. Se nenhum, retorna erro claro: "Conecte ao menos 1 perfil via OAuth pra usar Espionagem"
+- **UI Espionagem**: adicionar banner explicativo quando não houver token disponível, com botão "Ir pra Perfis Monitorados → Conectar"
+- **Botão "Sincronizar Agora"** já existe, vai funcionar assim que tiver token válido
+
+### 2. Rastreio de Clientes — Link público de autorização
+
+**Nova tabela** `instagram_oauth_invites`:
 ```
-Instagram (módulo existente)
-├── Criar
-├── Histórico
-├── Auto-resposta
-├── Espionagem (concorrentes — já existe)
-└── 🆕 Relatórios Clientes   ← NOVO
-    ├── Perfis Monitorados (cadastro)
-    ├── Relatórios Mensais (lista + visualização)
-    └── Configurações (envio + credenciais + teste)
+- id (uuid)
+- profile_id (FK) — qual perfil será conectado
+- token (uuid único) — vai na URL pública
+- created_by (FK usuário) — quem gerou o convite
+- created_at, expires_at (default 7 dias)
+- used_at (timestamp quando autorizado)
+- used_by_fb_user_id (texto, ID Facebook de quem autorizou)
+- status: 'pending' | 'completed' | 'expired' | 'mismatch'
 ```
 
----
+**Página pública nova** `/autorizar-instagram/:token`:
+- Layout limpo (dark theme, mesma identidade do sistema)
+- Mostra: foto + @username do perfil que será conectado
+- Texto explicativo: "A agência X precisa de autorização pra gerar relatórios do seu Instagram"
+- Lista clara do que será acessado (insights, posts, métricas) e o que NÃO será (mensagens, senha)
+- Botão grande "Autorizar via Facebook" → abre OAuth no fluxo padrão (mesmo `instagram-oauth-start`)
+- Tela de sucesso ao concluir
 
-## 🗄️ Banco de dados (4 tabelas novas)
+**Modificações no fluxo OAuth existente**:
+- `instagram-oauth-start`: aceitar `inviteToken` no body; se vier, gera state com flag `publicInvite=true` e pula validação de admin
+- `instagram-oauth-callback`: se state tem `publicInvite`, valida o token contra `instagram_oauth_invites` ao invés de exigir role admin; marca invite como `completed`
 
-1. **`social_media_client_profiles`** — perfis dos clientes monitorados
-   - `username`, `display_name`, `cliente_id` (opcional, link com `clientes`), `profile_picture_url`, `is_active`, `notify_whatsapp` (bool), `notify_email` (bool), `whatsapp_number`, `email`, `report_day` (1-28, dia do mês p/ envio)
+**UI em InstagramClientReports** (`/instagram`):
+- Card de perfil ganha botão **"Gerar Link de Autorização"** (ao lado do "Reconectar")
+- Modal mostra:
+  - Link gerado (pré-formatado pra WhatsApp com texto sugerido)
+  - Botão "Copiar Link"
+  - Botão "Abrir WhatsApp" (deep link `wa.me`)
+  - Status do convite (Pendente / Concluído / Expirado)
+- Tab "Convites" com histórico: quem gerou, quando, status, link
 
-2. **`social_media_daily_snapshots`** — snapshot diário (1 linha por perfil/dia)
-   - `profile_id`, `snapshot_date`, `followers_count`, `media_count`, `following_count`
+### 3. Resposta sobre os scopes da Meta
 
-3. **`social_media_posts_collected`** — posts coletados (incremental)
-   - `profile_id`, `ig_media_id` (unique), `media_type`, `caption`, `permalink`, `like_count`, `comments_count`, `views_count`, `posted_at`
+`instagram_manage_insights` — **OBRIGATÓRIO** (métricas privadas: alcance, impressões, demografia)
+`business_management` — **OBRIGATÓRIO** (acessar Business Manager e listar páginas)
+`pages_read_engagement` — **OBRIGATÓRIO** (ler dados das Páginas Facebook vinculadas)
+`instagram_basic` — **OBRIGATÓRIO** (info básica do perfil IG)
 
-4. **`social_media_monthly_reports`** — relatórios gerados
-   - `profile_id`, `month` (YYYY-MM), `data` (jsonb com métricas calculadas), `share_token` (uuid p/ link público), `pdf_url` (storage), `sent_whatsapp_at`, `sent_email_at`, `generated_at`
+**Todos os 4 são necessários.** Sem `instagram_manage_insights` não pega insights privados; sem os outros 3 nem chega a listar a página/perfil. São o mínimo que a Meta exige pro fluxo Business Discovery + Insights privados.
 
-5. **`social_media_report_config`** — config global
-   - `evolution_instance_id`, `evolution_phone_number`, `email_from`, `email_smtp_*` (ou usar Gmail OAuth), `auto_send_enabled`, `send_hour`
-
-**RLS:** admin + permissão nova `social_media_reports`.
-
----
-
-## ⚙️ Edge Functions (5 novas)
-
-1. **`social-media-sync-profiles`** — sync diário via Graph API `business_discovery` (reaproveita config IG existente). Grava snapshot + posts.
-2. **`social-media-generate-report`** — calcula métricas do mês (comparativo vs mês anterior), gera PDF, salva em storage, retorna URL pública.
-3. **`social-media-send-report`** — envia relatório via WhatsApp (Evolution API) + Email (Gmail).
-4. **`social-media-test-credentials`** — botão TESTE: dispara mensagem WhatsApp + email de teste pro número/email configurado, retorna sucesso/erro detalhado de cada canal.
-5. **`social-media-monthly-cron`** — cron mensal: roda dia X, gera relatório + envia automático pros perfis com `auto_send_enabled`.
-
-**Cron jobs:**
-- Diário 03:00 UTC → `social-media-sync-profiles`
-- Diário 11:00 UTC → `social-media-monthly-cron` (verifica quais perfis batem `report_day` hoje)
+Adicionalmente, pra **Espionagem** com Business Discovery, esses 4 já cobrem (não precisa de scope extra).
 
 ---
 
-## 📈 Métricas no relatório mensal
+## Ordem de execução
 
-- Seguidores: início mês / fim mês / saldo / % crescimento
-- Comparativo vs mês anterior (ganho/perda)
-- Posts publicados: total + breakdown (REEL / IMAGE / CAROUSEL)
-- Engajamento total: likes + comments
-- Engajamento médio por post
-- Post de maior engajamento (com thumb + link)
-- Gráfico evolução diária seguidores (sparkline)
-- Comparativo 3 últimos meses (barras)
-
----
-
-## 🎨 Telas Frontend
-
-### A) `/instagram/relatorios-clientes` (página principal, 3 tabs)
-
-**Tab 1 — Perfis Monitorados**
-- Tabela: avatar, @username, cliente vinculado, seguidores atual, último sync, status
-- Botão "Adicionar perfil" → modal (username, link com cliente existente, configs de envio)
-- Ações por linha: editar / sincronizar agora / excluir
-
-**Tab 2 — Relatórios**
-- Filtro por perfil + mês
-- Lista de relatórios gerados (mês, perfil, data geração, status envio)
-- Ações: Visualizar / Baixar PDF / Copiar link público / Reenviar
-- Botão "Gerar relatório agora" (escolhe perfil + mês)
-
-**Tab 3 — Configurações**
-- Seção Evolution API (instância + número remetente) — usar instâncias já cadastradas do CRM
-- Seção Gmail/Email (from, app password ou OAuth)
-- Cron envio automático: ativo (on/off) + hora do dia
-- **🧪 Botão TESTE** — testa WhatsApp + Email + Graph API e mostra resultado de cada um
-
-### B) `/r/social/:shareToken` (público, sem auth)
-- Página pública estilo proposta com a marca
-- Cards de métricas + gráficos + posts destaque
-- Botão "Baixar PDF"
+1. Migration: tabela `instagram_oauth_invites` + RLS
+2. Edge function `instagram-spy-sync`: trocar fonte de token
+3. Edge functions OAuth (`start` + `callback`): suportar fluxo de invite público
+4. Página pública `/autorizar-instagram/:token`
+5. Rota pública no `App.tsx`
+6. UI `InstagramClientReports`: botão "Gerar Link" + modal + tab convites
+7. UI `InstagramEspionage`: banner de erro quando sem token + link pra conectar perfil
+8. Testar fluxo completo
 
 ---
 
-## 📝 Geração do PDF
+## Impacto e riscos
 
-- Edge Function usa template HTML + `html-pdf` via API externa OU monta com pdf-lib
-- Branding: reaproveita `proposal_branding` (logo, cores)
-- Upload para Supabase Storage bucket `social-media-reports` (público com signed URL)
-
----
-
-## 🔐 Permissões
-
-- Nova permissão `social_media_reports` no `usePermissions` + `AdminPermissoes`
-- Rota protegida por essa permissão
-- Admin tem acesso automático (regra já implementada)
+- **Não quebra nada existente**: OAuth interno continua funcionando, espionage só ganha fallback
+- **Não apaga dados**: tabela `instagram_competitors` mantida intacta
+- **Segurança**: invite tem expiração de 7 dias e token UUID; só atualiza o perfil correspondente; sinatura HMAC do state continua válida
+- **Risco baixo**: mudanças cirúrgicas; principal complexidade é a página pública nova
 
 ---
 
-## 🔧 Integrações reutilizadas
+## Estimativa
+- 1 migration
+- 4 edge functions modificadas
+- 1 página nova
+- 2 páginas modificadas
+- Total: ~600 linhas de código
 
-- **Graph API IG**: pega `access_token` + `ig_user_id` da `instagram_settings` existente
-- **Evolution API**: pega instância da config existente do CRM (não duplica)
-- **Email**: usa config `communication-credentials` se já tem Gmail, senão pede SMTP
-- **Storage**: bucket novo `social-media-reports` (PDFs)
-
----
-
-## 📋 Ordem de execução
-
-1. Migration: 5 tabelas + RLS + permissão + bucket storage
-2. Edge functions: `sync-profiles`, `test-credentials`, `generate-report`, `send-report`, `monthly-cron`
-3. Hook `useSocialMediaReports` + types
-4. Página principal com 3 tabs
-5. Página pública `/r/social/:token`
-6. Cron jobs (sync diário + envio mensal)
-7. Registrar rota + sidebar + permissão
-8. Testes ponta-a-ponta com botão de teste
-
----
-
-## ⚠️ Pontos de atenção
-
-- **Perfil precisa ser Business/Creator público** (Graph API `business_discovery`) — não funciona em perfil pessoal
-- **Primeiro relatório mensal sai só depois de 30+ dias** de coleta (sem dados históricos não tem comparativo)
-- **Limite Graph API** ~200 req/h — para 100 perfis tranquilo
-- **PDF**: vou usar geração server-side (HTML→PDF via Puppeteer/lovable não disponível em edge function Deno). Vou usar **`@react-pdf/renderer`** client-side OU **template HTML simples → conversão via service externo**. Decisão: geração client-side com `jspdf` + `html2canvas` (já tem no projeto via outras telas)
-- **Storage**: PDFs ficam públicos via signed URL com expiração de 1 ano
-
----
-
-## 💡 Sugestões DEV (fase 2)
-
-- OAuth Instagram pro cliente conectar a conta dele (libera insights: alcance, impressões, stories, salvos)
-- Comparativo entre múltiplos perfis (benchmark do portfólio)
-- Sugestões de IA: "seu cliente postou 40% menos reels esse mês, posts caíram X%"
-- Agendamento de envio em horário comercial específico por timezone
-
----
-
-**Próximo passo:** se aprovar, começo pela migration (passo 1) e sigo a ordem acima. Estimativa: 4-5 iterações grandes pra MVP completo.
+Confirma que posso executar tudo isso?
