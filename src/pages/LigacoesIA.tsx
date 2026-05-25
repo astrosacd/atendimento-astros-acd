@@ -80,53 +80,7 @@ const CATEGORY_LABEL: Record<string, string> = {
   generated: "Gerada",
 };
 
-// Configurações NUNCA pode ser concedida via acesso provisório — só admin
-const LIGACOES_PERMISSION_OPTIONS = [
-  { id: "historico", label: "Histórico" },
-  { id: "fila", label: "Fila do dia" },
-  { id: "roteiros", label: "Roteiros" },
-  { id: "disparo", label: "Disparo" },
-  { id: "campanhas", label: "Campanhas" },
-  { id: "cobranca", label: "Cobrança" },
-];
-
-const LIGACOES_TARGET_PATH = "/ligacoes-ia";
-
 export default function LigacoesIA() {
-  const { canManageTemporaryAccess } = usePermissions();
-  const siteUrl = useSiteUrl();
-
-  const isTempAccess = !!sessionStorage.getItem("temp_access_token");
-  const [tempPerms, setTempPerms] = useState<string[] | null>(null);
-  const [tempLoading, setTempLoading] = useState(isTempAccess);
-
-  useEffect(() => {
-    if (!isTempAccess) { setTempLoading(false); return; }
-    const load = async () => {
-      const token = sessionStorage.getItem("temp_access_token");
-      if (!token) { setTempPerms(null); setTempLoading(false); return; }
-      const { data } = await supabase
-        .from("temporary_access_tokens")
-        .select("permissions")
-        .eq("token", token)
-        .eq("is_active", true)
-        .gt("expires_at", new Date().toISOString())
-        .maybeSingle();
-      setTempPerms(((data?.permissions as string[]) ?? []));
-      setTempLoading(false);
-    };
-    load();
-    const itv = window.setInterval(load, 2000);
-    window.addEventListener("focus", load);
-    return () => { window.clearInterval(itv); window.removeEventListener("focus", load); };
-  }, [isTempAccess]);
-
-  // Configurações é sempre bloqueada em acesso provisório (usa as creds do admin)
-  const tabAllowed = (id: string) => {
-    if (isTempAccess && id === "config") return false;
-    return !isTempAccess || (tempPerms ?? []).includes(id);
-  };
-
   const [configStatus, setConfigStatus] = useState<{ wavoip: boolean; eleven: boolean; dialer: boolean } | null>(null);
 
   const refreshStatus = async () => {
@@ -145,65 +99,18 @@ export default function LigacoesIA() {
   useEffect(() => { refreshStatus(); }, []);
 
   const allOk = configStatus?.wavoip && configStatus?.dialer && configStatus?.eleven;
-  const allowedTabs = LIGACOES_PERMISSION_OPTIONS.map(p => p.id).filter(tabAllowed);
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTab = searchParams.get("tab");
   const urlCliente = searchParams.get("cliente");
-  const initialTab = (urlTab && allowedTabs.includes(urlTab))
-    ? urlTab
-    : (isTempAccess ? (allowedTabs[0] ?? "historico") : "historico");
+  const initialTab = urlTab ?? "historico";
   const [activeTab, setActiveTab] = useState(initialTab);
   useEffect(() => {
-    if (urlTab && allowedTabs.includes(urlTab) && urlTab !== activeTab) setActiveTab(urlTab);
+    if (urlTab && urlTab !== activeTab) setActiveTab(urlTab);
     // eslint-disable-next-line
   }, [urlTab]);
 
-  const Wrapper = React.useMemo(() => {
-    return ({ children }: { children: React.ReactNode }) =>
-      isTempAccess ? (
-        <div className="min-h-screen bg-background">
-          <div className="border-b bg-card/50 backdrop-blur">
-            <div className="container mx-auto max-w-7xl flex items-center justify-between px-6 py-3">
-              <div className="flex items-center gap-2">
-                <PhoneCall className="h-5 w-5 text-fuchsia-500" />
-                <span className="font-semibold">Ligações IA</span>
-              </div>
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-                <Clock className="h-3 w-3" /> Acesso Provisório
-              </span>
-            </div>
-          </div>
-          {children}
-        </div>
-      ) : (
-        <DashboardLayout>{children}</DashboardLayout>
-      );
-  }, [isTempAccess]);
-
-  if (isTempAccess && tempLoading) {
-    return (
-      <Wrapper>
-        <div className="flex flex-col items-center justify-center h-[60vh] space-y-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Carregando permissões...</p>
-        </div>
-      </Wrapper>
-    );
-  }
-
-  if (isTempAccess && allowedTabs.length === 0) {
-    return (
-      <Wrapper>
-        <div className="flex flex-col items-center justify-center h-[60vh] space-y-3">
-          <X className="h-10 w-10 text-destructive" />
-          <p className="text-muted-foreground">Este link não tem nenhuma permissão habilitada.</p>
-        </div>
-      </Wrapper>
-    );
-  }
-
   return (
-    <Wrapper>
+    <DashboardLayout>
       <div className="container max-w-7xl py-6 space-y-6">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
@@ -219,13 +126,9 @@ export default function LigacoesIA() {
               </p>
             </div>
           </div>
-
-          {!isTempAccess && canManageTemporaryAccess() && (
-            <AcessoProvisorioButton siteUrl={siteUrl} />
-          )}
         </div>
 
-        {!isTempAccess && configStatus && !allOk && (
+        {configStatus && !allOk && (
           <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4">
             <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
             <div className="flex-1 text-sm">
@@ -240,7 +143,7 @@ export default function LigacoesIA() {
           </div>
         )}
 
-        {!isTempAccess && configStatus && allOk && (
+        {configStatus && allOk && (
           <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm">
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
             <span>Configuração completa — pronto para fazer ligações.</span>
@@ -255,25 +158,25 @@ export default function LigacoesIA() {
           setSearchParams(next, { replace: true });
         }} className="space-y-4">
           <TabsList className="flex flex-wrap w-full max-w-5xl h-auto">
-            {tabAllowed("historico") && <TabsTrigger value="historico"><History className="h-4 w-4 mr-2" />Histórico</TabsTrigger>}
-            {tabAllowed("fila") && <TabsTrigger value="fila"><ListChecks className="h-4 w-4 mr-2" />Fila do dia</TabsTrigger>}
-            {tabAllowed("roteiros") && <TabsTrigger value="roteiros"><FileText className="h-4 w-4 mr-2" />Roteiros</TabsTrigger>}
-            {tabAllowed("disparo") && <TabsTrigger value="disparo"><Phone className="h-4 w-4 mr-2" />Disparo</TabsTrigger>}
-            {tabAllowed("campanhas") && <TabsTrigger value="campanhas"><Megaphone className="h-4 w-4 mr-2" />Campanhas</TabsTrigger>}
-            {tabAllowed("cobranca") && <TabsTrigger value="cobranca"><CalendarClock className="h-4 w-4 mr-2" />Cobrança</TabsTrigger>}
-            {tabAllowed("config") && <TabsTrigger value="config"><SettingsIcon className="h-4 w-4 mr-2" />Configurações</TabsTrigger>}
+            <TabsTrigger value="historico"><History className="h-4 w-4 mr-2" />Histórico</TabsTrigger>
+            <TabsTrigger value="fila"><ListChecks className="h-4 w-4 mr-2" />Fila do dia</TabsTrigger>
+            <TabsTrigger value="roteiros"><FileText className="h-4 w-4 mr-2" />Roteiros</TabsTrigger>
+            <TabsTrigger value="disparo"><Phone className="h-4 w-4 mr-2" />Disparo</TabsTrigger>
+            <TabsTrigger value="campanhas"><Megaphone className="h-4 w-4 mr-2" />Campanhas</TabsTrigger>
+            <TabsTrigger value="cobranca"><CalendarClock className="h-4 w-4 mr-2" />Cobrança</TabsTrigger>
+            <TabsTrigger value="config"><SettingsIcon className="h-4 w-4 mr-2" />Configurações</TabsTrigger>
           </TabsList>
 
-          {tabAllowed("historico") && <TabsContent value="historico"><HistoricoTab clienteIdFilter={urlCliente} onClearFilter={() => { const n = new URLSearchParams(searchParams); n.delete("cliente"); setSearchParams(n, { replace: true }); }} /></TabsContent>}
-          {tabAllowed("fila") && <TabsContent value="fila"><FilaLigacoesTab /></TabsContent>}
-          {tabAllowed("roteiros") && <TabsContent value="roteiros"><RoteirosTab /></TabsContent>}
-          {tabAllowed("disparo") && <TabsContent value="disparo"><DisparoTab /></TabsContent>}
-          {tabAllowed("campanhas") && <TabsContent value="campanhas"><CampanhasLigacoesTab /></TabsContent>}
-          {tabAllowed("cobranca") && <TabsContent value="cobranca"><CobrancaConfigTab /></TabsContent>}
-          {tabAllowed("config") && <TabsContent value="config"><ConfigTab onSaved={refreshStatus} /></TabsContent>}
+          <TabsContent value="historico"><HistoricoTab clienteIdFilter={urlCliente} onClearFilter={() => { const n = new URLSearchParams(searchParams); n.delete("cliente"); setSearchParams(n, { replace: true }); }} /></TabsContent>
+          <TabsContent value="fila"><FilaLigacoesTab /></TabsContent>
+          <TabsContent value="roteiros"><RoteirosTab /></TabsContent>
+          <TabsContent value="disparo"><DisparoTab /></TabsContent>
+          <TabsContent value="campanhas"><CampanhasLigacoesTab /></TabsContent>
+          <TabsContent value="cobranca"><CobrancaConfigTab /></TabsContent>
+          <TabsContent value="config"><ConfigTab onSaved={refreshStatus} /></TabsContent>
         </Tabs>
       </div>
-    </Wrapper>
+    </DashboardLayout>
   );
 }
 
