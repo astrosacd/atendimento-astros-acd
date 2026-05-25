@@ -953,11 +953,39 @@ function PostsTab() {
                 )}
 
                 {selectedPost.permalink && (
-                  <Button asChild variant="outline" className="w-full">
-                    <a href={selectedPost.permalink} target="_blank" rel="noopener noreferrer">
+                  <div className="space-y-1">
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        const url = selectedPost.permalink;
+                        const w = window.open(url, "_blank", "noopener,noreferrer");
+                        if (!w) {
+                          // popup bloqueado → fallback: copia link
+                          navigator.clipboard.writeText(url).then(
+                            () => toast.success("Link copiado! Cole em uma nova guia."),
+                            () => window.prompt("Copie o link do post:", url),
+                          );
+                        }
+                      }}
+                    >
                       <ExternalLink className="h-4 w-4 mr-2" /> Abrir no Instagram
-                    </a>
-                  </Button>
+                    </Button>
+                    <p className="text-[10px] text-muted-foreground text-center">
+                      Se der "ERR_BLOCKED_BY_RESPONSE", cole o link em uma aba nova do navegador.
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="w-full h-7 text-xs"
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedPost.permalink);
+                        toast.success("Link copiado!");
+                      }}
+                    >
+                      Copiar link do post
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
