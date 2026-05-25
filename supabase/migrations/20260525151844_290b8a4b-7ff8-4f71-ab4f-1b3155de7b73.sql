@@ -1,0 +1,1 @@
+UPDATE public.social_media_report_config SET instagram_app_id = '1071959951214187' WHERE instagram_app_id = '4068264376835462';
