@@ -105,6 +105,24 @@ function todayInBrazil() {
 
 export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standalone" } = {}) {
   const isStandalone = mode === "standalone";
+  const { hasPermission } = usePermissions();
+  const canExecute = hasPermission("execute_ligacoes_fila");
+
+  // Abre a guia executora. Se o navegador bloquear pop-up, oferece copiar o link.
+  const openFilaTab = () => {
+    const url = window.location.origin + FILA_STANDALONE_PATH;
+    const win = window.open(url, "_blank", "noopener");
+    if (!win) {
+      // Pop-up bloqueado — copia o link e avisa
+      copyToClipboard(url);
+      toast({
+        title: "Pop-up bloqueado",
+        description: "Link copiado. Cole numa nova guia (Ctrl+T → Ctrl+V → Enter) ou libere pop-ups deste site.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const [items, setItems] = useState<Agendada[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
