@@ -76,6 +76,8 @@ import SharedKanban from "./pages/public/SharedKanban";
 import SalaAgentesPublica from "./pages/public/SalaAgentesPublica";
 import TemporaryAccessHandler from "./pages/public/TemporaryAccessHandler";
 import SocialReportPublico from "./pages/public/SocialReportPublico";
+import InstagramPrivacidade from "./pages/public/InstagramPrivacidade";
+import InstagramTermos from "./pages/public/InstagramTermos";
 import NotFound from "./pages/NotFound";
 import Perfil from "./pages/Perfil";
 import SalaAgentes from "./pages/SalaAgentes";
@@ -211,6 +213,10 @@ function AppRoutes() {
       <Route path="/access/:token" element={<TemporaryAccessHandler />} />
       <Route path="/public/sala-agentes" element={<SalaAgentesPublica />} />
       <Route path="/r/social/:token" element={<SocialReportPublico />} />
+      <Route path="/instagram/privacidade" element={<InstagramPrivacidade />} />
+      <Route path="/instagram/termos" element={<InstagramTermos />} />
+      <Route path="/privacidade" element={<InstagramPrivacidade />} />
+      <Route path="/termos" element={<InstagramTermos />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
