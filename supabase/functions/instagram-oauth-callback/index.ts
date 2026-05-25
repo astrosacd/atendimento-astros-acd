@@ -127,10 +127,10 @@ Deno.serve(async (req) => {
       ig_business_id: igBusinessId,
       fb_page_id: fbPageId,
       expires_at: expiresAt,
-      return_url: parsed.returnUrl,
+      return_url: payload.returnUrl,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
     console.error("instagram-oauth-callback:", e);
-    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+    return jsonResponse({ error: e.message }, 500);
   }
 });
