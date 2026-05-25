@@ -79,7 +79,18 @@ function ProfilesTab() {
 
   async function handleSave() {
     if (!form.username) { toast.error("Username é obrigatório"); return; }
-    const clean = { ...form, username: form.username.replace(/^@/, "").trim() };
+    const clean: Partial<SocialProfile> & { id?: string } = {
+      id: editing?.id,
+      username: form.username.replace(/^@/, "").trim(),
+      display_name: form.display_name || "",
+      is_active: form.is_active ?? true,
+      notify_whatsapp: !!form.notify_whatsapp,
+      notify_email: !!form.notify_email,
+      whatsapp_number: form.whatsapp_number || null,
+      email: form.email || null,
+      report_day: form.report_day ?? 1,
+      auto_send_enabled: !!form.auto_send_enabled,
+    };
     await save.mutateAsync(clean);
     setDialogOpen(false);
   }
@@ -127,6 +138,7 @@ function ProfilesTab() {
       oauth_ig_business_id: null,
       oauth_fb_page_id: null,
       oauth_token_expires_at: null,
+      oauth_connected_at: null,
     } as any);
     setForm({ ...form, oauth_connected: false } as any);
   }

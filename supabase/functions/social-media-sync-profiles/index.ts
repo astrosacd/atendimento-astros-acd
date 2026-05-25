@@ -110,6 +110,10 @@ async function syncOne(admin: any, profile: any, fallbackIgUserId: string, fallb
       && profile.oauth_ig_business_id
       && (!profile.oauth_token_expires_at || new Date(profile.oauth_token_expires_at) > new Date());
 
+    if (profile.oauth_connected && !useOAuth) {
+      throw new Error("Conexão OAuth incompleta ou expirada. Clique em Reconectar via Facebook novamente para gerar um novo token válido.");
+    }
+
     if (useOAuth) {
       // ===== Fluxo OAuth (dados privados) =====
       const token = profile.oauth_access_token;
@@ -308,7 +312,7 @@ Deno.serve(async (req) => {
     }
 
     // Se algum perfil precisar do fallback business_discovery e não tiver token, retorna erro só pra esses
-    const needsFallback = profiles.some((p: any) => !p.oauth_connected || !p.oauth_access_token);
+    const needsFallback = profiles.some((p: any) => !p.oauth_connected);
     if (needsFallback && (!igUserId || !accessToken)) {
       return new Response(JSON.stringify({
         error: "Há perfis sem OAuth conectado. Configure ig_user_id e access_token em Configurações do Instagram, ou conecte os perfis via OAuth.",

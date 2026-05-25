@@ -51,11 +51,8 @@ export default function InstagramOAuthCallback() {
         if (error) throw error;
         if ((data as any)?.return_url) setReturnUrl((data as any).return_url);
         setStatus("ok");
-        setMessage(`Conta conectada! IG Business ID: ${(data as any).ig_business_id}`);
+        setMessage(`Conta conectada! IG Business ID: ${(data as any).ig_business_id}. Pode fechar esta aba e voltar para o sistema.`);
         toast.success("OAuth Instagram conectado!");
-        setTimeout(() => {
-          window.location.href = (data as any).return_url || "/instagram";
-        }, 2500);
       } catch (e: any) {
         setStatus("error");
         setMessage(await getFunctionErrorMessage(e));
