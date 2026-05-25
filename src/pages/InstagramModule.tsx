@@ -279,7 +279,7 @@ const InstagramModule = () => {
               <div className="flex flex-wrap items-center gap-2 mt-2">
                 <span className="text-xs text-muted-foreground">Conformidade Meta:</span>
                 <a
-                  href="/instagram/privacidade"
+                  href={`${siteUrl || ''}/instagram/privacidade`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border bg-card hover:bg-accent hover:text-accent-foreground transition-colors"
@@ -287,7 +287,7 @@ const InstagramModule = () => {
                   📄 Política de Privacidade
                 </a>
                 <a
-                  href="/instagram/termos"
+                  href={`${siteUrl || ''}/instagram/termos`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border bg-card hover:bg-accent hover:text-accent-foreground transition-colors"
@@ -538,7 +538,7 @@ const InstagramModule = () => {
         <div className="mt-8 pt-6 border-t border-border/40 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
           <span className="text-xs">Conformidade Meta / Instagram:</span>
           <a
-            href="/instagram/privacidade"
+            href={`${siteUrl || ''}/instagram/privacidade`}
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-primary underline underline-offset-4 transition-colors"
@@ -546,7 +546,7 @@ const InstagramModule = () => {
             Política de Privacidade
           </a>
           <a
-            href="/instagram/termos"
+            href={`${siteUrl || ''}/instagram/termos`}
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-primary underline underline-offset-4 transition-colors"
