@@ -205,6 +205,9 @@ function ProfilesTab() {
                   <Button size="icon" variant="ghost" title="Sincronizar agora" onClick={() => sync.mutate({ profile_id: p.id })} disabled={sync.isPending}>
                     <RefreshCw className="h-4 w-4" />
                   </Button>
+                  <Button size="icon" variant="ghost" title="Gerar link de autorização (cliente)" onClick={() => setInviteTarget(p)}>
+                    <Send className="h-4 w-4" />
+                  </Button>
                   <Button size="icon" variant="ghost" title="Editar" onClick={() => openEdit(p)}>
                     <SettingsIcon className="h-4 w-4" />
                   </Button>
