@@ -60,7 +60,7 @@ function FilaExecutandoInner() {
 
 export default function FilaExecutando() {
   return (
-    <ProtectedRoute permission="view_ligacoes_ia">
+    <ProtectedRoute permission="execute_ligacoes_fila">
       <FilaExecutandoInner />
     </ProtectedRoute>
   );
