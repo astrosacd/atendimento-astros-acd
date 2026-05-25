@@ -68,6 +68,7 @@ function ProfilesTab() {
   const [editing, setEditing] = useState<SocialProfile | null>(null);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<SocialProfile | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [inviteTarget, setInviteTarget] = useState<SocialProfile | null>(null);
   const [disconnectOpen, setDisconnectOpen] = useState(false);
 
