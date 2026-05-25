@@ -154,25 +154,55 @@ Deno.serve(async (req) => {
     const competitorId: string | undefined = body.competitor_id;
     const syncAll: boolean = !!body.sync_all;
 
-    // Busca config IG (token + ig_user_id) — pega do usuário admin atual ou qualquer registro
-    const { data: settings } = await admin
-      .from("instagram_settings")
-      .select("access_token, ig_user_id")
+    // Busca token: 1º perfil OAuth conectado com token válido; depois fallback pra instagram_settings.
+    let igUserId: string | null = null;
+    let accessToken: string | null = null;
+    let tokenSource = "none";
+
+    const { data: oauthProfile } = await admin
+      .from("social_media_client_profiles")
+      .select("oauth_ig_business_id, oauth_access_token, oauth_token_expires_at, username")
+      .eq("oauth_connected", true)
+      .not("oauth_access_token", "is", null)
+      .not("oauth_ig_business_id", "is", null)
+      .gt("oauth_token_expires_at", new Date().toISOString())
+      .order("oauth_connected_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    const igUserId = settings?.ig_user_id;
-    const accessToken = settings?.access_token || Deno.env.get("META_ACCESS_TOKEN");
+    if (oauthProfile?.oauth_access_token && oauthProfile?.oauth_ig_business_id) {
+      igUserId = oauthProfile.oauth_ig_business_id;
+      accessToken = oauthProfile.oauth_access_token;
+      tokenSource = `oauth:@${oauthProfile.username}`;
+    } else {
+      const { data: settings } = await admin
+        .from("instagram_settings")
+        .select("access_token, ig_user_id")
+        .limit(1)
+        .maybeSingle();
+      if (settings?.ig_user_id && settings?.access_token) {
+        igUserId = settings.ig_user_id;
+        accessToken = settings.access_token;
+        tokenSource = "instagram_settings (legado)";
+      } else if (Deno.env.get("META_ACCESS_TOKEN") && settings?.ig_user_id) {
+        igUserId = settings.ig_user_id;
+        accessToken = Deno.env.get("META_ACCESS_TOKEN")!;
+        tokenSource = "env";
+      }
+    }
 
     if (!igUserId || !accessToken) {
       return new Response(
         JSON.stringify({
           error:
-            "Instagram não configurado. Configure ig_user_id e access_token em Configurações do Instagram.",
+            "Nenhum token Instagram disponível. Conecte ao menos 1 perfil via OAuth em Instagram → Perfis Monitorados → Reconectar (ou peça ao cliente via Link de Autorização).",
+          requires_oauth: true,
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
+    console.log("instagram-spy-sync token source:", tokenSource);
 
     // Buscar competidores
     let query = admin.from("instagram_competitors").select("*").eq("is_active", true);
