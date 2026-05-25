@@ -1199,8 +1199,8 @@ export default function ConsultarCliente() {
 
         {/* Quick Edit Dialog */}
         <Dialog open={!!editingCliente} onOpenChange={() => setEditingCliente(null)}>
-          <DialogContent className="bg-card border-border max-w-md">
-            <DialogHeader>
+          <DialogContent className="bg-card border-border max-w-md w-[95vw] max-h-[90vh] flex flex-col p-0">
+            <DialogHeader className="p-6 pb-2 shrink-0">
               <DialogTitle className="text-foreground font-display flex items-center gap-2">
                 <Edit className="h-5 w-5 text-update" />
                 Editar Cliente
@@ -1209,7 +1209,7 @@ export default function ConsultarCliente() {
                 {editingCliente?.nome} — {editingCliente?.produto}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 mt-2">
+            <div className="space-y-4 px-6 pb-6 overflow-y-auto flex-1">
               <div className="space-y-2">
                 <Label className="text-foreground font-medium">E-mail</Label>
                 <Input
