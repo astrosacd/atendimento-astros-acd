@@ -87,6 +87,14 @@ function ProfilesTab() {
   async function startOAuth() {
     if (!editing?.id) { toast.error("Salve o perfil primeiro"); return; }
     if (!siteUrl) { toast.error("URL do site não configurada. Vá em Gateway → Configurações e defina a URL pública."); return; }
+
+    const oauthWindow = window.open("about:blank", "_blank");
+    if (!oauthWindow) {
+      toast.error("O navegador bloqueou a nova aba. Libere pop-ups para conectar com Facebook.");
+      return;
+    }
+
+    oauthWindow.document.write("<p style='font-family:system-ui;padding:24px'>Abrindo autorização do Facebook...</p>");
     setOauthLoading(true);
     try {
       const returnUrl = `${siteUrl}/instagram`;
@@ -94,9 +102,15 @@ function ProfilesTab() {
         body: { profile_id: editing.id, return_url: returnUrl, site_url: siteUrl },
       });
       if (error) throw error;
-      if (data?.auth_url) window.location.href = data.auth_url;
-      else toast.error("URL OAuth não retornada");
+      if (data?.auth_url) {
+        oauthWindow.location.href = data.auth_url;
+        toast.success("Autorização do Facebook aberta em nova aba.");
+      } else {
+        oauthWindow.close();
+        toast.error("URL OAuth não retornada");
+      }
     } catch (e: any) {
+      oauthWindow.close();
       toast.error("Erro OAuth: " + e.message);
     } finally {
       setOauthLoading(false);
