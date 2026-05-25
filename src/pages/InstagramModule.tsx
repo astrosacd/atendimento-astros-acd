@@ -276,7 +276,27 @@ const InstagramModule = () => {
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Módulo Instagram</h1>
               <p className="text-muted-foreground">Gerencie suas publicações, histórico e configurações.</p>
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                <span className="text-xs text-muted-foreground">Conformidade Meta:</span>
+                <a
+                  href="/instagram/privacidade"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border bg-card hover:bg-accent hover:text-accent-foreground transition-colors"
+                >
+                  📄 Política de Privacidade
+                </a>
+                <a
+                  href="/instagram/termos"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border bg-card hover:bg-accent hover:text-accent-foreground transition-colors"
+                >
+                  📜 Termos de Uso
+                </a>
+              </div>
             </div>
+
           </div>
 
           {effectiveCanManageTempAccess && (
