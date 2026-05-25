@@ -101,7 +101,8 @@ function todayInBrazil() {
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
-export function FilaLigacoesTab() {
+export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standalone" } = {}) {
+  const isStandalone = mode === "standalone";
   const [items, setItems] = useState<Agendada[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
@@ -112,6 +113,27 @@ export function FilaLigacoesTab() {
   const [syncing, setSyncing] = useState(false);
   const [confirmStart, setConfirmStart] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+
+  // Quando outra guia (standalone) estiver rodando a fila, bloqueamos esta.
+  const [remoteRunning, setRemoteRunning] = useState<boolean>(() => {
+    if (isStandalone) return false;
+    try { return !!localStorage.getItem(FILA_FLAG_KEY); } catch { return false; }
+  });
+  useEffect(() => {
+    if (isStandalone) return;
+    const sync = () => {
+      try { setRemoteRunning(!!localStorage.getItem(FILA_FLAG_KEY)); } catch {}
+    };
+    const onStorage = (e: StorageEvent) => { if (e.key === FILA_FLAG_KEY) sync(); };
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", sync);
+    const itv = window.setInterval(sync, 2000);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", sync);
+      window.clearInterval(itv);
+    };
+  }, [isStandalone]);
 
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterTipoD, setFilterTipoD] = useState<string>("todos");
