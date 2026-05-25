@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Users, RefreshCw, Trash2, Plus, FileText, Eye, Send, Copy, Download, Loader2, Beaker, CheckCircle2, XCircle, Settings as SettingsIcon, MessageSquare, Mail, KeyRound, Link2 } from "lucide-react";
@@ -66,6 +67,8 @@ function ProfilesTab() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<SocialProfile | null>(null);
   const [oauthLoading, setOauthLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<SocialProfile | null>(null);
+  const [disconnectOpen, setDisconnectOpen] = useState(false);
 
   const empty: Partial<SocialProfile> = {
     username: "", display_name: "", is_active: true,
@@ -130,7 +133,11 @@ function ProfilesTab() {
 
   async function disconnectOAuth() {
     if (!editing?.id) return;
-    if (!confirm("Desconectar OAuth deste perfil?")) return;
+    setDisconnectOpen(true);
+  }
+
+  async function confirmDisconnectOAuth() {
+    if (!editing?.id) return;
     await save.mutateAsync({
       id: editing.id,
       oauth_connected: false,
@@ -141,6 +148,7 @@ function ProfilesTab() {
       oauth_connected_at: null,
     } as any);
     setForm({ ...form, oauth_connected: false } as any);
+    setDisconnectOpen(false);
   }
 
   const oauthEnabled = !!cfg?.instagram_oauth_enabled;
@@ -200,7 +208,7 @@ function ProfilesTab() {
                   <Button size="icon" variant="ghost" title="Editar" onClick={() => openEdit(p)}>
                     <SettingsIcon className="h-4 w-4" />
                   </Button>
-                  <Button size="icon" variant="ghost" title="Excluir" className="text-destructive" onClick={() => { if (confirm(`Excluir @${p.username}?`)) del.mutate(p.id); }}>
+                  <Button size="icon" variant="ghost" title="Excluir" className="text-destructive" onClick={() => setDeleteTarget(p)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -303,6 +311,56 @@ function ProfilesTab() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <Trash2 className="h-5 w-5 text-destructive" />
+                Excluir perfil monitorado?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Você está prestes a excluir <span className="font-semibold text-foreground">@{deleteTarget?.username}</span>.
+                Todos os snapshots, posts coletados e relatórios vinculados a este perfil serão removidos permanentemente.
+                <br /><br />
+                Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  if (deleteTarget) del.mutate(deleteTarget.id);
+                  setDeleteTarget(null);
+                }}
+              >
+                Sim, excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={disconnectOpen} onOpenChange={setDisconnectOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5 text-amber-500" />
+                Desconectar OAuth?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                O token de acesso será removido e o perfil voltará a usar apenas dados públicos (business_discovery).
+                Insights privados (alcance, impressões, demografia) deixarão de ser coletados até reconectar.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDisconnectOAuth}>
+                Sim, desconectar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );

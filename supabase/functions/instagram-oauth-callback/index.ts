@@ -102,17 +102,42 @@ Deno.serve(async (req) => {
     const longToken = longJson.access_token || shortToken;
     const expiresIn = longJson.expires_in || 60 * 24 * 3600; // 60 dias default
 
-    // 3) Buscar páginas do usuário e o IG Business ID associado
-    const pagesRes = await fetch(`${GRAPH}/me/accounts?fields=id,name,instagram_business_account&access_token=${longToken}`);
+    // 3) Buscar o username do perfil-alvo no banco
+    const { data: targetProfile } = await admin
+      .from("social_media_client_profiles")
+      .select("username")
+      .eq("id", profileId)
+      .maybeSingle();
+    if (!targetProfile) throw new Error("Perfil não existe mais no sistema.");
+    const targetUsername = String(targetProfile.username || "").replace(/^@/, "").toLowerCase().trim();
+
+    // 4) Buscar páginas do usuário com IG vinculado (com username)
+    const pagesRes = await fetch(
+      `${GRAPH}/me/accounts?fields=id,name,instagram_business_account{id,username}&limit=100&access_token=${longToken}`
+    );
     const pagesJson = await pagesRes.json();
-    const pages = pagesJson.data || [];
-    const pageWithIG = pages.find((p: any) => p.instagram_business_account);
-    if (!pageWithIG) {
+    const pages = (pagesJson.data || []).filter((p: any) => p.instagram_business_account);
+    if (pages.length === 0) {
       throw new Error("Nenhuma conta Instagram Business vinculada às páginas do Facebook. Vincule no Business Manager primeiro.");
     }
 
-    const igBusinessId = pageWithIG.instagram_business_account.id;
-    const fbPageId = pageWithIG.id;
+    // 5) Encontrar a página cujo IG username bate com o perfil
+    const matched = pages.find((p: any) =>
+      String(p.instagram_business_account?.username || "").toLowerCase() === targetUsername
+    );
+    if (!matched) {
+      const available = pages
+        .map((p: any) => `@${p.instagram_business_account?.username || "?"}`)
+        .join(", ");
+      throw new Error(
+        `A conta do Instagram autorizada não corresponde a @${targetUsername}. ` +
+        `Você autorizou: ${available}. ` +
+        `Volte ao Facebook e selecione a página vinculada a @${targetUsername}, ou cadastre o perfil com o username correto.`
+      );
+    }
+
+    const igBusinessId = matched.instagram_business_account.id;
+    const fbPageId = matched.id;
     const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
     // 4) Salvar no perfil
