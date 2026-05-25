@@ -16,8 +16,11 @@ import {
 import {
   Play, Pause, RefreshCw, Loader2, PhoneCall, CheckCircle2, XCircle,
   Clock, PhoneOff, Search, User, UserCheck, PhoneMissed, PhoneIncoming, AlertTriangle,
-  Trash2, Megaphone, Bot,
+  Trash2, Megaphone, Bot, ExternalLink,
 } from "lucide-react";
+
+const FILA_FLAG_KEY = "ligacoes_fila_executando";
+const FILA_STANDALONE_PATH = "/ligacoes-ia/fila-executando";
 import { placeCallWithTTS, type ActiveCallHandle } from "@/lib/wavoipCall";
 
 type Agendada = {
