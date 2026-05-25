@@ -681,17 +681,17 @@ function ConfigTab() {
           <div className={!form.instagram_oauth_enabled ? "opacity-50 pointer-events-none" : ""}>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Facebook App ID</Label>
-                <Input value={form.instagram_app_id || ""} onChange={(e) => setForm({ ...form, instagram_app_id: e.target.value })} placeholder="123456789012345" />
+                <Label>Facebook App ID principal</Label>
+                <Input value={form.instagram_app_id || ""} onChange={(e) => setForm({ ...form, instagram_app_id: e.target.value.trim() })} placeholder="4068264376835462" />
               </div>
               <div>
-                <Label>Facebook App Secret</Label>
-                <Input type="password" value={form.instagram_app_secret || ""} onChange={(e) => setForm({ ...form, instagram_app_secret: e.target.value })} placeholder="••••••••••••" />
+                <Label>Facebook App Secret do mesmo app</Label>
+                <Input type="password" value={form.instagram_app_secret || ""} onChange={(e) => setForm({ ...form, instagram_app_secret: e.target.value.trim() })} placeholder="••••••••••••" />
               </div>
             </div>
             <div className="mt-3 rounded-md border border-purple-200 dark:border-purple-900 bg-purple-50/50 dark:bg-purple-950/20 p-3 space-y-2">
               <p className="text-[11px] font-medium text-purple-900 dark:text-purple-200">
-                Configure no Facebook Developers → Facebook Login → Settings → <strong>Valid OAuth Redirect URIs</strong>:
+                Use o App ID/Secret do app principal do Facebook; não use o App ID do produto/app filho Instagram. Depois configure Facebook Developers → Facebook Login → Settings → <strong>Valid OAuth Redirect URIs</strong>:
               </p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 text-[11px] bg-background border rounded px-2 py-1.5 break-all">
