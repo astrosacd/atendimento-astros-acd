@@ -445,15 +445,21 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
               <Trash2 className="h-4 w-4 mr-1" /> Limpar fila de hoje
             </Button>
 
-            {/* Aba normal: só oferece abrir em nova guia (sem rodar aqui) */}
-            {!isStandalone && !remoteRunning && (
+            {/* Aba normal: só oferece abrir em nova guia (sem rodar aqui).
+                Bloqueado por permissão — só quem tem execute_ligacoes_fila dispara. */}
+            {!isStandalone && !remoteRunning && canExecute && (
               <Button
-                onClick={() => window.open(FILA_STANDALONE_PATH, "_blank", "noopener")}
+                onClick={openFilaTab}
                 disabled={pendentes.length === 0}
               >
                 <ExternalLink className="h-4 w-4 mr-1" />
                 {finalizadas + falhadas > 0 ? "Retomar fila em nova guia" : "Abrir fila em nova guia"}
               </Button>
+            )}
+            {!isStandalone && !remoteRunning && !canExecute && pendentes.length > 0 && (
+              <div className="text-xs text-muted-foreground self-center">
+                🔒 Sem permissão para disparar a fila
+              </div>
             )}
 
             {/* Guia standalone: controles reais da fila em execução */}
