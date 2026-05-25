@@ -311,6 +311,56 @@ function ProfilesTab() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <Trash2 className="h-5 w-5 text-destructive" />
+                Excluir perfil monitorado?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Você está prestes a excluir <span className="font-semibold text-foreground">@{deleteTarget?.username}</span>.
+                Todos os snapshots, posts coletados e relatórios vinculados a este perfil serão removidos permanentemente.
+                <br /><br />
+                Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  if (deleteTarget) del.mutate(deleteTarget.id);
+                  setDeleteTarget(null);
+                }}
+              >
+                Sim, excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={disconnectOpen} onOpenChange={setDisconnectOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5 text-amber-500" />
+                Desconectar OAuth?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                O token de acesso será removido e o perfil voltará a usar apenas dados públicos (business_discovery).
+                Insights privados (alcance, impressões, demografia) deixarão de ser coletados até reconectar.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDisconnectOAuth}>
+                Sim, desconectar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );
