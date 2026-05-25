@@ -316,34 +316,68 @@ function ProfilesTab() {
           </DialogContent>
         </Dialog>
 
-        <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        {(() => {
+          const oauthCount = profiles.filter((x: any) => x.oauth_connected).length;
+          const isPrimaryOAuth = !!(deleteTarget as any)?.oauth_connected && oauthCount <= 1;
+          return (
+        <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) { setDeleteTarget(null); setDeleteConfirmText(""); } }}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle className="flex items-center gap-2">
                 <Trash2 className="h-5 w-5 text-destructive" />
-                Excluir perfil monitorado?
+                {isPrimaryOAuth ? "⚠️ Atenção: perfil principal OAuth" : "Excluir perfil monitorado?"}
               </AlertDialogTitle>
-              <AlertDialogDescription>
-                Você está prestes a excluir <span className="font-semibold text-foreground">@{deleteTarget?.username}</span>.
-                Todos os snapshots, posts coletados e relatórios vinculados a este perfil serão removidos permanentemente.
-                <br /><br />
-                Esta ação não pode ser desfeita.
+              <AlertDialogDescription asChild>
+                <div className="space-y-3">
+                  {isPrimaryOAuth && (
+                    <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-foreground">
+                      <p className="font-semibold text-destructive mb-1">Este é o único perfil conectado via OAuth do sistema.</p>
+                      <p>Ele é usado como <strong>token principal</strong> para:</p>
+                      <ul className="list-disc pl-5 mt-1 space-y-0.5">
+                        <li>Sincronizar concorrentes no módulo <strong>Espionagem</strong></li>
+                        <li>Permitir cron automático de coleta</li>
+                        <li>Servir de fallback quando outros clientes ainda não autorizaram</li>
+                      </ul>
+                      <p className="mt-2">Se excluir, a <strong>Espionagem deixará de funcionar</strong> até você conectar outro perfil via OAuth.</p>
+                    </div>
+                  )}
+                  <p>
+                    Você está prestes a excluir <span className="font-semibold text-foreground">@{deleteTarget?.username}</span>.
+                    Todos os snapshots, posts e relatórios vinculados serão removidos permanentemente.
+                  </p>
+                  {isPrimaryOAuth && (
+                    <div>
+                      <Label className="text-xs">Para confirmar, digite <code className="px-1 py-0.5 rounded bg-muted text-foreground">EXCLUIR</code> abaixo:</Label>
+                      <Input
+                        value={deleteConfirmText}
+                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                        placeholder="EXCLUIR"
+                        className="mt-1"
+                        autoFocus
+                      />
+                    </div>
+                  )}
+                </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogCancel onClick={() => setDeleteConfirmText("")}>Cancelar</AlertDialogCancel>
               <AlertDialogAction
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={isPrimaryOAuth && deleteConfirmText.trim() !== "EXCLUIR"}
                 onClick={() => {
                   if (deleteTarget) del.mutate(deleteTarget.id);
                   setDeleteTarget(null);
+                  setDeleteConfirmText("");
                 }}
               >
-                Sim, excluir
+                {isPrimaryOAuth ? "Excluir mesmo assim" : "Sim, excluir"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+          );
+        })()}
 
         <AlertDialog open={disconnectOpen} onOpenChange={setDisconnectOpen}>
           <AlertDialogContent>
