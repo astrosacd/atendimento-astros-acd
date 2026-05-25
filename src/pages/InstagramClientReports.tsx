@@ -67,6 +67,8 @@ function ProfilesTab() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<SocialProfile | null>(null);
   const [oauthLoading, setOauthLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<SocialProfile | null>(null);
+  const [disconnectOpen, setDisconnectOpen] = useState(false);
 
   const empty: Partial<SocialProfile> = {
     username: "", display_name: "", is_active: true,
