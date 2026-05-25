@@ -263,7 +263,7 @@ function CompetitorsTab() {
         </div>
       </CardHeader>
       <CardContent>
-        {!hasOAuth && (
+        {!loadingOAuth && hasOAuth === false && (
           <div className="mb-4 rounded-lg border-2 border-amber-500/30 bg-amber-500/5 p-4">
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
