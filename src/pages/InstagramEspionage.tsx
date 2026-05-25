@@ -253,7 +253,7 @@ function CompetitorsTab() {
           </CardDescription>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={syncAll} disabled={syncingAll || competitors.length === 0 || !hasOAuth}>
+          <Button variant="outline" size="sm" onClick={syncAll} disabled={syncingAll || competitors.length === 0 || loadingOAuth || !hasOAuth}>
             {syncingAll ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
             Sincronizar todos
           </Button>
