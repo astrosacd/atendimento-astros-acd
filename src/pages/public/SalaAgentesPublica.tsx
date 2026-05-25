@@ -18,20 +18,10 @@ export default function SalaAgentesPublica() {
 
       try {
         const { data, error } = await supabase
-          .from('shared_access_tokens')
-          .select('*')
-          .eq('token', token)
-          .single();
+          .rpc('validate_shared_access_token', { p_token: token });
 
-        if (error || !data) {
-          setStatus('unauthorized');
-          return;
-        }
-
-        const now = new Date();
-        const expiresAt = new Date(data.expires_at);
-
-        if (now > expiresAt) {
+        const row = Array.isArray(data) ? data[0] : null;
+        if (error || !row || !row.valid) {
           setStatus('unauthorized');
           return;
         }

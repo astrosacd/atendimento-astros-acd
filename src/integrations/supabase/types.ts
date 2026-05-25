@@ -8625,6 +8625,14 @@ export type Database = {
         }[]
       }
       validate_payment_link_token: { Args: { p_token: string }; Returns: Json }
+      validate_shared_access_token: {
+        Args: { p_token: string }
+        Returns: {
+          expires_at: string
+          target_url: string
+          valid: boolean
+        }[]
+      }
       validate_sms_share_token: { Args: { p_token: string }; Returns: Json }
       verify_email_exists: { Args: { p_email: string }; Returns: boolean }
       verify_proposal_password: {
