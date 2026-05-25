@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
       .select("competitor_id, media_type, media_product_type, caption, permalink, like_count, comments_count, views_count, hashtags, posted_at, instagram_competitors!inner(username, display_name, category)")
       .gte("posted_at", since)
       .order("posted_at", { ascending: false })
-      .limit(500);
+      .limit(150);
 
     if (competitorId) postsQuery = postsQuery.eq("competitor_id", competitorId);
 
