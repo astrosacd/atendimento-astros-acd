@@ -164,12 +164,29 @@ Deno.serve(async (req) => {
     }
 
     const aiJson = await aiRes.json();
-    const content = aiJson.choices?.[0]?.message?.content;
+    let content = aiJson.choices?.[0]?.message?.content;
+    if (!content || typeof content !== "string" || !content.trim()) {
+      console.error("AI returned empty content:", JSON.stringify(aiJson).slice(0, 500));
+      throw new Error("IA retornou resposta vazia. Tente novamente.");
+    }
+    // Strip ```json fences if present
+    content = content.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
     let parsed: any;
     try {
       parsed = JSON.parse(content);
     } catch {
-      throw new Error("IA retornou JSON inválido");
+      // Try to extract first {...} block
+      const match = content.match(/\{[\s\S]*\}/);
+      if (match) {
+        try { parsed = JSON.parse(match[0]); } catch { /* fallthrough */ }
+      }
+      if (!parsed) {
+        console.error("Failed to parse AI content:", content.slice(0, 500));
+        throw new Error("IA retornou JSON inválido");
+      }
+    }
+    if (!parsed || typeof parsed !== "object" || Object.keys(parsed).length === 0) {
+      throw new Error("IA retornou conteúdo vazio");
     }
 
     const { data: saved, error: sErr } = await admin
