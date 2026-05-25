@@ -157,30 +157,9 @@ serve(async (req) => {
       });
     }
 
-    // 2) Renovação: SEMPRE avança 1 ciclo a partir da data_renovacao existente,
-    //    independente de estar vencida hoje, atrasada ou antecipada.
     const cliente: any = payment.cliente;
 
-    if (cliente?.id && cliente?.cobranca_ativa !== false && cliente?.data_renovacao && cliente?.ciclo_cobranca) {
-      const venc = new Date(cliente.data_renovacao);
-      venc.setHours(0, 0, 0, 0);
-      const months = CYCLE_MONTHS[cliente.ciclo_cobranca] || 1;
-      const renewalDate = new Date(venc);
-      renewalDate.setMonth(renewalDate.getMonth() + months);
-      const newRenewalDate = renewalDate.toISOString().split("T")[0];
-
-      await supabase
-        .from("clientes")
-        .update({ data_renovacao: newRenewalDate })
-        .eq("id", cliente.id);
-
-      console.log(`[approve-pixpague] Renovação (cliente ${cliente.id}): ${cliente.data_renovacao} → ${newRenewalDate}`);
-    }
-
-    // 2.1) SACADA 2: Auto-cancelar TODAS as outras cobranças pendentes do cliente
-    // (D-3, D+1, D+2, D+15, D+30 etc). Uma vez aprovada uma forma de pagamento,
-    // as demais ficam sem efeito. data_renovacao já avançou 1 ciclo acima — o cron
-    // só vai gerar novas cobranças quando chegar a D-3 do novo vencimento.
+    // 2) Auto-cancelar TODAS as outras cobranças pendentes do cliente (D-3, D+1, etc.)
     if (cliente?.id) {
       try {
         const { data: cancelled, error: cancelErr } = await supabase
@@ -204,10 +183,11 @@ serve(async (req) => {
       }
     }
 
-    // 3) Send receipt — ONLY if it is a monthly client (cobranca_ativa !== false)
+    // 3) Enviar recibo ANTES de avançar data_renovacao, para que o cliente receba
+    //    EXATAMENTE a data de vencimento que foi cadastrada (sem o +1 ciclo).
     let receiptResult: any = null;
     let receiptError: string | null = null;
-    
+
     if (cliente?.id && cliente?.cobranca_ativa !== false) {
       try {
         const { data, error } = await supabase.functions.invoke("send-receipt", {
@@ -230,6 +210,26 @@ serve(async (req) => {
     } else {
       receiptError = "cliente_id ausente no pagamento";
     }
+
+    // 4) Renovação: APÓS o envio do recibo, avança 1 ciclo a partir da data_renovacao existente.
+    //    O cron só vai gerar novas cobranças quando chegar a D-3 do novo vencimento.
+    if (cliente?.id && cliente?.cobranca_ativa !== false && cliente?.data_renovacao && cliente?.ciclo_cobranca) {
+      const venc = new Date(cliente.data_renovacao);
+      venc.setHours(0, 0, 0, 0);
+      const months = CYCLE_MONTHS[cliente.ciclo_cobranca] || 1;
+      const renewalDate = new Date(venc);
+      renewalDate.setMonth(renewalDate.getMonth() + months);
+      const newRenewalDate = renewalDate.toISOString().split("T")[0];
+
+      await supabase
+        .from("clientes")
+        .update({ data_renovacao: newRenewalDate })
+        .eq("id", cliente.id);
+
+      console.log(`[approve-pixpague] Renovação (cliente ${cliente.id}): ${cliente.data_renovacao} → ${newRenewalDate}`);
+    }
+
+
 
     return new Response(
       JSON.stringify({
