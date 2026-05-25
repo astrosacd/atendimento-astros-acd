@@ -413,35 +413,68 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
             <div><span className="text-2xl font-bold text-destructive">{falhadas}</span> <span className="text-muted-foreground">falharam</span></div>
             <div className="text-muted-foreground self-center text-xs">Delay: <span className="font-medium text-foreground">{delayMinutes}min</span></div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={sincronizar} disabled={syncing || running}>
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" onClick={sincronizar} disabled={syncing || running || remoteRunning}>
               {syncing ? (
                 <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Sincronizando...</>
               ) : (
                 <><RefreshCw className="h-4 w-4 mr-1" /> Sincronizar</>
               )}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setConfirmClear(true)} disabled={syncing || running}>
+            <Button variant="outline" size="sm" onClick={() => setConfirmClear(true)} disabled={syncing || running || remoteRunning}>
               <Trash2 className="h-4 w-4 mr-1" /> Limpar fila de hoje
             </Button>
-            {!running ? (
-              <Button onClick={() => setConfirmStart(true)} disabled={pendentes.length === 0}>
-                <Play className="h-4 w-4 mr-1" /> {finalizadas + falhadas > 0 ? "Retomar fila" : "Iniciar fila"}
+
+            {/* Aba normal: só oferece abrir em nova guia (sem rodar aqui) */}
+            {!isStandalone && !remoteRunning && (
+              <Button
+                onClick={() => window.open(FILA_STANDALONE_PATH, "_blank", "noopener")}
+                disabled={pendentes.length === 0}
+              >
+                <ExternalLink className="h-4 w-4 mr-1" />
+                {finalizadas + falhadas > 0 ? "Retomar fila em nova guia" : "Abrir fila em nova guia"}
               </Button>
-            ) : (
-              <>
-                {pauseRef.current ? (
-                  <Button variant="outline" onClick={resume}><Play className="h-4 w-4 mr-1" /> Retomar</Button>
-                ) : (
-                  <Button variant="outline" onClick={pause}><Pause className="h-4 w-4 mr-1" /> Pausar</Button>
-                )}
-                <Button variant="destructive" onClick={stopAll}><PhoneOff className="h-4 w-4 mr-1" /> Parar tudo</Button>
-              </>
+            )}
+
+            {/* Guia standalone: controles reais da fila em execução */}
+            {isStandalone && (
+              !running ? (
+                <Button onClick={() => setConfirmStart(true)} disabled={pendentes.length === 0}>
+                  <Play className="h-4 w-4 mr-1" /> {finalizadas + falhadas > 0 ? "Retomar fila" : "Iniciar fila"}
+                </Button>
+              ) : (
+                <>
+                  {pauseRef.current ? (
+                    <Button variant="outline" onClick={resume}><Play className="h-4 w-4 mr-1" /> Retomar</Button>
+                  ) : (
+                    <Button variant="outline" onClick={pause}><Pause className="h-4 w-4 mr-1" /> Pausar</Button>
+                  )}
+                  <Button variant="destructive" onClick={stopAll}><PhoneOff className="h-4 w-4 mr-1" /> Parar tudo</Button>
+                </>
+              )
             )}
           </div>
         </div>
 
-        {running && (
+        {/* Aviso quando outra guia está executando */}
+        {!isStandalone && remoteRunning && (
+          <div className="mt-3 rounded-lg border border-fuchsia-500/40 bg-fuchsia-500/10 p-3 text-sm flex items-center gap-2 flex-wrap">
+            <Loader2 className="h-4 w-4 animate-spin text-fuchsia-500" />
+            <span>
+              <strong>Fila rodando em outra guia.</strong> Ações desta aba ficam bloqueadas até a fila terminar (evita ligação dupla).
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-auto"
+              onClick={() => window.open(FILA_STANDALONE_PATH, "_blank", "noopener")}
+            >
+              <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir a guia da fila
+            </Button>
+          </div>
+        )}
+
+        {running && isStandalone && (
           <div className="mt-3 rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/5 p-3 text-sm flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-fuchsia-500" />
             <span>{currentStatus}</span>
@@ -453,9 +486,10 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
           </div>
         )}
 
-        {!running && pendentes.length > 0 && finalizadas + falhadas > 0 && (
+        {!running && !remoteRunning && pendentes.length > 0 && finalizadas + falhadas > 0 && (
           <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm">
-            📞 Ainda faltam <strong>{pendentes.length}</strong> ligações a disparar hoje. Clique em <strong>Retomar fila</strong>.
+            📞 Ainda faltam <strong>{pendentes.length}</strong> ligações a disparar hoje.
+            {!isStandalone && <> Clique em <strong>Retomar fila em nova guia</strong>.</>}
           </div>
         )}
       </Card>
