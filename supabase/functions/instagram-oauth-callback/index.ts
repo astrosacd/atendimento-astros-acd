@@ -44,18 +44,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
-
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-    }
-    const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
-    const { data: claims } = await userClient.auth.getClaims(authHeader.replace("Bearer ", ""));
-    if (!claims?.claims) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-    const { data: role } = await admin.from("user_roles").select("role").eq("user_id", claims.claims.sub).eq("role", "admin").maybeSingle();
-    if (!role) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
 
     const body = await req.json();
     const code: string = body.code;
@@ -63,13 +52,22 @@ Deno.serve(async (req) => {
     const redirectUri: string = body.redirect_uri;
     if (!code || !state) throw new Error("code e state obrigatórios");
 
-    const parsed = JSON.parse(atob(state));
-    const profileId = parsed.profileId;
-    if (!profileId) throw new Error("state inválido");
-
     const { data: cfg } = await admin.from("social_media_report_config").select("*").limit(1).maybeSingle();
     if (!cfg?.instagram_oauth_enabled) throw new Error("OAuth desabilitado");
     if (!cfg?.instagram_app_id || !cfg?.instagram_app_secret) throw new Error("App credentials não configuradas");
+
+    const parsedState = JSON.parse(fromBase64Url(state));
+    const payload = parsedState?.payload;
+    const sig = parsedState?.sig;
+    if (!payload || !sig) throw new Error("state inválido");
+    const expectedSig = await signPayload(payload, cfg.instagram_app_secret);
+    if (sig !== expectedSig) throw new Error("state inválido ou adulterado");
+    if (Date.now() - Number(payload.iat || 0) > 15 * 60 * 1000) throw new Error("state expirado. Clique em reconectar novamente.");
+    const profileId = payload.profileId;
+    if (!profileId) throw new Error("state inválido");
+
+    const { data: role } = await admin.from("user_roles").select("role").eq("user_id", payload.userId).eq("role", "admin").maybeSingle();
+    if (!role) return jsonResponse({ error: "Forbidden" }, 403);
 
     // 1) Trocar code por short-lived access_token
     const tokenRes = await fetch(
