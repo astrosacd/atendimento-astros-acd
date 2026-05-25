@@ -546,7 +546,7 @@ const InstagramModule = () => {
             Política de Privacidade
           </a>
           <a
-            href="/instagram/termos"
+            href={`${siteUrl || ''}/instagram/termos`}
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-primary underline underline-offset-4 transition-colors"
