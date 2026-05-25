@@ -1,10 +1,23 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
+
+async function getFunctionErrorMessage(error: unknown) {
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const body = await error.context.json();
+      return body?.error || body?.message || error.message;
+    } catch {
+      return error.message;
+    }
+  }
+  return error instanceof Error ? error.message : "Erro desconhecido ao conectar Instagram";
+}
 
 export default function InstagramOAuthCallback() {
   const [params] = useSearchParams();
@@ -45,7 +58,7 @@ export default function InstagramOAuthCallback() {
         }, 2500);
       } catch (e: any) {
         setStatus("error");
-        setMessage(e.message);
+        setMessage(await getFunctionErrorMessage(e));
       }
     })();
   }, [params]);
@@ -62,7 +75,7 @@ export default function InstagramOAuthCallback() {
           {status === "error" && <XCircle className="h-12 w-12 mx-auto text-destructive" />}
           <p className="text-sm">{message || "Processando..."}</p>
           {status === "error" && (
-            <Button onClick={() => navigate(returnUrl)}>Voltar</Button>
+            <Button onClick={() => window.location.href = returnUrl}>Voltar</Button>
           )}
         </CardContent>
       </Card>
