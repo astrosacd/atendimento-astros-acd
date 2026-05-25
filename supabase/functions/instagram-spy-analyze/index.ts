@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
         period_days: periodDays,
         content: parsed,
         posts_analyzed_count: posts.length,
-        model_used: "google/gemini-2.5-pro",
+        model_used: modelUsed,
         created_by: userId,
       })
       .select()
