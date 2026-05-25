@@ -126,7 +126,9 @@ Deno.serve(async (req) => {
     if (baseUrl.includes("id-preview--")) {
       throw new Error("Redirect URI aponta para a preview do editor (id-preview-*). Configure a URL pública publicada em Gateway → Configurações.");
     }
-    const redirectUri = `${baseUrl}/instagram/oauth-callback`;
+    const redirectUri = isPublicInvite
+      ? `${baseUrl}/autorizar-instagram/${inviteToken}`
+      : `${baseUrl}/instagram/oauth-callback`;
 
     const scopes = [
       "instagram_basic",
