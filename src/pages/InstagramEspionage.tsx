@@ -900,9 +900,74 @@ function PostsTab() {
           </div>
         )}
       </CardContent>
+
+      <Dialog open={!!selectedPost} onOpenChange={(o) => !o && setSelectedPost(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              @{selectedPost?.instagram_competitors?.username}
+              {selectedPost?.media_type === "VIDEO" && <Badge className="text-[10px] gap-1"><PlayCircle className="h-3 w-3" /> Reel</Badge>}
+              {selectedPost?.media_type === "CAROUSEL_ALBUM" && <Badge variant="secondary" className="text-[10px]">Carrossel</Badge>}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedPost?.posted_at && format(new Date(selectedPost.posted_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedPost && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="bg-muted rounded-lg overflow-hidden flex items-center justify-center">
+                {selectedPost.media_type === "VIDEO" && selectedPost.media_url ? (
+                  <video src={selectedPost.media_url} poster={selectedPost.thumbnail_url} controls className="w-full h-auto max-h-[70vh]" />
+                ) : selectedPost.thumbnail_url || selectedPost.media_url ? (
+                  <img src={selectedPost.thumbnail_url || selectedPost.media_url} alt="" className="w-full h-auto max-h-[70vh] object-contain" />
+                ) : (
+                  <div className="aspect-square w-full flex items-center justify-center">
+                    <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex gap-4 text-sm">
+                  <span className="flex items-center gap-1"><Heart className="h-4 w-4 text-red-500" /> <strong>{selectedPost.like_count ?? 0}</strong> curtidas</span>
+                  <span className="flex items-center gap-1"><MessageCircle className="h-4 w-4 text-blue-500" /> <strong>{selectedPost.comments_count ?? 0}</strong> comentários</span>
+                </div>
+
+                {selectedPost.caption && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">LEGENDA</p>
+                    <p className="text-sm whitespace-pre-wrap max-h-64 overflow-y-auto bg-muted/50 p-2 rounded">{selectedPost.caption}</p>
+                    <Button size="sm" variant="ghost" className="mt-1 h-7" onClick={() => {
+                      navigator.clipboard.writeText(selectedPost.caption);
+                      toast.success("Legenda copiada!");
+                    }}>Copiar legenda</Button>
+                  </div>
+                )}
+
+                {selectedPost.hashtags?.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">HASHTAGS</p>
+                    <p className="text-xs text-primary">{selectedPost.hashtags.join(" ")}</p>
+                  </div>
+                )}
+
+                {selectedPost.permalink && (
+                  <Button asChild variant="outline" className="w-full">
+                    <a href={selectedPost.permalink} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4 mr-2" /> Abrir no Instagram
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
+
 
 // ===========================================================
 // CONFIGURAÇÕES
