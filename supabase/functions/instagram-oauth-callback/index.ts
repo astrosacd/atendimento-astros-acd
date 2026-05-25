@@ -125,11 +125,14 @@ Deno.serve(async (req) => {
     if (!targetProfile) throw new Error("Perfil não existe mais no sistema.");
     const targetUsername = String(targetProfile.username || "").replace(/^@/, "").toLowerCase().trim();
 
-    // 4) Buscar páginas do usuário com IG vinculado (com username)
+    // 4) Buscar páginas do usuário com IG vinculado (incluindo o PAGE access_token)
     const pagesRes = await fetch(
-      `${GRAPH}/me/accounts?fields=id,name,instagram_business_account{id,username}&limit=100&access_token=${longToken}`
+      `${GRAPH}/me/accounts?fields=id,name,access_token,instagram_business_account{id,username}&limit=100&access_token=${longToken}`
     );
     const pagesJson = await pagesRes.json();
+    if (!pagesRes.ok || pagesJson.error) {
+      throw new Error("Erro ao listar páginas: " + (pagesJson?.error?.message || `HTTP ${pagesRes.status}`));
+    }
     const pages = (pagesJson.data || []).filter((p: any) => p.instagram_business_account);
     if (pages.length === 0) {
       throw new Error("Nenhuma conta Instagram Business vinculada às páginas do Facebook. Vincule no Business Manager primeiro.");
@@ -152,14 +155,18 @@ Deno.serve(async (req) => {
 
     const igBusinessId = matched.instagram_business_account.id;
     const fbPageId = matched.id;
+    // CRÍTICO: salvar o PAGE access token (não o user token).
+    // Business Discovery + IG Insights exigem page token. Page tokens derivados
+    // de long-lived user token não expiram, mas mantemos a janela de 60d.
+    const pageAccessToken = matched.access_token || longToken;
     const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
-    // 4) Salvar no perfil
+    // 6) Salvar no perfil
     const { data: updatedProfile, error: upErr } = await admin
       .from("social_media_client_profiles")
       .update({
         oauth_connected: true,
-        oauth_access_token: longToken,
+        oauth_access_token: pageAccessToken,
         oauth_token_expires_at: expiresAt,
         oauth_ig_business_id: igBusinessId,
         oauth_fb_page_id: fbPageId,
