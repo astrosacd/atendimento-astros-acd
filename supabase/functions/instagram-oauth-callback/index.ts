@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
     const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
     // 4) Salvar no perfil
-    const { error: upErr } = await admin
+    const { data: updatedProfile, error: upErr } = await admin
       .from("social_media_client_profiles")
       .update({
         oauth_connected: true,
@@ -126,9 +126,21 @@ Deno.serve(async (req) => {
         oauth_fb_page_id: fbPageId,
         oauth_connected_at: new Date().toISOString(),
       })
-      .eq("id", profileId);
+      .eq("id", profileId)
+      .select("id, username, oauth_connected, oauth_ig_business_id")
+      .maybeSingle();
 
     if (upErr) throw upErr;
+    if (!updatedProfile) {
+      throw new Error("OAuth autorizado pelo Facebook, mas o perfil selecionado não existe mais no sistema. Volte para Instagram → Perfis Monitorados e clique em Reconectar no perfil correto.");
+    }
+
+    console.log("instagram-oauth-callback saved", {
+      profileId: updatedProfile.id,
+      username: updatedProfile.username,
+      igBusinessId,
+      fbPageId,
+    });
 
     return new Response(JSON.stringify({
       success: true,
