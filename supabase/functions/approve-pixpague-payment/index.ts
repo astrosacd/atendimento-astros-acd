@@ -211,22 +211,30 @@ serve(async (req) => {
       receiptError = "cliente_id ausente no pagamento";
     }
 
-    // 4) Renovação: APÓS o envio do recibo, avança 1 ciclo a partir da data_renovacao existente.
-    //    O cron só vai gerar novas cobranças quando chegar a D-3 do novo vencimento.
+    // 4) Renovação:
+    //    - Se data_renovacao é FUTURA (cliente pagou adiantado, ex: cadastro novo) → MANTÉM a data.
+    //    - Se data_renovacao é HOJE ou PASSADA (pagou no vencimento ou atrasado) → avança +1 ciclo.
+    //    O cron gera novas cobranças quando chegar D-3 do próximo vencimento.
     if (cliente?.id && cliente?.cobranca_ativa !== false && cliente?.data_renovacao && cliente?.ciclo_cobranca) {
-      const venc = new Date(cliente.data_renovacao);
-      venc.setHours(0, 0, 0, 0);
-      const months = CYCLE_MONTHS[cliente.ciclo_cobranca] || 1;
-      const renewalDate = new Date(venc);
-      renewalDate.setMonth(renewalDate.getMonth() + months);
-      const newRenewalDate = renewalDate.toISOString().split("T")[0];
+      const venc = new Date(cliente.data_renovacao + "T00:00:00");
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
 
-      await supabase
-        .from("clientes")
-        .update({ data_renovacao: newRenewalDate })
-        .eq("id", cliente.id);
+      if (venc.getTime() > hoje.getTime()) {
+        console.log(`[approve-pixpague] Renovação MANTIDA (cliente ${cliente.id}): ${cliente.data_renovacao} (pagamento adiantado, vencimento futuro)`);
+      } else {
+        const months = CYCLE_MONTHS[cliente.ciclo_cobranca] || 1;
+        const renewalDate = new Date(venc);
+        renewalDate.setMonth(renewalDate.getMonth() + months);
+        const newRenewalDate = renewalDate.toISOString().split("T")[0];
 
-      console.log(`[approve-pixpague] Renovação (cliente ${cliente.id}): ${cliente.data_renovacao} → ${newRenewalDate}`);
+        await supabase
+          .from("clientes")
+          .update({ data_renovacao: newRenewalDate })
+          .eq("id", cliente.id);
+
+        console.log(`[approve-pixpague] Renovação AVANÇADA (cliente ${cliente.id}): ${cliente.data_renovacao} → ${newRenewalDate}`);
+      }
     }
 
 
