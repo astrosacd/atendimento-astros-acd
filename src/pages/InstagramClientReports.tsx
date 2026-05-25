@@ -365,6 +365,8 @@ function ProfilesTab() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <InviteLinkDialog profile={inviteTarget} onClose={() => setInviteTarget(null)} siteUrl={siteUrl} />
       </CardContent>
     </Card>
   );
