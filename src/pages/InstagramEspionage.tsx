@@ -227,6 +227,20 @@ function CompetitorsTab() {
     }
   };
 
+  // Detecta se há ao menos 1 perfil OAuth conectado (necessário para Business Discovery)
+  const { data: hasOAuth } = useQuery({
+    queryKey: ["ig-has-oauth-token"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("social_media_client_profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("oauth_connected", true)
+        .not("oauth_access_token", "is", null)
+        .gt("oauth_token_expires_at", new Date().toISOString());
+      return (count || 0) > 0;
+    },
+  });
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -239,7 +253,7 @@ function CompetitorsTab() {
           </CardDescription>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={syncAll} disabled={syncingAll || competitors.length === 0}>
+          <Button variant="outline" size="sm" onClick={syncAll} disabled={syncingAll || competitors.length === 0 || !hasOAuth}>
             {syncingAll ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
             Sincronizar todos
           </Button>
@@ -249,6 +263,23 @@ function CompetitorsTab() {
         </div>
       </CardHeader>
       <CardContent>
+        {!hasOAuth && (
+          <div className="mb-4 rounded-lg border-2 border-amber-500/30 bg-amber-500/5 p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+              <div className="flex-1 space-y-2">
+                <p className="text-sm font-semibold">Token Instagram necessário para Espionagem</p>
+                <p className="text-xs text-muted-foreground">
+                  A API Business Discovery exige ao menos <strong>1 perfil OAuth conectado</strong> no sistema (o token desse perfil é usado para consultar concorrentes públicos).
+                  Vá em <strong>Instagram → Perfis Monitorados</strong> e conecte um perfil (ou envie um link de autorização para um cliente).
+                </p>
+                <Button size="sm" variant="outline" asChild>
+                  <a href="/instagram">Ir para Perfis Monitorados →</a>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
         {isLoading ? (
           <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
         ) : competitors.length === 0 ? (
