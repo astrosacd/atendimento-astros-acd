@@ -15,6 +15,13 @@ const jsonResponse = (body: Record<string, unknown>, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+function facebookErrorMessage(message: string, appId?: string) {
+  if (message.toLowerCase().includes("validating client secret")) {
+    return `Facebook App Secret inválido para o App ID ${appId || "configurado"}. Copie o App Secret do app principal no Facebook Developers → Configurações → Básico e salve novamente.`;
+  }
+  return message;
+}
+
 const toBase64Url = (bytes: Uint8Array) =>
   btoa(String.fromCharCode(...bytes))
     .replace(/\+/g, "-")
@@ -79,7 +86,8 @@ Deno.serve(async (req) => {
     );
     const tokenJson = await tokenRes.json();
     if (!tokenRes.ok || tokenJson.error) {
-      throw new Error("Erro ao trocar code: " + (tokenJson?.error?.message || tokenRes.status));
+      const message = facebookErrorMessage(tokenJson?.error?.message || String(tokenRes.status), cfg.instagram_app_id);
+      throw new Error("Erro ao trocar code: " + message);
     }
     const shortToken = tokenJson.access_token;
 
