@@ -22,6 +22,23 @@ const toBase64Url = (bytes: Uint8Array) =>
 const encodeState = (value: unknown) =>
   toBase64Url(new TextEncoder().encode(JSON.stringify(value)));
 
+async function assertFacebookAppCredentials(appId: string, appSecret: string) {
+  const res = await fetch(
+    `https://graph.facebook.com/v23.0/oauth/access_token?` +
+    `client_id=${encodeURIComponent(appId)}` +
+    `&client_secret=${encodeURIComponent(appSecret)}` +
+    `&grant_type=client_credentials`,
+  );
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.error) {
+    const message = json?.error?.message || `Facebook retornou HTTP ${res.status}`;
+    if (message.toLowerCase().includes("validating client secret")) {
+      throw new Error(`Facebook App Secret inválido para o App ID ${appId}. Copie o App Secret do app principal no Facebook Developers → Configurações → Básico e salve novamente.`);
+    }
+    throw new Error(`Credenciais do Facebook inválidas: ${message}`);
+  }
+}
+
 async function signPayload(payload: Record<string, unknown>, secret: string) {
   const key = await crypto.subtle.importKey(
     "raw",
@@ -63,6 +80,7 @@ Deno.serve(async (req) => {
     if (!cfg?.instagram_oauth_enabled) throw new Error("OAuth Instagram desabilitado nas Configurações");
     if (!cfg?.instagram_app_id) throw new Error("Facebook App ID não configurado");
     if (!cfg?.instagram_app_secret) throw new Error("Facebook App Secret não configurado");
+    await assertFacebookAppCredentials(String(cfg.instagram_app_id).trim(), String(cfg.instagram_app_secret).trim());
 
     // state assinado: permite a callback em nova aba sem depender da sessão localStorage da aplicação.
     const nonce = crypto.randomUUID();
