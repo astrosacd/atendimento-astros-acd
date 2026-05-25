@@ -68,6 +68,7 @@ function ProfilesTab() {
   const [editing, setEditing] = useState<SocialProfile | null>(null);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<SocialProfile | null>(null);
+  const [inviteTarget, setInviteTarget] = useState<SocialProfile | null>(null);
   const [disconnectOpen, setDisconnectOpen] = useState(false);
 
   const empty: Partial<SocialProfile> = {
@@ -204,6 +205,9 @@ function ProfilesTab() {
                 <div className="flex gap-1">
                   <Button size="icon" variant="ghost" title="Sincronizar agora" onClick={() => sync.mutate({ profile_id: p.id })} disabled={sync.isPending}>
                     <RefreshCw className="h-4 w-4" />
+                  </Button>
+                  <Button size="icon" variant="ghost" title="Gerar link de autorização (cliente)" onClick={() => setInviteTarget(p)}>
+                    <Send className="h-4 w-4" />
                   </Button>
                   <Button size="icon" variant="ghost" title="Editar" onClick={() => openEdit(p)}>
                     <SettingsIcon className="h-4 w-4" />
@@ -361,6 +365,8 @@ function ProfilesTab() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <InviteLinkDialog profile={inviteTarget} onClose={() => setInviteTarget(null)} siteUrl={siteUrl} />
       </CardContent>
     </Card>
   );
@@ -868,5 +874,179 @@ function TestRow({ label, result }: { label: string; result: any }) {
         {result.instance && <p className="text-xs text-muted-foreground">Instância: {result.instance}</p>}
       </div>
     </div>
+  );
+}
+
+/* ============================================
+   Invite Link Dialog (rastreio de cliente)
+   ============================================ */
+function InviteLinkDialog({ profile, onClose, siteUrl }: { profile: SocialProfile | null; onClose: () => void; siteUrl: string }) {
+  const [loading, setLoading] = useState(false);
+  const [link, setLink] = useState<string | null>(null);
+  const [invites, setInvites] = useState<any[]>([]);
+  const [loadingList, setLoadingList] = useState(false);
+
+  useEffect(() => {
+    if (!profile) {
+      setLink(null);
+      setInvites([]);
+      return;
+    }
+    (async () => {
+      setLoadingList(true);
+      const { data } = await supabase
+        .from("instagram_oauth_invites")
+        .select("id, token, status, created_at, expires_at, used_at, used_by_ig_username")
+        .eq("profile_id", profile.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      setInvites(data || []);
+      setLoadingList(false);
+    })();
+  }, [profile]);
+
+  async function generate() {
+    if (!profile) return;
+    if (!siteUrl) {
+      toast.error("URL do site não configurada. Defina em Gateway → Configurações.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase
+        .from("instagram_oauth_invites")
+        .insert({
+          profile_id: profile.id,
+          created_by: user?.id,
+          status: "pending",
+        })
+        .select("token")
+        .single();
+      if (error) throw error;
+      const url = `${siteUrl}/autorizar-instagram/${data.token}`;
+      setLink(url);
+      // refresh list
+      const { data: list } = await supabase
+        .from("instagram_oauth_invites")
+        .select("id, token, status, created_at, expires_at, used_at, used_by_ig_username")
+        .eq("profile_id", profile.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      setInvites(list || []);
+      toast.success("Link de autorização gerado!");
+    } catch (e: any) {
+      toast.error("Erro ao gerar link: " + e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function buildWhatsappMsg(url: string) {
+    return `Olá! Para gerar seu relatório mensal do Instagram automaticamente, preciso de uma autorização rápida (1 clique, sem senha). Acesse: ${url}`;
+  }
+
+  async function copyLink(url: string) {
+    const ok = await copyToClipboard(url);
+    if (ok) toast.success("Link copiado!");
+  }
+
+  async function copyMsg(url: string) {
+    const ok = await copyToClipboard(buildWhatsappMsg(url));
+    if (ok) toast.success("Mensagem copiada!");
+  }
+
+  function openWhatsapp(url: string) {
+    const phone = (profile?.whatsapp_number || "").replace(/\D/g, "");
+    const text = encodeURIComponent(buildWhatsappMsg(url));
+    const waUrl = phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+    window.open(waUrl, "_blank");
+  }
+
+  const statusBadge = (s: string) => {
+    if (s === "completed") return <Badge className="bg-emerald-600 text-[10px]">Autorizado</Badge>;
+    if (s === "expired") return <Badge variant="secondary" className="text-[10px]">Expirado</Badge>;
+    if (s === "revoked") return <Badge variant="destructive" className="text-[10px]">Revogado</Badge>;
+    return <Badge variant="outline" className="text-[10px]">Pendente</Badge>;
+  };
+
+  return (
+    <Dialog open={!!profile} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Send className="h-5 w-5 text-purple-600" />
+            Link de autorização para o cliente
+          </DialogTitle>
+          <DialogDescription>
+            Gere um link público que o cliente abre, autoriza com o Facebook DELE, e conecta automaticamente o perfil
+            <span className="font-semibold"> @{profile?.username}</span>.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 py-2">
+          {!link ? (
+            <Button onClick={generate} disabled={loading} className="w-full">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <KeyRound className="h-4 w-4 mr-2" />}
+              Gerar novo link (válido por 7 dias)
+            </Button>
+          ) : (
+            <div className="space-y-3 rounded-lg border-2 border-purple-500/20 bg-purple-500/5 p-3">
+              <div>
+                <Label className="text-xs">Link gerado:</Label>
+                <Input value={link} readOnly className="font-mono text-xs mt-1" onFocus={(e) => e.target.select()} />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Button size="sm" variant="outline" onClick={() => copyLink(link)}>
+                  <Copy className="h-3.5 w-3.5 mr-1" /> Link
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => copyMsg(link)}>
+                  <Copy className="h-3.5 w-3.5 mr-1" /> Texto
+                </Button>
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => openWhatsapp(link)}>
+                  <MessageSquare className="h-3.5 w-3.5 mr-1" /> WhatsApp
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Mensagem sugerida: "{buildWhatsappMsg(link)}"
+              </p>
+            </div>
+          )}
+
+          <div>
+            <p className="text-xs font-semibold mb-2 text-muted-foreground">Histórico de convites</p>
+            {loadingList ? (
+              <div className="py-4 text-center"><Loader2 className="h-4 w-4 animate-spin mx-auto" /></div>
+            ) : invites.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic py-2">Nenhum convite gerado ainda.</p>
+            ) : (
+              <div className="space-y-1">
+                {invites.map((inv) => (
+                  <div key={inv.id} className="flex items-center justify-between gap-2 p-2 rounded border text-xs">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      {statusBadge(inv.status)}
+                      <span className="text-muted-foreground truncate">
+                        {format(new Date(inv.created_at), "dd/MM HH:mm", { locale: ptBR })}
+                        {inv.used_at && ` · usado ${format(new Date(inv.used_at), "dd/MM HH:mm", { locale: ptBR })}`}
+                        {inv.used_by_ig_username && ` por @${inv.used_by_ig_username}`}
+                      </span>
+                    </div>
+                    {inv.status === "pending" && new Date(inv.expires_at) > new Date() && (
+                      <Button size="sm" variant="ghost" className="h-7" onClick={() => copyLink(`${siteUrl}/autorizar-instagram/${inv.token}`)}>
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

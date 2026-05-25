@@ -4596,6 +4596,56 @@ export type Database = {
         }
         Relationships: []
       }
+      instagram_oauth_invites: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          message: string | null
+          profile_id: string
+          status: string
+          token: string
+          used_at: string | null
+          used_by_fb_user_id: string | null
+          used_by_ig_username: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          message?: string | null
+          profile_id: string
+          status?: string
+          token?: string
+          used_at?: string | null
+          used_by_fb_user_id?: string | null
+          used_by_ig_username?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          message?: string | null
+          profile_id?: string
+          status?: string
+          token?: string
+          used_at?: string | null
+          used_by_fb_user_id?: string | null
+          used_by_ig_username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_oauth_invites_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "social_media_client_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_settings: {
         Row: {
           access_token: string | null
@@ -8615,6 +8665,10 @@ export type Database = {
       update_reports_analysis_cron: {
         Args: { p_frequency: string }
         Returns: boolean
+      }
+      validate_instagram_invite_token: {
+        Args: { p_token: string }
+        Returns: Json
       }
       validate_password_reset_token: {
         Args: { p_token: string }

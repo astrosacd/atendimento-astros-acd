@@ -60,20 +60,41 @@ Deno.serve(async (req) => {
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-    }
-    const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
-    const { data: claims } = await userClient.auth.getClaims(authHeader.replace("Bearer ", ""));
-    if (!claims?.claims) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-    const userId = claims.claims.sub;
-    const { data: role } = await admin.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
-    if (!role) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
-
     const body = await req.json();
-    const profileId: string = body.profile_id;
+    const profileIdInput: string | undefined = body.profile_id;
     const returnUrl: string = body.return_url || "";
+    const inviteToken: string | undefined = body.invite_token;
+
+    let profileId: string | undefined = profileIdInput;
+    let userId: string | null = null;
+    let isPublicInvite = false;
+
+    if (inviteToken) {
+      // Fluxo público (cliente clicou no link enviado pelo WhatsApp). Sem header de auth.
+      const { data: invite, error: invErr } = await admin
+        .from("instagram_oauth_invites")
+        .select("id, profile_id, status, expires_at")
+        .eq("token", inviteToken)
+        .maybeSingle();
+      if (invErr || !invite) throw new Error("Link de autorização inválido ou expirado.");
+      if (new Date(invite.expires_at) < new Date()) throw new Error("Link de autorização expirado. Solicite um novo.");
+      if (invite.status === "completed") throw new Error("Este link já foi usado.");
+      profileId = invite.profile_id;
+      isPublicInvite = true;
+    } else {
+      // Fluxo interno (admin do sistema)
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+      }
+      const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+      const { data: claims } = await userClient.auth.getClaims(authHeader.replace("Bearer ", ""));
+      if (!claims?.claims) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+      userId = claims.claims.sub;
+      const { data: role } = await admin.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
+      if (!role) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
+    }
+
     if (!profileId) throw new Error("profile_id obrigatório");
 
     const { data: cfg } = await admin.from("social_media_report_config").select("*").limit(1).maybeSingle();
@@ -84,7 +105,7 @@ Deno.serve(async (req) => {
 
     // state assinado: permite a callback em nova aba sem depender da sessão localStorage da aplicação.
     const nonce = crypto.randomUUID();
-    const payload = { profileId, userId, returnUrl, nonce, iat: Date.now() };
+    const payload = { profileId, userId, returnUrl, nonce, iat: Date.now(), publicInvite: isPublicInvite, inviteToken: isPublicInvite ? inviteToken : undefined };
     const state = encodeState({ payload, sig: await signPayload(payload, cfg.instagram_app_secret) });
 
     // Resolver site URL: prioridade = body.site_url > gateway_settings.site_base_url > returnUrl origin
@@ -105,7 +126,9 @@ Deno.serve(async (req) => {
     if (baseUrl.includes("id-preview--")) {
       throw new Error("Redirect URI aponta para a preview do editor (id-preview-*). Configure a URL pública publicada em Gateway → Configurações.");
     }
-    const redirectUri = `${baseUrl}/instagram/oauth-callback`;
+    const redirectUri = isPublicInvite
+      ? `${baseUrl}/autorizar-instagram/${inviteToken}`
+      : `${baseUrl}/instagram/oauth-callback`;
 
     const scopes = [
       "instagram_basic",
