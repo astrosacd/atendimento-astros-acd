@@ -208,7 +208,7 @@ function ProfilesTab() {
                   <Button size="icon" variant="ghost" title="Editar" onClick={() => openEdit(p)}>
                     <SettingsIcon className="h-4 w-4" />
                   </Button>
-                  <Button size="icon" variant="ghost" title="Excluir" className="text-destructive" onClick={() => { if (confirm(`Excluir @${p.username}?`)) del.mutate(p.id); }}>
+                  <Button size="icon" variant="ghost" title="Excluir" className="text-destructive" onClick={() => setDeleteTarget(p)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
