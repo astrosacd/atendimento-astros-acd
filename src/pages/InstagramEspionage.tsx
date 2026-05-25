@@ -791,6 +791,8 @@ function SugestoesView({ content }: { content: any }) {
 // POSTS COLETADOS
 // ===========================================================
 function PostsTab() {
+  const [selectedPost, setSelectedPost] = useState<any>(null);
+
   const [filterCompetitor, setFilterCompetitor] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("posted_at");
