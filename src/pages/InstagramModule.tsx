@@ -538,7 +538,7 @@ const InstagramModule = () => {
         <div className="mt-8 pt-6 border-t border-border/40 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
           <span className="text-xs">Conformidade Meta / Instagram:</span>
           <a
-            href="/instagram/privacidade"
+            href={`${siteUrl || ''}/instagram/privacidade`}
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-primary underline underline-offset-4 transition-colors"
