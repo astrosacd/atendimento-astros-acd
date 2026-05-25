@@ -16,8 +16,11 @@ import {
 import {
   Play, Pause, RefreshCw, Loader2, PhoneCall, CheckCircle2, XCircle,
   Clock, PhoneOff, Search, User, UserCheck, PhoneMissed, PhoneIncoming, AlertTriangle,
-  Trash2, Megaphone, Bot,
+  Trash2, Megaphone, Bot, ExternalLink,
 } from "lucide-react";
+
+const FILA_FLAG_KEY = "ligacoes_fila_executando";
+const FILA_STANDALONE_PATH = "/ligacoes-ia/fila-executando";
 import { placeCallWithTTS, type ActiveCallHandle } from "@/lib/wavoipCall";
 
 type Agendada = {
@@ -98,7 +101,8 @@ function todayInBrazil() {
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
-export function FilaLigacoesTab() {
+export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standalone" } = {}) {
+  const isStandalone = mode === "standalone";
   const [items, setItems] = useState<Agendada[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
@@ -109,6 +113,27 @@ export function FilaLigacoesTab() {
   const [syncing, setSyncing] = useState(false);
   const [confirmStart, setConfirmStart] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+
+  // Quando outra guia (standalone) estiver rodando a fila, bloqueamos esta.
+  const [remoteRunning, setRemoteRunning] = useState<boolean>(() => {
+    if (isStandalone) return false;
+    try { return !!localStorage.getItem(FILA_FLAG_KEY); } catch { return false; }
+  });
+  useEffect(() => {
+    if (isStandalone) return;
+    const sync = () => {
+      try { setRemoteRunning(!!localStorage.getItem(FILA_FLAG_KEY)); } catch {}
+    };
+    const onStorage = (e: StorageEvent) => { if (e.key === FILA_FLAG_KEY) sync(); };
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", sync);
+    const itv = window.setInterval(sync, 2000);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", sync);
+      window.clearInterval(itv);
+    };
+  }, [isStandalone]);
 
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterTipoD, setFilterTipoD] = useState<string>("todos");
@@ -278,6 +303,9 @@ export function FilaLigacoesTab() {
     pauseRef.current = false;
     setRunning(true);
     setPausedAt(null);
+    if (isStandalone) {
+      try { localStorage.setItem(FILA_FLAG_KEY, String(Date.now())); } catch {}
+    }
 
     const { data: fresh } = await supabase
       .from("ligacoes_agendadas")
@@ -312,6 +340,9 @@ export function FilaLigacoesTab() {
     setRunning(false);
     setCurrentStatus("");
     setCountdown(0);
+    if (isStandalone) {
+      try { localStorage.removeItem(FILA_FLAG_KEY); } catch {}
+    }
     toast({ title: "Fila concluída" });
     load();
   };
@@ -336,7 +367,31 @@ export function FilaLigacoesTab() {
     setRunning(false);
     setCurrentStatus("");
     setCountdown(0);
+    if (isStandalone) {
+      try { localStorage.removeItem(FILA_FLAG_KEY); } catch {}
+    }
   };
+
+  // Auto-start na guia standalone assim que os itens forem carregados
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (!isStandalone) return;
+    if (loading) return;
+    if (autoStartedRef.current) return;
+    if (runningRef.current) return;
+    if (pendentes.length === 0) return;
+    autoStartedRef.current = true;
+    startQueue();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStandalone, loading, items]);
+
+  // Garante limpeza da flag se a guia standalone for fechada com fila ativa
+  useEffect(() => {
+    if (!isStandalone) return;
+    const cleanup = () => { try { localStorage.removeItem(FILA_FLAG_KEY); } catch {} };
+    window.addEventListener("beforeunload", cleanup);
+    return () => window.removeEventListener("beforeunload", cleanup);
+  }, [isStandalone]);
 
   useEffect(() => {
     return () => {
@@ -358,35 +413,68 @@ export function FilaLigacoesTab() {
             <div><span className="text-2xl font-bold text-destructive">{falhadas}</span> <span className="text-muted-foreground">falharam</span></div>
             <div className="text-muted-foreground self-center text-xs">Delay: <span className="font-medium text-foreground">{delayMinutes}min</span></div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={sincronizar} disabled={syncing || running}>
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" onClick={sincronizar} disabled={syncing || running || remoteRunning}>
               {syncing ? (
                 <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Sincronizando...</>
               ) : (
                 <><RefreshCw className="h-4 w-4 mr-1" /> Sincronizar</>
               )}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setConfirmClear(true)} disabled={syncing || running}>
+            <Button variant="outline" size="sm" onClick={() => setConfirmClear(true)} disabled={syncing || running || remoteRunning}>
               <Trash2 className="h-4 w-4 mr-1" /> Limpar fila de hoje
             </Button>
-            {!running ? (
-              <Button onClick={() => setConfirmStart(true)} disabled={pendentes.length === 0}>
-                <Play className="h-4 w-4 mr-1" /> {finalizadas + falhadas > 0 ? "Retomar fila" : "Iniciar fila"}
+
+            {/* Aba normal: só oferece abrir em nova guia (sem rodar aqui) */}
+            {!isStandalone && !remoteRunning && (
+              <Button
+                onClick={() => window.open(FILA_STANDALONE_PATH, "_blank", "noopener")}
+                disabled={pendentes.length === 0}
+              >
+                <ExternalLink className="h-4 w-4 mr-1" />
+                {finalizadas + falhadas > 0 ? "Retomar fila em nova guia" : "Abrir fila em nova guia"}
               </Button>
-            ) : (
-              <>
-                {pauseRef.current ? (
-                  <Button variant="outline" onClick={resume}><Play className="h-4 w-4 mr-1" /> Retomar</Button>
-                ) : (
-                  <Button variant="outline" onClick={pause}><Pause className="h-4 w-4 mr-1" /> Pausar</Button>
-                )}
-                <Button variant="destructive" onClick={stopAll}><PhoneOff className="h-4 w-4 mr-1" /> Parar tudo</Button>
-              </>
+            )}
+
+            {/* Guia standalone: controles reais da fila em execução */}
+            {isStandalone && (
+              !running ? (
+                <Button onClick={() => setConfirmStart(true)} disabled={pendentes.length === 0}>
+                  <Play className="h-4 w-4 mr-1" /> {finalizadas + falhadas > 0 ? "Retomar fila" : "Iniciar fila"}
+                </Button>
+              ) : (
+                <>
+                  {pauseRef.current ? (
+                    <Button variant="outline" onClick={resume}><Play className="h-4 w-4 mr-1" /> Retomar</Button>
+                  ) : (
+                    <Button variant="outline" onClick={pause}><Pause className="h-4 w-4 mr-1" /> Pausar</Button>
+                  )}
+                  <Button variant="destructive" onClick={stopAll}><PhoneOff className="h-4 w-4 mr-1" /> Parar tudo</Button>
+                </>
+              )
             )}
           </div>
         </div>
 
-        {running && (
+        {/* Aviso quando outra guia está executando */}
+        {!isStandalone && remoteRunning && (
+          <div className="mt-3 rounded-lg border border-fuchsia-500/40 bg-fuchsia-500/10 p-3 text-sm flex items-center gap-2 flex-wrap">
+            <Loader2 className="h-4 w-4 animate-spin text-fuchsia-500" />
+            <span>
+              <strong>Fila rodando em outra guia.</strong> Ações desta aba ficam bloqueadas até a fila terminar (evita ligação dupla).
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-auto"
+              onClick={() => window.open(FILA_STANDALONE_PATH, "_blank", "noopener")}
+            >
+              <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir a guia da fila
+            </Button>
+          </div>
+        )}
+
+        {running && isStandalone && (
           <div className="mt-3 rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/5 p-3 text-sm flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-fuchsia-500" />
             <span>{currentStatus}</span>
@@ -398,9 +486,10 @@ export function FilaLigacoesTab() {
           </div>
         )}
 
-        {!running && pendentes.length > 0 && finalizadas + falhadas > 0 && (
+        {!running && !remoteRunning && pendentes.length > 0 && finalizadas + falhadas > 0 && (
           <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm">
-            📞 Ainda faltam <strong>{pendentes.length}</strong> ligações a disparar hoje. Clique em <strong>Retomar fila</strong>.
+            📞 Ainda faltam <strong>{pendentes.length}</strong> ligações a disparar hoje.
+            {!isStandalone && <> Clique em <strong>Retomar fila em nova guia</strong>.</>}
           </div>
         )}
       </Card>
