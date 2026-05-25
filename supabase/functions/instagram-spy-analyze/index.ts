@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
       .select("competitor_id, media_type, media_product_type, caption, permalink, like_count, comments_count, views_count, hashtags, posted_at, instagram_competitors!inner(username, display_name, category)")
       .gte("posted_at", since)
       .order("posted_at", { ascending: false })
-      .limit(500);
+      .limit(150);
 
     if (competitorId) postsQuery = postsQuery.eq("competitor_id", competitorId);
 
@@ -120,11 +120,11 @@ Deno.serve(async (req) => {
       perfil: p.instagram_competitors?.username,
       categoria: p.instagram_competitors?.category,
       tipo: p.media_product_type || p.media_type,
-      legenda: (p.caption || "").slice(0, 600),
+      legenda: (p.caption || "").slice(0, 280),
       likes: p.like_count,
       comments: p.comments_count,
       views: p.views_count,
-      hashtags: p.hashtags,
+      hashtags: (p.hashtags || []).slice(0, 8),
       data: p.posted_at,
       link: p.permalink,
     }));
@@ -132,21 +132,27 @@ Deno.serve(async (req) => {
     const systemPrompt = analysisType === "insights" ? SYSTEM_INSIGHTS : SYSTEM_SUGESTOES;
     const userPrompt = `Analise os ${compactPosts.length} posts abaixo dos últimos ${periodDays} dias. Retorne APENAS o JSON conforme a estrutura especificada.\n\n${JSON.stringify(compactPosts)}`;
 
+    const modelUsed = "google/gemini-2.5-flash";
+    // Timeout defensivo de 120s (abaixo do idle limit de 150s)
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 120_000);
+
     const aiRes = await fetch(LOVABLE_AI_URL, {
       method: "POST",
+      signal: ctrl.signal,
       headers: {
         "Authorization": `Bearer ${lovableKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: modelUsed,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
         response_format: { type: "json_object" },
       }),
-    });
+    }).finally(() => clearTimeout(timeoutId));
 
     if (!aiRes.ok) {
       const errText = await aiRes.text();
@@ -197,7 +203,7 @@ Deno.serve(async (req) => {
         period_days: periodDays,
         content: parsed,
         posts_analyzed_count: posts.length,
-        model_used: "google/gemini-2.5-pro",
+        model_used: modelUsed,
         created_by: userId,
       })
       .select()
