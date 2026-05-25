@@ -133,7 +133,11 @@ function ProfilesTab() {
 
   async function disconnectOAuth() {
     if (!editing?.id) return;
-    if (!confirm("Desconectar OAuth deste perfil?")) return;
+    setDisconnectOpen(true);
+  }
+
+  async function confirmDisconnectOAuth() {
+    if (!editing?.id) return;
     await save.mutateAsync({
       id: editing.id,
       oauth_connected: false,
@@ -144,6 +148,7 @@ function ProfilesTab() {
       oauth_connected_at: null,
     } as any);
     setForm({ ...form, oauth_connected: false } as any);
+    setDisconnectOpen(false);
   }
 
   const oauthEnabled = !!cfg?.instagram_oauth_enabled;
