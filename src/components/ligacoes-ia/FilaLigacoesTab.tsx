@@ -489,14 +489,16 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
             <span>
               <strong>Fila rodando em outra guia.</strong> Ações desta aba ficam bloqueadas até a fila terminar (evita ligação dupla).
             </span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="ml-auto"
-              onClick={() => window.open(FILA_STANDALONE_PATH, "_blank", "noopener")}
-            >
-              <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir a guia da fila
-            </Button>
+            {canExecute && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-auto"
+                onClick={openFilaTab}
+              >
+                <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir a guia da fila
+              </Button>
+            )}
           </div>
         )}
 
