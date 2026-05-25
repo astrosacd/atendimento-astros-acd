@@ -179,7 +179,19 @@ Deno.serve(async (req) => {
       username: updatedProfile.username,
       igBusinessId,
       fbPageId,
+      publicInvite: isPublicInvite,
     });
+
+    if (isPublicInvite && payload.inviteToken) {
+      await admin
+        .from("instagram_oauth_invites")
+        .update({
+          status: "completed",
+          used_at: new Date().toISOString(),
+          used_by_ig_username: updatedProfile.username,
+        })
+        .eq("token", payload.inviteToken);
+    }
 
     return new Response(JSON.stringify({
       success: true,
