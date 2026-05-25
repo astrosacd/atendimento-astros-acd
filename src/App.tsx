@@ -207,6 +207,7 @@ function AppRoutes() {
       <Route path="/p/:slug" element={<Checkout />} />
       <Route path="/sucesso" element={<Sucesso />} />
       <Route path="/credenciais/:token" element={<CredenciaisPublica />} />
+      <Route path="/autorizar-instagram/:token" element={<AutorizarInstagram />} />
       <Route path="/link-pagamento/:token" element={<LinkPagamentoPublico />} />
       <Route path="/validacao-sms/:token" element={<ValidacaoSmsPublica />} />
       <Route path="/resultado-sms/:token" element={<ResultadoSmsPublico />} />
