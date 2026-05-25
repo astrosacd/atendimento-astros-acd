@@ -865,7 +865,12 @@ function PostsTab() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {posts.map((p: any) => (
-              <a key={p.id} href={p.permalink} target="_blank" rel="noopener noreferrer" className="block group">
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setSelectedPost(p)}
+                className="block group text-left"
+              >
                 <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
                   {p.thumbnail_url || p.media_url ? (
                     <img src={p.thumbnail_url || p.media_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
@@ -889,7 +894,8 @@ function PostsTab() {
                     <p className="text-[10px] text-muted-foreground">{format(new Date(p.posted_at), "dd/MM/yy", { locale: ptBR })}</p>
                   )}
                 </div>
-              </a>
+              </button>
+
             ))}
           </div>
         )}
