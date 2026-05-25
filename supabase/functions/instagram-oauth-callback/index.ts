@@ -73,8 +73,22 @@ Deno.serve(async (req) => {
     const profileId = payload.profileId;
     if (!profileId) throw new Error("state inválido");
 
-    const { data: role } = await admin.from("user_roles").select("role").eq("user_id", payload.userId).eq("role", "admin").maybeSingle();
-    if (!role) return jsonResponse({ error: "Forbidden" }, 403);
+    const isPublicInvite = !!payload.publicInvite;
+    if (isPublicInvite) {
+      // Revalida o invite — não pode ter sido usado nem expirado entre o /start e o /callback
+      const { data: invite } = await admin
+        .from("instagram_oauth_invites")
+        .select("id, status, expires_at, profile_id")
+        .eq("token", payload.inviteToken)
+        .maybeSingle();
+      if (!invite) throw new Error("Convite não encontrado.");
+      if (new Date(invite.expires_at) < new Date()) throw new Error("Convite expirado.");
+      if (invite.status === "completed") throw new Error("Este convite já foi usado.");
+      if (invite.profile_id !== profileId) throw new Error("Convite não corresponde ao perfil.");
+    } else {
+      const { data: role } = await admin.from("user_roles").select("role").eq("user_id", payload.userId).eq("role", "admin").maybeSingle();
+      if (!role) return jsonResponse({ error: "Forbidden" }, 403);
+    }
 
     // 1) Trocar code por short-lived access_token
     const tokenRes = await fetch(
