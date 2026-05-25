@@ -199,6 +199,7 @@ function AppRoutes() {
 
       {/* Ligações IA */}
       <Route path="/ligacoes-ia" element={<ProtectedRoute permission="view_ligacoes_ia"><LigacoesIA /></ProtectedRoute>} />
+      <Route path="/ligacoes-ia/fila-executando" element={<FilaExecutando />} />
       
       {/* Public Routes - NO AUTH */}
       <Route path="/chamados" element={<ChamadosPublico />} />
