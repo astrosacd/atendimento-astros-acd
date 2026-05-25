@@ -228,7 +228,7 @@ function CompetitorsTab() {
   };
 
   // Detecta se há ao menos 1 perfil OAuth conectado (necessário para Business Discovery)
-  const { data: hasOAuth } = useQuery({
+  const { data: hasOAuth, isLoading: loadingOAuth } = useQuery({
     queryKey: ["ig-has-oauth-token"],
     queryFn: async () => {
       const { count } = await supabase
