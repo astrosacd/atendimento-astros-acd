@@ -228,7 +228,7 @@ function CompetitorsTab() {
   };
 
   // Detecta se há ao menos 1 perfil OAuth conectado (necessário para Business Discovery)
-  const { data: hasOAuth } = useQuery({
+  const { data: hasOAuth, isLoading: loadingOAuth } = useQuery({
     queryKey: ["ig-has-oauth-token"],
     queryFn: async () => {
       const { count } = await supabase
@@ -253,7 +253,7 @@ function CompetitorsTab() {
           </CardDescription>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={syncAll} disabled={syncingAll || competitors.length === 0 || !hasOAuth}>
+          <Button variant="outline" size="sm" onClick={syncAll} disabled={syncingAll || competitors.length === 0 || loadingOAuth || !hasOAuth}>
             {syncingAll ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
             Sincronizar todos
           </Button>
@@ -263,7 +263,7 @@ function CompetitorsTab() {
         </div>
       </CardHeader>
       <CardContent>
-        {!hasOAuth && (
+        {!loadingOAuth && hasOAuth === false && (
           <div className="mb-4 rounded-lg border-2 border-amber-500/30 bg-amber-500/5 p-4">
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
