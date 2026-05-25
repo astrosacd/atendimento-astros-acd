@@ -85,6 +85,7 @@ import InstagramCreate from "./pages/InstagramCreate";
 import InstagramHistory from "./pages/InstagramHistory";
 import InstagramSettings from "./pages/InstagramSettings";
 import InstagramOAuthCallback from "./pages/InstagramOAuthCallback";
+import AutorizarInstagram from "./pages/AutorizarInstagram";
 import LigacoesIA from "./pages/LigacoesIA";
 
 const queryClient = new QueryClient();
