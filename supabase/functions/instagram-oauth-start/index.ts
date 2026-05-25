@@ -7,6 +7,33 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const jsonResponse = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+const toBase64Url = (bytes: Uint8Array) =>
+  btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+
+const encodeState = (value: unknown) =>
+  toBase64Url(new TextEncoder().encode(JSON.stringify(value)));
+
+async function signPayload(payload: Record<string, unknown>, secret: string) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(JSON.stringify(payload)));
+  return toBase64Url(new Uint8Array(signature));
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -35,10 +62,12 @@ Deno.serve(async (req) => {
     const { data: cfg } = await admin.from("social_media_report_config").select("*").limit(1).maybeSingle();
     if (!cfg?.instagram_oauth_enabled) throw new Error("OAuth Instagram desabilitado nas Configurações");
     if (!cfg?.instagram_app_id) throw new Error("Facebook App ID não configurado");
+    if (!cfg?.instagram_app_secret) throw new Error("Facebook App Secret não configurado");
 
-    // state = base64(profileId|userId|returnUrl|nonce)
+    // state assinado: permite a callback em nova aba sem depender da sessão localStorage da aplicação.
     const nonce = crypto.randomUUID();
-    const state = btoa(JSON.stringify({ profileId, userId, returnUrl, nonce }));
+    const payload = { profileId, userId, returnUrl, nonce, iat: Date.now() };
+    const state = encodeState({ payload, sig: await signPayload(payload, cfg.instagram_app_secret) });
 
     // Resolver site URL: prioridade = body.site_url > gateway_settings.site_base_url > returnUrl origin
     let baseUrl: string | null = (body.site_url || "").toString().trim().replace(/\/+$/, "") || null;
@@ -75,11 +104,9 @@ Deno.serve(async (req) => {
       `&scope=${encodeURIComponent(scopes)}` +
       `&response_type=code`;
 
-    return new Response(JSON.stringify({ auth_url: authUrl, redirect_uri: redirectUri }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ auth_url: authUrl, redirect_uri: redirectUri });
   } catch (e: any) {
     console.error("instagram-oauth-start:", e);
-    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+    return jsonResponse({ error: e.message }, 500);
   }
 });
