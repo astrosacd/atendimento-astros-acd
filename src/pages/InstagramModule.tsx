@@ -35,7 +35,8 @@ const InstagramModule = () => {
   const isTempAccess = !!sessionStorage.getItem("temp_access_token");
   const [tempAccessData, setTempAccessData] = useState<{ permissions?: string[] } | null>(null);
   const [tempAccessLoading, setTempAccessLoading] = useState(isTempAccess);
-  const [activeInstagramTab, setActiveInstagramTab] = useState("none");
+  const initialTab = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("tab") : null;
+  const [activeInstagramTab, setActiveInstagramTab] = useState(initialTab || "none");
 
   useEffect(() => {
     if (!isTempAccess) {

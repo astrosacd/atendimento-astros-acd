@@ -274,7 +274,7 @@ function CompetitorsTab() {
                   Vá em <strong>Instagram → Perfis Monitorados</strong> e conecte um perfil (ou envie um link de autorização para um cliente).
                 </p>
                 <Button size="sm" variant="outline" asChild>
-                  <a href="/instagram">Ir para Perfis Monitorados →</a>
+                  <a href="/instagram?tab=reports">Ir para Perfis Monitorados →</a>
                 </Button>
               </div>
             </div>
