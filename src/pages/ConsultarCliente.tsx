@@ -1244,7 +1244,7 @@ export default function ConsultarCliente() {
                   placeholder="Observações"
                   value={editObservacao}
                   onChange={(e) => setEditObservacao(e.target.value)}
-                  className="bg-secondary border-border text-foreground min-h-[200px] whitespace-pre-wrap"
+                  className="bg-secondary border-border text-foreground min-h-[120px] whitespace-pre-wrap"
                 />
               </div>
               <div className="flex gap-2 pt-2">
