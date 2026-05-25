@@ -303,6 +303,9 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
     pauseRef.current = false;
     setRunning(true);
     setPausedAt(null);
+    if (isStandalone) {
+      try { localStorage.setItem(FILA_FLAG_KEY, String(Date.now())); } catch {}
+    }
 
     const { data: fresh } = await supabase
       .from("ligacoes_agendadas")
@@ -337,6 +340,9 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
     setRunning(false);
     setCurrentStatus("");
     setCountdown(0);
+    if (isStandalone) {
+      try { localStorage.removeItem(FILA_FLAG_KEY); } catch {}
+    }
     toast({ title: "Fila concluída" });
     load();
   };
@@ -361,7 +367,31 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
     setRunning(false);
     setCurrentStatus("");
     setCountdown(0);
+    if (isStandalone) {
+      try { localStorage.removeItem(FILA_FLAG_KEY); } catch {}
+    }
   };
+
+  // Auto-start na guia standalone assim que os itens forem carregados
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (!isStandalone) return;
+    if (loading) return;
+    if (autoStartedRef.current) return;
+    if (runningRef.current) return;
+    if (pendentes.length === 0) return;
+    autoStartedRef.current = true;
+    startQueue();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStandalone, loading, items]);
+
+  // Garante limpeza da flag se a guia standalone for fechada com fila ativa
+  useEffect(() => {
+    if (!isStandalone) return;
+    const cleanup = () => { try { localStorage.removeItem(FILA_FLAG_KEY); } catch {} };
+    window.addEventListener("beforeunload", cleanup);
+    return () => window.removeEventListener("beforeunload", cleanup);
+  }, [isStandalone]);
 
   useEffect(() => {
     return () => {
