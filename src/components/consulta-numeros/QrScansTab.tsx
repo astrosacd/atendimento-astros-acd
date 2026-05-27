@@ -76,6 +76,8 @@ const STATUS_BADGES: Record<string, { label: string; variant: any }> = {
   cancelado: { label: "Cancelado", variant: "destructive" },
 };
 
+const EMPTY_SEARCH_RESULTS: any[] = [];
+
 export function QrScansTab() {
   const { isAdmin } = useAuth();
   const { data: config } = useQrScanConfig();
@@ -91,7 +93,7 @@ export function QrScansTab() {
   // Dialog states
   const [flagDialogOpen, setFlagDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { data: searchResults = [], isFetching: searchingNumbers } =
+  const { data: searchResults = EMPTY_SEARCH_RESULTS, isFetching: searchingNumbers } =
     useSearchNumbers(searchQuery);
   const [localSearchResults, setLocalSearchResults] = useState<any[]>([]);
 
