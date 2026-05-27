@@ -2551,6 +2551,10 @@ export type Database = {
       }
       consulta_numeros_cache: {
         Row: {
+          auto_hospedado: boolean
+          auto_hospedado_marcado_em: string | null
+          auto_hospedado_marcado_por: string | null
+          auto_hospedado_observacao: string | null
           baserow_row_id: number
           created_at: string
           id: string
@@ -2558,6 +2562,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auto_hospedado?: boolean
+          auto_hospedado_marcado_em?: string | null
+          auto_hospedado_marcado_por?: string | null
+          auto_hospedado_observacao?: string | null
           baserow_row_id: number
           created_at?: string
           id?: string
@@ -2565,6 +2573,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auto_hospedado?: boolean
+          auto_hospedado_marcado_em?: string | null
+          auto_hospedado_marcado_por?: string | null
+          auto_hospedado_observacao?: string | null
           baserow_row_id?: number
           created_at?: string
           id?: string
@@ -7232,6 +7244,135 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      qr_scan_config: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          payment_provider_default: string
+          qtd_gratis_por_mes: number
+          qtd_max_por_dia: number
+          updated_at: string
+          valor_excedente: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          payment_provider_default?: string
+          qtd_gratis_por_mes?: number
+          qtd_max_por_dia?: number
+          updated_at?: string
+          valor_excedente?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          payment_provider_default?: string
+          qtd_gratis_por_mes?: number
+          qtd_max_por_dia?: number
+          updated_at?: string
+          valor_excedente?: number
+        }
+        Relationships: []
+      }
+      qr_scan_history: {
+        Row: {
+          baserow_row_id: number
+          cliente_nome: string | null
+          confirmed_by: string | null
+          created_at: string
+          id: string
+          numero: string
+          observacao: string | null
+          operador_user_id: string | null
+          paid_at: string | null
+          payment_comprovante_url: string | null
+          payment_link_id: string | null
+          payment_manual_observacao: string | null
+          payment_method: string | null
+          payment_status: string
+          scan_date: string
+          tipo: string
+          updated_at: string
+          valor_cobrado: number | null
+        }
+        Insert: {
+          baserow_row_id: number
+          cliente_nome?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          numero: string
+          observacao?: string | null
+          operador_user_id?: string | null
+          paid_at?: string | null
+          payment_comprovante_url?: string | null
+          payment_link_id?: string | null
+          payment_manual_observacao?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          scan_date?: string
+          tipo: string
+          updated_at?: string
+          valor_cobrado?: number | null
+        }
+        Update: {
+          baserow_row_id?: number
+          cliente_nome?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          numero?: string
+          observacao?: string | null
+          operador_user_id?: string | null
+          paid_at?: string | null
+          payment_comprovante_url?: string | null
+          payment_link_id?: string | null
+          payment_manual_observacao?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          scan_date?: string
+          tipo?: string
+          updated_at?: string
+          valor_cobrado?: number | null
+        }
+        Relationships: []
+      }
+      qr_scan_monthly_counter: {
+        Row: {
+          ano: number
+          baserow_row_id: number
+          created_at: string
+          id: string
+          mes: number
+          qtd_gratis_usados: number
+          qtd_pagos: number
+          updated_at: string
+        }
+        Insert: {
+          ano: number
+          baserow_row_id: number
+          created_at?: string
+          id?: string
+          mes: number
+          qtd_gratis_usados?: number
+          qtd_pagos?: number
+          updated_at?: string
+        }
+        Update: {
+          ano?: number
+          baserow_row_id?: number
+          created_at?: string
+          id?: string
+          mes?: number
+          qtd_gratis_usados?: number
+          qtd_pagos?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       recovery_config: {
         Row: {

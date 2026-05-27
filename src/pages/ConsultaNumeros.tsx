@@ -14,9 +14,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, AlertCircle, Plus, Loader2, X, Tag, Mail, Eye, MessageSquare } from 'lucide-react';
+import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, AlertCircle, Plus, Loader2, X, Tag, Mail, Eye, MessageSquare, QrCode } from 'lucide-react';
 import { ValidacaoSmsTab } from '@/components/consulta-numeros/ValidacaoSmsTab';
 import { MonitoredStatusDisplay } from '@/components/consulta-numeros/MonitoredStatusDisplay';
+import { QrScansTab } from '@/components/consulta-numeros/QrScansTab';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1179,11 +1180,20 @@ export default function ConsultaNumeros() {
               <MessageSquare className="h-4 w-4 mr-2" />
               Validação & SMS
             </TabsTrigger>
+            <TabsTrigger value="qr-scans">
+              <QrCode className="h-4 w-4 mr-2" />
+              QR Scans
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="validacao-sms">
             <ValidacaoSmsTab />
           </TabsContent>
+
+          <TabsContent value="qr-scans">
+            <QrScansTab />
+          </TabsContent>
+
 
           <TabsContent value="consulta" className="space-y-6">
 
