@@ -104,9 +104,11 @@ serve(async (req) => {
       .in("payment_status", ["nao_aplica", "pendente", "pago"]);
     if ((todayScans?.length ?? 0) >= (config.qtd_max_por_dia ?? 1)) {
       return new Response(JSON.stringify({
-        error: "Limite diário atingido. Este número já tem um escaneamento registrado hoje.",
+        ok: false,
+        status: "daily_limit",
+        message: "Limite diário atingido. Este número já tem um escaneamento registrado hoje.",
         blocked: "daily_limit",
-      }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Monthly counter
@@ -159,7 +161,7 @@ serve(async (req) => {
         status: "needs_payment",
         valor: config.valor_excedente,
         message: `Limite grátis de ${config.qtd_gratis_por_mes} atingido este mês. Escaneamento adicional: R$ ${config.valor_excedente}.`,
-      }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const allowedMethods = ["link_mp", "link_stripe", "manual_pix", "manual_saldo", "manual_outro"];
