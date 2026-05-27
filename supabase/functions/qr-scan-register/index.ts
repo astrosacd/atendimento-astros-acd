@@ -65,7 +65,9 @@ serve(async (req) => {
       .from("qr_scan_config")
       .select("*")
       .limit(1);
-    const config = configRows?.[0] ?? { qtd_gratis_por_mes: 4, qtd_max_por_dia: 1, valor_excedente: 14.97, ativo: true };
+    const config = configRows?.[0] ?? { qtd_gratis_por_mes: 4, valor_excedente: 14.97, ativo: true };
+    // Daily limit is fixed at 1 scan per number per day (system rule, non-configurable)
+    const DAILY_LIMIT = 1;
     if (!config.ativo) {
       return new Response(JSON.stringify({ error: "Módulo de QR Scan desativado" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
