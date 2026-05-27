@@ -369,14 +369,28 @@ export function QrScansTab() {
                     <div className="font-mono text-sm">{r.row_data?.numero}</div>
                     <div className="text-xs text-muted-foreground">{r.row_data?.nome ?? r.row_data?.cliente ?? "—"} · {r.row_data?.email ?? ""}</div>
                   </div>
-                  {r.auto_hospedado ? (
-                    <Badge variant="secondary">Já marcado</Badge>
-                  ) : (
-                    <Button size="sm" onClick={async () => {
-                      await toggleHosp.mutateAsync({ baserowRowId: r.baserow_row_id, value: true });
-                      toast({ title: "✅ Número marcado como auto-hospedado" });
-                    }}>Marcar</Button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {r.auto_hospedado ? (
+                      <>
+                        <Badge variant="secondary">✓ Auto-hospedado</Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={async () => {
+                            await toggleHosp.mutateAsync({ baserowRowId: r.baserow_row_id, value: false });
+                            toast({ title: "Número desmarcado", description: "Não é mais auto-hospedado." });
+                          }}
+                        >
+                          Desmarcar
+                        </Button>
+                      </>
+                    ) : (
+                      <Button size="sm" onClick={async () => {
+                        await toggleHosp.mutateAsync({ baserowRowId: r.baserow_row_id, value: true });
+                        toast({ title: "✅ Número marcado como auto-hospedado" });
+                      }}>Marcar</Button>
+                    )}
+                  </div>
                 </div>
               ))}
               {searchQuery.length >= 2 && searchResults.length === 0 && (
