@@ -121,17 +121,9 @@ export function useToggleAutoHospedado() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ baserowRowId, value, observacao }: { baserowRowId: number; value: boolean; observacao?: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("consulta_numeros_cache")
-        .update({
-          auto_hospedado: value,
-          auto_hospedado_observacao: observacao ?? null,
-          auto_hospedado_marcado_em: value ? new Date().toISOString() : null,
-          auto_hospedado_marcado_por: value ? user?.id ?? null : null,
-        })
-        .eq("baserow_row_id", baserowRowId);
-      if (error) throw error;
+      return await invokeFunction<AutoHospedadoNumber>("qr-scan-toggle-auto-hospedado", {
+        body: { baserow_row_id: baserowRowId, value, observacao },
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["qr-scan-auto-hospedados"] });
