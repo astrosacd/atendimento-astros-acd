@@ -621,44 +621,50 @@ export function QrScansTab() {
                 <CardDescription>Apenas admin pode alterar.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {config && (
+                {config && configDraft && (
                   <>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label>Qtd grátis por mês (por número)</Label>
                         <Input
                           type="number"
-                          defaultValue={config.qtd_gratis_por_mes}
-                          onBlur={(e) =>
-                            updateConfig.mutate({
-                              id: config.id,
+                          min={0}
+                          value={configDraft.qtd_gratis_por_mes}
+                          onChange={(e) =>
+                            setConfigDraft({
+                              ...configDraft,
                               qtd_gratis_por_mes: Number(e.target.value),
                             })
                           }
                         />
                       </div>
                       <div>
-                        <Label>Qtd máxima por dia</Label>
+                        <Label>Qtd máxima por dia (por número)</Label>
                         <Input
                           type="number"
-                          defaultValue={config.qtd_max_por_dia}
-                          onBlur={(e) =>
-                            updateConfig.mutate({
-                              id: config.id,
+                          min={1}
+                          value={configDraft.qtd_max_por_dia}
+                          onChange={(e) =>
+                            setConfigDraft({
+                              ...configDraft,
                               qtd_max_por_dia: Number(e.target.value),
                             })
                           }
                         />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Define quantos escaneamentos cada número pode receber
+                          por dia antes de bloquear o botão.
+                        </p>
                       </div>
                       <div>
                         <Label>Valor por scan excedente (R$)</Label>
                         <Input
                           type="number"
                           step="0.01"
-                          defaultValue={config.valor_excedente}
-                          onBlur={(e) =>
-                            updateConfig.mutate({
-                              id: config.id,
+                          value={configDraft.valor_excedente}
+                          onChange={(e) =>
+                            setConfigDraft({
+                              ...configDraft,
                               valor_excedente: Number(e.target.value),
                             })
                           }
@@ -667,10 +673,10 @@ export function QrScansTab() {
                       <div>
                         <Label>Provedor padrão</Label>
                         <Select
-                          defaultValue={config.payment_provider_default}
+                          value={configDraft.payment_provider_default}
                           onValueChange={(v) =>
-                            updateConfig.mutate({
-                              id: config.id,
+                            setConfigDraft({
+                              ...configDraft,
                               payment_provider_default: v as any,
                             })
                           }
@@ -689,12 +695,62 @@ export function QrScansTab() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Switch
-                        checked={config.ativo}
+                        checked={configDraft.ativo}
                         onCheckedChange={(v) =>
-                          updateConfig.mutate({ id: config.id, ativo: v })
+                          setConfigDraft({ ...configDraft, ativo: v })
                         }
                       />
                       <Label>Módulo ativo</Label>
+                    </div>
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                      {configDirty && (
+                        <span className="text-xs text-amber-600 mr-auto">
+                          ⚠️ Alterações não salvas
+                        </span>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={!configDirty || updateConfig.isPending}
+                        onClick={() =>
+                          setConfigDraft({
+                            qtd_gratis_por_mes: config.qtd_gratis_por_mes,
+                            qtd_max_por_dia: config.qtd_max_por_dia,
+                            valor_excedente: Number(config.valor_excedente),
+                            payment_provider_default: config.payment_provider_default,
+                            ativo: config.ativo,
+                          })
+                        }
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        disabled={!configDirty || updateConfig.isPending}
+                        onClick={() => {
+                          updateConfig.mutate(
+                            { id: config.id, ...configDraft },
+                            {
+                              onSuccess: () =>
+                                toast({
+                                  title: "Configurações salvas",
+                                  description:
+                                    "As novas regras já valem para os próximos escaneamentos.",
+                                }),
+                              onError: (err: any) =>
+                                toast({
+                                  title: "Erro ao salvar",
+                                  description: err?.message ?? String(err),
+                                  variant: "destructive",
+                                }),
+                            },
+                          );
+                        }}
+                      >
+                        {updateConfig.isPending && (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        )}
+                        Salvar configurações
+                      </Button>
                     </div>
                   </>
                 )}
