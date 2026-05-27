@@ -378,9 +378,28 @@ export function QrScansTab() {
                             {n.auto_hospedado_observacao ?? "—"}
                           </TableCell>
                           <TableCell className="text-right space-x-2">
-                            <Button size="sm" onClick={() => handleOpenScan(n)}>
-                              📲 Registrar escaneamento
-                            </Button>
+                            {(() => {
+                              const todayScan = getTodayScan(n.baserow_row_id);
+                              if (todayScan) {
+                                return (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-amber-500/60 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
+                                    onClick={() => handleOpenScan(n)}
+                                    title={`Já registrado hoje às ${formatTime(todayScan.created_at)}`}
+                                  >
+                                    <AlertCircle className="h-3.5 w-3.5 mr-1" />
+                                    Já registrado hoje
+                                  </Button>
+                                );
+                              }
+                              return (
+                                <Button size="sm" onClick={() => handleOpenScan(n)}>
+                                  📲 Registrar escaneamento
+                                </Button>
+                              );
+                            })()}
                             <Button
                               size="sm"
                               variant="ghost"
