@@ -127,10 +127,20 @@ export function QrScansTab() {
     return `${g("year")}-${g("month")}-${g("day")}`;
   })();
 
-  const getTodayScan = (baserowRowId: number) =>
-    history.find(
+  const maxPorDia = config?.qtd_max_por_dia ?? 1;
+
+  const getTodayScans = (baserowRowId: number) =>
+    history.filter(
       (h) => h.baserow_row_id === baserowRowId && h.scan_date === todayBrt,
     );
+
+  const getLastTodayScan = (baserowRowId: number) => {
+    const scans = getTodayScans(baserowRowId);
+    return scans.length > 0 ? scans[0] : undefined;
+  };
+
+  const isDailyLimitReached = (baserowRowId: number) =>
+    getTodayScans(baserowRowId).length >= maxPorDia;
 
   const formatTime = (iso?: string | null) => {
     if (!iso) return "";
