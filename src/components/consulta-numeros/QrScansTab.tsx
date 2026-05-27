@@ -865,15 +865,27 @@ export function QrScansTab() {
             <Button variant="ghost" onClick={() => setScanDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button
-              onClick={handleSubmitScan}
-              disabled={registerScan.isPending}
-            >
-              {registerScan.isPending && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              )}
-              {scanStep === "initial" ? "Registrar" : "Criar cobrança"}
-            </Button>
+            {(() => {
+              const blocked =
+                scanStep === "initial" &&
+                scanTarget &&
+                !!getTodayScan(scanTarget.baserow_row_id);
+              return (
+                <Button
+                  onClick={handleSubmitScan}
+                  disabled={registerScan.isPending || blocked}
+                >
+                  {registerScan.isPending && (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  )}
+                  {blocked
+                    ? "Já registrado hoje"
+                    : scanStep === "initial"
+                      ? "Registrar"
+                      : "Criar cobrança"}
+                </Button>
+              );
+            })()}
           </DialogFooter>
         </DialogContent>
       </Dialog>
