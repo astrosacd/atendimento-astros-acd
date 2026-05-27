@@ -763,11 +763,17 @@ export function QrScansTab() {
           </DialogHeader>
 
           {scanStep === "initial" && (() => {
+            const todayCount = scanTarget
+              ? getTodayScans(scanTarget.baserow_row_id).length
+              : 0;
             const todayScan = scanTarget
-              ? getTodayScan(scanTarget.baserow_row_id)
-              : null;
+              ? getLastTodayScan(scanTarget.baserow_row_id)
+              : undefined;
+            const limitReached = scanTarget
+              ? isDailyLimitReached(scanTarget.baserow_row_id)
+              : false;
 
-            if (todayScan) {
+            if (limitReached && todayScan) {
               const statusInfo = STATUS_BADGES[todayScan.payment_status] ?? {
                 label: todayScan.payment_status,
                 variant: "outline",
@@ -777,7 +783,7 @@ export function QrScansTab() {
                   <div className="p-4 bg-amber-500/10 border border-amber-500/40 rounded-md space-y-2">
                     <div className="flex items-center gap-2 font-medium text-sm">
                       <AlertCircle className="h-4 w-4 text-amber-600" />
-                      Já existe um escaneamento registrado hoje
+                      Limite diário atingido ({todayCount}/{maxPorDia})
                     </div>
                     <div className="text-sm space-y-1">
                       <div>
