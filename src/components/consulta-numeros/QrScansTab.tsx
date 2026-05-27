@@ -942,7 +942,7 @@ export function QrScansTab() {
             );
           })()}
 
-          {scanStep === "payment" && needsPaymentInfo && (
+          {scanStep === "payment" && needsPaymentInfo && !generatedPaymentUrl && (
             <div className="space-y-3">
               <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-sm">
                 ⚠️ Cobrança de{" "}
@@ -963,40 +963,81 @@ export function QrScansTab() {
                     ))}
                   </SelectContent>
                 </Select>
+                {(paymentMethod === "link_mp" || paymentMethod === "link_stripe") && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Vamos gerar um link de pagamento. O cliente pode pagar com
+                    cartão, PIX ou boleto direto na página do provedor. Quando o
+                    pagamento for confirmado, o escaneamento é liberado
+                    automaticamente.
+                  </p>
+                )}
               </div>
-              <div>
-                <Label>Observação do pagamento</Label>
-                <Textarea
-                  value={manualObs}
-                  onChange={(e) => setManualObs(e.target.value)}
-                  placeholder="Ex: PIX enviado às 14h, ID 12345..."
-                />
+              {paymentMethod !== "link_mp" && paymentMethod !== "link_stripe" && (
+                <>
+                  <div>
+                    <Label>Observação do pagamento</Label>
+                    <Textarea
+                      value={manualObs}
+                      onChange={(e) => setManualObs(e.target.value)}
+                      placeholder="Ex: PIX enviado às 14h, ID 12345..."
+                    />
+                  </div>
+                  <div>
+                    <Label>URL do comprovante (opcional)</Label>
+                    <Input
+                      value={comprovanteUrl}
+                      onChange={(e) => setComprovanteUrl(e.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    A cobrança ficará <strong>pendente</strong>. Confirme
+                    manualmente na aba "Pendentes" assim que receber o pagamento
+                    — só então o escaneamento será liberado.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
+          {scanStep === "payment" && generatedPaymentUrl && (
+            <div className="space-y-3">
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded text-sm">
+                ✅ Link de pagamento gerado! Envie para o cliente:
               </div>
-              <div>
-                <Label>URL do comprovante (opcional)</Label>
-                <Input
-                  value={comprovanteUrl}
-                  onChange={(e) => setComprovanteUrl(e.target.value)}
-                  placeholder="https://..."
-                />
+              <div className="flex gap-2">
+                <Input value={generatedPaymentUrl} readOnly className="font-mono text-xs" />
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(generatedPaymentUrl);
+                    toast({ title: "Copiado!" });
+                  }}
+                >
+                  Copiar
+                </Button>
+                <Button size="sm" variant="outline" asChild>
+                  <a href={generatedPaymentUrl} target="_blank" rel="noreferrer">Abrir</a>
+                </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                A cobrança ficará <strong>pendente</strong>. Confirme
-                manualmente na aba "Pendentes" assim que receber o pagamento —
-                só então o escaneamento será liberado.
+                Status fica <strong>pendente</strong> na aba "Pendentes". Assim
+                que o cliente pagar, o escaneamento é liberado
+                automaticamente.
               </p>
             </div>
           )}
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setScanDialogOpen(false)}>
-              Cancelar
+              {generatedPaymentUrl ? "Fechar" : "Cancelar"}
             </Button>
-            {(() => {
+            {!generatedPaymentUrl && (() => {
               const blocked =
                 scanStep === "initial" &&
                 !!scanTarget &&
                 isDailyLimitReached(scanTarget.baserow_row_id);
+              const isLink = paymentMethod === "link_mp" || paymentMethod === "link_stripe";
               return (
                 <Button
                   onClick={handleSubmitScan}
@@ -1009,7 +1050,9 @@ export function QrScansTab() {
                     ? `Limite diário (${maxPorDia}) atingido`
                     : scanStep === "initial"
                       ? "Registrar"
-                      : "Criar cobrança"}
+                      : isLink
+                        ? "Gerar link de pagamento"
+                        : "Criar cobrança"}
                 </Button>
               );
             })()}
