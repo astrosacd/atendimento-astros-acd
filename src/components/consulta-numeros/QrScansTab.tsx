@@ -726,40 +726,94 @@ export function QrScansTab() {
             </DialogDescription>
           </DialogHeader>
 
-          {scanStep === "initial" && (
-            <div className="space-y-3">
-              <p className="text-sm">
-                {scanTarget &&
-                  (() => {
-                    const c = getCounter(scanTarget.baserow_row_id);
-                    const max = config?.qtd_gratis_por_mes ?? 4;
-                    return c.qtd_gratis_usados < max ? (
-                      <>
-                        Você tem{" "}
-                        <strong>{max - c.qtd_gratis_usados} grátis</strong>{" "}
-                        restantes este mês.
-                      </>
-                    ) : (
-                      <>
-                        Limite grátis atingido. Cada novo scan custa{" "}
+          {scanStep === "initial" && (() => {
+            const todayScan = scanTarget
+              ? getTodayScan(scanTarget.baserow_row_id)
+              : null;
+
+            if (todayScan) {
+              const statusInfo = STATUS_BADGES[todayScan.payment_status] ?? {
+                label: todayScan.payment_status,
+                variant: "outline",
+              };
+              return (
+                <div className="space-y-3">
+                  <div className="p-4 bg-amber-500/10 border border-amber-500/40 rounded-md space-y-2">
+                    <div className="flex items-center gap-2 font-medium text-sm">
+                      <AlertCircle className="h-4 w-4 text-amber-600" />
+                      Já existe um escaneamento registrado hoje
+                    </div>
+                    <div className="text-sm space-y-1">
+                      <div>
+                        <span className="text-muted-foreground">Horário:</span>{" "}
+                        <strong>{formatTime(todayScan.created_at)}</strong> (BRT)
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Tipo:</span>{" "}
                         <strong>
-                          R${" "}
-                          {Number(config?.valor_excedente ?? 14.97).toFixed(2)}
+                          {todayScan.tipo === "gratis" ? "Grátis" : "Pago"}
                         </strong>
-                        .
-                      </>
-                    );
-                  })()}
-              </p>
-              <div>
-                <Label>Observação (opcional)</Label>
-                <Textarea
-                  value={scanObs}
-                  onChange={(e) => setScanObs(e.target.value)}
-                />
+                        {todayScan.valor_cobrado ? (
+                          <> — R$ {Number(todayScan.valor_cobrado).toFixed(2)}</>
+                        ) : null}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">Status:</span>
+                        <Badge variant={statusInfo.variant}>
+                          {statusInfo.label}
+                        </Badge>
+                      </div>
+                      {todayScan.observacao && (
+                        <div>
+                          <span className="text-muted-foreground">Obs:</span>{" "}
+                          {todayScan.observacao}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground pt-1 border-t border-amber-500/20">
+                      ⏳ Aguarde até <strong>00:00 (BRT)</strong> para um novo
+                      registro — faltam <strong>{formatCountdown()}</strong>.
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div className="space-y-3">
+                <p className="text-sm">
+                  {scanTarget &&
+                    (() => {
+                      const c = getCounter(scanTarget.baserow_row_id);
+                      const max = config?.qtd_gratis_por_mes ?? 4;
+                      return c.qtd_gratis_usados < max ? (
+                        <>
+                          Você tem{" "}
+                          <strong>{max - c.qtd_gratis_usados} grátis</strong>{" "}
+                          restantes este mês.
+                        </>
+                      ) : (
+                        <>
+                          Limite grátis atingido. Cada novo scan custa{" "}
+                          <strong>
+                            R${" "}
+                            {Number(config?.valor_excedente ?? 14.97).toFixed(2)}
+                          </strong>
+                          .
+                        </>
+                      );
+                    })()}
+                </p>
+                <div>
+                  <Label>Observação (opcional)</Label>
+                  <Textarea
+                    value={scanObs}
+                    onChange={(e) => setScanObs(e.target.value)}
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {scanStep === "payment" && needsPaymentInfo && (
             <div className="space-y-3">
