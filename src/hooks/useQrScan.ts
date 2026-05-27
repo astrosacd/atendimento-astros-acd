@@ -135,6 +135,7 @@ export function useToggleAutoHospedado() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["qr-scan-auto-hospedados"] });
+      qc.invalidateQueries({ queryKey: ["qr-scan-search-numbers"] });
     },
   });
 }
