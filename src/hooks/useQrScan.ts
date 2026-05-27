@@ -179,12 +179,14 @@ export function useSearchNumbers(query: string) {
     queryKey: ["qr-scan-search-numbers", query],
     enabled: query.trim().length >= 2,
     queryFn: async () => {
-      const q = query.trim();
-      // Server-side search on JSONB row_data cast to text (case-insensitive)
+      const q = query.trim().replace(/[(),]/g, "");
+      const like = `*${q}*`;
       const { data, error } = await supabase
         .from("consulta_numeros_cache")
         .select("baserow_row_id, row_data, auto_hospedado, auto_hospedado_observacao")
-        .filter("row_data::text", "ilike", `%${q}%`)
+        .or(
+          `row_data->>numero.ilike.${like},row_data->>nome.ilike.${like},row_data->>email.ilike.${like},row_data->>numero_de_compra.ilike.${like}`
+        )
         .limit(50);
       if (error) throw error;
       return data ?? [];
