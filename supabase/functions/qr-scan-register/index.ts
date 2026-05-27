@@ -173,6 +173,35 @@ serve(async (req) => {
       });
     }
 
+    // If link_mp / link_stripe: generate the payment link via the existing function
+    let generatedLinkId: string | null = paymentLinkId ?? null;
+    let generatedPaymentUrl: string | null = null;
+    if (paymentMethod === "link_mp" || paymentMethod === "link_stripe") {
+      const provider = paymentMethod === "link_mp" ? "mercadopago" : "stripe";
+      const empresa = (clienteNome && String(clienteNome).trim()) || `QR Scan ${numeroStr}`;
+      const genRes = await fetch(`${supabaseUrl}/functions/v1/generate-payment-link`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+        },
+        body: JSON.stringify({
+          empresa,
+          provider,
+          valor_da_venda: config.valor_excedente,
+          validade_horas: 48,
+        }),
+      });
+      const genJson = await genRes.json().catch(() => ({}));
+      if (!genRes.ok || !genJson?.success) {
+        return new Response(JSON.stringify({
+          error: genJson?.error || "Falha ao gerar link de pagamento",
+        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      generatedLinkId = genJson.link_id ?? null;
+      generatedPaymentUrl = genJson.payment_url ?? null;
+    }
+
     const { data: inserted, error: insErr } = await supabase
       .from("qr_scan_history")
       .insert({
@@ -184,7 +213,7 @@ serve(async (req) => {
         valor_cobrado: config.valor_excedente,
         payment_status: "pendente",
         payment_method: paymentMethod,
-        payment_link_id: paymentLinkId ?? null,
+        payment_link_id: generatedLinkId,
         payment_manual_observacao: manualObs ?? null,
         payment_comprovante_url: comprovanteUrl ?? null,
         operador_user_id: userId,
@@ -197,6 +226,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       ok: true, status: "pendente_pagamento", scan: inserted,
       valor: config.valor_excedente,
+      payment_url: generatedPaymentUrl,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err: any) {
     console.error("[qr-scan-register]", err);
