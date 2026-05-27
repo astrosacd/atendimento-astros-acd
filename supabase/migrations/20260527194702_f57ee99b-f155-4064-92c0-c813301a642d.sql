@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS public.idx_qr_scan_history_unique_per_day;
