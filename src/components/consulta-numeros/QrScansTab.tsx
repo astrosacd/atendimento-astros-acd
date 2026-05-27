@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +48,8 @@ export function QrScansTab() {
   // Dialog states
   const [flagDialogOpen, setFlagDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { data: searchResults = [] } = useSearchNumbers(searchQuery);
+  const { data: searchResults = [], isFetching: searchingNumbers } = useSearchNumbers(searchQuery);
+  const [localSearchResults, setLocalSearchResults] = useState<any[]>([]);
 
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [scanTarget, setScanTarget] = useState<any>(null);
@@ -62,6 +63,10 @@ export function QrScansTab() {
   const pendentes = history.filter((h) => h.payment_status === "pendente");
 
   const getCounter = (id: number) => counters?.get(id) ?? { qtd_gratis_usados: 0, qtd_pagos: 0 };
+
+  useEffect(() => {
+    setLocalSearchResults(searchResults);
+  }, [searchResults]);
 
   const handleOpenScan = (n: any) => {
     setScanTarget(n);
@@ -116,6 +121,21 @@ export function QrScansTab() {
       toast({ title: "Cobrança cancelada" });
     } catch (e: any) {
       toast({ title: "Erro", description: e?.message ?? "Falha", variant: "destructive" });
+    }
+  };
+
+  const handleToggleSearchResult = async (row: any, value: boolean) => {
+    try {
+      const updated = await toggleHosp.mutateAsync({ baserowRowId: row.baserow_row_id, value });
+      setLocalSearchResults((current) => current.map((item) => (
+        item.baserow_row_id === row.baserow_row_id ? { ...item, ...updated } : item
+      )));
+      toast({
+        title: value ? "✅ Número marcado como auto-hospedado" : "Número desmarcado",
+        description: value ? "Ele já aparece como marcado no painel." : "Ele saiu da lista de auto-hospedados.",
+      });
+    } catch (e: any) {
+      toast({ title: "Erro", description: e?.message ?? "Falha ao alterar número", variant: "destructive" });
     }
   };
 
@@ -363,7 +383,7 @@ export function QrScansTab() {
               <Input className="pl-9" placeholder="Digite ao menos 2 caracteres..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
             <div className="max-h-[400px] overflow-y-auto space-y-1">
-              {searchResults.map((r: any) => (
+              {localSearchResults.map((r: any) => (
                 <div key={r.baserow_row_id} className="flex items-center justify-between p-2 border rounded hover:bg-muted/50">
                   <div>
                     <div className="font-mono text-sm">{r.row_data?.numero}</div>
@@ -376,24 +396,22 @@ export function QrScansTab() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={async () => {
-                            await toggleHosp.mutateAsync({ baserowRowId: r.baserow_row_id, value: false });
-                            toast({ title: "Número desmarcado", description: "Não é mais auto-hospedado." });
-                          }}
+                          disabled={toggleHosp.isPending}
+                          onClick={() => handleToggleSearchResult(r, false)}
                         >
                           Desmarcar
                         </Button>
                       </>
                     ) : (
-                      <Button size="sm" onClick={async () => {
-                        await toggleHosp.mutateAsync({ baserowRowId: r.baserow_row_id, value: true });
-                        toast({ title: "✅ Número marcado como auto-hospedado" });
-                      }}>Marcar</Button>
+                      <Button size="sm" disabled={toggleHosp.isPending} onClick={() => handleToggleSearchResult(r, true)}>Marcar</Button>
                     )}
                   </div>
                 </div>
               ))}
-              {searchQuery.length >= 2 && searchResults.length === 0 && (
+              {searchingNumbers && (
+                <div className="flex items-center justify-center py-4 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Buscando...</div>
+              )}
+              {searchQuery.length >= 2 && !searchingNumbers && localSearchResults.length === 0 && (
                 <p className="text-center text-sm text-muted-foreground py-4">Nenhum número encontrado.</p>
               )}
             </div>
