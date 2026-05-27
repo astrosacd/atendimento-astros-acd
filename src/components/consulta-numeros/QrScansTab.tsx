@@ -93,8 +93,10 @@ export function QrScansTab() {
   // Dialog states
   const [flagDialogOpen, setFlagDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { data: searchResults = EMPTY_SEARCH_RESULTS, isFetching: searchingNumbers } =
-    useSearchNumbers(searchQuery);
+  const {
+    data: searchResults = EMPTY_SEARCH_RESULTS,
+    isFetching: searchingNumbers,
+  } = useSearchNumbers(searchQuery);
   const [localSearchResults, setLocalSearchResults] = useState<any[]>([]);
 
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
