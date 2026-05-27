@@ -910,8 +910,8 @@ export function QrScansTab() {
             {(() => {
               const blocked =
                 scanStep === "initial" &&
-                scanTarget &&
-                !!getTodayScan(scanTarget.baserow_row_id);
+                !!scanTarget &&
+                isDailyLimitReached(scanTarget.baserow_row_id);
               return (
                 <Button
                   onClick={handleSubmitScan}
@@ -921,7 +921,7 @@ export function QrScansTab() {
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
                   {blocked
-                    ? "Já registrado hoje"
+                    ? `Limite diário (${maxPorDia}) atingido`
                     : scanStep === "initial"
                       ? "Registrar"
                       : "Criar cobrança"}
