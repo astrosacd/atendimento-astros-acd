@@ -106,9 +106,10 @@ export function QrScansTab() {
   const [needsPaymentInfo, setNeedsPaymentInfo] = useState<{
     valor: number;
   } | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<string>("manual_pix");
+  const [paymentMethod, setPaymentMethod] = useState<string>("link_mp");
   const [manualObs, setManualObs] = useState("");
   const [comprovanteUrl, setComprovanteUrl] = useState("");
+  const [generatedPaymentUrl, setGeneratedPaymentUrl] = useState<string | null>(null);
 
   // Local draft for config form (controlled, saved on click)
   const [configDraft, setConfigDraft] = useState<{
