@@ -115,6 +115,49 @@ export function QrScansTab() {
   const getCounter = (id: number) =>
     counters?.get(id) ?? { qtd_gratis_usados: 0, qtd_pagos: 0 };
 
+  // BRT today (YYYY-MM-DD) — must match edge function
+  const todayBrt = (() => {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date());
+    const g = (t: string) => parts.find((p) => p.type === t)!.value;
+    return `${g("year")}-${g("month")}-${g("day")}`;
+  })();
+
+  const getTodayScan = (baserowRowId: number) =>
+    history.find(
+      (h) => h.baserow_row_id === baserowRowId && h.scan_date === todayBrt,
+    );
+
+  const formatTime = (iso?: string | null) => {
+    if (!iso) return "";
+    return new Date(iso).toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "America/Sao_Paulo",
+    });
+  };
+
+  const msUntilMidnightBrt = () => {
+    const now = new Date();
+    const brtNow = new Date(
+      now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }),
+    );
+    const midnight = new Date(brtNow);
+    midnight.setHours(24, 0, 0, 0);
+    return midnight.getTime() - brtNow.getTime();
+  };
+
+  const formatCountdown = () => {
+    const ms = msUntilMidnightBrt();
+    const h = Math.floor(ms / 3_600_000);
+    const m = Math.floor((ms % 3_600_000) / 60_000);
+    return `${h}h ${m}min`;
+  };
+
   useEffect(() => {
     setLocalSearchResults(searchResults);
   }, [searchResults]);
@@ -683,40 +726,94 @@ export function QrScansTab() {
             </DialogDescription>
           </DialogHeader>
 
-          {scanStep === "initial" && (
-            <div className="space-y-3">
-              <p className="text-sm">
-                {scanTarget &&
-                  (() => {
-                    const c = getCounter(scanTarget.baserow_row_id);
-                    const max = config?.qtd_gratis_por_mes ?? 4;
-                    return c.qtd_gratis_usados < max ? (
-                      <>
-                        Você tem{" "}
-                        <strong>{max - c.qtd_gratis_usados} grátis</strong>{" "}
-                        restantes este mês.
-                      </>
-                    ) : (
-                      <>
-                        Limite grátis atingido. Cada novo scan custa{" "}
+          {scanStep === "initial" && (() => {
+            const todayScan = scanTarget
+              ? getTodayScan(scanTarget.baserow_row_id)
+              : null;
+
+            if (todayScan) {
+              const statusInfo = STATUS_BADGES[todayScan.payment_status] ?? {
+                label: todayScan.payment_status,
+                variant: "outline",
+              };
+              return (
+                <div className="space-y-3">
+                  <div className="p-4 bg-amber-500/10 border border-amber-500/40 rounded-md space-y-2">
+                    <div className="flex items-center gap-2 font-medium text-sm">
+                      <AlertCircle className="h-4 w-4 text-amber-600" />
+                      Já existe um escaneamento registrado hoje
+                    </div>
+                    <div className="text-sm space-y-1">
+                      <div>
+                        <span className="text-muted-foreground">Horário:</span>{" "}
+                        <strong>{formatTime(todayScan.created_at)}</strong> (BRT)
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Tipo:</span>{" "}
                         <strong>
-                          R${" "}
-                          {Number(config?.valor_excedente ?? 14.97).toFixed(2)}
+                          {todayScan.tipo === "gratis" ? "Grátis" : "Pago"}
                         </strong>
-                        .
-                      </>
-                    );
-                  })()}
-              </p>
-              <div>
-                <Label>Observação (opcional)</Label>
-                <Textarea
-                  value={scanObs}
-                  onChange={(e) => setScanObs(e.target.value)}
-                />
+                        {todayScan.valor_cobrado ? (
+                          <> — R$ {Number(todayScan.valor_cobrado).toFixed(2)}</>
+                        ) : null}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">Status:</span>
+                        <Badge variant={statusInfo.variant}>
+                          {statusInfo.label}
+                        </Badge>
+                      </div>
+                      {todayScan.observacao && (
+                        <div>
+                          <span className="text-muted-foreground">Obs:</span>{" "}
+                          {todayScan.observacao}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground pt-1 border-t border-amber-500/20">
+                      ⏳ Aguarde até <strong>00:00 (BRT)</strong> para um novo
+                      registro — faltam <strong>{formatCountdown()}</strong>.
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div className="space-y-3">
+                <p className="text-sm">
+                  {scanTarget &&
+                    (() => {
+                      const c = getCounter(scanTarget.baserow_row_id);
+                      const max = config?.qtd_gratis_por_mes ?? 4;
+                      return c.qtd_gratis_usados < max ? (
+                        <>
+                          Você tem{" "}
+                          <strong>{max - c.qtd_gratis_usados} grátis</strong>{" "}
+                          restantes este mês.
+                        </>
+                      ) : (
+                        <>
+                          Limite grátis atingido. Cada novo scan custa{" "}
+                          <strong>
+                            R${" "}
+                            {Number(config?.valor_excedente ?? 14.97).toFixed(2)}
+                          </strong>
+                          .
+                        </>
+                      );
+                    })()}
+                </p>
+                <div>
+                  <Label>Observação (opcional)</Label>
+                  <Textarea
+                    value={scanObs}
+                    onChange={(e) => setScanObs(e.target.value)}
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {scanStep === "payment" && needsPaymentInfo && (
             <div className="space-y-3">
@@ -768,15 +865,27 @@ export function QrScansTab() {
             <Button variant="ghost" onClick={() => setScanDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button
-              onClick={handleSubmitScan}
-              disabled={registerScan.isPending}
-            >
-              {registerScan.isPending && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              )}
-              {scanStep === "initial" ? "Registrar" : "Criar cobrança"}
-            </Button>
+            {(() => {
+              const blocked =
+                scanStep === "initial" &&
+                scanTarget &&
+                !!getTodayScan(scanTarget.baserow_row_id);
+              return (
+                <Button
+                  onClick={handleSubmitScan}
+                  disabled={registerScan.isPending || blocked}
+                >
+                  {registerScan.isPending && (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  )}
+                  {blocked
+                    ? "Já registrado hoje"
+                    : scanStep === "initial"
+                      ? "Registrar"
+                      : "Criar cobrança"}
+                </Button>
+              );
+            })()}
           </DialogFooter>
         </DialogContent>
       </Dialog>
