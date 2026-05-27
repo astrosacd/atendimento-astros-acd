@@ -636,21 +636,12 @@ export function QrScansTab() {
                         />
                       </div>
                       <div>
-                        <Label>Qtd máxima por dia (por número)</Label>
-                        <Input
-                          type="number"
-                          min={1}
-                          value={configDraft.qtd_max_por_dia}
-                          onChange={(e) =>
-                            setConfigDraft({
-                              ...configDraft,
-                              qtd_max_por_dia: Number(e.target.value),
-                            })
-                          }
-                        />
+                        <Label>Limite diário (fixo)</Label>
+                        <Input type="number" value={1} disabled />
                         <p className="text-xs text-muted-foreground mt-1">
-                          Define quantos escaneamentos cada número pode receber
-                          por dia antes de bloquear o botão.
+                          Cada número pode receber no máximo <strong>1
+                          escaneamento por dia</strong> (regra do sistema, não
+                          configurável).
                         </p>
                       </div>
                       <div>
