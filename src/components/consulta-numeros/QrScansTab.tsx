@@ -154,7 +154,7 @@ export function QrScansTab() {
     return `${g("year")}-${g("month")}-${g("day")}`;
   })();
 
-  const maxPorDia = config?.qtd_max_por_dia ?? 1;
+  const maxPorDia = 1;
 
   const getTodayScans = (baserowRowId: number) =>
     history.filter(
