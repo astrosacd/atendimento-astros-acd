@@ -205,9 +205,10 @@ export function QrScansTab() {
     setScanStep("initial");
     setScanObs("");
     setNeedsPaymentInfo(null);
-    setPaymentMethod("manual_pix");
+    setPaymentMethod("link_mp");
     setManualObs("");
     setComprovanteUrl("");
+    setGeneratedPaymentUrl(null);
     setScanDialogOpen(true);
   };
 
@@ -246,11 +247,21 @@ export function QrScansTab() {
         });
         setScanDialogOpen(false);
       } else if (res?.status === "pendente_pagamento") {
-        toast({
-          title: "💸 Cobrança registrada — aguardando pagamento",
-          description: `Confirme o pagamento na aba "Pendentes".`,
-        });
-        setScanDialogOpen(false);
+        if (res.payment_url) {
+          // Link gerado: mantém o dialog aberto para o usuário copiar/enviar
+          setGeneratedPaymentUrl(res.payment_url);
+          toast({
+            title: "🔗 Link de pagamento gerado",
+            description:
+              "Envie ao cliente. O scan será liberado automaticamente quando o pagamento for confirmado.",
+          });
+        } else {
+          toast({
+            title: "💸 Cobrança registrada — aguardando pagamento",
+            description: `Confirme o pagamento na aba "Pendentes".`,
+          });
+          setScanDialogOpen(false);
+        }
       }
     } catch (e: any) {
       toast({
