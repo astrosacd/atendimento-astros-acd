@@ -110,6 +110,36 @@ export function QrScansTab() {
   const [manualObs, setManualObs] = useState("");
   const [comprovanteUrl, setComprovanteUrl] = useState("");
 
+  // Local draft for config form (controlled, saved on click)
+  const [configDraft, setConfigDraft] = useState<{
+    qtd_gratis_por_mes: number;
+    qtd_max_por_dia: number;
+    valor_excedente: number;
+    payment_provider_default: "mercadopago" | "stripe";
+    ativo: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (config) {
+      setConfigDraft({
+        qtd_gratis_por_mes: config.qtd_gratis_por_mes,
+        qtd_max_por_dia: config.qtd_max_por_dia,
+        valor_excedente: Number(config.valor_excedente),
+        payment_provider_default: config.payment_provider_default,
+        ativo: config.ativo,
+      });
+    }
+  }, [config]);
+
+  const configDirty =
+    !!config &&
+    !!configDraft &&
+    (configDraft.qtd_gratis_por_mes !== config.qtd_gratis_por_mes ||
+      configDraft.qtd_max_por_dia !== config.qtd_max_por_dia ||
+      Number(configDraft.valor_excedente) !== Number(config.valor_excedente) ||
+      configDraft.payment_provider_default !== config.payment_provider_default ||
+      configDraft.ativo !== config.ativo);
+
   const pendentes = history.filter((h) => h.payment_status === "pendente");
 
   const getCounter = (id: number) =>
@@ -127,10 +157,20 @@ export function QrScansTab() {
     return `${g("year")}-${g("month")}-${g("day")}`;
   })();
 
-  const getTodayScan = (baserowRowId: number) =>
-    history.find(
+  const maxPorDia = config?.qtd_max_por_dia ?? 1;
+
+  const getTodayScans = (baserowRowId: number) =>
+    history.filter(
       (h) => h.baserow_row_id === baserowRowId && h.scan_date === todayBrt,
     );
+
+  const getLastTodayScan = (baserowRowId: number) => {
+    const scans = getTodayScans(baserowRowId);
+    return scans.length > 0 ? scans[0] : undefined;
+  };
+
+  const isDailyLimitReached = (baserowRowId: number) =>
+    getTodayScans(baserowRowId).length >= maxPorDia;
 
   const formatTime = (iso?: string | null) => {
     if (!iso) return "";
@@ -379,24 +419,31 @@ export function QrScansTab() {
                           </TableCell>
                           <TableCell className="text-right space-x-2">
                             {(() => {
-                              const todayScan = getTodayScan(n.baserow_row_id);
-                              if (todayScan) {
+                              const todayCount = getTodayScans(n.baserow_row_id).length;
+                              const lastToday = getLastTodayScan(n.baserow_row_id);
+                              const limitReached = todayCount >= maxPorDia;
+                              if (limitReached && lastToday) {
                                 return (
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     className="border-amber-500/60 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
                                     onClick={() => handleOpenScan(n)}
-                                    title={`Já registrado hoje às ${formatTime(todayScan.created_at)}`}
+                                    title={`Limite diário (${maxPorDia}) atingido — último às ${formatTime(lastToday.created_at)}`}
                                   >
                                     <AlertCircle className="h-3.5 w-3.5 mr-1" />
-                                    Já registrado hoje
+                                    Limite diário {todayCount}/{maxPorDia}
                                   </Button>
                                 );
                               }
                               return (
                                 <Button size="sm" onClick={() => handleOpenScan(n)}>
                                   📲 Registrar escaneamento
+                                  {maxPorDia > 1 && (
+                                    <span className="ml-1 text-xs opacity-80">
+                                      ({todayCount}/{maxPorDia} hoje)
+                                    </span>
+                                  )}
                                 </Button>
                               );
                             })()}
@@ -574,44 +621,50 @@ export function QrScansTab() {
                 <CardDescription>Apenas admin pode alterar.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {config && (
+                {config && configDraft && (
                   <>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label>Qtd grátis por mês (por número)</Label>
                         <Input
                           type="number"
-                          defaultValue={config.qtd_gratis_por_mes}
-                          onBlur={(e) =>
-                            updateConfig.mutate({
-                              id: config.id,
+                          min={0}
+                          value={configDraft.qtd_gratis_por_mes}
+                          onChange={(e) =>
+                            setConfigDraft({
+                              ...configDraft,
                               qtd_gratis_por_mes: Number(e.target.value),
                             })
                           }
                         />
                       </div>
                       <div>
-                        <Label>Qtd máxima por dia</Label>
+                        <Label>Qtd máxima por dia (por número)</Label>
                         <Input
                           type="number"
-                          defaultValue={config.qtd_max_por_dia}
-                          onBlur={(e) =>
-                            updateConfig.mutate({
-                              id: config.id,
+                          min={1}
+                          value={configDraft.qtd_max_por_dia}
+                          onChange={(e) =>
+                            setConfigDraft({
+                              ...configDraft,
                               qtd_max_por_dia: Number(e.target.value),
                             })
                           }
                         />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Define quantos escaneamentos cada número pode receber
+                          por dia antes de bloquear o botão.
+                        </p>
                       </div>
                       <div>
                         <Label>Valor por scan excedente (R$)</Label>
                         <Input
                           type="number"
                           step="0.01"
-                          defaultValue={config.valor_excedente}
-                          onBlur={(e) =>
-                            updateConfig.mutate({
-                              id: config.id,
+                          value={configDraft.valor_excedente}
+                          onChange={(e) =>
+                            setConfigDraft({
+                              ...configDraft,
                               valor_excedente: Number(e.target.value),
                             })
                           }
@@ -620,10 +673,10 @@ export function QrScansTab() {
                       <div>
                         <Label>Provedor padrão</Label>
                         <Select
-                          defaultValue={config.payment_provider_default}
+                          value={configDraft.payment_provider_default}
                           onValueChange={(v) =>
-                            updateConfig.mutate({
-                              id: config.id,
+                            setConfigDraft({
+                              ...configDraft,
                               payment_provider_default: v as any,
                             })
                           }
@@ -642,12 +695,62 @@ export function QrScansTab() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Switch
-                        checked={config.ativo}
+                        checked={configDraft.ativo}
                         onCheckedChange={(v) =>
-                          updateConfig.mutate({ id: config.id, ativo: v })
+                          setConfigDraft({ ...configDraft, ativo: v })
                         }
                       />
                       <Label>Módulo ativo</Label>
+                    </div>
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                      {configDirty && (
+                        <span className="text-xs text-amber-600 mr-auto">
+                          ⚠️ Alterações não salvas
+                        </span>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={!configDirty || updateConfig.isPending}
+                        onClick={() =>
+                          setConfigDraft({
+                            qtd_gratis_por_mes: config.qtd_gratis_por_mes,
+                            qtd_max_por_dia: config.qtd_max_por_dia,
+                            valor_excedente: Number(config.valor_excedente),
+                            payment_provider_default: config.payment_provider_default,
+                            ativo: config.ativo,
+                          })
+                        }
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        disabled={!configDirty || updateConfig.isPending}
+                        onClick={() => {
+                          updateConfig.mutate(
+                            { id: config.id, ...configDraft },
+                            {
+                              onSuccess: () =>
+                                toast({
+                                  title: "Configurações salvas",
+                                  description:
+                                    "As novas regras já valem para os próximos escaneamentos.",
+                                }),
+                              onError: (err: any) =>
+                                toast({
+                                  title: "Erro ao salvar",
+                                  description: err?.message ?? String(err),
+                                  variant: "destructive",
+                                }),
+                            },
+                          );
+                        }}
+                      >
+                        {updateConfig.isPending && (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        )}
+                        Salvar configurações
+                      </Button>
                     </div>
                   </>
                 )}
@@ -746,11 +849,17 @@ export function QrScansTab() {
           </DialogHeader>
 
           {scanStep === "initial" && (() => {
+            const todayCount = scanTarget
+              ? getTodayScans(scanTarget.baserow_row_id).length
+              : 0;
             const todayScan = scanTarget
-              ? getTodayScan(scanTarget.baserow_row_id)
-              : null;
+              ? getLastTodayScan(scanTarget.baserow_row_id)
+              : undefined;
+            const limitReached = scanTarget
+              ? isDailyLimitReached(scanTarget.baserow_row_id)
+              : false;
 
-            if (todayScan) {
+            if (limitReached && todayScan) {
               const statusInfo = STATUS_BADGES[todayScan.payment_status] ?? {
                 label: todayScan.payment_status,
                 variant: "outline",
@@ -760,7 +869,7 @@ export function QrScansTab() {
                   <div className="p-4 bg-amber-500/10 border border-amber-500/40 rounded-md space-y-2">
                     <div className="flex items-center gap-2 font-medium text-sm">
                       <AlertCircle className="h-4 w-4 text-amber-600" />
-                      Já existe um escaneamento registrado hoje
+                      Limite diário atingido ({todayCount}/{maxPorDia})
                     </div>
                     <div className="text-sm space-y-1">
                       <div>
@@ -887,8 +996,8 @@ export function QrScansTab() {
             {(() => {
               const blocked =
                 scanStep === "initial" &&
-                scanTarget &&
-                !!getTodayScan(scanTarget.baserow_row_id);
+                !!scanTarget &&
+                isDailyLimitReached(scanTarget.baserow_row_id);
               return (
                 <Button
                   onClick={handleSubmitScan}
@@ -898,7 +1007,7 @@ export function QrScansTab() {
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
                   {blocked
-                    ? "Já registrado hoje"
+                    ? `Limite diário (${maxPorDia}) atingido`
                     : scanStep === "initial"
                       ? "Registrar"
                       : "Criar cobrança"}
