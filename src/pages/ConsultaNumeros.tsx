@@ -1180,11 +1180,20 @@ export default function ConsultaNumeros() {
               <MessageSquare className="h-4 w-4 mr-2" />
               Validação & SMS
             </TabsTrigger>
+            <TabsTrigger value="qr-scans">
+              <QrCode className="h-4 w-4 mr-2" />
+              QR Scans
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="validacao-sms">
             <ValidacaoSmsTab />
           </TabsContent>
+
+          <TabsContent value="qr-scans">
+            <QrScansTab />
+          </TabsContent>
+
 
           <TabsContent value="consulta" className="space-y-6">
 
