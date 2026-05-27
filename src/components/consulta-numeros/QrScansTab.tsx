@@ -115,6 +115,49 @@ export function QrScansTab() {
   const getCounter = (id: number) =>
     counters?.get(id) ?? { qtd_gratis_usados: 0, qtd_pagos: 0 };
 
+  // BRT today (YYYY-MM-DD) — must match edge function
+  const todayBrt = (() => {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date());
+    const g = (t: string) => parts.find((p) => p.type === t)!.value;
+    return `${g("year")}-${g("month")}-${g("day")}`;
+  })();
+
+  const getTodayScan = (baserowRowId: number) =>
+    history.find(
+      (h) => h.baserow_row_id === baserowRowId && h.scan_date === todayBrt,
+    );
+
+  const formatTime = (iso?: string | null) => {
+    if (!iso) return "";
+    return new Date(iso).toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "America/Sao_Paulo",
+    });
+  };
+
+  const msUntilMidnightBrt = () => {
+    const now = new Date();
+    const brtNow = new Date(
+      now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }),
+    );
+    const midnight = new Date(brtNow);
+    midnight.setHours(24, 0, 0, 0);
+    return midnight.getTime() - brtNow.getTime();
+  };
+
+  const formatCountdown = () => {
+    const ms = msUntilMidnightBrt();
+    const h = Math.floor(ms / 3_600_000);
+    const m = Math.floor((ms % 3_600_000) / 60_000);
+    return `${h}h ${m}min`;
+  };
+
   useEffect(() => {
     setLocalSearchResults(searchResults);
   }, [searchResults]);
