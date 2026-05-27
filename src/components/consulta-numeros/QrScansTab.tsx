@@ -389,24 +389,31 @@ export function QrScansTab() {
                           </TableCell>
                           <TableCell className="text-right space-x-2">
                             {(() => {
-                              const todayScan = getTodayScan(n.baserow_row_id);
-                              if (todayScan) {
+                              const todayCount = getTodayScans(n.baserow_row_id).length;
+                              const lastToday = getLastTodayScan(n.baserow_row_id);
+                              const limitReached = todayCount >= maxPorDia;
+                              if (limitReached && lastToday) {
                                 return (
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     className="border-amber-500/60 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
                                     onClick={() => handleOpenScan(n)}
-                                    title={`Já registrado hoje às ${formatTime(todayScan.created_at)}`}
+                                    title={`Limite diário (${maxPorDia}) atingido — último às ${formatTime(lastToday.created_at)}`}
                                   >
                                     <AlertCircle className="h-3.5 w-3.5 mr-1" />
-                                    Já registrado hoje
+                                    Limite diário {todayCount}/{maxPorDia}
                                   </Button>
                                 );
                               }
                               return (
                                 <Button size="sm" onClick={() => handleOpenScan(n)}>
                                   📲 Registrar escaneamento
+                                  {maxPorDia > 1 && (
+                                    <span className="ml-1 text-xs opacity-80">
+                                      ({todayCount}/{maxPorDia} hoje)
+                                    </span>
+                                  )}
                                 </Button>
                               );
                             })()}
