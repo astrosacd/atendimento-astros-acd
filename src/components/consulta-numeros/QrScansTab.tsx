@@ -110,6 +110,36 @@ export function QrScansTab() {
   const [manualObs, setManualObs] = useState("");
   const [comprovanteUrl, setComprovanteUrl] = useState("");
 
+  // Local draft for config form (controlled, saved on click)
+  const [configDraft, setConfigDraft] = useState<{
+    qtd_gratis_por_mes: number;
+    qtd_max_por_dia: number;
+    valor_excedente: number;
+    payment_provider_default: "mercadopago" | "stripe";
+    ativo: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (config) {
+      setConfigDraft({
+        qtd_gratis_por_mes: config.qtd_gratis_por_mes,
+        qtd_max_por_dia: config.qtd_max_por_dia,
+        valor_excedente: Number(config.valor_excedente),
+        payment_provider_default: config.payment_provider_default,
+        ativo: config.ativo,
+      });
+    }
+  }, [config]);
+
+  const configDirty =
+    !!config &&
+    !!configDraft &&
+    (configDraft.qtd_gratis_por_mes !== config.qtd_gratis_por_mes ||
+      configDraft.qtd_max_por_dia !== config.qtd_max_por_dia ||
+      Number(configDraft.valor_excedente) !== Number(config.valor_excedente) ||
+      configDraft.payment_provider_default !== config.payment_provider_default ||
+      configDraft.ativo !== config.ativo);
+
   const pendentes = history.filter((h) => h.payment_status === "pendente");
 
   const getCounter = (id: number) =>
