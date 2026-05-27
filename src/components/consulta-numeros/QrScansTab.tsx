@@ -143,6 +143,16 @@ export function QrScansTab() {
         payload.payment_comprovante_url = comprovanteUrl || undefined;
       }
       const res = await registerScan.mutateAsync(payload);
+      if (res?.status === "daily_limit") {
+        toast({
+          title: "Limite diário atingido",
+          description:
+            res.message ??
+            "Este número já tem um escaneamento registrado hoje.",
+          variant: "destructive",
+        });
+        return;
+      }
       if (res?.status === "needs_payment") {
         setNeedsPaymentInfo({ valor: res.valor });
         setScanStep("payment");
