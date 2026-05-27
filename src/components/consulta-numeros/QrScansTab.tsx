@@ -113,7 +113,6 @@ export function QrScansTab() {
   // Local draft for config form (controlled, saved on click)
   const [configDraft, setConfigDraft] = useState<{
     qtd_gratis_por_mes: number;
-    qtd_max_por_dia: number;
     valor_excedente: number;
     payment_provider_default: "mercadopago" | "stripe";
     ativo: boolean;
@@ -123,7 +122,6 @@ export function QrScansTab() {
     if (config) {
       setConfigDraft({
         qtd_gratis_por_mes: config.qtd_gratis_por_mes,
-        qtd_max_por_dia: config.qtd_max_por_dia,
         valor_excedente: Number(config.valor_excedente),
         payment_provider_default: config.payment_provider_default,
         ativo: config.ativo,
@@ -135,7 +133,6 @@ export function QrScansTab() {
     !!config &&
     !!configDraft &&
     (configDraft.qtd_gratis_por_mes !== config.qtd_gratis_por_mes ||
-      configDraft.qtd_max_por_dia !== config.qtd_max_por_dia ||
       Number(configDraft.valor_excedente) !== Number(config.valor_excedente) ||
       configDraft.payment_provider_default !== config.payment_provider_default ||
       configDraft.ativo !== config.ativo);
