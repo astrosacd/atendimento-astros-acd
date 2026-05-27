@@ -104,7 +104,7 @@ serve(async (req) => {
       .eq("baserow_row_id", baserowRowId)
       .eq("scan_date", hoje)
       .in("payment_status", ["nao_aplica", "pendente", "pago"]);
-    if ((todayScans?.length ?? 0) >= (config.qtd_max_por_dia ?? 1)) {
+    if ((todayScans?.length ?? 0) >= DAILY_LIMIT) {
       return new Response(JSON.stringify({
         ok: false,
         status: "daily_limit",
