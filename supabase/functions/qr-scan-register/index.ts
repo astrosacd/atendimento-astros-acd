@@ -65,7 +65,9 @@ serve(async (req) => {
       .from("qr_scan_config")
       .select("*")
       .limit(1);
-    const config = configRows?.[0] ?? { qtd_gratis_por_mes: 4, qtd_max_por_dia: 1, valor_excedente: 14.97, ativo: true };
+    const config = configRows?.[0] ?? { qtd_gratis_por_mes: 4, valor_excedente: 14.97, ativo: true };
+    // Daily limit is fixed at 1 scan per number per day (system rule, non-configurable)
+    const DAILY_LIMIT = 1;
     if (!config.ativo) {
       return new Response(JSON.stringify({ error: "Módulo de QR Scan desativado" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -102,7 +104,7 @@ serve(async (req) => {
       .eq("baserow_row_id", baserowRowId)
       .eq("scan_date", hoje)
       .in("payment_status", ["nao_aplica", "pendente", "pago"]);
-    if ((todayScans?.length ?? 0) >= (config.qtd_max_por_dia ?? 1)) {
+    if ((todayScans?.length ?? 0) >= DAILY_LIMIT) {
       return new Response(JSON.stringify({
         ok: false,
         status: "daily_limit",
@@ -171,6 +173,35 @@ serve(async (req) => {
       });
     }
 
+    // If link_mp / link_stripe: generate the payment link via the existing function
+    let generatedLinkId: string | null = paymentLinkId ?? null;
+    let generatedPaymentUrl: string | null = null;
+    if (paymentMethod === "link_mp" || paymentMethod === "link_stripe") {
+      const provider = paymentMethod === "link_mp" ? "mercadopago" : "stripe";
+      const empresa = (clienteNome && String(clienteNome).trim()) || `QR Scan ${numeroStr}`;
+      const genRes = await fetch(`${supabaseUrl}/functions/v1/generate-payment-link`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+        },
+        body: JSON.stringify({
+          empresa,
+          provider,
+          valor_da_venda: config.valor_excedente,
+          validade_horas: 48,
+        }),
+      });
+      const genJson = await genRes.json().catch(() => ({}));
+      if (!genRes.ok || !genJson?.success) {
+        return new Response(JSON.stringify({
+          error: genJson?.error || "Falha ao gerar link de pagamento",
+        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      generatedLinkId = genJson.link_id ?? null;
+      generatedPaymentUrl = genJson.payment_url ?? null;
+    }
+
     const { data: inserted, error: insErr } = await supabase
       .from("qr_scan_history")
       .insert({
@@ -182,7 +213,7 @@ serve(async (req) => {
         valor_cobrado: config.valor_excedente,
         payment_status: "pendente",
         payment_method: paymentMethod,
-        payment_link_id: paymentLinkId ?? null,
+        payment_link_id: generatedLinkId,
         payment_manual_observacao: manualObs ?? null,
         payment_comprovante_url: comprovanteUrl ?? null,
         operador_user_id: userId,
@@ -195,6 +226,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       ok: true, status: "pendente_pagamento", scan: inserted,
       valor: config.valor_excedente,
+      payment_url: generatedPaymentUrl,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err: any) {
     console.error("[qr-scan-register]", err);

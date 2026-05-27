@@ -464,6 +464,7 @@ serve(async (req) => {
       currency: provider === "stripe" ? "USD" : "BRL",
       expires_at: expiresAt,
       reference_id: referenceId,
+      link_id: linkId,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

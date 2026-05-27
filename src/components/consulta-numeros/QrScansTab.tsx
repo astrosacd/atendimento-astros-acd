@@ -106,14 +106,14 @@ export function QrScansTab() {
   const [needsPaymentInfo, setNeedsPaymentInfo] = useState<{
     valor: number;
   } | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<string>("manual_pix");
+  const [paymentMethod, setPaymentMethod] = useState<string>("link_mp");
   const [manualObs, setManualObs] = useState("");
   const [comprovanteUrl, setComprovanteUrl] = useState("");
+  const [generatedPaymentUrl, setGeneratedPaymentUrl] = useState<string | null>(null);
 
   // Local draft for config form (controlled, saved on click)
   const [configDraft, setConfigDraft] = useState<{
     qtd_gratis_por_mes: number;
-    qtd_max_por_dia: number;
     valor_excedente: number;
     payment_provider_default: "mercadopago" | "stripe";
     ativo: boolean;
@@ -123,7 +123,6 @@ export function QrScansTab() {
     if (config) {
       setConfigDraft({
         qtd_gratis_por_mes: config.qtd_gratis_por_mes,
-        qtd_max_por_dia: config.qtd_max_por_dia,
         valor_excedente: Number(config.valor_excedente),
         payment_provider_default: config.payment_provider_default,
         ativo: config.ativo,
@@ -135,7 +134,6 @@ export function QrScansTab() {
     !!config &&
     !!configDraft &&
     (configDraft.qtd_gratis_por_mes !== config.qtd_gratis_por_mes ||
-      configDraft.qtd_max_por_dia !== config.qtd_max_por_dia ||
       Number(configDraft.valor_excedente) !== Number(config.valor_excedente) ||
       configDraft.payment_provider_default !== config.payment_provider_default ||
       configDraft.ativo !== config.ativo);
@@ -157,7 +155,7 @@ export function QrScansTab() {
     return `${g("year")}-${g("month")}-${g("day")}`;
   })();
 
-  const maxPorDia = config?.qtd_max_por_dia ?? 1;
+  const maxPorDia = 1;
 
   const getTodayScans = (baserowRowId: number) =>
     history.filter(
@@ -207,9 +205,10 @@ export function QrScansTab() {
     setScanStep("initial");
     setScanObs("");
     setNeedsPaymentInfo(null);
-    setPaymentMethod("manual_pix");
+    setPaymentMethod("link_mp");
     setManualObs("");
     setComprovanteUrl("");
+    setGeneratedPaymentUrl(null);
     setScanDialogOpen(true);
   };
 
@@ -248,11 +247,21 @@ export function QrScansTab() {
         });
         setScanDialogOpen(false);
       } else if (res?.status === "pendente_pagamento") {
-        toast({
-          title: "💸 Cobrança registrada — aguardando pagamento",
-          description: `Confirme o pagamento na aba "Pendentes".`,
-        });
-        setScanDialogOpen(false);
+        if (res.payment_url) {
+          // Link gerado: mantém o dialog aberto para o usuário copiar/enviar
+          setGeneratedPaymentUrl(res.payment_url);
+          toast({
+            title: "🔗 Link de pagamento gerado",
+            description:
+              "Envie ao cliente. O scan será liberado automaticamente quando o pagamento for confirmado.",
+          });
+        } else {
+          toast({
+            title: "💸 Cobrança registrada — aguardando pagamento",
+            description: `Confirme o pagamento na aba "Pendentes".`,
+          });
+          setScanDialogOpen(false);
+        }
       }
     } catch (e: any) {
       toast({
@@ -639,21 +648,12 @@ export function QrScansTab() {
                         />
                       </div>
                       <div>
-                        <Label>Qtd máxima por dia (por número)</Label>
-                        <Input
-                          type="number"
-                          min={1}
-                          value={configDraft.qtd_max_por_dia}
-                          onChange={(e) =>
-                            setConfigDraft({
-                              ...configDraft,
-                              qtd_max_por_dia: Number(e.target.value),
-                            })
-                          }
-                        />
+                        <Label>Limite diário (fixo)</Label>
+                        <Input type="number" value={1} disabled />
                         <p className="text-xs text-muted-foreground mt-1">
-                          Define quantos escaneamentos cada número pode receber
-                          por dia antes de bloquear o botão.
+                          Cada número pode receber no máximo <strong>1
+                          escaneamento por dia</strong> (regra do sistema, não
+                          configurável).
                         </p>
                       </div>
                       <div>
@@ -715,7 +715,6 @@ export function QrScansTab() {
                         onClick={() =>
                           setConfigDraft({
                             qtd_gratis_por_mes: config.qtd_gratis_por_mes,
-                            qtd_max_por_dia: config.qtd_max_por_dia,
                             valor_excedente: Number(config.valor_excedente),
                             payment_provider_default: config.payment_provider_default,
                             ativo: config.ativo,
@@ -943,7 +942,7 @@ export function QrScansTab() {
             );
           })()}
 
-          {scanStep === "payment" && needsPaymentInfo && (
+          {scanStep === "payment" && needsPaymentInfo && !generatedPaymentUrl && (
             <div className="space-y-3">
               <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-sm">
                 ⚠️ Cobrança de{" "}
@@ -964,40 +963,81 @@ export function QrScansTab() {
                     ))}
                   </SelectContent>
                 </Select>
+                {(paymentMethod === "link_mp" || paymentMethod === "link_stripe") && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Vamos gerar um link de pagamento. O cliente pode pagar com
+                    cartão, PIX ou boleto direto na página do provedor. Quando o
+                    pagamento for confirmado, o escaneamento é liberado
+                    automaticamente.
+                  </p>
+                )}
               </div>
-              <div>
-                <Label>Observação do pagamento</Label>
-                <Textarea
-                  value={manualObs}
-                  onChange={(e) => setManualObs(e.target.value)}
-                  placeholder="Ex: PIX enviado às 14h, ID 12345..."
-                />
+              {paymentMethod !== "link_mp" && paymentMethod !== "link_stripe" && (
+                <>
+                  <div>
+                    <Label>Observação do pagamento</Label>
+                    <Textarea
+                      value={manualObs}
+                      onChange={(e) => setManualObs(e.target.value)}
+                      placeholder="Ex: PIX enviado às 14h, ID 12345..."
+                    />
+                  </div>
+                  <div>
+                    <Label>URL do comprovante (opcional)</Label>
+                    <Input
+                      value={comprovanteUrl}
+                      onChange={(e) => setComprovanteUrl(e.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    A cobrança ficará <strong>pendente</strong>. Confirme
+                    manualmente na aba "Pendentes" assim que receber o pagamento
+                    — só então o escaneamento será liberado.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
+          {scanStep === "payment" && generatedPaymentUrl && (
+            <div className="space-y-3">
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded text-sm">
+                ✅ Link de pagamento gerado! Envie para o cliente:
               </div>
-              <div>
-                <Label>URL do comprovante (opcional)</Label>
-                <Input
-                  value={comprovanteUrl}
-                  onChange={(e) => setComprovanteUrl(e.target.value)}
-                  placeholder="https://..."
-                />
+              <div className="flex gap-2">
+                <Input value={generatedPaymentUrl} readOnly className="font-mono text-xs" />
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(generatedPaymentUrl);
+                    toast({ title: "Copiado!" });
+                  }}
+                >
+                  Copiar
+                </Button>
+                <Button size="sm" variant="outline" asChild>
+                  <a href={generatedPaymentUrl} target="_blank" rel="noreferrer">Abrir</a>
+                </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                A cobrança ficará <strong>pendente</strong>. Confirme
-                manualmente na aba "Pendentes" assim que receber o pagamento —
-                só então o escaneamento será liberado.
+                Status fica <strong>pendente</strong> na aba "Pendentes". Assim
+                que o cliente pagar, o escaneamento é liberado
+                automaticamente.
               </p>
             </div>
           )}
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setScanDialogOpen(false)}>
-              Cancelar
+              {generatedPaymentUrl ? "Fechar" : "Cancelar"}
             </Button>
-            {(() => {
+            {!generatedPaymentUrl && (() => {
               const blocked =
                 scanStep === "initial" &&
                 !!scanTarget &&
                 isDailyLimitReached(scanTarget.baserow_row_id);
+              const isLink = paymentMethod === "link_mp" || paymentMethod === "link_stripe";
               return (
                 <Button
                   onClick={handleSubmitScan}
@@ -1010,7 +1050,9 @@ export function QrScansTab() {
                     ? `Limite diário (${maxPorDia}) atingido`
                     : scanStep === "initial"
                       ? "Registrar"
-                      : "Criar cobrança"}
+                      : isLink
+                        ? "Gerar link de pagamento"
+                        : "Criar cobrança"}
                 </Button>
               );
             })()}
