@@ -60,7 +60,10 @@ export function useUpdateQrScanConfig() {
   return useMutation({
     mutationFn: async (patch: Partial<QrScanConfig> & { id: string }) => {
       const { id, ...rest } = patch;
-      const { error } = await supabase.from("qr_scan_config").update(rest).eq("id", id);
+      const { error } = await supabase
+        .from("qr_scan_config")
+        .update(rest)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["qr-scan-config"] }),
@@ -73,7 +76,9 @@ export function useAutoHospedadoNumbers() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("consulta_numeros_cache")
-        .select("baserow_row_id, row_data, auto_hospedado, auto_hospedado_observacao, auto_hospedado_marcado_em")
+        .select(
+          "baserow_row_id, row_data, auto_hospedado, auto_hospedado_observacao, auto_hospedado_marcado_em",
+        )
         .eq("auto_hospedado", true)
         .order("baserow_row_id");
       if (error) throw error;
@@ -82,11 +87,18 @@ export function useAutoHospedadoNumbers() {
   });
 }
 
-export function useQrScanHistory(filters?: { status?: string; numero?: string }) {
+export function useQrScanHistory(filters?: {
+  status?: string;
+  numero?: string;
+}) {
   return useQuery({
     queryKey: ["qr-scan-history", filters],
     queryFn: async () => {
-      let q = supabase.from("qr_scan_history").select("*").order("created_at", { ascending: false }).limit(500);
+      let q = supabase
+        .from("qr_scan_history")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(500);
       if (filters?.status) q = q.eq("payment_status", filters.status);
       if (filters?.numero) q = q.ilike("numero", `%${filters.numero}%`);
       const { data, error } = await q;
@@ -106,12 +118,19 @@ export function useMonthlyCounters() {
       const { data, error } = await supabase
         .from("qr_scan_monthly_counter")
         .select("*")
-        .eq("ano", ano).eq("mes", mes);
+        .eq("ano", ano)
+        .eq("mes", mes);
       if (error) throw error;
-      const map = new Map<number, { qtd_gratis_usados: number; qtd_pagos: number }>();
-      (data ?? []).forEach((r: any) => map.set(r.baserow_row_id, {
-        qtd_gratis_usados: r.qtd_gratis_usados, qtd_pagos: r.qtd_pagos,
-      }));
+      const map = new Map<
+        number,
+        { qtd_gratis_usados: number; qtd_pagos: number }
+      >();
+      (data ?? []).forEach((r: any) =>
+        map.set(r.baserow_row_id, {
+          qtd_gratis_usados: r.qtd_gratis_usados,
+          qtd_pagos: r.qtd_pagos,
+        }),
+      );
       return map;
     },
   });
@@ -120,10 +139,21 @@ export function useMonthlyCounters() {
 export function useToggleAutoHospedado() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ baserowRowId, value, observacao }: { baserowRowId: number; value: boolean; observacao?: string }) => {
-      return await invokeFunction<AutoHospedadoNumber>("qr-scan-toggle-auto-hospedado", {
-        body: { baserow_row_id: baserowRowId, value, observacao },
-      });
+    mutationFn: async ({
+      baserowRowId,
+      value,
+      observacao,
+    }: {
+      baserowRowId: number;
+      value: boolean;
+      observacao?: string;
+    }) => {
+      return await invokeFunction<AutoHospedadoNumber>(
+        "qr-scan-toggle-auto-hospedado",
+        {
+          body: { baserow_row_id: baserowRowId, value, observacao },
+        },
+      );
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["qr-scan-auto-hospedados"] });
@@ -155,8 +185,15 @@ export function useRegisterScan() {
 export function useConfirmScanPayment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { qr_scan_id: string; action?: "confirm" | "cancel"; comprovante_url?: string; observacao?: string }) => {
-      return await invokeFunction<any>("qr-scan-confirm-payment", { body: input });
+    mutationFn: async (input: {
+      qr_scan_id: string;
+      action?: "confirm" | "cancel";
+      comprovante_url?: string;
+      observacao?: string;
+    }) => {
+      return await invokeFunction<any>("qr-scan-confirm-payment", {
+        body: input,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["qr-scan-history"] });
@@ -175,9 +212,11 @@ export function useSearchNumbers(query: string) {
       const like = `*${q}*`;
       const { data, error } = await supabase
         .from("consulta_numeros_cache")
-        .select("baserow_row_id, row_data, auto_hospedado, auto_hospedado_observacao")
+        .select(
+          "baserow_row_id, row_data, auto_hospedado, auto_hospedado_observacao",
+        )
         .or(
-          `row_data->>numero.ilike.${like},row_data->>nome.ilike.${like},row_data->>email.ilike.${like},row_data->>numero_de_compra.ilike.${like}`
+          `row_data->>numero.ilike.${like},row_data->>nome.ilike.${like},row_data->>email.ilike.${like},row_data->>numero_de_compra.ilike.${like}`,
         )
         .limit(50);
       if (error) throw error;
