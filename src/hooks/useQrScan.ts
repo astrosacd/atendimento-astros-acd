@@ -179,18 +179,15 @@ export function useSearchNumbers(query: string) {
     queryKey: ["qr-scan-search-numbers", query],
     enabled: query.trim().length >= 2,
     queryFn: async () => {
+      const q = query.trim();
+      // Server-side search on JSONB row_data cast to text (case-insensitive)
       const { data, error } = await supabase
         .from("consulta_numeros_cache")
-        .select("baserow_row_id, row_data, auto_hospedado")
+        .select("baserow_row_id, row_data, auto_hospedado, auto_hospedado_observacao")
+        .filter("row_data::text", "ilike", `%${q}%`)
         .limit(50);
       if (error) throw error;
-      const q = query.toLowerCase();
-      return (data ?? []).filter((r: any) => {
-        const rd = r.row_data || {};
-        return [rd.numero, rd.nome, rd.email, rd.cliente]
-          .filter(Boolean)
-          .some((v) => String(v).toLowerCase().includes(q));
-      });
+      return data ?? [];
     },
   });
 }
