@@ -703,7 +703,6 @@ export function QrScansTab() {
                         onClick={() =>
                           setConfigDraft({
                             qtd_gratis_por_mes: config.qtd_gratis_por_mes,
-                            qtd_max_por_dia: config.qtd_max_por_dia,
                             valor_excedente: Number(config.valor_excedente),
                             payment_provider_default: config.payment_provider_default,
                             ativo: config.ativo,
