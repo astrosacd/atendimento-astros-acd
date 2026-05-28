@@ -306,7 +306,15 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
     await supabase.from("ligacoes_agendadas").update({ status: "em_andamento", tentativas: item.tentativas + 1 }).eq("id", item.id);
 
     try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new AudioContext();
+      }
+      if (audioCtxRef.current.state === "suspended") {
+        await audioCtxRef.current.resume();
+      }
+
       const payload: any = { 
+
         roteiro_id: item.roteiro_id, 
         source: "fila_cobranca",
         campanha_id: item.campanha_id 
@@ -333,6 +341,7 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
           phone: d.phone,
           audioUrl: d.audio_url,
           historicoId: d.historico_id,
+          audioContext: audioCtxRef.current || undefined,
           onStatus: (s) => setCurrentStatus(`${displayName}: ${s}`),
           onEnded: () => { 
             callRef.current = null; 
