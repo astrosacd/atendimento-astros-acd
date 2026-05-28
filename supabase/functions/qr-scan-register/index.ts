@@ -99,22 +99,6 @@ serve(async (req) => {
 
     const { date: hoje, ano, mes } = todayBrt();
 
-    // Daily check (any active scan today)
-    const { data: todayScans } = await supabase
-      .from("qr_scan_history")
-      .select("id, payment_status")
-      .eq("baserow_row_id", baserowRowId)
-      .eq("scan_date", hoje)
-      .in("payment_status", ["nao_aplica", "pendente", "pago"]);
-    if ((todayScans?.length ?? 0) >= DAILY_LIMIT) {
-      return new Response(JSON.stringify({
-        ok: false,
-        status: "daily_limit",
-        message: "Limite diário atingido. Este número já tem um escaneamento registrado hoje.",
-        blocked: "daily_limit",
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
     // Monthly counter
     const { data: counter } = await supabase
       .from("qr_scan_monthly_counter")
@@ -122,11 +106,25 @@ serve(async (req) => {
       .eq("baserow_row_id", baserowRowId)
       .eq("ano", ano).eq("mes", mes)
       .maybeSingle();
-    const gratisUsados = counter?.qtd_gratis_usados ?? 0;
-    const aindaTemGratis = gratisUsados < (config.qtd_gratis_por_mes ?? 4);
+    const gratisUsadosNoMes = counter?.qtd_gratis_usados ?? 0;
+    const aindaTemGratisNoMes = gratisUsadosNoMes < (config.qtd_gratis_por_mes ?? 4);
+
+    // Daily check (only for FREE scans)
+    const { data: todayScans } = await supabase
+      .from("qr_scan_history")
+      .select("id, tipo")
+      .eq("baserow_row_id", baserowRowId)
+      .eq("scan_date", hoje)
+      .eq("tipo", "gratis")
+      .in("payment_status", ["nao_aplica", "pendente", "pago"]);
+    
+    const gratisUsadosHoje = todayScans?.length ?? 0;
+    const aindaTemGratisHoje = gratisUsadosHoje < DAILY_LIMIT;
+
+    const podeSerGratis = aindaTemGratisNoMes && aindaTemGratisHoje;
 
     // Free flow
-    if (aindaTemGratis) {
+    if (podeSerGratis) {
       const { data: inserted, error: insErr } = await supabase
         .from("qr_scan_history")
         .insert({
@@ -148,13 +146,13 @@ serve(async (req) => {
       // Increment counter
       await supabase.from("qr_scan_monthly_counter").upsert({
         baserow_row_id: baserowRowId, ano, mes,
-        qtd_gratis_usados: gratisUsados + 1,
+        qtd_gratis_usados: gratisUsadosNoMes + 1,
         qtd_pagos: counter?.qtd_pagos ?? 0,
       }, { onConflict: "baserow_row_id,ano,mes" });
 
       return new Response(JSON.stringify({
         ok: true, status: "gratis_registrado", scan: inserted,
-        restantes_gratis: (config.qtd_gratis_por_mes ?? 4) - (gratisUsados + 1),
+        restantes_gratis: (config.qtd_gratis_por_mes ?? 4) - (gratisUsadosNoMes + 1),
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -164,7 +162,9 @@ serve(async (req) => {
         ok: false,
         status: "needs_payment",
         valor: config.valor_excedente,
-        message: `Limite grátis de ${config.qtd_gratis_por_mes} atingido este mês. Escaneamento adicional: R$ ${config.valor_excedente}.`,
+        message: !aindaTemGratisNoMes 
+          ? `Limite grátis de ${config.qtd_gratis_por_mes} atingido este mês. Escaneamento adicional: R$ ${config.valor_excedente}.`
+          : `Limite diário de ${DAILY_LIMIT} grátis atingido hoje. Escaneamento adicional agora: R$ ${config.valor_excedente} (ou aguarde até amanhã).`,
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
