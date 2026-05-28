@@ -178,7 +178,7 @@ export default function ConsultarCliente() {
       const nextWeekDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7);
       const nextWeekStr = `${nextWeekDate.getFullYear()}-${String(nextWeekDate.getMonth() + 1).padStart(2, '0')}-${String(nextWeekDate.getDate()).padStart(2, '0')}`;
       const filtered = data.filter(cliente => {
-        if (!cliente.data_renovacao) return false;
+        if (!cliente.data_renovacao || cliente.cobranca_ativa !== true) return false;
         const renovacaoStr = String(cliente.data_renovacao).slice(0, 10);
         return renovacaoStr >= todayStr && renovacaoStr <= nextWeekStr;
       });
