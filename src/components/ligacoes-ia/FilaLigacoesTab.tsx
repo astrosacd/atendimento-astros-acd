@@ -302,7 +302,11 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
     await supabase.from("ligacoes_agendadas").update({ status: "em_andamento", tentativas: item.tentativas + 1 }).eq("id", item.id);
 
     try {
-      const payload: any = { roteiro_id: item.roteiro_id, source: "fila_cobranca" };
+      const payload: any = { 
+        roteiro_id: item.roteiro_id, 
+        source: "fila_cobranca",
+        campanha_id: item.campanha_id 
+      };
       if (item.cliente_id) {
         payload.cliente_id = item.cliente_id;
       } else if (item.numero_manual) {
@@ -319,14 +323,28 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
       await supabase.from("ligacoes_agendadas").update({ historico_id: d.historico_id }).eq("id", item.id);
 
       await new Promise<void>((resolve, reject) => {
+        let settled = false;
         placeCallWithTTS({
           token: d.wavoip_token,
           phone: d.phone,
           audioUrl: d.audio_url,
           historicoId: d.historico_id,
           onStatus: (s) => setCurrentStatus(`${displayName}: ${s}`),
-          onEnded: () => { callRef.current = null; resolve(); },
-        }).then((handle) => { callRef.current = handle; }).catch(reject);
+          onEnded: () => { 
+            callRef.current = null; 
+            if (!settled) {
+              settled = true;
+              resolve(); 
+            }
+          },
+        }).then((handle) => { 
+          callRef.current = handle; 
+        }).catch((err) => {
+          if (!settled) {
+            settled = true;
+            reject(err);
+          }
+        });
       });
 
       await supabase.from("ligacoes_agendadas").update({ status: "finalizada", processada_em: new Date().toISOString(), erro: null }).eq("id", item.id);
@@ -414,18 +432,10 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
     }
   };
 
-  // Auto-start na guia standalone assim que os itens forem carregados
-  const autoStartedRef = useRef(false);
-  useEffect(() => {
-    if (!isStandalone) return;
-    if (loading) return;
-    if (autoStartedRef.current) return;
-    if (runningRef.current) return;
-    if (pendentes.length === 0) return;
-    autoStartedRef.current = true;
-    startQueue();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isStandalone, loading, items]);
+  // REMOVIDO: auto-start na guia standalone para garantir que o navegador
+  // tenha um gesto do usuário (clique no botão 'Iniciar fila') antes de 
+  // tentar usar microfone (getUserMedia) e áudio (AudioContext).
+  // Caso contrário, a discagem falha silenciosamente.
 
   // Garante limpeza da flag se a guia standalone for fechada com fila ativa
   useEffect(() => {
