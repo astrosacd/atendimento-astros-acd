@@ -960,7 +960,7 @@ export function QrScansTab() {
                     <div className="text-xs text-amber-800">
                       Você pode continuar registrando scans hoje, mas eles serão <strong>pagos</strong>.
                     </div>
-                      <div>
+                    <div className="text-sm space-y-1 pt-1">
                         <span className="text-muted-foreground">Horário:</span>{" "}
                         <strong>{formatTime(todayScan.created_at)}</strong> (BRT)
                       </div>
