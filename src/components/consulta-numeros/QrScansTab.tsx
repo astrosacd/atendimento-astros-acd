@@ -981,9 +981,81 @@ export function QrScansTab() {
                       registro — faltam <strong>{formatCountdown()}</strong>.
                     </div>
                   </div>
-                </div>
-              );
-            }
+      {/* Payment Confirmation Dialog */}
+      <Dialog open={confirmPaymentDialogOpen} onOpenChange={setConfirmPaymentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Pagamento</DialogTitle>
+            <DialogDescription>
+              Deseja confirmar o pagamento do scan para o número <strong>{scanToConfirm?.numero}</strong>?
+              Isso irá liberar o escaneamento para o cliente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Comprovante (opcional)</Label>
+              <div className="flex flex-col gap-2">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="cursor-pointer"
+                />
+                {paymentReceiptPreview && (
+                  <div className="relative w-full h-40 border rounded-md overflow-hidden bg-muted">
+                    <img
+                      src={paymentReceiptPreview}
+                      alt="Preview"
+                      className="w-full h-full object-contain"
+                    />
+                    <Button
+                      size="icon"
+                      variant="destructive"
+                      className="absolute top-2 right-2 h-6 w-6"
+                      onClick={() => {
+                        setPaymentReceipt(null);
+                        setPaymentReceiptPreview(null);
+                      }}
+                    >
+                      <XCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmPaymentDialogOpen(false)}
+              disabled={isUploading}
+            >
+              Não, cancelar
+            </Button>
+            <Button
+              onClick={processPaymentConfirmation}
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Confirmando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Sim, confirmar pagamento
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
 
             return (
               <div className="space-y-3">
