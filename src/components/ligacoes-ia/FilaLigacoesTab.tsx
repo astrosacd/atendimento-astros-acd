@@ -21,7 +21,7 @@ import {
 
 const FILA_FLAG_KEY = "ligacoes_fila_executando";
 const FILA_STANDALONE_PATH = "/ligacoes-ia/fila-executando";
-import { placeCallWithTTS, type ActiveCallHandle } from "@/lib/wavoipCall";
+import { placeCallWithTTS, clearWavoipCache, type ActiveCallHandle } from "@/lib/wavoipCall";
 import { usePermissions } from "@/hooks/usePermissions";
 import { copyToClipboard } from "@/utils/clipboard";
 
