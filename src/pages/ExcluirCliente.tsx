@@ -38,6 +38,7 @@ export default function ExcluirCliente() {
   const [motivo, setMotivo] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [searchResults, setSearchResults] = useState<Cliente[]>([]);
+  const [observacaoPreview, setObservacaoPreview] = useState<Cliente | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
