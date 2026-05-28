@@ -112,12 +112,12 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
   // Isso evita cair no /auth quando o CRM está embutido no Chatwoot/iframe,
   // onde o navegador pode isolar o armazenamento da sessão.
   const openFilaTab = () => {
-    const url = new URL(FILA_STANDALONE_PATH, window.location.origin);
-    const searchParams = new URLSearchParams(window.location.search);
-    const code = searchParams.get("codigo");
-    if (code) url.searchParams.set("codigo", code);
-    url.searchParams.set("handoff", "1");
-    const win = window.open(url.toString(), "_blank");
+    // Usamos caminho relativo para garantir que abra no mesmo domínio atual (evita o "link de ID preview")
+    const search = window.location.search;
+    const handoffParam = search ? (search.includes('?') ? '&handoff=1' : '?handoff=1') : '?handoff=1';
+    const url = `${FILA_STANDALONE_PATH}${search}${handoffParam}`;
+    
+    const win = window.open(url, "_blank");
     if (!win) {
       // Pop-up bloqueado — copia o link e avisa
       copyToClipboard(url.toString());
@@ -360,12 +360,26 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
         });
       });
 
-      await supabase.from("ligacoes_agendadas").update({ status: "finalizada", processada_em: new Date().toISOString(), erro: null }).eq("id", item.id);
+      // Busca o status real do histórico para decidir se marca como finalizada ou falhou
+      const { data: hist } = await supabase.from("ligacoes_ia_historico").select("status").eq("id", d.historico_id).maybeSingle();
+      const outcome = (hist?.status ?? "").toLowerCase();
+      
+      let finalStatus: Agendada["status"] = "finalizada";
+      if (outcome.includes("error") || outcome.includes("fail")) {
+        finalStatus = "falhou";
+      }
+
+      await supabase.from("ligacoes_agendadas").update({ 
+        status: finalStatus, 
+        processada_em: new Date().toISOString(), 
+        erro: finalStatus === "falhou" ? "Erro detectado no histórico da chamada" : null 
+      }).eq("id", item.id);
     } catch (e: any) {
+      console.error("[Fila] Erro no processOne:", e);
       await supabase.from("ligacoes_agendadas").update({
         status: "falhou",
         processada_em: new Date().toISOString(),
-        erro: e?.message ?? String(e),
+        erro: friendlyError(e?.message ?? String(e)),
       }).eq("id", item.id);
     }
   };
