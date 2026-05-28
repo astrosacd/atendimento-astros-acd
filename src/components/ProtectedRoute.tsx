@@ -63,11 +63,22 @@ export function ProtectedRoute({ children, adminOnly = false, permission }: Prot
   // IMPORTANT: se alguém sem login tentar acessar área privada,
   // não mostramos a tela de login (pra não "entregar" o painel para clientes).
   if (!user) {
-    return isPrivateArea ? <Navigate to="/catalogo" replace /> : <Navigate to="/auth" replace />;
+    if (isPrivateArea) {
+      // Se tivermos o código de acesso na URL original, tentamos preservá-lo ao redirecionar para auth
+      const searchParams = new URLSearchParams(window.location.search);
+      const authPath = searchParams.has('codigo') ? `/auth${window.location.search}` : '/auth';
+      return <Navigate to={authPath} replace />;
+    }
+    return <Navigate to="/auth" replace />;
   }
 
   if (!isApproved) {
-    return isPrivateArea ? <Navigate to="/catalogo" replace /> : <Navigate to="/auth" replace />;
+    if (isPrivateArea) {
+      const searchParams = new URLSearchParams(window.location.search);
+      const authPath = searchParams.has('codigo') ? `/auth${window.location.search}` : '/auth';
+      return <Navigate to={authPath} replace />;
+    }
+    return <Navigate to="/auth" replace />;
   }
 
   // Check if user is blocked
