@@ -239,6 +239,20 @@ export default function ExcluirCliente() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!observacaoPreview} onOpenChange={(open) => !open && setObservacaoPreview(null)}>
+        <DialogContent className="bg-card border-border max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <Eye className="w-5 h-5 text-amber-500" />
+              Observação — {observacaoPreview?.nome}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="bg-background/60 border border-border rounded-lg p-3 text-sm text-foreground whitespace-pre-wrap break-words max-h-[60vh] overflow-y-auto">
+            {observacaoPreview?.observacao}
+          </div>
+        </DialogContent>
+      </Dialog>
       </div>
     </DashboardLayout>
   );
