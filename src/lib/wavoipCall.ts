@@ -19,21 +19,8 @@ export interface PlaceCallParams {
   wavoipInstance?: Wavoip; // optional cached Wavoip client (reuses socket across calls)
 }
 
-// Module-level cache keyed by token — avoids opening a new WebSocket per call,
-// which the Wavoip server rejects ("Não foi possível realizar a chamada").
-const wavoipCache = new Map<string, { instance: Wavoip; createdAt: number }>();
-
-export function getOrCreateWavoip(token: string): { instance: Wavoip; isNew: boolean } {
-  const cached = wavoipCache.get(token);
-  if (cached) return { instance: cached.instance, isNew: false };
-  const instance = new Wavoip({ tokens: [token], platform: "lovable-call-ai" });
-  wavoipCache.set(token, { instance, createdAt: Date.now() });
-  return { instance, isNew: true };
-}
-
-export function clearWavoipCache() {
-  wavoipCache.clear();
-}
+// No-op kept for backward compatibility with callers that import it.
+export function clearWavoipCache() {}
 
 export interface ActiveCallHandle {
   hangup: () => Promise<void>;
@@ -160,19 +147,9 @@ export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveC
   };
 
   try {
-    // 3. Reuse cached Wavoip client (or create + warm up). Each new instance opens its own
-    // WebSocket — opening one per call causes the server to reject subsequent calls with
-    // "Não foi possível realizar a chamada".
+    // 3. Create a fresh Wavoip client per call (this is what worked previously).
     onStatus?.("Conectando ao Wavoip...");
-    let wavoip = params.wavoipInstance;
-    if (!wavoip) {
-      const { instance, isNew } = getOrCreateWavoip(token);
-      wavoip = instance;
-      if (isNew) {
-        // Give the socket ~1.5s to come up before issuing the first startCall.
-        await new Promise((r) => setTimeout(r, 1500));
-      }
-    }
+    const wavoip = params.wavoipInstance ?? new Wavoip({ tokens: [token], platform: "lovable-call-ai" });
 
     // 4. Start outgoing call
     onStatus?.("Discando...");
