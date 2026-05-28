@@ -6,7 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Search, Trash2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Search, Trash2, AlertTriangle, Eye } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import {
