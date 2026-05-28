@@ -19,21 +19,8 @@ export interface PlaceCallParams {
   wavoipInstance?: Wavoip; // optional cached Wavoip client (reuses socket across calls)
 }
 
-// Module-level cache keyed by token — avoids opening a new WebSocket per call,
-// which the Wavoip server rejects ("Não foi possível realizar a chamada").
-const wavoipCache = new Map<string, { instance: Wavoip; createdAt: number }>();
-
-export function getOrCreateWavoip(token: string): { instance: Wavoip; isNew: boolean } {
-  const cached = wavoipCache.get(token);
-  if (cached) return { instance: cached.instance, isNew: false };
-  const instance = new Wavoip({ tokens: [token], platform: "lovable-call-ai" });
-  wavoipCache.set(token, { instance, createdAt: Date.now() });
-  return { instance, isNew: true };
-}
-
-export function clearWavoipCache() {
-  wavoipCache.clear();
-}
+// No-op kept for backward compatibility with callers that import it.
+export function clearWavoipCache() {}
 
 export interface ActiveCallHandle {
   hangup: () => Promise<void>;
