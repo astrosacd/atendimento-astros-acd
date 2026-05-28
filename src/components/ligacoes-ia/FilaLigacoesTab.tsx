@@ -416,6 +416,7 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
     if (isStandalone) {
       try { localStorage.removeItem(FILA_FLAG_KEY); } catch {}
     }
+    clearWavoipCache();
     toast({ title: "Fila concluída" });
     load();
   };
