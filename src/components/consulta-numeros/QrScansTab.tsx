@@ -286,19 +286,74 @@ export function QrScansTab() {
     }
   };
 
-  const handleConfirmPayment = async (scanId: string) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast({
+          title: "Arquivo muito grande",
+          description: "O limite é 2MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setPaymentReceipt(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setPaymentReceiptPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadReceipt = async (file: File) => {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${crypto.randomUUID()}.${fileExt}`;
+    const filePath = `qr-scan-receipts/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("divulgador-media")
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage.from("divulgador-media").getPublicUrl(filePath);
+    return data.publicUrl;
+  };
+
+  const handleConfirmPayment = async (scan: any) => {
+    setScanToConfirm(scan);
+    setPaymentReceipt(null);
+    setPaymentReceiptPreview(null);
+    setConfirmPaymentDialogOpen(true);
+  };
+
+  const processPaymentConfirmation = async () => {
+    if (!scanToConfirm) return;
+    setIsUploading(true);
     try {
-      await confirmPay.mutateAsync({ qr_scan_id: scanId, action: "confirm" });
+      let finalComprovanteUrl = "";
+      if (paymentReceipt) {
+        finalComprovanteUrl = await uploadReceipt(paymentReceipt);
+      }
+
+      await confirmPay.mutateAsync({
+        qr_scan_id: scanToConfirm.id,
+        action: "confirm",
+        comprovante_url: finalComprovanteUrl || undefined,
+      });
+
       toast({
         title: "✅ Pagamento confirmado",
         description: "Escaneamento liberado.",
       });
+      setConfirmPaymentDialogOpen(false);
     } catch (e: any) {
       toast({
         title: "Erro",
         description: e?.message ?? "Falha",
         variant: "destructive",
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
