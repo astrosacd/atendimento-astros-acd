@@ -949,46 +949,32 @@ export function QrScansTab() {
             const monthlyFreeReached = c.qtd_gratis_usados >= monthlyMax;
 
             if (limitReached && todayScan) {
-              const statusInfo = STATUS_BADGES[todayScan.payment_status] ?? {
-                label: todayScan.payment_status,
-                variant: "outline",
-              };
               return (
                 <div className="space-y-3">
                   <div className="p-4 bg-amber-500/10 border border-amber-500/40 rounded-md space-y-2">
                     <div className="flex items-center gap-2 font-medium text-sm">
                       <AlertCircle className="h-4 w-4 text-amber-600" />
-                      Limite diário grátis atingido ({todayFreeCount}/{maxPorDia})
+                      Limite diário atingido ({todayCount}/{maxPorDia})
                     </div>
                     <div className="text-xs text-amber-800">
-                      Você pode continuar registrando scans hoje, mas eles serão <strong>pagos</strong>.
+                      Este número já tem um escaneamento registrado hoje ({formatTime(todayScan.created_at)}). Por favor, aguarde até a meia-noite para o próximo registro.
                     </div>
-                    <div className="text-sm space-y-1 pt-1">
-                      <div>
-                        <span className="text-muted-foreground">Horário:</span>{" "}
-                        <strong>{formatTime(todayScan.created_at)}</strong> (BRT)
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Tipo:</span>{" "}
-                        <strong>
-                          {todayScan.tipo === "gratis" ? "Grátis" : "Pago"}
-                        </strong>
-                        {todayScan.valor_cobrado ? (
-                          <> — R$ {Number(todayScan.valor_cobrado).toFixed(2)}</>
-                        ) : null}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">Status:</span>
-                        <Badge variant={statusInfo.variant}>
-                          {statusInfo.label}
-                        </Badge>
-                      </div>
-                      {todayScan.observacao && (
-                        <div>
-                          <span className="text-muted-foreground">Obs:</span>{" "}
-                          {todayScan.observacao}
-                        </div>
-                      )}
+                  </div>
+                </div>
+              );
+            }
+
+            if (monthlyFreeReached) {
+              return (
+                <div className="space-y-3">
+                  <div className="p-4 bg-amber-500/10 border border-amber-500/40 rounded-md space-y-2">
+                    <div className="flex items-center gap-2 font-medium text-sm">
+                      <AlertCircle className="h-4 w-4 text-amber-600" />
+                      Limite mensal grátis atingido ({c.qtd_gratis_usados}/{monthlyMax})
+                    </div>
+                    <div className="text-xs text-amber-800">
+                      O limite de {monthlyMax} escaneamentos gratuitos por mês para este número foi atingido.
+                      Deseja prosseguir com um escaneamento <strong>pago (R$ {Number(config?.valor_excedente).toFixed(2)})</strong>?
                     </div>
                   </div>
                 </div>
