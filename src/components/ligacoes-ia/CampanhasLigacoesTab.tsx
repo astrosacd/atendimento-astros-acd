@@ -90,6 +90,8 @@ type Campanha = {
   status: string;
   total: number;
   created_at: string;
+  dia_alvo: string;
+  delay_minutes_override: number | null;
   ligacoes_ia_roteiros?: { nome: string } | null;
 };
 
