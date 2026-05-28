@@ -98,7 +98,7 @@ export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveC
   let playbackCompleted = false;
   let answeredAt = 0;
 
-  const cleanup = async (reason?: string) => {
+  const cleanup = async (reason?: string, skipEndedCallback = false) => {
     if (ended) return;
     ended = true;
     restorePatch();
@@ -110,6 +110,7 @@ export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveC
       const listenedMs = answeredAt ? Date.now() - answeredAt : 0;
       let observacao = reason ?? "";
       let mappedStatus = "finalizada";
+      
       if (answered && !playbackCompleted) {
         mappedStatus = "cliente_desligou_antes_audio";
         observacao = playbackStarted
@@ -121,6 +122,9 @@ export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveC
       } else if (playbackCompleted) {
         observacao = "Roteiro reproduzido por completo";
       }
+
+      // Se for erro de permissão ou browser, registra no log local mas talvez não queiramos marcar como "não atendeu" no CRM
+      // Mas para manter a compatibilidade, enviamos o que temos.
       void postHistoricoOutcome(historicoId, {
         status: mappedStatus,
         duration_seconds: answeredAt ? Math.round(listenedMs / 1000) : 0,
@@ -130,7 +134,9 @@ export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveC
       });
     }
 
-    onEnded?.();
+    if (!skipEndedCallback) {
+      onEnded?.();
+    }
   };
 
   try {
@@ -189,7 +195,8 @@ export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveC
       },
     };
   } catch (e) {
-    await cleanup((e as Error)?.message);
+    console.error("[wavoipCall] Fatal error during setup/call:", e);
+    await cleanup((e as Error)?.message, true); // true = skip onEnded so we don't resolve the "wait for end" promise prematurely
     throw e;
   }
 }
