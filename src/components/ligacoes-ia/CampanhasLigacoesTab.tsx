@@ -21,6 +21,10 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -32,9 +36,12 @@ import {
   PhoneCall,
   UserPlus,
   FileUp,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type ManualContact = { nome: string; numero: string };
 
@@ -83,6 +90,8 @@ type Campanha = {
   status: string;
   total: number;
   created_at: string;
+  dia_alvo: string;
+  delay_minutes_override: number | null;
   ligacoes_ia_roteiros?: { nome: string } | null;
 };
 
@@ -102,9 +111,14 @@ const STATUS_CLS: Record<string, string> = {
 };
 
 export function CampanhasLigacoesTab() {
+  const { hasPermission } = usePermissions();
+  const canManage = hasPermission("manage_ligacoes_campanhas");
   const [campanhas, setCampanhas] = useState<Campanha[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Campanha | null>(null);
+  const [deleting, setDeleting] = useState<Campanha | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -122,6 +136,20 @@ export function CampanhasLigacoesTab() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const handleDelete = async () => {
+    if (!deleting) return;
+    setBusy(true);
+    const { error } = await (supabase as any).from("ligacoes_campanhas").delete().eq("id", deleting.id);
+    setBusy(false);
+    if (error) {
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Campanha excluída", description: "As ligações pendentes da campanha foram removidas da fila." });
+    setDeleting(null);
+    load();
+  };
 
   return (
     <div className="space-y-4">
@@ -166,7 +194,7 @@ export function CampanhasLigacoesTab() {
                 key={c.id}
                 className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-accent/40 transition"
               >
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium truncate">{c.nome}</span>
                     <Badge className={STATUS_CLS[c.status] ?? "bg-slate-500"}>
@@ -180,11 +208,34 @@ export function CampanhasLigacoesTab() {
                     {c.ligacoes_ia_roteiros?.nome && (
                       <span>Roteiro: {c.ligacoes_ia_roteiros.nome}</span>
                     )}
+                    {c.dia_alvo && <span>Dia: {c.dia_alvo}</span>}
+                    {c.delay_minutes_override != null && <span>Delay: {c.delay_minutes_override}min</span>}
                     <span>
                       {format(new Date(c.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                     </span>
                   </div>
                 </div>
+                {canManage && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      title="Editar / reagendar"
+                      onClick={() => setEditing(c)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      title="Excluir campanha"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => setDeleting(c)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -196,7 +247,120 @@ export function CampanhasLigacoesTab() {
         onOpenChange={setOpen}
         onCreated={() => { setOpen(false); load(); }}
       />
+
+      <EditarCampanhaDialog
+        campanha={editing}
+        onOpenChange={(o) => { if (!o) setEditing(null); }}
+        onSaved={() => { setEditing(null); load(); }}
+      />
+
+      <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir campanha "{deleting?.nome}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação também remove todas as <strong>{deleting?.total ?? 0}</strong> ligações desta
+              campanha da fila (inclusive as pendentes). Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={busy} className="bg-destructive hover:bg-destructive/90">
+              {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+  );
+}
+
+function EditarCampanhaDialog({
+  campanha,
+  onOpenChange,
+  onSaved,
+}: {
+  campanha: Campanha | null;
+  onOpenChange: (o: boolean) => void;
+  onSaved: () => void;
+}) {
+  const [nome, setNome] = useState("");
+  const [diaAlvo, setDiaAlvo] = useState("");
+  const [delayOverride, setDelayOverride] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (campanha) {
+      setNome(campanha.nome ?? "");
+      setDiaAlvo(campanha.dia_alvo ?? "");
+      setDelayOverride(campanha.delay_minutes_override != null ? String(campanha.delay_minutes_override) : "");
+    }
+  }, [campanha]);
+
+  const save = async () => {
+    if (!campanha) return;
+    if (!nome.trim()) return toast({ title: "Informe o nome", variant: "destructive" });
+    setSaving(true);
+    const overrideNum = delayOverride.trim() === "" ? null : Math.max(0, Math.min(120, Number(delayOverride)));
+    const novoDia = diaAlvo || campanha.dia_alvo;
+    const { error } = await (supabase as any)
+      .from("ligacoes_campanhas")
+      .update({ nome: nome.trim(), dia_alvo: novoDia, delay_minutes_override: overrideNum })
+      .eq("id", campanha.id);
+    if (!error && novoDia !== campanha.dia_alvo) {
+      // Reagenda também as ligações pendentes da campanha
+      await (supabase as any)
+        .from("ligacoes_agendadas")
+        .update({ dia_alvo: novoDia })
+        .eq("campanha_id", campanha.id)
+        .eq("status", "pendente");
+    }
+    setSaving(false);
+    if (error) return toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    toast({ title: "Campanha atualizada" });
+    onSaved();
+  };
+
+  return (
+    <Dialog open={!!campanha} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Pencil className="h-4 w-4 text-fuchsia-500" /> Editar campanha
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Nome</Label>
+            <Input value={nome} onChange={(e) => setNome(e.target.value)} />
+          </div>
+          <div>
+            <Label>Reagendar para o dia</Label>
+            <Input type="date" value={diaAlvo} onChange={(e) => setDiaAlvo(e.target.value)} />
+            <p className="text-xs text-muted-foreground mt-1">As ligações pendentes desta campanha são movidas para o novo dia.</p>
+          </div>
+          <div>
+            <Label>Delay entre ligações (min) — opcional</Label>
+            <Input
+              type="number"
+              min={0}
+              max={120}
+              placeholder="Usar delay global"
+              value={delayOverride}
+              onChange={(e) => setDelayOverride(e.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+          <Button onClick={save} disabled={saving} className="bg-fuchsia-600 hover:bg-fuchsia-700">
+            {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -16,6 +16,23 @@ export interface PlaceCallParams {
   onStatus?: (status: string) => void;
   onEnded?: () => void;
   audioContext?: AudioContext;
+  wavoipInstance?: Wavoip; // optional cached Wavoip client (reuses socket across calls)
+}
+
+// Module-level cache keyed by token — avoids opening a new WebSocket per call,
+// which the Wavoip server rejects ("Não foi possível realizar a chamada").
+const wavoipCache = new Map<string, { instance: Wavoip; createdAt: number }>();
+
+export function getOrCreateWavoip(token: string): { instance: Wavoip; isNew: boolean } {
+  const cached = wavoipCache.get(token);
+  if (cached) return { instance: cached.instance, isNew: false };
+  const instance = new Wavoip({ tokens: [token], platform: "lovable-call-ai" });
+  wavoipCache.set(token, { instance, createdAt: Date.now() });
+  return { instance, isNew: true };
+}
+
+export function clearWavoipCache() {
+  wavoipCache.clear();
 }
 
 export interface ActiveCallHandle {
@@ -143,15 +160,26 @@ export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveC
   };
 
   try {
-    // 3. Build Wavoip client (constructor takes tokens array)
+    // 3. Reuse cached Wavoip client (or create + warm up). Each new instance opens its own
+    // WebSocket — opening one per call causes the server to reject subsequent calls with
+    // "Não foi possível realizar a chamada".
     onStatus?.("Conectando ao Wavoip...");
-    const wavoip = new Wavoip({ tokens: [token], platform: "lovable-call-ai" });
+    let wavoip = params.wavoipInstance;
+    if (!wavoip) {
+      const { instance, isNew } = getOrCreateWavoip(token);
+      wavoip = instance;
+      if (isNew) {
+        // Give the socket ~1.5s to come up before issuing the first startCall.
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+    }
 
     // 4. Start outgoing call
     onStatus?.("Discando...");
     const result = await wavoip.startCall({ to: phone });
     if (result.err || !result.call) {
-      throw new Error(result.err?.message || "Falha ao iniciar ligação");
+      const detail = result.err?.devices?.map((d) => `${d.token.slice(-6)}:${d.reason}`).join(" | ");
+      throw new Error(result.err?.message || detail || "Falha ao iniciar ligação");
     }
     const outgoing = result.call;
     activeCall = outgoing;

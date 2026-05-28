@@ -21,7 +21,7 @@ import {
 
 const FILA_FLAG_KEY = "ligacoes_fila_executando";
 const FILA_STANDALONE_PATH = "/ligacoes-ia/fila-executando";
-import { placeCallWithTTS, type ActiveCallHandle } from "@/lib/wavoipCall";
+import { placeCallWithTTS, clearWavoipCache, type ActiveCallHandle } from "@/lib/wavoipCall";
 import { usePermissions } from "@/hooks/usePermissions";
 import { copyToClipboard } from "@/utils/clipboard";
 
@@ -416,6 +416,7 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
     if (isStandalone) {
       try { localStorage.removeItem(FILA_FLAG_KEY); } catch {}
     }
+    clearWavoipCache();
     toast({ title: "Fila concluída" });
     load();
   };
@@ -447,6 +448,7 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
       audioCtxRef.current.close().catch(() => {});
       audioCtxRef.current = null;
     }
+    clearWavoipCache();
   };
 
   // REMOVIDO: auto-start na guia standalone para garantir que o navegador
