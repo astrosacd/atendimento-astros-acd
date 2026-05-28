@@ -160,15 +160,26 @@ export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveC
   };
 
   try {
-    // 3. Build Wavoip client (constructor takes tokens array)
+    // 3. Reuse cached Wavoip client (or create + warm up). Each new instance opens its own
+    // WebSocket — opening one per call causes the server to reject subsequent calls with
+    // "Não foi possível realizar a chamada".
     onStatus?.("Conectando ao Wavoip...");
-    const wavoip = new Wavoip({ tokens: [token], platform: "lovable-call-ai" });
+    let wavoip = params.wavoipInstance;
+    if (!wavoip) {
+      const { instance, isNew } = getOrCreateWavoip(token);
+      wavoip = instance;
+      if (isNew) {
+        // Give the socket ~1.5s to come up before issuing the first startCall.
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+    }
 
     // 4. Start outgoing call
     onStatus?.("Discando...");
     const result = await wavoip.startCall({ to: phone });
     if (result.err || !result.call) {
-      throw new Error(result.err?.message || "Falha ao iniciar ligação");
+      const detail = result.err?.devices?.map((d) => `${d.token.slice(-6)}:${d.reason}`).join(" | ");
+      throw new Error(result.err?.message || detail || "Falha ao iniciar ligação");
     }
     const outgoing = result.call;
     activeCall = outgoing;
