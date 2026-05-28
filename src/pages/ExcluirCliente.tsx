@@ -115,16 +115,36 @@ export default function ExcluirCliente() {
               {searchResults.length > 0 && (
                 <div className="space-y-2">
                   <Label className="text-muted-foreground text-sm">{t('clients.selectClientToDelete')}:</Label>
-                  {searchResults.map((cliente) => (
-                    <Button
-                      key={cliente.id}
-                      onClick={() => handleSelectCliente(cliente)}
-                      variant="outline"
-                      className="w-full justify-start border-border text-foreground hover:bg-destructive/10 hover:border-destructive/50 min-h-12 h-auto py-3 whitespace-normal break-words text-left"
-                    >
-                      <span className="block w-full">{cliente.nome} - {cliente.cpf} - {cliente.produto}</span>
-                    </Button>
-                  ))}
+                  {searchResults.map((cliente) => {
+                    const hasObs = !!(cliente.observacao && cliente.observacao.trim());
+                    return (
+                      <div key={cliente.id} className="flex items-stretch gap-2">
+                        <Button
+                          onClick={() => handleSelectCliente(cliente)}
+                          variant="outline"
+                          className="flex-1 justify-start border-border text-foreground hover:bg-destructive/10 hover:border-destructive/50 min-h-12 h-auto py-3 whitespace-normal break-words text-left"
+                        >
+                          <span className="block w-full">{cliente.nome} - {cliente.cpf} - {cliente.produto}</span>
+                        </Button>
+                        {hasObs && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setObservacaoPreview(cliente);
+                            }}
+                            className="shrink-0 h-auto border-border text-amber-500 hover:bg-amber-500/10 hover:border-amber-500/50 hover:text-amber-400"
+                            title="Ver observação"
+                            aria-label="Ver observação"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
