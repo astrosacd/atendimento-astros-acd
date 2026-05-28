@@ -935,17 +935,17 @@ export function QrScansTab() {
           </DialogHeader>
 
           {scanStep === "initial" && (() => {
-            const todayCount = scanTarget
-              ? getTodayScans(scanTarget.baserow_row_id).length
+            const todayFreeCount = scanTarget
+              ? getTodayFreeScans(scanTarget.baserow_row_id).length
               : 0;
             const todayScan = scanTarget
               ? getLastTodayScan(scanTarget.baserow_row_id)
               : undefined;
-            const limitReached = scanTarget
-              ? isDailyLimitReached(scanTarget.baserow_row_id)
+            const freeLimitReached = scanTarget
+              ? isDailyFreeLimitReached(scanTarget.baserow_row_id)
               : false;
 
-            if (limitReached && todayScan) {
+            if (freeLimitReached && todayScan) {
               const statusInfo = STATUS_BADGES[todayScan.payment_status] ?? {
                 label: todayScan.payment_status,
                 variant: "outline",
@@ -955,9 +955,11 @@ export function QrScansTab() {
                   <div className="p-4 bg-amber-500/10 border border-amber-500/40 rounded-md space-y-2">
                     <div className="flex items-center gap-2 font-medium text-sm">
                       <AlertCircle className="h-4 w-4 text-amber-600" />
-                      Limite diário atingido ({todayCount}/{maxPorDia})
+                      Limite diário grátis atingido ({todayFreeCount}/{maxPorDia})
                     </div>
-                    <div className="text-sm space-y-1">
+                    <div className="text-xs text-amber-800">
+                      Você pode continuar registrando scans hoje, mas eles serão <strong>pagos</strong>.
+                    </div>
                       <div>
                         <span className="text-muted-foreground">Horário:</span>{" "}
                         <strong>{formatTime(todayScan.created_at)}</strong> (BRT)
@@ -1192,26 +1194,20 @@ export function QrScansTab() {
               {generatedPaymentUrl ? "Fechar" : "Cancelar"}
             </Button>
             {!generatedPaymentUrl && (() => {
-              const blocked =
-                scanStep === "initial" &&
-                !!scanTarget &&
-                isDailyLimitReached(scanTarget.baserow_row_id);
               const isLink = paymentMethod === "link_mp" || paymentMethod === "link_stripe";
               return (
                 <Button
                   onClick={handleSubmitScan}
-                  disabled={registerScan.isPending || blocked}
+                  disabled={registerScan.isPending}
                 >
                   {registerScan.isPending && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
-                  {blocked
-                    ? `Limite diário (${maxPorDia}) atingido`
-                    : scanStep === "initial"
-                      ? "Registrar"
-                      : isLink
-                        ? "Gerar link de pagamento"
-                        : "Criar cobrança"}
+                  {scanStep === "initial"
+                    ? "Registrar"
+                    : isLink
+                      ? "Gerar link de pagamento"
+                      : "Criar cobrança"}
                 </Button>
               );
             })()}
