@@ -82,6 +82,9 @@ function describeOutcome(it: Agendada): { label: string; icon: any; cls: string 
 function friendlyError(err: string | null): string {
   if (!err) return "—";
   const e = err.toLowerCase();
+  if (e.includes("non-2xx")) return "Edge Function falhou — veja logs (provavelmente Wavoip/ElevenLabs não configurado ou cliente sem número)";
+  if (e.includes("wavoip não configurado") || e.includes("wavoip nao configurado")) return "Wavoip não configurado (token ou discador ausente)";
+  if (e.includes("número de destino") || e.includes("numero de destino")) return "Cliente/contato sem número de destino";
   if (e.includes("token")) return "Token Wavoip inválido/ausente";
   if (e.includes("audio")) return "Falha ao gerar áudio (TTS)";
   if (e.includes("network") || e.includes("fetch")) return "Falha de rede";
@@ -89,7 +92,7 @@ function friendlyError(err: string | null): string {
   if (e.includes("not enabled") || e.includes("free tier")) return "ElevenLabs bloqueado (Free Tier)";
   if (e.includes("quota")) return "Cota ElevenLabs esgotada";
   if (e.length > 80) return err.slice(0, 80) + "…";
-  return err;
+
 }
 
 function todayInBrazil() {
@@ -328,9 +331,24 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
         throw new Error("Item sem cliente nem número manual");
       }
       const { data, error } = await supabase.functions.invoke("ligacoes-ia-call", { body: payload });
-      if (error) throw error;
+      if (error) {
+        // supabase-js v2: error.context é o Response; lê o body para mostrar a causa real
+        let realMsg = error.message || "Edge Function falhou";
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            if (body?.error) realMsg = String(body.error);
+          } else if (ctx && typeof ctx.text === "function") {
+            const t = await ctx.text();
+            if (t) realMsg = t;
+          }
+        } catch { /* ignore parse fail */ }
+        throw new Error(realMsg);
+      }
       const d = data as any;
       if (!d?.wavoip_token || !d?.audio_url || !d?.phone) throw new Error("Resposta inválida (faltam token/áudio/número)");
+
 
       await supabase.from("ligacoes_agendadas").update({ historico_id: d.historico_id }).eq("id", item.id);
 
