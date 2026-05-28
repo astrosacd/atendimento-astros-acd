@@ -113,6 +113,9 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
   // onde o navegador pode isolar o armazenamento da sessão.
   const openFilaTab = () => {
     const url = new URL(FILA_STANDALONE_PATH, window.location.origin);
+    const searchParams = new URLSearchParams(window.location.search);
+    const code = searchParams.get("codigo");
+    if (code) url.searchParams.set("codigo", code);
     url.searchParams.set("handoff", "1");
     const win = window.open(url.toString(), "_blank");
     if (!win) {
@@ -185,6 +188,7 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
   const pauseRef = useRef(false);
   const callRef = useRef<ActiveCallHandle | null>(null);
   const cdTimerRef = useRef<any>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   const hoje = useMemo(() => todayInBrazil(), []);
 
@@ -302,7 +306,15 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
     await supabase.from("ligacoes_agendadas").update({ status: "em_andamento", tentativas: item.tentativas + 1 }).eq("id", item.id);
 
     try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new AudioContext();
+      }
+      if (audioCtxRef.current.state === "suspended") {
+        await audioCtxRef.current.resume();
+      }
+
       const payload: any = { 
+
         roteiro_id: item.roteiro_id, 
         source: "fila_cobranca",
         campanha_id: item.campanha_id 
@@ -329,6 +341,7 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
           phone: d.phone,
           audioUrl: d.audio_url,
           historicoId: d.historico_id,
+          audioContext: audioCtxRef.current || undefined,
           onStatus: (s) => setCurrentStatus(`${displayName}: ${s}`),
           onEnded: () => { 
             callRef.current = null; 
@@ -429,6 +442,10 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
     setCountdown(0);
     if (isStandalone) {
       try { localStorage.removeItem(FILA_FLAG_KEY); } catch {}
+    }
+    if (audioCtxRef.current) {
+      audioCtxRef.current.close().catch(() => {});
+      audioCtxRef.current = null;
     }
   };
 

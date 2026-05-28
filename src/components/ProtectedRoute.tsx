@@ -13,8 +13,10 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, adminOnly = false, permission }: ProtectedRouteProps) {
   const location = useLocation();
-  const { user, isAdmin, isApproved, isLoading, isBlocked, blockedReason, signOut } = useAuth();
-  const { hasPermission } = usePermissions();
+  const { user, isAdmin, isApproved, isLoading: isAuthLoading, isBlocked, blockedReason, signOut } = useAuth();
+  const { hasPermission, isLoading: isPermissionsLoading } = usePermissions();
+  
+  const isLoading = isAuthLoading || isPermissionsLoading;
 
   // Allow bypass if a valid temporary token exists in localStorage
   const hasTempAccess = !!localStorage.getItem("temp_access_token");
@@ -62,7 +64,7 @@ export function ProtectedRoute({ children, adminOnly = false, permission }: Prot
 
   // IMPORTANT: se alguém sem login tentar acessar área privada,
   // não mostramos a tela de login (pra não "entregar" o painel para clientes).
-  if (!user) {
+  if (!user && !isLoading) {
     if (isPrivateArea) {
       // Se tivermos o código de acesso na URL original, tentamos preservá-lo ao redirecionar para auth
       const searchParams = new URLSearchParams(window.location.search);

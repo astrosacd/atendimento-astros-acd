@@ -10,7 +10,7 @@ interface RolePermission {
 export function usePermissions() {
   const { userRole, isAdmin } = useAuth();
 
-  const { data: permissions = [] } = useQuery({
+  const { data: permissions = [], isLoading: queryLoading } = useQuery({
     queryKey: ['user-permissions', userRole],
     queryFn: async () => {
       if (!userRole) return [];
@@ -255,6 +255,7 @@ export function usePermissions() {
 
   return {
     permissions,
+    isLoading: queryLoading || (!!userRole && permissions.length === 0 && queryLoading),
     hasPermission,
     canViewDashboard,
     canViewClients,
