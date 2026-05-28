@@ -6,7 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Search, Trash2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Search, Trash2, AlertTriangle, Eye } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import {
@@ -32,6 +38,7 @@ export default function ExcluirCliente() {
   const [motivo, setMotivo] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [searchResults, setSearchResults] = useState<Cliente[]>([]);
+  const [observacaoPreview, setObservacaoPreview] = useState<Cliente | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,16 +115,36 @@ export default function ExcluirCliente() {
               {searchResults.length > 0 && (
                 <div className="space-y-2">
                   <Label className="text-muted-foreground text-sm">{t('clients.selectClientToDelete')}:</Label>
-                  {searchResults.map((cliente) => (
-                    <Button
-                      key={cliente.id}
-                      onClick={() => handleSelectCliente(cliente)}
-                      variant="outline"
-                      className="w-full justify-start border-border text-foreground hover:bg-destructive/10 hover:border-destructive/50 min-h-12 h-auto py-3 whitespace-normal break-words text-left"
-                    >
-                      <span className="block w-full">{cliente.nome} - {cliente.cpf} - {cliente.produto}</span>
-                    </Button>
-                  ))}
+                  {searchResults.map((cliente) => {
+                    const hasObs = !!(cliente.observacao && cliente.observacao.trim());
+                    return (
+                      <div key={cliente.id} className="flex items-stretch gap-2">
+                        <Button
+                          onClick={() => handleSelectCliente(cliente)}
+                          variant="outline"
+                          className="flex-1 justify-start border-border text-foreground hover:bg-destructive/10 hover:border-destructive/50 min-h-12 h-auto py-3 whitespace-normal break-words text-left"
+                        >
+                          <span className="block w-full">{cliente.nome} - {cliente.cpf} - {cliente.produto}</span>
+                        </Button>
+                        {hasObs && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setObservacaoPreview(cliente);
+                            }}
+                            className="shrink-0 h-auto border-border text-amber-500 hover:bg-amber-500/10 hover:border-amber-500/50 hover:text-amber-400"
+                            title="Ver observação"
+                            aria-label="Ver observação"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
@@ -212,6 +239,20 @@ export default function ExcluirCliente() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!observacaoPreview} onOpenChange={(open) => !open && setObservacaoPreview(null)}>
+        <DialogContent className="bg-card border-border max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <Eye className="w-5 h-5 text-amber-500" />
+              Observação — {observacaoPreview?.nome}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="bg-background/60 border border-border rounded-lg p-3 text-sm text-foreground whitespace-pre-wrap break-words max-h-[60vh] overflow-y-auto">
+            {observacaoPreview?.observacao}
+          </div>
+        </DialogContent>
+      </Dialog>
       </div>
     </DashboardLayout>
   );
