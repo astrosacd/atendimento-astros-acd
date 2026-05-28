@@ -171,18 +171,20 @@ export function QrScansTab() {
 
   const maxPorDia = config?.qtd_por_dia ?? 2;
 
-  const getTodayScans = (baserowRowId: number) =>
+  const getTodayFreeScans = (baserowRowId: number) =>
     history.filter(
-      (h) => h.baserow_row_id === baserowRowId && h.scan_date === todayBrt,
+      (h) => h.baserow_row_id === baserowRowId && h.scan_date === todayBrt && h.tipo === "gratis",
     );
 
   const getLastTodayScan = (baserowRowId: number) => {
-    const scans = getTodayScans(baserowRowId);
+    const scans = history.filter(
+      (h) => h.baserow_row_id === baserowRowId && h.scan_date === todayBrt,
+    );
     return scans.length > 0 ? scans[0] : undefined;
   };
 
-  const isDailyLimitReached = (baserowRowId: number) =>
-    getTodayScans(baserowRowId).length >= maxPorDia;
+  const isDailyFreeLimitReached = (baserowRowId: number) =>
+    getTodayFreeScans(baserowRowId).length >= maxPorDia;
 
   const formatTime = (iso?: string | null) => {
     if (!iso) return "";
@@ -262,7 +264,6 @@ export function QrScansTab() {
         setScanDialogOpen(false);
       } else if (res?.status === "pendente_pagamento") {
         if (res.payment_url) {
-          // Link gerado: mantém o dialog aberto para o usuário copiar/enviar
           setGeneratedPaymentUrl(res.payment_url);
           toast({
             title: "🔗 Link de pagamento gerado",
@@ -402,7 +403,6 @@ export function QrScansTab() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
@@ -439,7 +439,6 @@ export function QrScansTab() {
           )}
         </TabsList>
 
-        {/* Numbers */}
         <TabsContent value="numeros" className="space-y-4">
           <Card>
             <CardHeader>
@@ -497,20 +496,25 @@ export function QrScansTab() {
                           </TableCell>
                           <TableCell className="text-right space-x-2">
                             {(() => {
-                              const todayCount = getTodayScans(n.baserow_row_id).length;
-                              const lastToday = getLastTodayScan(n.baserow_row_id);
-                              const limitReached = todayCount >= maxPorDia;
-                              if (limitReached && lastToday) {
+                              const todayFreeCount = getTodayFreeScans(n.baserow_row_id).length;
+                              const freeLimitReached = todayFreeCount >= maxPorDia;
+                              const monthlyMax = config?.qtd_gratis_por_mes ?? 4;
+                              const monthlyUsed = getCounter(n.baserow_row_id).qtd_gratis_usados;
+                              const monthlyLimitReached = monthlyUsed >= monthlyMax;
+
+                              if (freeLimitReached || monthlyLimitReached) {
                                 return (
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     className="border-amber-500/60 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
                                     onClick={() => handleOpenScan(n)}
-                                    title={`Limite diário (${maxPorDia}) atingido — último às ${formatTime(lastToday.created_at)}`}
                                   >
-                                    <AlertCircle className="h-3.5 w-3.5 mr-1" />
-                                    Limite diário {todayCount}/{maxPorDia}
+                                    <Plus className="h-3.5 w-3.5 mr-1" />
+                                    Registrar (Pago)
+                                    <span className="ml-1 text-[10px] opacity-70">
+                                      {freeLimitReached ? "(Limite diário)" : "(Limite mensal)"}
+                                    </span>
                                   </Button>
                                 );
                               }
@@ -519,7 +523,7 @@ export function QrScansTab() {
                                   📲 Registrar escaneamento
                                   {maxPorDia > 1 && (
                                     <span className="ml-1 text-xs opacity-80">
-                                      ({todayCount}/{maxPorDia} hoje)
+                                      ({todayFreeCount}/{maxPorDia} hoje)
                                     </span>
                                   )}
                                 </Button>
@@ -548,7 +552,6 @@ export function QrScansTab() {
           </Card>
         </TabsContent>
 
-        {/* Pendentes */}
         <TabsContent value="pendentes" className="space-y-4">
           <Card>
             <CardHeader>
@@ -619,7 +622,6 @@ export function QrScansTab() {
           </Card>
         </TabsContent>
 
-        {/* Histórico */}
         <TabsContent value="historico" className="space-y-4">
           <Card>
             <CardHeader>
@@ -690,7 +692,6 @@ export function QrScansTab() {
           </Card>
         </TabsContent>
 
-        {/* Config admin */}
         {isAdmin && (
           <TabsContent value="config" className="space-y-4">
             <Card>
@@ -927,17 +928,17 @@ export function QrScansTab() {
           </DialogHeader>
 
           {scanStep === "initial" && (() => {
-            const todayCount = scanTarget
-              ? getTodayScans(scanTarget.baserow_row_id).length
+            const todayFreeCount = scanTarget
+              ? getTodayFreeScans(scanTarget.baserow_row_id).length
               : 0;
             const todayScan = scanTarget
               ? getLastTodayScan(scanTarget.baserow_row_id)
               : undefined;
-            const limitReached = scanTarget
-              ? isDailyLimitReached(scanTarget.baserow_row_id)
+            const freeLimitReached = scanTarget
+              ? isDailyFreeLimitReached(scanTarget.baserow_row_id)
               : false;
 
-            if (limitReached && todayScan) {
+            if (freeLimitReached && todayScan) {
               const statusInfo = STATUS_BADGES[todayScan.payment_status] ?? {
                 label: todayScan.payment_status,
                 variant: "outline",
@@ -947,9 +948,12 @@ export function QrScansTab() {
                   <div className="p-4 bg-amber-500/10 border border-amber-500/40 rounded-md space-y-2">
                     <div className="flex items-center gap-2 font-medium text-sm">
                       <AlertCircle className="h-4 w-4 text-amber-600" />
-                      Limite diário atingido ({todayCount}/{maxPorDia})
+                      Limite diário grátis atingido ({todayFreeCount}/{maxPorDia})
                     </div>
-                    <div className="text-sm space-y-1">
+                    <div className="text-xs text-amber-800">
+                      Você pode continuar registrando scans hoje, mas eles serão <strong>pagos</strong>.
+                    </div>
+                    <div className="text-sm space-y-1 pt-1">
                       <div>
                         <span className="text-muted-foreground">Horário:</span>{" "}
                         <strong>{formatTime(todayScan.created_at)}</strong> (BRT)
@@ -981,81 +985,9 @@ export function QrScansTab() {
                       registro — faltam <strong>{formatCountdown()}</strong>.
                     </div>
                   </div>
-      {/* Payment Confirmation Dialog */}
-      <Dialog open={confirmPaymentDialogOpen} onOpenChange={setConfirmPaymentDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar Pagamento</DialogTitle>
-            <DialogDescription>
-              Deseja confirmar o pagamento do scan para o número <strong>{scanToConfirm?.numero}</strong>?
-              Isso irá liberar o escaneamento para o cliente.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Comprovante (opcional)</Label>
-              <div className="flex flex-col gap-2">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="cursor-pointer"
-                />
-                {paymentReceiptPreview && (
-                  <div className="relative w-full h-40 border rounded-md overflow-hidden bg-muted">
-                    <img
-                      src={paymentReceiptPreview}
-                      alt="Preview"
-                      className="w-full h-full object-contain"
-                    />
-                    <Button
-                      size="icon"
-                      variant="destructive"
-                      className="absolute top-2 right-2 h-6 w-6"
-                      onClick={() => {
-                        setPaymentReceipt(null);
-                        setPaymentReceiptPreview(null);
-                      }}
-                    >
-                      <XCircle className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setConfirmPaymentDialogOpen(false)}
-              disabled={isUploading}
-            >
-              Não, cancelar
-            </Button>
-            <Button
-              onClick={processPaymentConfirmation}
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Confirmando...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Sim, confirmar pagamento
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
+                </div>
+              );
+            }
 
             return (
               <div className="space-y-3">
@@ -1184,29 +1116,96 @@ export function QrScansTab() {
               {generatedPaymentUrl ? "Fechar" : "Cancelar"}
             </Button>
             {!generatedPaymentUrl && (() => {
-              const blocked =
-                scanStep === "initial" &&
-                !!scanTarget &&
-                isDailyLimitReached(scanTarget.baserow_row_id);
               const isLink = paymentMethod === "link_mp" || paymentMethod === "link_stripe";
               return (
                 <Button
                   onClick={handleSubmitScan}
-                  disabled={registerScan.isPending || blocked}
+                  disabled={registerScan.isPending}
                 >
                   {registerScan.isPending && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
-                  {blocked
-                    ? `Limite diário (${maxPorDia}) atingido`
-                    : scanStep === "initial"
-                      ? "Registrar"
-                      : isLink
-                        ? "Gerar link de pagamento"
-                        : "Criar cobrança"}
+                  {scanStep === "initial"
+                    ? "Registrar"
+                    : isLink
+                      ? "Gerar link de pagamento"
+                      : "Criar cobrança"}
                 </Button>
               );
             })()}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Confirmation Dialog */}
+      <Dialog open={confirmPaymentDialogOpen} onOpenChange={setConfirmPaymentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Pagamento</DialogTitle>
+            <DialogDescription>
+              Deseja confirmar o pagamento do scan para o número <strong>{scanToConfirm?.numero}</strong>?
+              Isso irá liberar o escaneamento para o cliente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Comprovante (opcional)</Label>
+              <div className="flex flex-col gap-2">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="cursor-pointer"
+                />
+                {paymentReceiptPreview && (
+                  <div className="relative w-full h-40 border rounded-md overflow-hidden bg-muted">
+                    <img
+                      src={paymentReceiptPreview}
+                      alt="Preview"
+                      className="w-full h-full object-contain"
+                    />
+                    <Button
+                      size="icon"
+                      variant="destructive"
+                      className="absolute top-2 right-2 h-6 w-6"
+                      onClick={() => {
+                        setPaymentReceipt(null);
+                        setPaymentReceiptPreview(null);
+                      }}
+                    >
+                      <XCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmPaymentDialogOpen(false)}
+              disabled={isUploading}
+            >
+              Não, cancelar
+            </Button>
+            <Button
+              onClick={processPaymentConfirmation}
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Confirmando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Sim, confirmar pagamento
+                </>
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
