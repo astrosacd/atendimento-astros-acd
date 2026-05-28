@@ -38,6 +38,9 @@ import {
   FileUp,
   Pencil,
   Trash2,
+  Clock,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -103,11 +106,11 @@ type Cliente = {
   cobranca_ativa: boolean | null;
 };
 
-const STATUS_CLS: Record<string, string> = {
-  pendente: "bg-slate-500",
-  em_andamento: "bg-blue-500",
-  finalizada: "bg-emerald-600",
-  cancelada: "bg-amber-500",
+const STATUS_CONFIG: Record<string, { label: string; cls: string; icon: any }> = {
+  pendente: { label: "Pendente", cls: "bg-slate-500", icon: Clock },
+  em_andamento: { label: "Em andamento", cls: "bg-blue-500", icon: PhoneCall },
+  finalizada: { label: "Finalizada", cls: "bg-emerald-600", icon: CheckCircle2 },
+  cancelada: { label: "Cancelada", cls: "bg-amber-500", icon: XCircle },
 };
 
 export function CampanhasLigacoesTab() {
@@ -197,9 +200,16 @@ export function CampanhasLigacoesTab() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium truncate">{c.nome}</span>
-                    <Badge className={STATUS_CLS[c.status] ?? "bg-slate-500"}>
-                      {c.status}
-                    </Badge>
+                    {(() => {
+                      const conf = STATUS_CONFIG[c.status] || STATUS_CONFIG.pendente;
+                      const Icon = conf.icon;
+                      return (
+                        <Badge className={`${conf.cls} flex items-center gap-1`}>
+                          <Icon className="h-3 w-3" />
+                          {conf.label}
+                        </Badge>
+                      );
+                    })()}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3">
                     <span className="inline-flex items-center gap-1">
