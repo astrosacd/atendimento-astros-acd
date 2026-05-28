@@ -39,8 +39,9 @@ export function ProtectedRoute({ children, adminOnly = false, permission }: Prot
     location.pathname.startsWith('/link-pagamento') ||
     location.pathname.startsWith('/grafo-clientes') ||
     location.pathname.startsWith('/central-ajuda') ||
-    location.pathname.startsWith('/sala-agentes') ||
-    location.pathname.startsWith('/instagram');
+      location.pathname.startsWith('/sala-agentes') ||
+      location.pathname.startsWith('/instagram') ||
+      location.pathname.startsWith('/ligacoes-ia');
 
   if (isLoading) {
     return (
