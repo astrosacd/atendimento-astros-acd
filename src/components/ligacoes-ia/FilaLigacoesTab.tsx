@@ -108,19 +108,41 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
   const { hasPermission } = usePermissions();
   const canExecute = hasPermission("execute_ligacoes_fila");
 
-  // Abre a guia executora. Se o navegador bloquear pop-up, oferece copiar o link.
+  // Abre a guia executora e transfere a sessão da aba atual para a nova guia.
+  // Isso evita cair no /auth quando o CRM está embutido no Chatwoot/iframe,
+  // onde o navegador pode isolar o armazenamento da sessão.
   const openFilaTab = () => {
-    const url = window.location.origin + FILA_STANDALONE_PATH;
-    const win = window.open(url, "_blank", "noopener");
+    const url = new URL(FILA_STANDALONE_PATH, window.location.origin);
+    url.searchParams.set("handoff", "1");
+    const win = window.open(url.toString(), "_blank");
     if (!win) {
       // Pop-up bloqueado — copia o link e avisa
-      copyToClipboard(url);
+      copyToClipboard(url.toString());
       toast({
         title: "Pop-up bloqueado",
         description: "Link copiado. Cole numa nova guia (Ctrl+T → Ctrl+V → Enter) ou libere pop-ups deste site.",
         variant: "destructive",
       });
+      return;
     }
+
+    const handleHandoffRequest = async (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.source !== win) return;
+      if (event.data?.type !== "LIGACOES_IA_AUTH_HANDOFF_REQUEST") return;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      win.postMessage({
+        type: "LIGACOES_IA_AUTH_HANDOFF_RESPONSE",
+        session: session ? {
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        } : null,
+      }, window.location.origin);
+    };
+
+    window.addEventListener("message", handleHandoffRequest);
+    window.setTimeout(() => window.removeEventListener("message", handleHandoffRequest), 15000);
   };
 
   const [items, setItems] = useState<Agendada[]>([]);
