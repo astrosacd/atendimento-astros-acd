@@ -32,7 +32,7 @@ const InstagramModule = () => {
     canManageTemporaryAccess,
   } = perms;
 
-  const isTempAccess = !!sessionStorage.getItem("temp_access_token");
+  const isTempAccess = !!localStorage.getItem("temp_access_token");
   const [tempAccessData, setTempAccessData] = useState<{ permissions?: string[] } | null>(null);
   const [tempAccessLoading, setTempAccessLoading] = useState(isTempAccess);
   const initialTab = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("tab") : null;
@@ -45,7 +45,7 @@ const InstagramModule = () => {
     }
 
     const loadTemporaryPermissions = async () => {
-      const token = sessionStorage.getItem("temp_access_token");
+      const token = localStorage.getItem("temp_access_token");
       if (!token) {
         setTempAccessData(null);
         setTempAccessLoading(false);
