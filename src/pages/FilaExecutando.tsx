@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { PhoneCall, ExternalLink } from "lucide-react";
+import { PhoneCall, ExternalLink, Loader2 } from "lucide-react";
 import { FilaLigacoesTab } from "@/components/ligacoes-ia/FilaLigacoesTab";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Página dedicada (abre em NOVA GUIA) que executa a fila de ligações IA.
@@ -59,6 +60,46 @@ function FilaExecutandoInner() {
 }
 
 export default function FilaExecutando() {
+  const [handoffLoading, setHandoffLoading] = useState(() => new URLSearchParams(window.location.search).get("handoff") === "1");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("handoff") !== "1") return;
+
+    let done = false;
+    const finish = () => {
+      done = true;
+      params.delete("handoff");
+      const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+      window.history.replaceState({}, "", next);
+      setHandoffLoading(false);
+    };
+
+    const onMessage = async (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type !== "LIGACOES_IA_AUTH_HANDOFF_RESPONSE") return;
+
+      const session = event.data.session;
+      if (session?.access_token && session?.refresh_token) {
+        await supabase.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token });
+      }
+      finish();
+    };
+
+    window.addEventListener("message", onMessage);
+    window.opener?.postMessage({ type: "LIGACOES_IA_AUTH_HANDOFF_REQUEST" }, window.location.origin);
+    const timeout = window.setTimeout(() => { if (!done) finish(); }, 5000);
+
+    return () => {
+      window.removeEventListener("message", onMessage);
+      window.clearTimeout(timeout);
+    };
+  }, []);
+
+  if (handoffLoading) {
+    return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  }
+
   return (
     <ProtectedRoute permission="execute_ligacoes_fila">
       <FilaExecutandoInner />
