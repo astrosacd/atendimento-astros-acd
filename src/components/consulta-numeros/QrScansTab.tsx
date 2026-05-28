@@ -938,7 +938,11 @@ export function QrScansTab() {
               ? isDailyFreeLimitReached(scanTarget.baserow_row_id)
               : false;
 
-            if (freeLimitReached && todayScan) {
+            const c = getCounter(scanTarget?.baserow_row_id);
+            const monthlyMax = config?.qtd_gratis_por_mes ?? 4;
+            const monthlyLimitReached = c.qtd_gratis_usados >= monthlyMax;
+
+            if (freeLimitReached && todayScan && !monthlyLimitReached) {
               const statusInfo = STATUS_BADGES[todayScan.payment_status] ?? {
                 label: todayScan.payment_status,
                 variant: "outline",
@@ -979,10 +983,6 @@ export function QrScansTab() {
                           {todayScan.observacao}
                         </div>
                       )}
-                    </div>
-                    <div className="text-xs text-muted-foreground pt-1 border-t border-amber-500/20">
-                      ⏳ Aguarde até <strong>00:00 (BRT)</strong> para um novo
-                      registro — faltam <strong>{formatCountdown()}</strong>.
                     </div>
                   </div>
                 </div>
