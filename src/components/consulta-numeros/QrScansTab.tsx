@@ -717,12 +717,21 @@ export function QrScansTab() {
                         />
                       </div>
                       <div>
-                        <Label>Limite diário (fixo)</Label>
-                        <Input type="number" value={1} disabled />
+                        <Label>Limite diário</Label>
+                        <Input 
+                          type="number" 
+                          min={1}
+                          value={configDraft.qtd_por_dia} 
+                          onChange={(e) => 
+                            setConfigDraft({
+                              ...configDraft,
+                              qtd_por_dia: Number(e.target.value),
+                            })
+                          }
+                        />
                         <p className="text-xs text-muted-foreground mt-1">
-                          Cada número pode receber no máximo <strong>1
-                          escaneamento por dia</strong> (regra do sistema, não
-                          configurável).
+                          Cada número pode receber no máximo <strong>{configDraft.qtd_por_dia} 
+                          escaneamentos por dia</strong>.
                         </p>
                       </div>
                       <div>
