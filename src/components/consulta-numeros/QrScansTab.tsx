@@ -264,7 +264,6 @@ export function QrScansTab() {
         setScanDialogOpen(false);
       } else if (res?.status === "pendente_pagamento") {
         if (res.payment_url) {
-          // Link gerado: mantém o dialog aberto para o usuário copiar/enviar
           setGeneratedPaymentUrl(res.payment_url);
           toast({
             title: "🔗 Link de pagamento gerado",
@@ -404,7 +403,6 @@ export function QrScansTab() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
@@ -441,7 +439,6 @@ export function QrScansTab() {
           )}
         </TabsList>
 
-        {/* Numbers */}
         <TabsContent value="numeros" className="space-y-4">
           <Card>
             <CardHeader>
@@ -500,7 +497,6 @@ export function QrScansTab() {
                           <TableCell className="text-right space-x-2">
                             {(() => {
                               const todayFreeCount = getTodayFreeScans(n.baserow_row_id).length;
-                              const lastToday = getLastTodayScan(n.baserow_row_id);
                               const freeLimitReached = todayFreeCount >= maxPorDia;
                               const monthlyMax = config?.qtd_gratis_por_mes ?? 4;
                               const monthlyUsed = getCounter(n.baserow_row_id).qtd_gratis_usados;
@@ -556,7 +552,6 @@ export function QrScansTab() {
           </Card>
         </TabsContent>
 
-        {/* Pendentes */}
         <TabsContent value="pendentes" className="space-y-4">
           <Card>
             <CardHeader>
@@ -627,7 +622,6 @@ export function QrScansTab() {
           </Card>
         </TabsContent>
 
-        {/* Histórico */}
         <TabsContent value="historico" className="space-y-4">
           <Card>
             <CardHeader>
@@ -698,7 +692,6 @@ export function QrScansTab() {
           </Card>
         </TabsContent>
 
-        {/* Config admin */}
         {isAdmin && (
           <TabsContent value="config" className="space-y-4">
             <Card>
@@ -961,6 +954,7 @@ export function QrScansTab() {
                       Você pode continuar registrando scans hoje, mas eles serão <strong>pagos</strong>.
                     </div>
                     <div className="text-sm space-y-1 pt-1">
+                      <div>
                         <span className="text-muted-foreground">Horário:</span>{" "}
                         <strong>{formatTime(todayScan.created_at)}</strong> (BRT)
                       </div>
@@ -991,81 +985,9 @@ export function QrScansTab() {
                       registro — faltam <strong>{formatCountdown()}</strong>.
                     </div>
                   </div>
-      {/* Payment Confirmation Dialog */}
-      <Dialog open={confirmPaymentDialogOpen} onOpenChange={setConfirmPaymentDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar Pagamento</DialogTitle>
-            <DialogDescription>
-              Deseja confirmar o pagamento do scan para o número <strong>{scanToConfirm?.numero}</strong>?
-              Isso irá liberar o escaneamento para o cliente.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Comprovante (opcional)</Label>
-              <div className="flex flex-col gap-2">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="cursor-pointer"
-                />
-                {paymentReceiptPreview && (
-                  <div className="relative w-full h-40 border rounded-md overflow-hidden bg-muted">
-                    <img
-                      src={paymentReceiptPreview}
-                      alt="Preview"
-                      className="w-full h-full object-contain"
-                    />
-                    <Button
-                      size="icon"
-                      variant="destructive"
-                      className="absolute top-2 right-2 h-6 w-6"
-                      onClick={() => {
-                        setPaymentReceipt(null);
-                        setPaymentReceiptPreview(null);
-                      }}
-                    >
-                      <XCircle className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setConfirmPaymentDialogOpen(false)}
-              disabled={isUploading}
-            >
-              Não, cancelar
-            </Button>
-            <Button
-              onClick={processPaymentConfirmation}
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Confirmando...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Sim, confirmar pagamento
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
+                </div>
+              );
+            }
 
             return (
               <div className="space-y-3">
@@ -1211,6 +1133,79 @@ export function QrScansTab() {
                 </Button>
               );
             })()}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Confirmation Dialog */}
+      <Dialog open={confirmPaymentDialogOpen} onOpenChange={setConfirmPaymentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Pagamento</DialogTitle>
+            <DialogDescription>
+              Deseja confirmar o pagamento do scan para o número <strong>{scanToConfirm?.numero}</strong>?
+              Isso irá liberar o escaneamento para o cliente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Comprovante (opcional)</Label>
+              <div className="flex flex-col gap-2">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="cursor-pointer"
+                />
+                {paymentReceiptPreview && (
+                  <div className="relative w-full h-40 border rounded-md overflow-hidden bg-muted">
+                    <img
+                      src={paymentReceiptPreview}
+                      alt="Preview"
+                      className="w-full h-full object-contain"
+                    />
+                    <Button
+                      size="icon"
+                      variant="destructive"
+                      className="absolute top-2 right-2 h-6 w-6"
+                      onClick={() => {
+                        setPaymentReceipt(null);
+                        setPaymentReceiptPreview(null);
+                      }}
+                    >
+                      <XCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmPaymentDialogOpen(false)}
+              disabled={isUploading}
+            >
+              Não, cancelar
+            </Button>
+            <Button
+              onClick={processPaymentConfirmation}
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Confirmando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Sim, confirmar pagamento
+                </>
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
