@@ -82,6 +82,9 @@ function describeOutcome(it: Agendada): { label: string; icon: any; cls: string 
 function friendlyError(err: string | null): string {
   if (!err) return "—";
   const e = err.toLowerCase();
+  if (e.includes("non-2xx")) return "Edge Function falhou — veja logs (provavelmente Wavoip/ElevenLabs não configurado ou cliente sem número)";
+  if (e.includes("wavoip não configurado") || e.includes("wavoip nao configurado")) return "Wavoip não configurado (token ou discador ausente)";
+  if (e.includes("número de destino") || e.includes("numero de destino")) return "Cliente/contato sem número de destino";
   if (e.includes("token")) return "Token Wavoip inválido/ausente";
   if (e.includes("audio")) return "Falha ao gerar áudio (TTS)";
   if (e.includes("network") || e.includes("fetch")) return "Falha de rede";
@@ -89,7 +92,7 @@ function friendlyError(err: string | null): string {
   if (e.includes("not enabled") || e.includes("free tier")) return "ElevenLabs bloqueado (Free Tier)";
   if (e.includes("quota")) return "Cota ElevenLabs esgotada";
   if (e.length > 80) return err.slice(0, 80) + "…";
-  return err;
+
 }
 
 function todayInBrazil() {
