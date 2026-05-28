@@ -7252,6 +7252,7 @@ export type Database = {
           id: string
           payment_provider_default: string
           qtd_gratis_por_mes: number
+          qtd_por_dia: number
           updated_at: string
           valor_excedente: number
         }
@@ -7261,6 +7262,7 @@ export type Database = {
           id?: string
           payment_provider_default?: string
           qtd_gratis_por_mes?: number
+          qtd_por_dia?: number
           updated_at?: string
           valor_excedente?: number
         }
@@ -7270,6 +7272,7 @@ export type Database = {
           id?: string
           payment_provider_default?: string
           qtd_gratis_por_mes?: number
+          qtd_por_dia?: number
           updated_at?: string
           valor_excedente?: number
         }
