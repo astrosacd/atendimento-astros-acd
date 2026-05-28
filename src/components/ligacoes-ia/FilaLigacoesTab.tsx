@@ -447,6 +447,7 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
       audioCtxRef.current.close().catch(() => {});
       audioCtxRef.current = null;
     }
+    clearWavoipCache();
   };
 
   // REMOVIDO: auto-start na guia standalone para garantir que o navegador
