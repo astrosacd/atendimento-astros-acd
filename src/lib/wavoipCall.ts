@@ -15,6 +15,7 @@ export interface PlaceCallParams {
   preTTSDelayMs?: number; // delay before starting playback after peer accepts
   onStatus?: (status: string) => void;
   onEnded?: () => void;
+  audioContext?: AudioContext;
 }
 
 export interface ActiveCallHandle {
@@ -65,11 +66,11 @@ async function postHistoricoOutcome(histId: string, payload: Record<string, unkn
  * MUST be called from a user gesture (button click).
  */
 export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveCallHandle> {
-  const { token, phone, audioUrl, historicoId, preTTSDelayMs = 3000, onStatus, onEnded } = params;
+  const { token, phone, audioUrl, historicoId, preTTSDelayMs = 3000, onStatus, onEnded, audioContext: providedCtx } = params;
 
   // 1. Build TTS-backed MediaStream
   onStatus?.("Preparando áudio do roteiro...");
-  const audioContext = new AudioContext();
+  const audioContext = providedCtx || new AudioContext();
   if (audioContext.state === "suspended") await audioContext.resume();
   const tts = await ttsUrlToPlayableStream(audioUrl, audioContext);
 
@@ -103,7 +104,9 @@ export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveC
     ended = true;
     restorePatch();
     try { tts.stop(); } catch { /* ignore */ }
-    try { await audioContext.close(); } catch { /* ignore */ }
+    if (!providedCtx) {
+      try { await audioContext.close(); } catch { /* ignore */ }
+    }
 
     // Report outcome to the historico webhook
     if (historicoId) {
