@@ -118,15 +118,24 @@ export function QrScansTab() {
   // Local draft for config form (controlled, saved on click)
   const [configDraft, setConfigDraft] = useState<{
     qtd_gratis_por_mes: number;
+    qtd_por_dia: number;
     valor_excedente: number;
     payment_provider_default: "mercadopago" | "stripe";
     ativo: boolean;
   } | null>(null);
 
+  // Payment confirmation dialog
+  const [confirmPaymentDialogOpen, setConfirmPaymentDialogOpen] = useState(false);
+  const [scanToConfirm, setScanToConfirm] = useState<any>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [paymentReceipt, setPaymentReceipt] = useState<File | null>(null);
+  const [paymentReceiptPreview, setPaymentReceiptPreview] = useState<string | null>(null);
+
   useEffect(() => {
     if (config) {
       setConfigDraft({
         qtd_gratis_por_mes: config.qtd_gratis_por_mes,
+        qtd_por_dia: config.qtd_por_dia ?? 2,
         valor_excedente: Number(config.valor_excedente),
         payment_provider_default: config.payment_provider_default,
         ativo: config.ativo,
@@ -138,6 +147,7 @@ export function QrScansTab() {
     !!config &&
     !!configDraft &&
     (configDraft.qtd_gratis_por_mes !== config.qtd_gratis_por_mes ||
+      configDraft.qtd_por_dia !== (config.qtd_por_dia ?? 2) ||
       Number(configDraft.valor_excedente) !== Number(config.valor_excedente) ||
       configDraft.payment_provider_default !== config.payment_provider_default ||
       configDraft.ativo !== config.ativo);
@@ -159,7 +169,7 @@ export function QrScansTab() {
     return `${g("year")}-${g("month")}-${g("day")}`;
   })();
 
-  const maxPorDia = 1;
+  const maxPorDia = config?.qtd_por_dia ?? 2;
 
   const getTodayScans = (baserowRowId: number) =>
     history.filter(
