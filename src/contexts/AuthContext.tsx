@@ -129,13 +129,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const isSameUser = incomingUserId && incomingUserId === previousUserId;
           
           if (isSameUser) {
-            // Same user - no need to refetch or show loading
             return;
           }
           
-          // User changed (logged out or different user logged in)
           if (!session?.user) {
-            // User signed out
             setUserRole(null);
             setIsApproved(false);
             setIsBlocked(false);
@@ -143,13 +140,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
           }
           
-          // Different user signed in - fetch their data (rare case)
+          setIsLoading(true);
           const { role, approved, blocked, blockedReason } = await fetchUserData(session.user.id);
           if (!isMounted) return;
           setUserRole(role);
           setIsApproved(approved);
           setIsBlocked(blocked);
           setBlockedReason(blockedReason);
+          setIsLoading(false);
           return;
         }
 
