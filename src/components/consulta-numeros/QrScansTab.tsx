@@ -497,35 +497,40 @@ export function QrScansTab() {
                           </TableCell>
                           <TableCell className="text-right space-x-2">
                             {(() => {
-                              const todayFreeCount = getTodayFreeScans(n.baserow_row_id).length;
-                              const freeLimitReached = todayFreeCount >= maxPorDia;
+                              const todayCount = getTodayScans(n.baserow_row_id).length;
+                              const limitReached = todayCount >= maxPorDia;
                               const monthlyMax = config?.qtd_gratis_por_mes ?? 4;
                               const monthlyUsed = getCounter(n.baserow_row_id).qtd_gratis_usados;
-                              const monthlyLimitReached = monthlyUsed >= monthlyMax;
+                              const monthlyFreeReached = monthlyUsed >= monthlyMax;
 
-                              if (freeLimitReached || monthlyLimitReached) {
+                              if (limitReached) {
+                                const lastScan = getTodayScans(n.baserow_row_id)[0];
                                 return (
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="border-amber-500/60 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
-                                    onClick={() => handleOpenScan(n)}
+                                    disabled
+                                    className="gap-2"
                                   >
-                                    <Plus className="h-3.5 w-3.5 mr-1" />
-                                    Registrar (Pago)
-                                    <span className="ml-1 text-[10px] opacity-70">
-                                      {freeLimitReached ? "(Limite diário)" : "(Limite mensal)"}
-                                    </span>
+                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                    Registrado hoje ({formatTime(lastScan?.created_at)})
                                   </Button>
                                 );
                               }
+
                               return (
-                                <Button size="sm" onClick={() => handleOpenScan(n)}>
-                                  📲 Registrar escaneamento
-                                  {maxPorDia > 1 && (
-                                    <span className="ml-1 text-xs opacity-80">
-                                      ({todayFreeCount}/{maxPorDia} hoje)
-                                    </span>
+                                <Button
+                                  size="sm"
+                                  variant={monthlyFreeReached ? "default" : "outline"}
+                                  onClick={() => handleOpenScan(n)}
+                                  className={monthlyFreeReached ? "border-amber-500/60 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400" : ""}
+                                >
+                                  {monthlyFreeReached ? (
+                                    <>
+                                      <Plus className="h-4 w-4 mr-1" /> Registrar (Pago)
+                                    </>
+                                  ) : (
+                                    "📲 Registrar escaneamento"
                                   )}
                                 </Button>
                               );
