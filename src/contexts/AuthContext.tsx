@@ -225,6 +225,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    localStorage.removeItem("temp_access_token");
+    localStorage.removeItem("temp_access_target");
     setUser(null);
     setSession(null);
     setUserRole(null);
