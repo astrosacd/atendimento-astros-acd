@@ -113,6 +113,9 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
   // onde o navegador pode isolar o armazenamento da sessão.
   const openFilaTab = () => {
     const url = new URL(FILA_STANDALONE_PATH, window.location.origin);
+    const searchParams = new URLSearchParams(window.location.search);
+    const code = searchParams.get("codigo");
+    if (code) url.searchParams.set("codigo", code);
     url.searchParams.set("handoff", "1");
     const win = window.open(url.toString(), "_blank");
     if (!win) {
