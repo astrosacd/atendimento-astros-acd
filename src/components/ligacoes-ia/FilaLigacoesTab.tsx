@@ -328,9 +328,24 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
         throw new Error("Item sem cliente nem número manual");
       }
       const { data, error } = await supabase.functions.invoke("ligacoes-ia-call", { body: payload });
-      if (error) throw error;
+      if (error) {
+        // supabase-js v2: error.context é o Response; lê o body para mostrar a causa real
+        let realMsg = error.message || "Edge Function falhou";
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            if (body?.error) realMsg = String(body.error);
+          } else if (ctx && typeof ctx.text === "function") {
+            const t = await ctx.text();
+            if (t) realMsg = t;
+          }
+        } catch { /* ignore parse fail */ }
+        throw new Error(realMsg);
+      }
       const d = data as any;
       if (!d?.wavoip_token || !d?.audio_url || !d?.phone) throw new Error("Resposta inválida (faltam token/áudio/número)");
+
 
       await supabase.from("ligacoes_agendadas").update({ historico_id: d.historico_id }).eq("id", item.id);
 
