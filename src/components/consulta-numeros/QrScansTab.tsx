@@ -934,21 +934,21 @@ export function QrScansTab() {
           </DialogHeader>
 
           {scanStep === "initial" && (() => {
-            const todayFreeCount = scanTarget
-              ? getTodayFreeScans(scanTarget.baserow_row_id).length
+            const todayCount = scanTarget
+              ? getTodayScans(scanTarget.baserow_row_id).length
               : 0;
             const todayScan = scanTarget
               ? getLastTodayScan(scanTarget.baserow_row_id)
               : undefined;
-            const freeLimitReached = scanTarget
-              ? isDailyFreeLimitReached(scanTarget.baserow_row_id)
+            const limitReached = scanTarget
+              ? isDailyLimitReached(scanTarget.baserow_row_id)
               : false;
 
             const c = getCounter(scanTarget?.baserow_row_id);
             const monthlyMax = config?.qtd_gratis_por_mes ?? 4;
-            const monthlyLimitReached = c.qtd_gratis_usados >= monthlyMax;
+            const monthlyFreeReached = c.qtd_gratis_usados >= monthlyMax;
 
-            if (freeLimitReached && todayScan && !monthlyLimitReached) {
+            if (limitReached && todayScan) {
               const statusInfo = STATUS_BADGES[todayScan.payment_status] ?? {
                 label: todayScan.payment_status,
                 variant: "outline",
