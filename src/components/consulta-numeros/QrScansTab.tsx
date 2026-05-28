@@ -171,18 +171,20 @@ export function QrScansTab() {
 
   const maxPorDia = config?.qtd_por_dia ?? 2;
 
-  const getTodayScans = (baserowRowId: number) =>
+  const getTodayFreeScans = (baserowRowId: number) =>
     history.filter(
-      (h) => h.baserow_row_id === baserowRowId && h.scan_date === todayBrt,
+      (h) => h.baserow_row_id === baserowRowId && h.scan_date === todayBrt && h.tipo === "gratis",
     );
 
   const getLastTodayScan = (baserowRowId: number) => {
-    const scans = getTodayScans(baserowRowId);
+    const scans = history.filter(
+      (h) => h.baserow_row_id === baserowRowId && h.scan_date === todayBrt,
+    );
     return scans.length > 0 ? scans[0] : undefined;
   };
 
-  const isDailyLimitReached = (baserowRowId: number) =>
-    getTodayScans(baserowRowId).length >= maxPorDia;
+  const isDailyFreeLimitReached = (baserowRowId: number) =>
+    getTodayFreeScans(baserowRowId).length >= maxPorDia;
 
   const formatTime = (iso?: string | null) => {
     if (!iso) return "";
@@ -497,20 +499,26 @@ export function QrScansTab() {
                           </TableCell>
                           <TableCell className="text-right space-x-2">
                             {(() => {
-                              const todayCount = getTodayScans(n.baserow_row_id).length;
+                              const todayFreeCount = getTodayFreeScans(n.baserow_row_id).length;
                               const lastToday = getLastTodayScan(n.baserow_row_id);
-                              const limitReached = todayCount >= maxPorDia;
-                              if (limitReached && lastToday) {
+                              const freeLimitReached = todayFreeCount >= maxPorDia;
+                              const monthlyMax = config?.qtd_gratis_por_mes ?? 4;
+                              const monthlyUsed = getCounter(n.baserow_row_id).qtd_gratis_usados;
+                              const monthlyLimitReached = monthlyUsed >= monthlyMax;
+
+                              if (freeLimitReached || monthlyLimitReached) {
                                 return (
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     className="border-amber-500/60 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
                                     onClick={() => handleOpenScan(n)}
-                                    title={`Limite diário (${maxPorDia}) atingido — último às ${formatTime(lastToday.created_at)}`}
                                   >
-                                    <AlertCircle className="h-3.5 w-3.5 mr-1" />
-                                    Limite diário {todayCount}/{maxPorDia}
+                                    <Plus className="h-3.5 w-3.5 mr-1" />
+                                    Registrar (Pago)
+                                    <span className="ml-1 text-[10px] opacity-70">
+                                      {freeLimitReached ? "(Limite diário)" : "(Limite mensal)"}
+                                    </span>
                                   </Button>
                                 );
                               }
@@ -519,7 +527,7 @@ export function QrScansTab() {
                                   📲 Registrar escaneamento
                                   {maxPorDia > 1 && (
                                     <span className="ml-1 text-xs opacity-80">
-                                      ({todayCount}/{maxPorDia} hoje)
+                                      ({todayFreeCount}/{maxPorDia} hoje)
                                     </span>
                                   )}
                                 </Button>
