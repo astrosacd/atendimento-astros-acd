@@ -58,8 +58,8 @@ const TemporaryAccessHandler = () => {
         // A better approach would be to sign in as a specific guest user or use a specific header.
         // But the user asked for a "provisional link", so we'll redirect them.
         
-        sessionStorage.setItem("temp_access_token", token);
-        sessionStorage.setItem("temp_access_target", data.target_path);
+        localStorage.setItem("temp_access_token", token);
+        localStorage.setItem("temp_access_target", data.target_path);
         navigate(data.target_path);
         
       } catch (err: any) {

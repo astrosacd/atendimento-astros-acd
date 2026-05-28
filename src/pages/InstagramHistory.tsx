@@ -27,7 +27,7 @@ import { ptBR } from "date-fns/locale";
 const InstagramHistory = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const isTempAccess = !!sessionStorage.getItem("temp_access_token");
+  const isTempAccess = !!localStorage.getItem("temp_access_token");
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedLogs, setExpandedLogs] = useState<string | null>(null);

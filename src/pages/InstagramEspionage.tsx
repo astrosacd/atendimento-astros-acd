@@ -63,7 +63,7 @@ interface Competitor {
 
 export default function InstagramEspionage() {
   const qc = useQueryClient();
-  const isTempAccess = typeof window !== "undefined" && !!sessionStorage.getItem("temp_access_token");
+  const isTempAccess = typeof window !== "undefined" && !!localStorage.getItem("temp_access_token");
   const [tab, setTab] = useState("concorrentes");
 
   return (
