@@ -65,10 +65,7 @@ serve(async (req) => {
       .from("qr_scan_config")
       .select("*")
       .limit(1);
-    const config = configRows?.[0] ?? { qtd_gratis_por_mes: 4, valor_excedente: 14.97, qtd_por_dia: 2, ativo: true };
-    
-    // Daily limit from config (defaults to 2 if not set)
-    const DAILY_LIMIT = config.qtd_por_dia ?? 2;
+    const config = configRows?.[0] ?? { qtd_gratis_por_mes: 4, valor_excedente: 14.97, qtd_por_dia: 1, ativo: true };
     
     if (!config.ativo) {
       return new Response(JSON.stringify({ error: "Módulo de QR Scan desativado" }), {
@@ -99,32 +96,36 @@ serve(async (req) => {
 
     const { date: hoje, ano, mes } = todayBrt();
 
-    // Monthly counter
+    // STRICT 1 SCAN PER DAY CHECK (Regardless of free or paid)
+    const { data: todayScans } = await supabase
+      .from("qr_scan_history")
+      .select("id, tipo, payment_status")
+      .eq("baserow_row_id", baserowRowId)
+      .eq("scan_date", hoje)
+      .neq("payment_status", "cancelado"); // Don't count cancelled ones
+    
+    if (todayScans && todayScans.length > 0) {
+      return new Response(JSON.stringify({
+        ok: false,
+        status: "daily_limit",
+        message: "Este número já tem um escaneamento registrado hoje. O limite é de 1 por dia.",
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Monthly counter for FREE scans
     const { data: counter } = await supabase
       .from("qr_scan_monthly_counter")
       .select("*")
       .eq("baserow_row_id", baserowRowId)
       .eq("ano", ano).eq("mes", mes)
       .maybeSingle();
-    const gratisUsadosNoMes = counter?.qtd_gratis_usados ?? 0;
-    const aindaTemGratisNoMes = gratisUsadosNoMes < (config.qtd_gratis_por_mes ?? 4);
-
-    // Daily check (only for FREE scans)
-    const { data: todayScans } = await supabase
-      .from("qr_scan_history")
-      .select("id, tipo")
-      .eq("baserow_row_id", baserowRowId)
-      .eq("scan_date", hoje)
-      .eq("tipo", "gratis")
-      .in("payment_status", ["nao_aplica", "pendente", "pago"]);
     
-    const gratisUsadosHoje = todayScans?.length ?? 0;
-    const aindaTemGratisHoje = gratisUsadosHoje < DAILY_LIMIT;
-
-    const podeSerGratis = aindaTemGratisNoMes && aindaTemGratisHoje;
+    const gratisUsadosNoMes = counter?.qtd_gratis_usados ?? 0;
+    const limiteGratisMes = config.qtd_gratis_por_mes ?? 4;
+    const aindaTemGratisNoMes = gratisUsadosNoMes < limiteGratisMes;
 
     // Free flow
-    if (podeSerGratis) {
+    if (aindaTemGratisNoMes) {
       const { data: inserted, error: insErr } = await supabase
         .from("qr_scan_history")
         .insert({
@@ -152,19 +153,17 @@ serve(async (req) => {
 
       return new Response(JSON.stringify({
         ok: true, status: "gratis_registrado", scan: inserted,
-        restantes_gratis: (config.qtd_gratis_por_mes ?? 4) - (gratisUsadosNoMes + 1),
+        restantes_gratis: limiteGratisMes - (gratisUsadosNoMes + 1),
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Needs payment
+    // Needs payment (Monthly free limit reached)
     if (!paymentMethod) {
       return new Response(JSON.stringify({
         ok: false,
         status: "needs_payment",
         valor: config.valor_excedente,
-        message: !aindaTemGratisNoMes 
-          ? `Limite grátis de ${config.qtd_gratis_por_mes} atingido este mês. Escaneamento adicional: R$ ${config.valor_excedente}.`
-          : `Limite diário de ${DAILY_LIMIT} grátis atingido hoje. Escaneamento adicional agora: R$ ${config.valor_excedente} (ou aguarde até amanhã).`,
+        message: `Limite grátis de ${limiteGratisMes} atingido este mês. Escaneamento adicional: R$ ${config.valor_excedente}.`,
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -175,7 +174,7 @@ serve(async (req) => {
       });
     }
 
-    // If link_mp / link_stripe: generate the payment link via the existing function
+    // Generate payment link if needed
     let generatedLinkId: string | null = paymentLinkId ?? null;
     let generatedPaymentUrl: string | null = null;
     if (paymentMethod === "link_mp" || paymentMethod === "link_stripe") {
