@@ -38,7 +38,7 @@ function FilaExecutandoInner() {
             <div>
               <h1 className="font-semibold leading-tight">Fila de Ligações IA — Execução</h1>
               <p className="text-[11px] text-muted-foreground">
-                Não feche esta guia até a fila terminar. Você pode navegar no CRM normalmente em outra guia.
+                Clique em "Iniciar fila" abaixo para começar. Não feche esta guia até a fila terminar.
               </p>
             </div>
           </div>
