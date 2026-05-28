@@ -597,7 +597,7 @@ export function QrScansTab() {
                         <TableCell className="text-right space-x-2">
                           <Button
                             size="sm"
-                            onClick={() => handleConfirmPayment(s.id)}
+                            onClick={() => handleConfirmPayment(s)}
                           >
                             <CheckCircle2 className="h-4 w-4 mr-1" /> Confirmar
                             pagto
