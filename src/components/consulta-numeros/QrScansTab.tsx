@@ -46,9 +46,13 @@ import {
   Loader2,
   Plus,
   AlertCircle,
+  Image as ImageIcon,
+  Camera,
+  Upload,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import {
   useQrScanConfig,
   useUpdateQrScanConfig,
