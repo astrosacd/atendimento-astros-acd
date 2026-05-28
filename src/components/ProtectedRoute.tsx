@@ -16,8 +16,8 @@ export function ProtectedRoute({ children, adminOnly = false, permission }: Prot
   const { user, isAdmin, isApproved, isLoading, isBlocked, blockedReason, signOut } = useAuth();
   const { hasPermission } = usePermissions();
 
-  // Allow bypass if a valid temporary token exists in sessionStorage
-  const hasTempAccess = !!sessionStorage.getItem("temp_access_token");
+  // Allow bypass if a valid temporary token exists in localStorage
+  const hasTempAccess = !!localStorage.getItem("temp_access_token");
 
   const isPrivateArea =
     location.pathname.startsWith('/admin') ||
@@ -53,7 +53,7 @@ export function ProtectedRoute({ children, adminOnly = false, permission }: Prot
 
   // If we have temporary access, only allow the exact target_path
   if (hasTempAccess) {
-    const targetPath = sessionStorage.getItem("temp_access_target");
+    const targetPath = localStorage.getItem("temp_access_target");
     if (targetPath && location.pathname !== targetPath) {
       return <Navigate to={targetPath} replace />;
     }

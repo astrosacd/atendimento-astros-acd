@@ -17,7 +17,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   global: {
     headers: {
       get 'x-temp-access-token'() {
-        return sessionStorage.getItem('temp_access_token') || '';
+        return localStorage.getItem('temp_access_token') || '';
       }
     } as any
   }

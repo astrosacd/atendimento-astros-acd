@@ -60,7 +60,7 @@ const InstagramCreate = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const isTempAccess = !!sessionStorage.getItem("temp_access_token");
+  const isTempAccess = !!localStorage.getItem("temp_access_token");
   const blockEdit = () => {
     toast({ title: "Ação não permitida", description: "O acesso provisório só permite publicar novos posts, não alterar configurações.", variant: "destructive" });
   };
