@@ -188,6 +188,7 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
   const pauseRef = useRef(false);
   const callRef = useRef<ActiveCallHandle | null>(null);
   const cdTimerRef = useRef<any>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   const hoje = useMemo(() => todayInBrazil(), []);
 
@@ -432,6 +433,10 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
     setCountdown(0);
     if (isStandalone) {
       try { localStorage.removeItem(FILA_FLAG_KEY); } catch {}
+    }
+    if (audioCtxRef.current) {
+      audioCtxRef.current.close().catch(() => {});
+      audioCtxRef.current = null;
     }
   };
 
