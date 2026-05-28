@@ -147,9 +147,14 @@ export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveC
   };
 
   try {
-    // 3. Create a fresh Wavoip client per call (this is what worked previously).
+    // 3. Create a fresh Wavoip client per call.
+    // Added a small wait to ensure the WebSocket connection is established before startCall.
     onStatus?.("Conectando ao Wavoip...");
     const wavoip = params.wavoipInstance ?? new Wavoip({ tokens: [token], platform: "lovable-call-ai" });
+    
+    // Give the socket 2 seconds to stabilize. 
+    // This fixed the "instant drop" / "failed to start" issue on some browsers/networks.
+    await new Promise(r => setTimeout(r, 2000));
 
     // 4. Start outgoing call
     onStatus?.("Discando...");
