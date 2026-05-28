@@ -46,9 +46,13 @@ import {
   Loader2,
   Plus,
   AlertCircle,
+  Image as ImageIcon,
+  Camera,
+  Upload,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import {
   useQrScanConfig,
   useUpdateQrScanConfig,
@@ -114,15 +118,24 @@ export function QrScansTab() {
   // Local draft for config form (controlled, saved on click)
   const [configDraft, setConfigDraft] = useState<{
     qtd_gratis_por_mes: number;
+    qtd_por_dia: number;
     valor_excedente: number;
     payment_provider_default: "mercadopago" | "stripe";
     ativo: boolean;
   } | null>(null);
 
+  // Payment confirmation dialog
+  const [confirmPaymentDialogOpen, setConfirmPaymentDialogOpen] = useState(false);
+  const [scanToConfirm, setScanToConfirm] = useState<any>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [paymentReceipt, setPaymentReceipt] = useState<File | null>(null);
+  const [paymentReceiptPreview, setPaymentReceiptPreview] = useState<string | null>(null);
+
   useEffect(() => {
     if (config) {
       setConfigDraft({
         qtd_gratis_por_mes: config.qtd_gratis_por_mes,
+        qtd_por_dia: config.qtd_por_dia ?? 2,
         valor_excedente: Number(config.valor_excedente),
         payment_provider_default: config.payment_provider_default,
         ativo: config.ativo,
@@ -134,6 +147,7 @@ export function QrScansTab() {
     !!config &&
     !!configDraft &&
     (configDraft.qtd_gratis_por_mes !== config.qtd_gratis_por_mes ||
+      configDraft.qtd_por_dia !== (config.qtd_por_dia ?? 2) ||
       Number(configDraft.valor_excedente) !== Number(config.valor_excedente) ||
       configDraft.payment_provider_default !== config.payment_provider_default ||
       configDraft.ativo !== config.ativo);
@@ -155,7 +169,7 @@ export function QrScansTab() {
     return `${g("year")}-${g("month")}-${g("day")}`;
   })();
 
-  const maxPorDia = 1;
+  const maxPorDia = config?.qtd_por_dia ?? 2;
 
   const getTodayScans = (baserowRowId: number) =>
     history.filter(
@@ -272,19 +286,74 @@ export function QrScansTab() {
     }
   };
 
-  const handleConfirmPayment = async (scanId: string) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast({
+          title: "Arquivo muito grande",
+          description: "O limite é 2MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setPaymentReceipt(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setPaymentReceiptPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadReceipt = async (file: File) => {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${crypto.randomUUID()}.${fileExt}`;
+    const filePath = `qr-scan-receipts/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("divulgador-media")
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage.from("divulgador-media").getPublicUrl(filePath);
+    return data.publicUrl;
+  };
+
+  const handleConfirmPayment = async (scan: any) => {
+    setScanToConfirm(scan);
+    setPaymentReceipt(null);
+    setPaymentReceiptPreview(null);
+    setConfirmPaymentDialogOpen(true);
+  };
+
+  const processPaymentConfirmation = async () => {
+    if (!scanToConfirm) return;
+    setIsUploading(true);
     try {
-      await confirmPay.mutateAsync({ qr_scan_id: scanId, action: "confirm" });
+      let finalComprovanteUrl = "";
+      if (paymentReceipt) {
+        finalComprovanteUrl = await uploadReceipt(paymentReceipt);
+      }
+
+      await confirmPay.mutateAsync({
+        qr_scan_id: scanToConfirm.id,
+        action: "confirm",
+        comprovante_url: finalComprovanteUrl || undefined,
+      });
+
       toast({
         title: "✅ Pagamento confirmado",
         description: "Escaneamento liberado.",
       });
+      setConfirmPaymentDialogOpen(false);
     } catch (e: any) {
       toast({
         title: "Erro",
         description: e?.message ?? "Falha",
         variant: "destructive",
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -528,7 +597,7 @@ export function QrScansTab() {
                         <TableCell className="text-right space-x-2">
                           <Button
                             size="sm"
-                            onClick={() => handleConfirmPayment(s.id)}
+                            onClick={() => handleConfirmPayment(s)}
                           >
                             <CheckCircle2 className="h-4 w-4 mr-1" /> Confirmar
                             pagto
@@ -648,12 +717,21 @@ export function QrScansTab() {
                         />
                       </div>
                       <div>
-                        <Label>Limite diário (fixo)</Label>
-                        <Input type="number" value={1} disabled />
+                        <Label>Limite diário</Label>
+                        <Input 
+                          type="number" 
+                          min={1}
+                          value={configDraft.qtd_por_dia} 
+                          onChange={(e) => 
+                            setConfigDraft({
+                              ...configDraft,
+                              qtd_por_dia: Number(e.target.value),
+                            })
+                          }
+                        />
                         <p className="text-xs text-muted-foreground mt-1">
-                          Cada número pode receber no máximo <strong>1
-                          escaneamento por dia</strong> (regra do sistema, não
-                          configurável).
+                          Cada número pode receber no máximo <strong>{configDraft.qtd_por_dia} 
+                          escaneamentos por dia</strong>.
                         </p>
                       </div>
                       <div>
@@ -715,6 +793,7 @@ export function QrScansTab() {
                         onClick={() =>
                           setConfigDraft({
                             qtd_gratis_por_mes: config.qtd_gratis_por_mes,
+                            qtd_por_dia: config.qtd_por_dia ?? 2,
                             valor_excedente: Number(config.valor_excedente),
                             payment_provider_default: config.payment_provider_default,
                             ativo: config.ativo,
@@ -902,9 +981,81 @@ export function QrScansTab() {
                       registro — faltam <strong>{formatCountdown()}</strong>.
                     </div>
                   </div>
-                </div>
-              );
-            }
+      {/* Payment Confirmation Dialog */}
+      <Dialog open={confirmPaymentDialogOpen} onOpenChange={setConfirmPaymentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Pagamento</DialogTitle>
+            <DialogDescription>
+              Deseja confirmar o pagamento do scan para o número <strong>{scanToConfirm?.numero}</strong>?
+              Isso irá liberar o escaneamento para o cliente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Comprovante (opcional)</Label>
+              <div className="flex flex-col gap-2">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="cursor-pointer"
+                />
+                {paymentReceiptPreview && (
+                  <div className="relative w-full h-40 border rounded-md overflow-hidden bg-muted">
+                    <img
+                      src={paymentReceiptPreview}
+                      alt="Preview"
+                      className="w-full h-full object-contain"
+                    />
+                    <Button
+                      size="icon"
+                      variant="destructive"
+                      className="absolute top-2 right-2 h-6 w-6"
+                      onClick={() => {
+                        setPaymentReceipt(null);
+                        setPaymentReceiptPreview(null);
+                      }}
+                    >
+                      <XCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmPaymentDialogOpen(false)}
+              disabled={isUploading}
+            >
+              Não, cancelar
+            </Button>
+            <Button
+              onClick={processPaymentConfirmation}
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Confirmando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Sim, confirmar pagamento
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
 
             return (
               <div className="space-y-3">

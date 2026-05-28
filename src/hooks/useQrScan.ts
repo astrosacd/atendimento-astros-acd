@@ -5,6 +5,7 @@ import { invokeFunction } from "@/utils/invokeFunction";
 export interface QrScanConfig {
   id: string;
   qtd_gratis_por_mes: number;
+  qtd_por_dia: number;
   valor_excedente: number;
   payment_provider_default: "mercadopago" | "stripe";
   ativo: boolean;
