@@ -1089,13 +1089,46 @@ export function QrScansTab() {
                       placeholder="Ex: PIX enviado às 14h, ID 12345..."
                     />
                   </div>
-                  <div>
-                    <Label>URL do comprovante (opcional)</Label>
+                  <div className="space-y-2">
+                    <Label>Comprovante de pagamento (opcional)</Label>
                     <Input
-                      value={comprovanteUrl}
-                      onChange={(e) => setComprovanteUrl(e.target.value)}
-                      placeholder="https://..."
+                      type="file"
+                      accept="image/*"
+                      onChange={handleRegisterFileChange}
+                      className="cursor-pointer"
                     />
+                    {registerReceiptPreview && (
+                      <div className="relative w-full h-40 border rounded-md overflow-hidden bg-muted">
+                        <img
+                          src={registerReceiptPreview}
+                          alt="Preview do comprovante"
+                          className="w-full h-full object-contain"
+                        />
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          className="absolute top-2 right-2 h-6 w-6"
+                          onClick={() => {
+                            setRegisterReceipt(null);
+                            setRegisterReceiptPreview(null);
+                          }}
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                    <p className="text-[11px] text-muted-foreground">
+                      Anexe aqui o print/foto do comprovante (PIX, transferência etc). Quem for aprovar na aba "Pendentes" poderá visualizar antes de confirmar.
+                    </p>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ou cole uma URL externa</Label>
+                      <Input
+                        value={comprovanteUrl}
+                        onChange={(e) => setComprovanteUrl(e.target.value)}
+                        placeholder="https://..."
+                        disabled={!!registerReceipt}
+                      />
+                    </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     A cobrança ficará <strong>pendente</strong>. Confirme
