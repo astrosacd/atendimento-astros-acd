@@ -131,6 +131,14 @@ export function QrScansTab() {
   const [paymentReceipt, setPaymentReceipt] = useState<File | null>(null);
   const [paymentReceiptPreview, setPaymentReceiptPreview] = useState<string | null>(null);
 
+  // Receipt upload at registration step (for manual methods)
+  const [registerReceipt, setRegisterReceipt] = useState<File | null>(null);
+  const [registerReceiptPreview, setRegisterReceiptPreview] = useState<string | null>(null);
+  const [isUploadingRegister, setIsUploadingRegister] = useState(false);
+
+  // View receipt dialog
+  const [viewReceiptUrl, setViewReceiptUrl] = useState<string | null>(null);
+
   useEffect(() => {
     if (config) {
       setConfigDraft({
