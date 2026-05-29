@@ -1304,6 +1304,39 @@ export function QrScansTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* View Receipt Dialog */}
+      <Dialog open={!!viewReceiptUrl} onOpenChange={(open) => !open && setViewReceiptUrl(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Comprovante de pagamento</DialogTitle>
+            <DialogDescription>
+              Verifique o comprovante antes de confirmar o pagamento.
+            </DialogDescription>
+          </DialogHeader>
+          {viewReceiptUrl && (
+            <div className="space-y-3">
+              <div className="border rounded-md overflow-hidden bg-muted">
+                <img
+                  src={viewReceiptUrl}
+                  alt="Comprovante"
+                  className="w-full max-h-[70vh] object-contain"
+                />
+              </div>
+              <Button variant="outline" asChild className="w-full">
+                <a href={viewReceiptUrl} target="_blank" rel="noreferrer">
+                  Abrir em nova aba
+                </a>
+              </Button>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setViewReceiptUrl(null)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
