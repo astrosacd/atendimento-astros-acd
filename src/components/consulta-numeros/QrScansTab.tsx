@@ -262,7 +262,16 @@ export function QrScansTab() {
       if (scanStep === "payment") {
         payload.payment_method = paymentMethod;
         payload.payment_manual_observacao = manualObs;
-        payload.payment_comprovante_url = comprovanteUrl || undefined;
+        let finalUrl = comprovanteUrl || undefined;
+        if (registerReceipt) {
+          setIsUploadingRegister(true);
+          try {
+            finalUrl = await uploadReceipt(registerReceipt);
+          } finally {
+            setIsUploadingRegister(false);
+          }
+        }
+        payload.payment_comprovante_url = finalUrl;
       }
       const res = await registerScan.mutateAsync(payload);
       if (res?.status === "daily_limit") {
