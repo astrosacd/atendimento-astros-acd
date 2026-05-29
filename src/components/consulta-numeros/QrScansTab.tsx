@@ -131,6 +131,14 @@ export function QrScansTab() {
   const [paymentReceipt, setPaymentReceipt] = useState<File | null>(null);
   const [paymentReceiptPreview, setPaymentReceiptPreview] = useState<string | null>(null);
 
+  // Receipt upload at registration step (for manual methods)
+  const [registerReceipt, setRegisterReceipt] = useState<File | null>(null);
+  const [registerReceiptPreview, setRegisterReceiptPreview] = useState<string | null>(null);
+  const [isUploadingRegister, setIsUploadingRegister] = useState(false);
+
+  // View receipt dialog
+  const [viewReceiptUrl, setViewReceiptUrl] = useState<string | null>(null);
+
   useEffect(() => {
     if (config) {
       setConfigDraft({
@@ -225,8 +233,23 @@ export function QrScansTab() {
     setPaymentMethod("link_mp");
     setManualObs("");
     setComprovanteUrl("");
+    setRegisterReceipt(null);
+    setRegisterReceiptPreview(null);
     setGeneratedPaymentUrl(null);
     setScanDialogOpen(true);
+  };
+
+  const handleRegisterFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "O limite é 2MB.", variant: "destructive" });
+      return;
+    }
+    setRegisterReceipt(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setRegisterReceiptPreview(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   const handleSubmitScan = async () => {
@@ -239,7 +262,16 @@ export function QrScansTab() {
       if (scanStep === "payment") {
         payload.payment_method = paymentMethod;
         payload.payment_manual_observacao = manualObs;
-        payload.payment_comprovante_url = comprovanteUrl || undefined;
+        let finalUrl = comprovanteUrl || undefined;
+        if (registerReceipt) {
+          setIsUploadingRegister(true);
+          try {
+            finalUrl = await uploadReceipt(registerReceipt);
+          } finally {
+            setIsUploadingRegister(false);
+          }
+        }
+        payload.payment_comprovante_url = finalUrl;
       }
       const res = await registerScan.mutateAsync(payload);
       if (res?.status === "daily_limit") {
@@ -604,6 +636,18 @@ export function QrScansTab() {
                           {s.payment_manual_observacao ?? "—"}
                         </TableCell>
                         <TableCell className="text-right space-x-2">
+                          {s.payment_comprovante_url ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setViewReceiptUrl(s.payment_comprovante_url!)}
+                              title="Ver comprovante enviado pelo cliente"
+                            >
+                              <ImageIcon className="h-4 w-4 mr-1" /> Ver comprovante
+                            </Button>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px]">Sem comprovante</Badge>
+                          )}
                           <Button
                             size="sm"
                             onClick={() => handleConfirmPayment(s)}
@@ -1057,13 +1101,46 @@ export function QrScansTab() {
                       placeholder="Ex: PIX enviado às 14h, ID 12345..."
                     />
                   </div>
-                  <div>
-                    <Label>URL do comprovante (opcional)</Label>
+                  <div className="space-y-2">
+                    <Label>Comprovante de pagamento (opcional)</Label>
                     <Input
-                      value={comprovanteUrl}
-                      onChange={(e) => setComprovanteUrl(e.target.value)}
-                      placeholder="https://..."
+                      type="file"
+                      accept="image/*"
+                      onChange={handleRegisterFileChange}
+                      className="cursor-pointer"
                     />
+                    {registerReceiptPreview && (
+                      <div className="relative w-full h-40 border rounded-md overflow-hidden bg-muted">
+                        <img
+                          src={registerReceiptPreview}
+                          alt="Preview do comprovante"
+                          className="w-full h-full object-contain"
+                        />
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          className="absolute top-2 right-2 h-6 w-6"
+                          onClick={() => {
+                            setRegisterReceipt(null);
+                            setRegisterReceiptPreview(null);
+                          }}
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                    <p className="text-[11px] text-muted-foreground">
+                      Anexe aqui o print/foto do comprovante (PIX, transferência etc). Quem for aprovar na aba "Pendentes" poderá visualizar antes de confirmar.
+                    </p>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ou cole uma URL externa</Label>
+                      <Input
+                        value={comprovanteUrl}
+                        onChange={(e) => setComprovanteUrl(e.target.value)}
+                        placeholder="https://..."
+                        disabled={!!registerReceipt}
+                      />
+                    </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     A cobrança ficará <strong>pendente</strong>. Confirme
@@ -1112,9 +1189,9 @@ export function QrScansTab() {
               return (
                 <Button
                   onClick={handleSubmitScan}
-                  disabled={registerScan.isPending}
+                  disabled={registerScan.isPending || isUploadingRegister}
                 >
-                  {registerScan.isPending && (
+                  {(registerScan.isPending || isUploadingRegister) && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
                   {scanStep === "initial"
@@ -1141,8 +1218,34 @@ export function QrScansTab() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {scanToConfirm?.payment_comprovante_url && (
+              <div className="space-y-2">
+                <Label>Comprovante enviado pelo operador</Label>
+                <div className="border rounded-md overflow-hidden bg-muted">
+                  <img
+                    src={scanToConfirm.payment_comprovante_url}
+                    alt="Comprovante do cliente"
+                    className="w-full max-h-64 object-contain"
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  asChild
+                  className="w-full"
+                >
+                  <a href={scanToConfirm.payment_comprovante_url} target="_blank" rel="noreferrer">
+                    Abrir comprovante em nova aba
+                  </a>
+                </Button>
+              </div>
+            )}
             <div className="space-y-2">
-              <Label>Comprovante (opcional)</Label>
+              <Label>
+                {scanToConfirm?.payment_comprovante_url
+                  ? "Anexar outro comprovante (opcional)"
+                  : "Comprovante (opcional)"}
+              </Label>
               <div className="flex flex-col gap-2">
                 <Input
                   type="file"
@@ -1197,6 +1300,39 @@ export function QrScansTab() {
                   Sim, confirmar pagamento
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Receipt Dialog */}
+      <Dialog open={!!viewReceiptUrl} onOpenChange={(open) => !open && setViewReceiptUrl(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Comprovante de pagamento</DialogTitle>
+            <DialogDescription>
+              Verifique o comprovante antes de confirmar o pagamento.
+            </DialogDescription>
+          </DialogHeader>
+          {viewReceiptUrl && (
+            <div className="space-y-3">
+              <div className="border rounded-md overflow-hidden bg-muted">
+                <img
+                  src={viewReceiptUrl}
+                  alt="Comprovante"
+                  className="w-full max-h-[70vh] object-contain"
+                />
+              </div>
+              <Button variant="outline" asChild className="w-full">
+                <a href={viewReceiptUrl} target="_blank" rel="noreferrer">
+                  Abrir em nova aba
+                </a>
+              </Button>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setViewReceiptUrl(null)}>
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>
