@@ -233,8 +233,23 @@ export function QrScansTab() {
     setPaymentMethod("link_mp");
     setManualObs("");
     setComprovanteUrl("");
+    setRegisterReceipt(null);
+    setRegisterReceiptPreview(null);
     setGeneratedPaymentUrl(null);
     setScanDialogOpen(true);
+  };
+
+  const handleRegisterFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "O limite é 2MB.", variant: "destructive" });
+      return;
+    }
+    setRegisterReceipt(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setRegisterReceiptPreview(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   const handleSubmitScan = async () => {
