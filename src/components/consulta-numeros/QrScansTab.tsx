@@ -1189,9 +1189,9 @@ export function QrScansTab() {
               return (
                 <Button
                   onClick={handleSubmitScan}
-                  disabled={registerScan.isPending}
+                  disabled={registerScan.isPending || isUploadingRegister}
                 >
-                  {registerScan.isPending && (
+                  {(registerScan.isPending || isUploadingRegister) && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
                   {scanStep === "initial"
