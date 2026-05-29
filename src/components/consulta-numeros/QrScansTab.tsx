@@ -636,6 +636,18 @@ export function QrScansTab() {
                           {s.payment_manual_observacao ?? "—"}
                         </TableCell>
                         <TableCell className="text-right space-x-2">
+                          {s.payment_comprovante_url ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setViewReceiptUrl(s.payment_comprovante_url!)}
+                              title="Ver comprovante enviado pelo cliente"
+                            >
+                              <ImageIcon className="h-4 w-4 mr-1" /> Ver comprovante
+                            </Button>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px]">Sem comprovante</Badge>
+                          )}
                           <Button
                             size="sm"
                             onClick={() => handleConfirmPayment(s)}
