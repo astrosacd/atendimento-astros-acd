@@ -100,6 +100,9 @@ export function QrScansTab() {
   const { data: insuranceHistory = [], isLoading: loadingInsurance } = useInsuranceHistory();
   const { data: insuranceNumbers = [], isLoading: loadingInsuranceNumbers } = useInsuranceNumbers();
   const registerInsurance = useRegisterInsuranceUsage();
+  const { data: insurancePayStatus = [] } = useInsurancePaymentStatus();
+  const setInsurancePay = useSetInsurancePaymentStatus();
+  const payStatusMap = new Map(insurancePayStatus.map((p) => [p.baserow_row_id, p.status]));
 
   // Dialog states
   const [flagDialogOpen, setFlagDialogOpen] = useState(false);
