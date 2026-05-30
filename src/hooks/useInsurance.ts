@@ -83,9 +83,12 @@ export function useInsurancePaymentStatusHybrid() {
     queryKey: ["qr-scan-insurance-payment-status-hybrid", manualStatus],
     queryFn: async () => {
       // 1. Criar mapa de status manuais
-      const statusMap = new Map<number, InsurancePaymentStatus>();
+      const statusMap = new Map<number, { status: InsurancePaymentStatus; clientName?: string; method: 'manual' | 'auto' }>();
       manualStatus.forEach(row => {
-        statusMap.set(row.baserow_row_id, row.status);
+        statusMap.set(row.baserow_row_id, {
+          status: row.status,
+          method: 'manual'
+        });
       });
 
       // 2. Buscar clientes com Seguro
