@@ -68,7 +68,83 @@ export function useSetInsurancePaymentStatus() {
   });
 }
 
+/**
+ * Hook que implementa a lógica híbrida:
+ * 1. Pega marcações manuais do mês corrente
+ * 2. Busca clientes que possuem "Seguro" no produto ou observação
+ * 3. Extrai números da observação desses clientes
+ * 4. Define o status como 'pago' se o cliente estiver em dia (data_renovacao >= hoje)
+ * 5. Marcações manuais sempre prevalecem sobre a detecção automática
+ */
+export function useInsurancePaymentStatusHybrid() {
+  const { data: manualStatus = [] } = useInsurancePaymentStatus();
+  
+  return useQuery({
+    queryKey: ["qr-scan-insurance-payment-status-hybrid", manualStatus],
+    queryFn: async () => {
+      // 1. Criar mapa de status manuais
+      const statusMap = new Map<number, InsurancePaymentStatus>();
+      manualStatus.forEach(row => {
+        statusMap.set(row.baserow_row_id, row.status);
+      });
 
+      // 2. Buscar clientes com Seguro
+      const { data: clientes, error: clientError } = await supabase
+        .from("clientes")
+        .select("id, nome, numero, produto, observacao, data_renovacao")
+        .or("produto.ilike.%seguro%,observacao.ilike.%seguro%");
+      
+      if (clientError) throw clientError;
+
+      // 3. Buscar cache de números para vincular baserow_row_id
+      const { data: numbersCache, error: cacheError } = await supabase
+        .from("consulta_numeros_cache")
+        .select("baserow_row_id, row_data");
+      
+      if (cacheError) throw cacheError;
+
+      const today = new Date().toISOString().split('T')[0];
+
+      // Função para extrair números puros de uma string
+      const extractNumbers = (text: string | null) => {
+        if (!text) return [];
+        // Busca sequências de 10 a 13 dígitos
+        const matches = text.match(/\d{10,13}/g);
+        return matches ? matches.map(m => m.replace(/\D/g, '')) : [];
+      };
+
+      // Processar cada cliente para encontrar números vinculados
+      clientes?.forEach(cliente => {
+        const isClientPaid = cliente.data_renovacao >= today;
+        const status = isClientPaid ? 'pago' : 'vencido';
+
+        // Números na observação (um por linha geralmente)
+        const numbersInObs = extractNumbers(cliente.observacao);
+        // O próprio número principal do cliente também pode ter seguro
+        const mainNumber = cliente.numero?.replace(/\D/g, '');
+        const allClientNumbers = new Set([...numbersInObs, mainNumber].filter(Boolean));
+
+        allClientNumbers.forEach(num => {
+          // Tentar encontrar esse número no cache para pegar o baserow_row_id
+          const cacheEntry = numbersCache?.find(c => {
+            const cacheNum = (c.row_data as any)?.numero?.replace(/\D/g, '');
+            return cacheNum === num;
+          });
+
+          if (cacheEntry) {
+            const rowId = cacheEntry.baserow_row_id;
+            // Só aplica automático se não houver marcação manual
+            if (!statusMap.has(rowId)) {
+              statusMap.set(rowId, status);
+            }
+          }
+        });
+      });
+
+      return statusMap;
+    },
+  });
+}
 
 export interface InsuranceNumber {
   baserow_row_id: number;
