@@ -32,6 +32,17 @@ export interface QrScanHistoryRow {
   updated_at: string;
 }
 
+export interface QrScanInsuranceUsage {
+  id: string;
+  baserow_row_id: number;
+  numero: string;
+  cliente_nome: string | null;
+  used_at: string;
+  operador_id: string | null;
+  observacao: string | null;
+  created_at: string;
+}
+
 export interface AutoHospedadoNumber {
   baserow_row_id: number;
   row_data: any;
