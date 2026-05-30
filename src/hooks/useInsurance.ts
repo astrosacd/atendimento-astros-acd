@@ -82,13 +82,13 @@ export function useInsurancePaymentStatusHybrid() {
   return useQuery({
     queryKey: ["qr-scan-insurance-payment-status-hybrid", manualStatus],
     queryFn: async () => {
-      // 1. Criar mapa de status manuais
-      const statusMap = new Map<number, { status: InsurancePaymentStatus; clientName?: string; method: 'manual' | 'auto' }>();
+      // 1. Mapa final de status
+      const statusMap = new Map<number, { status: InsurancePaymentStatus; clientName?: string; clientNames?: string[]; method: 'manual' | 'auto' }>();
+
+      // Marcações manuais (sempre prevalecem)
+      const manualSet = new Map<number, InsurancePaymentStatus>();
       manualStatus.forEach(row => {
-        statusMap.set(row.baserow_row_id, {
-          status: row.status,
-          method: 'manual'
-        });
+        manualSet.set(row.baserow_row_id, row.status);
       });
 
       // 2. Buscar clientes com Seguro
@@ -99,7 +99,7 @@ export function useInsurancePaymentStatusHybrid() {
       
       if (clientError) throw clientError;
 
-      // 3. Buscar cache de números para vincular baserow_row_id
+      // 3. Buscar cache de números
       const { data: numbersCache, error: cacheError } = await supabase
         .from("consulta_numeros_cache")
         .select("baserow_row_id, row_data");
@@ -108,62 +108,74 @@ export function useInsurancePaymentStatusHybrid() {
 
       const today = new Date().toISOString().split('T')[0];
 
-      // Função para extrair números puros de uma string
-      const extractNumbers = (text: string | null) => {
-        if (!text) return [];
-        // Busca sequências que parecem números (pelo menos 10 dígitos, permitindo separadores comuns)
-        const regex = /(?:\d[ \-\(\)\.]*){10,14}/g;
-        const matches = text.match(regex);
-        if (!matches) return [];
-        
-        return matches
-          .map(m => m.replace(/\D/g, ''))
-          .filter(digits => digits.length >= 10 && digits.length <= 14);
-      };
-
-      const normalize = (num: string) => {
-        let n = num.replace(/\D/g, '');
-        // Se tem 55 e é um número longo (mais que 10 dígitos), remove o 55
-        if (n.startsWith('55') && n.length > 10) {
+      const normalize = (num: string | null | undefined) => {
+        if (!num) return '';
+        let n = String(num).replace(/\D/g, '');
+        if (n.startsWith('55') && n.length > 11) {
           n = n.substring(2);
         }
         return n;
       };
 
-      // Processar cada cliente para encontrar números vinculados
+      // Extração ampla: pega QUALQUER sequência de 10-13 dígitos no texto,
+      // independente de separadores, vírgulas, quebras de linha ou prefixos.
+      const extractNumbers = (text: string | null) => {
+        if (!text) return [];
+        // Remove caracteres comuns de separação preservando dígitos
+        const cleaned = text.replace(/[\s\-\(\)\.,;:\/]/g, ' ');
+        const matches = cleaned.match(/\d{10,13}/g);
+        return matches ? matches.map(normalize).filter(Boolean) : [];
+      };
+
+      // 4. Indexar cache por número normalizado para lookup O(1)
+      const cacheByNumber = new Map<string, number>();
+      numbersCache?.forEach(c => {
+        const n = normalize((c.row_data as any)?.numero);
+        if (n) cacheByNumber.set(n, c.baserow_row_id);
+      });
+
+      // 5. Agregar TODOS os clientes vinculados a cada baserow_row_id
+      // (um número pode aparecer em múltiplos registros de cliente)
+      const linksByRow = new Map<number, { clientName: string; isPaid: boolean }[]>();
+
       clientes?.forEach(cliente => {
         const isClientPaid = cliente.data_renovacao >= today;
-        const status = isClientPaid ? 'pago' : 'vencido';
-
-        // Números na observação (um por linha geralmente)
         const numbersInObs = extractNumbers(cliente.observacao);
-        // O próprio número principal do cliente também pode ter seguro
-        const mainNumber = cliente.numero ? normalize(cliente.numero) : null;
-        
-        const allClientNumbers = new Set([
-          ...numbersInObs.map(normalize),
-          mainNumber
-        ].filter(Boolean));
+        const mainNumber = normalize(cliente.numero);
 
-        allClientNumbers.forEach(num => {
-          // Tentar encontrar esse número no cache para pegar o baserow_row_id
-          const cacheEntry = numbersCache?.find(c => {
-            const rawNum = (c.row_data as any)?.numero;
-            if (!rawNum) return false;
-            return normalize(rawNum) === num;
-          });
+        const allNumbers = new Set<string>([...numbersInObs, mainNumber].filter(Boolean));
 
-          if (cacheEntry) {
-            const rowId = cacheEntry.baserow_row_id;
-            // Só aplica automático se não houver marcação manual
-            if (!statusMap.has(rowId)) {
-              statusMap.set(rowId, {
-                status,
-                clientName: cliente.nome,
-                method: 'auto'
-              });
-            }
+        allNumbers.forEach(num => {
+          const rowId = cacheByNumber.get(num);
+          if (rowId !== undefined) {
+            if (!linksByRow.has(rowId)) linksByRow.set(rowId, []);
+            linksByRow.get(rowId)!.push({ clientName: cliente.nome, isPaid: isClientPaid });
           }
+        });
+      });
+
+      // 6. Decidir status: PAGO vence VENCIDO. Manual sempre vence.
+      linksByRow.forEach((links, rowId) => {
+        if (manualSet.has(rowId)) return; // será adicionado abaixo
+        const anyPaid = links.some(l => l.isPaid);
+        const uniqueNames = Array.from(new Set(links.map(l => l.clientName)));
+        statusMap.set(rowId, {
+          status: anyPaid ? 'pago' : 'vencido',
+          clientName: uniqueNames[0],
+          clientNames: uniqueNames,
+          method: 'auto',
+        });
+      });
+
+      // 7. Aplicar marcações manuais por cima
+      manualSet.forEach((status, rowId) => {
+        const links = linksByRow.get(rowId);
+        const uniqueNames = links ? Array.from(new Set(links.map(l => l.clientName))) : undefined;
+        statusMap.set(rowId, {
+          status,
+          clientName: uniqueNames?.[0],
+          clientNames: uniqueNames,
+          method: 'manual',
         });
       });
 
