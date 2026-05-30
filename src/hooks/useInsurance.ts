@@ -113,6 +113,15 @@ export function useInsurancePaymentStatusHybrid() {
         return matches ? matches.map(m => m.replace(/\D/g, '')) : [];
       };
 
+      const normalize = (num: string) => {
+        let n = num.replace(/\D/g, '');
+        // Se tem 55 e é um número longo (mais que 10 dígitos), remove o 55
+        if (n.startsWith('55') && n.length > 10) {
+          n = n.substring(2);
+        }
+        return n;
+      };
+
       // Processar cada cliente para encontrar números vinculados
       clientes?.forEach(cliente => {
         const isClientPaid = cliente.data_renovacao >= today;
@@ -121,14 +130,19 @@ export function useInsurancePaymentStatusHybrid() {
         // Números na observação (um por linha geralmente)
         const numbersInObs = extractNumbers(cliente.observacao);
         // O próprio número principal do cliente também pode ter seguro
-        const mainNumber = cliente.numero?.replace(/\D/g, '');
-        const allClientNumbers = new Set([...numbersInObs, mainNumber].filter(Boolean));
+        const mainNumber = cliente.numero ? normalize(cliente.numero) : null;
+        
+        const allClientNumbers = new Set([
+          ...numbersInObs.map(normalize),
+          mainNumber
+        ].filter(Boolean));
 
         allClientNumbers.forEach(num => {
           // Tentar encontrar esse número no cache para pegar o baserow_row_id
           const cacheEntry = numbersCache?.find(c => {
-            const cacheNum = (c.row_data as any)?.numero?.replace(/\D/g, '');
-            return cacheNum === num;
+            const rawNum = (c.row_data as any)?.numero;
+            if (!rawNum) return false;
+            return normalize(rawNum) === num;
           });
 
           if (cacheEntry) {
