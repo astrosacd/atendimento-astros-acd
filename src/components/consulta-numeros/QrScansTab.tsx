@@ -890,8 +890,10 @@ export function QrScansTab() {
                                     {isManual ? "✍️ Marcação Manual" : (
                                       <span className="flex flex-col">
                                         <span>🤖 Detecção Automática</span>
-                                        {payData?.clientName && (
-                                          <span className="text-[8px] normal-case opacity-70">Vínculo: {payData.clientName}</span>
+                                        {payData?.clientNames && payData.clientNames.length > 0 && (
+                                          <span className="text-[8px] normal-case opacity-70">
+                                            Vínculo: {payData.clientNames.join(" + ")}
+                                          </span>
                                         )}
                                       </span>
                                     )}
