@@ -134,6 +134,7 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         upsellRes,
         socialProfilesRes,
         insuranceUsageRes,
+        scanHistoryRes,
       ] = await Promise.all([
         supabase.from('client_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('billing_logs').select('*').eq('cliente_id', clienteId).order('sent_at', { ascending: false }).limit(50),
