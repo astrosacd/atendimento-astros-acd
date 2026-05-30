@@ -14,10 +14,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, AlertCircle, Plus, Loader2, X, Tag, Mail, Eye, MessageSquare, QrCode } from 'lucide-react';
+import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, AlertCircle, Plus, Loader2, X, Tag, Mail, Eye, MessageSquare, QrCode, Shield, ShieldCheck, ShieldAlert, ShieldOff, CheckCircle2 } from 'lucide-react';
 import { ValidacaoSmsTab } from '@/components/consulta-numeros/ValidacaoSmsTab';
 import { MonitoredStatusDisplay } from '@/components/consulta-numeros/MonitoredStatusDisplay';
 import { QrScansTab } from '@/components/consulta-numeros/QrScansTab';
+import { useInsurancePaymentStatusHybrid } from '@/hooks/useInsurance';
 import {
   DropdownMenu,
   DropdownMenuContent,
