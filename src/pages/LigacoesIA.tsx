@@ -727,6 +727,13 @@ function DisparoTab() {
       });
       if (error) throw error;
       const d = data as any;
+      if (d?.provider === "twilio") {
+        setCallStatus("Ligação iniciada via Twilio...");
+        setCalling(false); // In Twilio, we don't hold the call in the browser
+        toast({ title: "Ligação Twilio iniciada", description: "O Twilio está discando para o cliente." });
+        return;
+      }
+      
       if (!d?.wavoip_token || !d?.audio_url || !d?.phone) {
         throw new Error("Resposta inválida do servidor (faltam token/áudio/número)");
       }

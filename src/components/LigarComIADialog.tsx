@@ -40,7 +40,15 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
     (async () => {
       const promises: any[] = [
         supabase.from("ligacoes_ia_roteiros").select("id, nome, categoria, texto, moeda, idioma, tipo").eq("ativo", true).order("nome"),
-        supabase.from("ligacoes_ia_config").select("config_key, config_value").in("config_key", ["wavoip_token", "wavoip_dialer_number", "elevenlabs_api_key"]),
+        supabase.from("ligacoes_ia_config").select("config_key, config_value").in("config_key", [
+          "wavoip_token", 
+          "wavoip_dialer_number", 
+          "elevenlabs_api_key",
+          "twilio_account_sid",
+          "twilio_auth_token",
+          "twilio_phone_number",
+          "calling_provider"
+        ]),
       ];
       if (!clienteId) {
         setLoadingClientes(true);
@@ -51,7 +59,12 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
       setRoteiros(r.data ?? []);
       const map: Record<string, string> = {};
       (c.data ?? []).forEach((x: any) => map[x.config_key] = x.config_value ?? "");
-      setConfigOk(!!map.wavoip_token && !!map.wavoip_dialer_number && !!map.elevenlabs_api_key);
+      const provider = map.calling_provider || "wavoip";
+      const providerOk = provider === "twilio" 
+        ? (!!map.twilio_account_sid && !!map.twilio_auth_token && !!map.twilio_phone_number)
+        : (!!map.wavoip_token && !!map.wavoip_dialer_number);
+      
+      setConfigOk(providerOk && !!map.elevenlabs_api_key);
       if (cli) {
         setClientes(cli.data ?? []);
         setLoadingClientes(false);
@@ -94,6 +107,13 @@ export function LigarComIADialog({ clienteId, clienteNome, clienteNumero, open, 
       });
       if (error) throw error;
       const d = data as any;
+      if (d?.provider === "twilio") {
+        setCallStatus("Ligação iniciada via Twilio...");
+        setCalling(false);
+        toast({ title: "Ligação Twilio iniciada", description: "O Twilio está discando para o cliente." });
+        return;
+      }
+
       if (!d?.wavoip_token || !d?.audio_url || !d?.phone) {
         throw new Error("Resposta inválida do servidor (faltam token/áudio/número)");
       }

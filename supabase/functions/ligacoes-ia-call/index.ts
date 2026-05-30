@@ -37,8 +37,19 @@ Deno.serve(async (req) => {
 
     const wavoipToken = cfg.wavoip_token;
     const dialer = cfg.wavoip_dialer_number;
-    if (!wavoipToken || !dialer) {
+    const provider = cfg.calling_provider || "wavoip";
+
+    if (provider === "wavoip" && (!wavoipToken || !dialer)) {
       return new Response(JSON.stringify({ error: "Wavoip não configurado (token ou número discador ausente)" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (provider === "twilio") {
+      const sid = cfg.twilio_account_sid;
+      const auth = cfg.twilio_auth_token;
+      const from = cfg.twilio_phone_number;
+      if (!sid || !auth || !from) {
+        return new Response(JSON.stringify({ error: "Twilio não configurado (SID, Token ou Número ausente)" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
     // Resolve destination number
@@ -213,7 +224,7 @@ Deno.serve(async (req) => {
       roteiro_id: roteiro_id ?? null,
       audio_cache_id: ttsData.audio_cache_id,
       numero_destino: numeroDestino,
-      numero_origem: dialer,
+      numero_origem: provider === "twilio" ? cfg.twilio_phone_number : dialer,
       status: "iniciando",
       context: { variables: finalVars, texto_final: ttsData.texto_final },
       triggered_by: user.id,
@@ -221,24 +232,76 @@ Deno.serve(async (req) => {
     }).select("*").single();
     if (histErr) return new Response(JSON.stringify({ error: histErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    // Call is placed client-side via WebRTC (Wavoip JS SDK) so we can inject
-    // TTS audio as the microphone stream. This endpoint just provisions the
-    // historico row, generates/caches the audio, and returns what the client needs.
-    await supabase.from("ligacoes_ia_historico").update({
-      status: "pronto_para_discar",
-      wavoip_call_id: hist.id,
-      raw_payload: { mode: "webrtc_inject_tts", audio_cache_id: ttsData.audio_cache_id },
-    }).eq("id", hist.id);
+    // If Wavoip, call is placed client-side via WebRTC
+    if (provider === "wavoip") {
+      await supabase.from("ligacoes_ia_historico").update({
+        status: "pronto_para_discar",
+        wavoip_call_id: hist.id,
+        raw_payload: { mode: "webrtc_inject_tts", audio_cache_id: ttsData.audio_cache_id },
+      }).eq("id", hist.id);
 
-    return new Response(JSON.stringify({
-      success: true,
-      historico_id: hist.id,
-      cache_hit: ttsData.cache_hit,
-      audio_url: ttsData.signed_url,
-      texto_final: ttsData.texto_final,
-      phone: String(numeroDestino).replace(/\D/g, ""),
-      wavoip_token: wavoipToken,
-    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({
+        success: true,
+        provider: "wavoip",
+        historico_id: hist.id,
+        cache_hit: ttsData.cache_hit,
+        audio_url: ttsData.signed_url,
+        texto_final: ttsData.texto_final,
+        phone: String(numeroDestino).replace(/\D/g, ""),
+        wavoip_token: wavoipToken,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    } else {
+      // Twilio flow: Trigger call via Twilio API
+      const twilioSid = cfg.twilio_account_sid;
+      const twilioAuth = cfg.twilio_auth_token;
+      const twilioFrom = cfg.twilio_phone_number;
+      
+      const twimlUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml?audio_url=${encodeURIComponent(ttsData.signed_url)}&hist_id=${hist.id}`;
+      const statusCallbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml?hist_id=${hist.id}`;
+      
+      const basicAuth = btoa(`${twilioSid}:${twilioAuth}`);
+      
+      const twilioRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Calls.json`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Authorization": `Basic ${basicAuth}`,
+        },
+        body: new URLSearchParams({
+          To: numeroDestino.startsWith("+") ? numeroDestino : `+${numeroDestino.replace(/\D/g, "")}`,
+          From: twilioFrom,
+          Url: twimlUrl,
+          StatusCallback: statusCallbackUrl,
+          StatusCallbackEvent: "initiated,ringing,answered,completed",
+        }),
+      });
+
+      const twilioData = await twilioRes.json();
+      
+      if (!twilioRes.ok) {
+        console.error("Twilio Error:", twilioData);
+        await supabase.from("ligacoes_ia_historico").update({
+          status: "erro",
+          error_message: twilioData.message || "Erro desconhecido no Twilio",
+        }).eq("id", hist.id);
+        
+        return new Response(JSON.stringify({ error: twilioData.message || "Erro ao iniciar ligação via Twilio" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      await supabase.from("ligacoes_ia_historico").update({
+        status: "discando",
+        wavoip_call_id: twilioData.sid,
+        raw_payload: { mode: "twilio_pstn", call_sid: twilioData.sid },
+      }).eq("id", hist.id);
+
+      return new Response(JSON.stringify({
+        success: true,
+        provider: "twilio",
+        historico_id: hist.id,
+        call_sid: twilioData.sid,
+        texto_final: ttsData.texto_final,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
