@@ -587,6 +587,8 @@ export function QrScansTab() {
                                hDate.getUTCMonth() === now.getUTCMonth() && 
                                hDate.getUTCFullYear() === now.getUTCFullYear();
                       });
+                      const segPayStatus = payStatusMap.get(n.baserow_row_id);
+                      const seguroPago = segPayStatus === "pago";
 
                       return (
                         <TableRow key={n.baserow_row_id}>
