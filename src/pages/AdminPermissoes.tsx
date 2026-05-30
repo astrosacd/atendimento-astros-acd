@@ -356,6 +356,8 @@ export default function AdminPermissoes() {
     'Segurança de Pagamento': 'Segurança de Pagamento',
     'Agenda Histórico': 'Agenda Histórico',
     'Follow-ups Configuração': 'Follow-ups Configuração',
+    'Seguros': 'Seguros de Números',
+    'Scans': 'Módulo de Scans',
   });
 
   const colorOptions = getColorOptions(t);
