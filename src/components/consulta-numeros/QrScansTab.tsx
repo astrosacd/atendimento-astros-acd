@@ -145,6 +145,11 @@ export function QrScansTab() {
   // View receipt dialog
   const [viewReceiptUrl, setViewReceiptUrl] = useState<string | null>(null);
 
+  // Insurance dialog
+  const [insuranceDialogOpen, setInsuranceDialogOpen] = useState(false);
+  const [insuranceTarget, setInsuranceTarget] = useState<any>(null);
+  const [insuranceObs, setInsuranceObs] = useState("");
+
   // Search states for tabs
   const [numerosSearch, setNumerosSearch] = useState("");
   const [pendentesSearch, setPendentesSearch] = useState("");
@@ -569,6 +574,16 @@ export function QrScansTab() {
                       const c = getCounter(n.baserow_row_id);
                       const max = config?.qtd_gratis_por_mes ?? 4;
                       const rd = n.row_data || {};
+                      const obsRaw = (rd.observacao || n.auto_hospedado_observacao || "").toLowerCase();
+                      const temSeguro = obsRaw.includes("com seguro") || obsRaw.includes("tem seguro");
+                      const usedInsuranceThisMonth = insuranceHistory.some(h => {
+                        const hDate = new Date(h.used_at);
+                        const now = new Date();
+                        return h.baserow_row_id === n.baserow_row_id && 
+                               hDate.getUTCMonth() === now.getUTCMonth() && 
+                               hDate.getUTCFullYear() === now.getUTCFullYear();
+                      });
+
                       return (
                         <TableRow key={n.baserow_row_id}>
                           <TableCell className="font-mono">
@@ -588,31 +603,14 @@ export function QrScansTab() {
                           </TableCell>
                           <TableCell>{c.qtd_pagos}</TableCell>
                           <TableCell>
-                            {(() => {
-                              const rd = n.row_data || {};
-                              const obs = (rd.observacao || n.auto_hospedado_observacao || "").toLowerCase();
-                              const temSeguro = obs.includes("com seguro") || obs.includes("tem seguro");
-                              
-                              if (!temSeguro) return <Badge variant="outline" className="opacity-50">Sem seguro</Badge>;
-
-                              // Check if used this month
-                              const usedThisMonth = insuranceHistory.some(h => {
-                                const hDate = new Date(h.used_at);
-                                const now = new Date();
-                                return h.baserow_row_id === n.baserow_row_id && 
-                                       hDate.getUTCMonth() === now.getUTCMonth() && 
-                                       hDate.getUTCFullYear() === now.getUTCFullYear();
-                              });
-
-                              return (
-                                <div className="flex items-center gap-1">
-                                  <Badge variant={usedThisMonth ? "destructive" : "default"} className="gap-1">
-                                    {usedThisMonth ? <ShieldAlert className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
-                                    {usedThisMonth ? "Acionado" : "Disponível"}
-                                  </Badge>
-                                </div>
-                              );
-                            })()}
+                            {!temSeguro ? (
+                              <Badge variant="outline" className="opacity-50">Sem seguro</Badge>
+                            ) : (
+                              <Badge variant={usedInsuranceThisMonth ? "destructive" : "default"} className="gap-1">
+                                {usedInsuranceThisMonth ? <ShieldAlert className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
+                                {usedInsuranceThisMonth ? "Acionado" : "Disponível"}
+                              </Badge>
+                            )}
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
                             {n.auto_hospedado_observacao ?? "—"}
@@ -657,6 +655,20 @@ export function QrScansTab() {
                                 </Button>
                               );
                             })()}
+                            {temSeguro && !usedInsuranceThisMonth && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                                onClick={() => {
+                                  setInsuranceTarget(n);
+                                  setInsuranceObs("");
+                                  setInsuranceDialogOpen(true);
+                                }}
+                              >
+                                <Shield className="h-4 w-4 mr-1" /> Acionar Seguro
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="ghost"
@@ -757,37 +769,7 @@ export function QrScansTab() {
                           >
                             <CheckCircle2 className="h-4 w-4 mr-1" /> Confirmar
                             pagto
-                            </Button>
-                            {(() => {
-                              const rd = n.row_data || {};
-                              const obs = (rd.observacao || n.auto_hospedado_observacao || "").toLowerCase();
-                              const temSeguro = obs.includes("com seguro") || obs.includes("tem seguro");
-                              const usedThisMonth = insuranceHistory.some(h => {
-                                const hDate = new Date(h.used_at);
-                                const now = new Date();
-                                return h.baserow_row_id === n.baserow_row_id && 
-                                       hDate.getUTCMonth() === now.getUTCMonth() && 
-                                       hDate.getUTCFullYear() === now.getUTCFullYear();
-                              });
-
-                              if (temSeguro && !usedThisMonth) {
-                                return (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="border-blue-500 text-blue-600 hover:bg-blue-50"
-                                    onClick={() => {
-                                      setInsuranceTarget(n);
-                                      setInsuranceObs("");
-                                      setInsuranceDialogOpen(true);
-                                    }}
-                                  >
-                                    <Shield className="h-4 w-4 mr-1" /> Acionar Seguro
-                                  </Button>
-                                );
-                              }
-                              return null;
-                            })()}
+                          </Button>
                             <Button
                             size="sm"
                             variant="ghost"
