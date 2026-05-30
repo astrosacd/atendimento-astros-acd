@@ -157,7 +157,11 @@ export function useInsurancePaymentStatusHybrid() {
             const rowId = cacheEntry.baserow_row_id;
             // Só aplica automático se não houver marcação manual
             if (!statusMap.has(rowId)) {
-              statusMap.set(rowId, status);
+              statusMap.set(rowId, {
+                status,
+                clientName: cliente.nome,
+                method: 'auto'
+              });
             }
           }
         });
