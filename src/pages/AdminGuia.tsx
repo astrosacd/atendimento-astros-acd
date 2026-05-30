@@ -5216,7 +5216,6 @@ O sistema mostrará o status (Tocando, Atendida, etc.) em tempo real.`
         "Use o botão de diagnóstico para testar a conexão com as APIs"
       ]
     }
-    }
   ];
 
   // Get visible categories based on permissions
