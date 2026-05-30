@@ -887,7 +887,14 @@ export function QrScansTab() {
                                     </Badge>
                                   )}
                                   <span className="text-[9px] text-muted-foreground uppercase font-semibold">
-                                    {isManual ? "✍️ Marcação Manual" : "🤖 Detecção Automática"}
+                                    {isManual ? "✍️ Marcação Manual" : (
+                                      <span className="flex flex-col">
+                                        <span>🤖 Detecção Automática</span>
+                                        {payData?.clientName && (
+                                          <span className="text-[8px] normal-case opacity-70">Vínculo: {payData.clientName}</span>
+                                        )}
+                                      </span>
+                                    )}
                                   </span>
                                 </div>
                               </TableCell>
