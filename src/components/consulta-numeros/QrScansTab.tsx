@@ -616,72 +616,69 @@ export function QrScansTab() {
                           <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
                             {n.auto_hospedado_observacao ?? "—"}
                           </TableCell>
-                          <TableCell className="text-right space-x-2">
-                            {(() => {
-                              const todayCount = getTodayScans(n.baserow_row_id).length;
-                              const limitReached = todayCount >= maxPorDia;
-                              const monthlyMax = config?.qtd_gratis_por_mes ?? 4;
-                              const monthlyUsed = getCounter(n.baserow_row_id).qtd_gratis_usados;
-                              const monthlyFreeReached = monthlyUsed >= monthlyMax;
+                          <TableCell className="text-right">
+                            <div className="flex flex-col items-end gap-2">
+                              {(() => {
+                                const todayCount = getTodayScans(n.baserow_row_id).length;
+                                const limitReached = todayCount >= maxPorDia;
+                                const monthlyMax = config?.qtd_gratis_por_mes ?? 4;
+                                const monthlyUsed = getCounter(n.baserow_row_id).qtd_gratis_usados;
+                                const monthlyFreeReached = monthlyUsed >= monthlyMax;
 
-                              if (limitReached) {
-                                const lastScan = getTodayScans(n.baserow_row_id)[0];
+                                if (limitReached) {
+                                  const lastScan = getTodayScans(n.baserow_row_id)[0];
+                                  return (
+                                    <Button size="sm" variant="outline" disabled className="gap-2">
+                                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                      Registrado hoje ({formatTime(lastScan?.created_at)})
+                                    </Button>
+                                  );
+                                }
+
                                 return (
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    disabled
-                                    className="gap-2"
+                                    onClick={() => handleOpenScan(n)}
+                                    className={monthlyFreeReached ? "border-amber-500/60 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 dark:text-amber-400" : ""}
                                   >
-                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                    Registrado hoje ({formatTime(lastScan?.created_at)})
+                                    {monthlyFreeReached ? (
+                                      <>
+                                        <Plus className="h-4 w-4 mr-1" /> Registrar (Pago)
+                                      </>
+                                    ) : (
+                                      "📲 Registrar escaneamento"
+                                    )}
                                   </Button>
                                 );
-                              }
-
-                              return (
+                              })()}
+                              {temSeguro && !usedInsuranceThisMonth && (
                                 <Button
                                   size="sm"
-                                  variant={monthlyFreeReached ? "default" : "outline"}
-                                  onClick={() => handleOpenScan(n)}
-                                  className={monthlyFreeReached ? "border-amber-500/60 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400" : ""}
+                                  variant="outline"
+                                  className="border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+                                  onClick={() => {
+                                    setInsuranceTarget(n);
+                                    setInsuranceObs("");
+                                    setInsuranceDialogOpen(true);
+                                  }}
                                 >
-                                  {monthlyFreeReached ? (
-                                    <>
-                                      <Plus className="h-4 w-4 mr-1" /> Registrar (Pago)
-                                    </>
-                                  ) : (
-                                    "📲 Registrar escaneamento"
-                                  )}
+                                  <Shield className="h-4 w-4 mr-1" /> Acionar Seguro
                                 </Button>
-                              );
-                            })()}
-                            {temSeguro && !usedInsuranceThisMonth && (
+                              )}
                               <Button
                                 size="sm"
-                                variant="outline"
-                                className="border-blue-500 text-blue-600 hover:bg-blue-50"
-                                onClick={() => {
-                                  setInsuranceTarget(n);
-                                  setInsuranceObs("");
-                                  setInsuranceDialogOpen(true);
-                                }}
+                                variant="ghost"
+                                onClick={() =>
+                                  toggleHosp.mutate({
+                                    baserowRowId: n.baserow_row_id,
+                                    value: false,
+                                  })
+                                }
                               >
-                                <Shield className="h-4 w-4 mr-1" /> Acionar Seguro
+                                Desmarcar
                               </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() =>
-                                toggleHosp.mutate({
-                                  baserowRowId: n.baserow_row_id,
-                                  value: false,
-                                })
-                              }
-                            >
-                              Desmarcar
-                            </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
