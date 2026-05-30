@@ -62,6 +62,7 @@ import {
   Columns,
   Cog,
   Instagram,
+  PhoneCall,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
