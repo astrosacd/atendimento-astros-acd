@@ -453,9 +453,33 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
           id: `sms-${sms.id}`,
           type: 'sms_validation',
           date: sms.created_at,
-          title: 'Validação SMS',
-          description: `${sms.resultado} — ${sms.motivo || ''}`,
-          status: sms.resultado === 'sucesso' ? 'default' : 'destructive',
+          title: `Validação SMS: ${sms.status}`,
+          description: `Número: ${sms.numero}${sms.error_message ? ` — ${sms.error_message}` : ''}`,
+          status: sms.status,
+        });
+      });
+
+      // Insurance Usage
+      (insuranceUsageRes.data || []).forEach((iu: any) => {
+        allEvents.push({
+          id: `insurance-usage-${iu.id}`,
+          type: 'insurance',
+          date: iu.used_at || iu.created_at,
+          title: `Uso de Seguro: ${iu.numero}`,
+          description: `Baserow ID: ${iu.baserow_row_id}${iu.observacao ? ` — ${iu.observacao}` : ''}`,
+          status: 'used',
+        });
+      });
+
+      // Scan History
+      (scanHistoryRes.data || []).forEach((sh: any) => {
+        allEvents.push({
+          id: `scan-history-${sh.id}`,
+          type: 'scan',
+          date: sh.created_at,
+          title: `Scan QR Code: ${sh.numero}`,
+          description: `Modelo: ${sh.modelo || 'N/A'} — Status: ${sh.status || 'Sucesso'}`,
+          status: sh.status,
         });
       });
 
