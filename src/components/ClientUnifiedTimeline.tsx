@@ -57,6 +57,8 @@ const TYPE_CONFIG: Record<TimelineEvent['type'], { icon: React.ElementType; colo
   score_change: { icon: TrendingUp, color: 'text-emerald-400', label: 'Score IA' },
   upsell: { icon: Lightbulb, color: 'text-yellow-400', label: 'Sugestão Upsell' },
   social_profile: { icon: Instagram, color: 'text-pink-400', label: 'Perfil Social' },
+  insurance: { icon: ShieldCheck, color: 'text-emerald-500', label: 'Seguro' },
+  scan: { icon: Search, color: 'text-blue-500', label: 'Scan de QR' },
 };
 
 const IA_CALL_STATUS_LABEL: Record<string, string> = {
