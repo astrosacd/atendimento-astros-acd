@@ -14,10 +14,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, AlertCircle, Plus, Loader2, X, Tag, Mail, Eye, MessageSquare, QrCode } from 'lucide-react';
+import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, AlertCircle, Plus, Loader2, X, Tag, Mail, Eye, MessageSquare, QrCode, Shield, ShieldCheck, ShieldAlert, ShieldOff, CheckCircle2 } from 'lucide-react';
 import { ValidacaoSmsTab } from '@/components/consulta-numeros/ValidacaoSmsTab';
 import { MonitoredStatusDisplay } from '@/components/consulta-numeros/MonitoredStatusDisplay';
 import { QrScansTab } from '@/components/consulta-numeros/QrScansTab';
+import { useInsurancePaymentStatusHybrid } from '@/hooks/useInsurance';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -93,6 +94,9 @@ export default function ConsultaNumeros() {
   // Expanded rows and quick view modal state
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [quickViewRow, setQuickViewRow] = useState<NumeroResult | null>(null);
+
+  // Insurance status (hybrid: manual + auto-detected) — used in quick view dialog
+  const { data: insurancePayStatusMap } = useInsurancePaymentStatusHybrid();
 
   // Sync status
   const [isSyncing, setIsSyncing] = useState(false);
@@ -1856,6 +1860,82 @@ export default function ConsultaNumeros() {
                   })()}
                 </p>
               </div>
+
+              {/* Status do Seguro de Números Aquecidos */}
+              {(() => {
+                const insData = insurancePayStatusMap?.get(quickViewRow.id);
+                const isPago = insData?.status === 'pago';
+                const isVencido = insData?.status === 'vencido';
+                const semSeguro = !insData;
+
+                const containerClasses = semSeguro
+                  ? 'bg-muted/40 border-border'
+                  : isPago
+                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                    : 'bg-destructive/10 border-destructive/30';
+
+                return (
+                  <div className={`space-y-2 p-3 rounded-lg border ${containerClasses} sm:col-span-2`}>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                      <Shield className="h-3 w-3" />
+                      Seguro de Números Aquecidos
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {semSeguro ? (
+                        <Badge variant="outline" className="gap-1 opacity-70">
+                          <ShieldOff className="h-3 w-3" /> Sem Seguro
+                        </Badge>
+                      ) : isPago ? (
+                        <Badge className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white border-transparent">
+                          <ShieldCheck className="h-3 w-3" /> Em Dia
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive" className="gap-1">
+                          <ShieldAlert className="h-3 w-3" /> Vencido / Não pago
+                        </Badge>
+                      )}
+                      {insData && (
+                        <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                          {insData.method === 'manual' ? '✍️ Marcação Manual' : '🤖 Detecção Automática'}
+                        </span>
+                      )}
+                    </div>
+
+                    {insData?.clientNames && insData.clientNames.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Vínculo: <span className="text-foreground">{insData.clientNames.join(' + ')}</span>
+                      </p>
+                    )}
+
+                    {insData?.links && insData.links.length > 0 && (
+                      <div className="mt-2 border rounded-md overflow-hidden bg-background/60">
+                        <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/50 border-b">
+                          Vínculos ({insData.links.length})
+                        </div>
+                        <div className="max-h-[160px] overflow-y-auto divide-y">
+                          {insData.links.map((link) => (
+                            <div key={link.id} className="px-2 py-1.5 flex items-center justify-between gap-2 text-[11px]">
+                              <div className="flex flex-col min-w-0">
+                                <span className="font-medium truncate">{link.nome}</span>
+                                <span className="text-[10px] text-muted-foreground truncate">{link.produto || '—'}</span>
+                              </div>
+                              <Badge
+                                variant={link.isPaid ? 'default' : 'destructive'}
+                                className={`text-[9px] h-4 px-1.5 shrink-0 ${link.isPaid ? 'bg-emerald-600 hover:bg-emerald-700 border-transparent' : ''}`}
+                              >
+                                {link.isPaid && <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />}
+                                {link.data_renovacao
+                                  ? new Date(link.data_renovacao).toLocaleDateString('pt-BR')
+                                  : '—'}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
           <DialogFooter className="mt-4">
