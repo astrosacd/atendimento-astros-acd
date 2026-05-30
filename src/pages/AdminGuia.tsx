@@ -410,6 +410,14 @@ const AdminGuia = () => {
       color: "text-pink-400",
       categories: ["instagram"],
       permissionKey: "view_guia_instagram"
+    },
+    {
+      id: "seguros-grupo",
+      title: "Seguro de Números",
+      icon: Shield,
+      color: "text-emerald-400",
+      categories: ["seguros-visao-geral", "seguros-marcar"],
+      permissionKey: "view_seguros"
     }
   ];
 
