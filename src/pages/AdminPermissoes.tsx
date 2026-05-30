@@ -108,6 +108,8 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'Sala dos Agentes': <Eye className="h-4 w-4" />,
   'Instagram': <Instagram className="h-4 w-4" />,
   'Segurança de Pagamento': <Shield className="h-4 w-4" />,
+  'Seguros': <Shield className="h-4 w-4 text-emerald-500" />,
+  'Scans': <Search className="h-4 w-4 text-blue-500" />,
 };
 
 // Icons removed from individual permissions — only category titles have icons
