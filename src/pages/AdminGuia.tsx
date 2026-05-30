@@ -5127,10 +5127,95 @@ Lá são listados todos os clientes que possuem aquele número em suas observaç
         }
       ],
       tips: [
-        "O status manual expira ao final de cada mês, exigindo nova conferência",
+        "O status manual expira al final de cada mês, exigindo nova conferência",
         "A detecção por CRM é permanente enquanto o cliente estiver ativo",
         "Use filtros para encontrar rapidamente números vencidos ou sem seguro"
       ]
+    },
+    {
+      id: "ligacoes-ia-geral",
+      title: "Ligações IA - Visão Geral",
+      icon: PhoneCall,
+      color: "text-fuchsia-400",
+      bgColor: "bg-fuchsia-500/10",
+      description: "Ligações automáticas via WhatsApp (Wavoip) com voz natural (ElevenLabs)",
+      steps: [
+        {
+          title: "O que são Ligações IA?",
+          content: `O módulo permite realizar chamadas de áudio automáticas pelo WhatsApp:
+1. **Integração Wavoip**: Disca para o cliente via WhatsApp Business API.
+2. **Voz ElevenLabs**: Converte texto em fala com entonação humana natural.
+3. **Escalabilidade**: Dispare centenas de ligações simultâneas em campanhas.
+4. **Fila do Dia**: Gerencia prioridades de discagem.`
+        },
+        {
+          title: "Como fazer uma ligação",
+          content: `1. Vá na aba **Disparo** ou clique no ícone de telefone no cadastro do cliente.
+2. Escolha o **Roteiro** (texto que a IA falará).
+3. Selecione a **Voz** (clonada ou profissional).
+4. Clique em **Iniciar Ligação**.
+O sistema mostrará o status (Tocando, Atendida, etc.) em tempo real.`
+        }
+      ],
+      tips: [
+        "Ligações atendidas mas desligadas precocemente ficam registradas no histórico",
+        "Você pode ouvir o preview da voz antes de disparar",
+        "Use o filtro de histórico para auditar o sucesso das chamadas"
+      ]
+    },
+    {
+      id: "ligacoes-ia-roteiros",
+      title: "Roteiros e Vozes",
+      icon: FileText,
+      color: "text-fuchsia-400",
+      bgColor: "bg-fuchsia-500/10",
+      description: "Configure o que a IA deve falar e qual voz utilizar",
+      steps: [
+        {
+          title: "Criar Roteiros",
+          content: `1. Na aba **Roteiros**, clique em **Novo Roteiro**.
+2. Defina o texto (suporta Markdown simples).
+3. Use variáveis dinâmicas como \`{nome}\` para personalizar a fala.
+4. Categorize para organizar (Cobrança, Boas-vindas, etc.).`
+        },
+        {
+          title: "Traduzir com IA",
+          content: `O sistema permite duplicar e traduzir roteiros automaticamente para Inglês ou Espanhol usando IA, facilitando operações internacionais.`
+        }
+      ],
+      tips: [
+        "Roteiros curtos (30-45 segundos) têm maior taxa de conclusão",
+        "Teste a pronúncia de nomes de produtos complexos no preview",
+        "Vozes 'Clonadas' oferecem maior familiaridade para o cliente"
+      ]
+    },
+    {
+      id: "ligacoes-ia-config",
+      title: "Configurações Técnicas",
+      icon: Settings,
+      color: "text-fuchsia-400",
+      bgColor: "bg-fuchsia-500/10",
+      description: "Conecte as APIs do Wavoip e ElevenLabs",
+      steps: [
+        {
+          title: "Configurar Wavoip",
+          content: `1. Acesse o painel da **Wavoip** e obtenha seu Token de API.
+2. No CRM, vá em Ligações IA -> Configurações.
+3. Insira o Token e o **Número Discador** (com DDI).`
+        },
+        {
+          title: "Configurar ElevenLabs",
+          content: `1. Obtenha sua API Key em **elevenlabs.io**.
+2. Insira a chave no CRM.
+3. Clique em **Sincronizar Vozes** para carregar suas vozes personalizadas.`
+        }
+      ],
+      tips: [
+        "Certifique-se que o número discador está ativo no WhatsApp",
+        "Monitore seu saldo de caracteres na ElevenLabs",
+        "Use o botão de diagnóstico para testar a conexão com as APIs"
+      ]
+    }
     }
   ];
 
