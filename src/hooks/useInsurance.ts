@@ -68,6 +68,7 @@ export function useRegisterInsuranceUsage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["qr-scan-insurance-history"] });
+      qc.invalidateQueries({ queryKey: ["qr-scan-insurance-numbers"] });
     },
   });
 }
