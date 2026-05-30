@@ -862,6 +862,8 @@ export function QrScansTab() {
                           const payStatus = payStatusMap.get(n.baserow_row_id);
                           const isPago = payStatus === "pago";
                           const isVencido = !payStatus || payStatus === "vencido";
+                          const isManual = manualStatusIds.has(n.baserow_row_id);
+
                           return (
                             <TableRow key={n.baserow_row_id}>
                               <TableCell className="font-mono">{n.numero}</TableCell>
@@ -874,15 +876,20 @@ export function QrScansTab() {
                                 )}
                               </TableCell>
                               <TableCell>
-                                {isPago ? (
-                                  <Badge className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white border-transparent">
-                                    <CheckCircle2 className="h-3 w-3" /> Pago
-                                  </Badge>
-                                ) : (
-                                  <Badge variant="destructive" className="gap-1">
-                                    <ShieldAlert className="h-3 w-3" /> Vencido / Não pago
-                                  </Badge>
-                                )}
+                                <div className="flex flex-col gap-1">
+                                  {isPago ? (
+                                    <Badge className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white border-transparent w-fit">
+                                      <CheckCircle2 className="h-3 w-3" /> Pago
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="destructive" className="gap-1 w-fit">
+                                      <ShieldAlert className="h-3 w-3" /> Vencido / Não pago
+                                    </Badge>
+                                  )}
+                                  <span className="text-[9px] text-muted-foreground uppercase font-semibold">
+                                    {isManual ? "✍️ Marcação Manual" : "🤖 Detecção Automática"}
+                                  </span>
+                                </div>
                               </TableCell>
                               <TableCell>
                                 {!isPago ? (
