@@ -5069,21 +5069,26 @@ Menu lateral → **Link de Pagamento**`
         {
           title: "Como funciona a detecção",
           content: `O sistema utiliza uma lógica híbrida para identificar quais números possuem seguro:
-1. **Marcação Manual**: Você pode marcar um número como 'Pago' ou 'Vencido' diretamente na aba de Seguros.
+1. **Marcação Manual**: Você pode marcar um número como 'Pago' ou 'Vencido' diretamente na aba de Seguros no Módulo de Scans.
 2. **Detecção Automática**: O sistema busca clientes que possuem o produto "Seguro de Numeros Aquecidos" ou que tenham "COM SEGURO" nas observações do Baserow.
-3. **Vínculo por CRM**: Se o cliente estiver em dia no CRM (data de renovação futura), o número é considerado 'Pago' automaticamente.`
+3. **Vínculo por CRM**: Se o cliente estiver em dia no CRM (data de renovação futura), o número é considerado 'Pago' automaticamente.
+
+**Sincronização:** Toda atualização feita em uma tela (Scans ou Consulta) reflete instantaneamente na outra.`
         },
         {
-          title: "Uso do Seguro",
+          title: "Uso do Seguro e Consulta",
           content: `Sempre que um número com seguro precisar ser 'escaneado' (troca de aparelho ou reativação), o sistema registra esse uso.
 - Números 'Pagos' permitem o scan normalmente.
-- Números 'Vencidos' ou 'Sem Seguro' alertam o operador sobre a necessidade de regularização.`
+- Números 'Vencidos' ou 'Sem Seguro' alertam o operador sobre a necessidade de regularização.
+
+**Olho de Detalhes na Consulta:**
+Na tela de **Consulta de Números**, clique no ícone do **olho** para ver o status do seguro em tempo real, incluindo o método de detecção e os clientes vinculados.`
         }
       ],
       tips: [
         "Marcações manuais sempre prevalecem sobre a detecção automática",
         "Mantenha as observações dos clientes atualizadas com os números vinculados",
-        "Use o 'olhozinho' na consulta de números para auditoria rápida de vínculos"
+        "A sincronização entre Scans e Consulta é automática e imediata"
       ]
     },
     {
