@@ -83,7 +83,13 @@ export function useInsurancePaymentStatusHybrid() {
     queryKey: ["qr-scan-insurance-payment-status-hybrid", manualStatus],
     queryFn: async () => {
       // 1. Mapa final de status
-      const statusMap = new Map<number, { status: InsurancePaymentStatus; clientName?: string; clientNames?: string[]; method: 'manual' | 'auto' }>();
+      const statusMap = new Map<number, { 
+        status: InsurancePaymentStatus; 
+        clientName?: string; 
+        clientNames?: string[]; 
+        method: 'manual' | 'auto';
+        links?: { id: string; nome: string; produto: string | null; data_renovacao: string | null; isPaid: boolean }[];
+      }>();
 
       // Marcações manuais (sempre prevalecem)
       const manualSet = new Map<number, InsurancePaymentStatus>();
@@ -91,11 +97,11 @@ export function useInsurancePaymentStatusHybrid() {
         manualSet.set(row.baserow_row_id, row.status);
       });
 
-      // 2. Buscar clientes com Seguro
+      // 2. Buscar clientes com Seguro de Numeros Aquecidos
       const { data: clientes, error: clientError } = await supabase
         .from("clientes")
         .select("id, nome, numero, produto, observacao, data_renovacao")
-        .or("produto.ilike.%seguro%,observacao.ilike.%seguro%");
+        .eq("produto", "Seguro de Numeros Aquecidos");
       
       if (clientError) throw clientError;
 
@@ -136,7 +142,7 @@ export function useInsurancePaymentStatusHybrid() {
 
       // 5. Agregar TODOS os clientes vinculados a cada baserow_row_id
       // (um número pode aparecer em múltiplos registros de cliente)
-      const linksByRow = new Map<number, { clientName: string; isPaid: boolean }[]>();
+      const linksByRow = new Map<number, { id: string; clientName: string; isPaid: boolean; produto: string | null; data_renovacao: string | null }[]>();
 
       clientes?.forEach(cliente => {
         const isClientPaid = cliente.data_renovacao >= today;
@@ -149,7 +155,13 @@ export function useInsurancePaymentStatusHybrid() {
           const rowId = cacheByNumber.get(num);
           if (rowId !== undefined) {
             if (!linksByRow.has(rowId)) linksByRow.set(rowId, []);
-            linksByRow.get(rowId)!.push({ clientName: cliente.nome, isPaid: isClientPaid });
+            linksByRow.get(rowId)!.push({ 
+              id: cliente.id, 
+              clientName: cliente.nome, 
+              isPaid: isClientPaid,
+              produto: cliente.produto,
+              data_renovacao: cliente.data_renovacao
+            });
           }
         });
       });
@@ -164,6 +176,7 @@ export function useInsurancePaymentStatusHybrid() {
           clientName: uniqueNames[0],
           clientNames: uniqueNames,
           method: 'auto',
+          links: links.map(l => ({ id: l.id, nome: l.clientName, produto: l.produto, data_renovacao: l.data_renovacao, isPaid: l.isPaid })),
         });
       });
 
@@ -176,6 +189,7 @@ export function useInsurancePaymentStatusHybrid() {
           clientName: uniqueNames?.[0],
           clientNames: uniqueNames,
           method: 'manual',
+          links: links?.map(l => ({ id: l.id, nome: l.clientName, produto: l.produto, data_renovacao: l.data_renovacao, isPaid: l.isPaid })),
         });
       });
 

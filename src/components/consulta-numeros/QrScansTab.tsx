@@ -37,6 +37,11 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   QrCode,
   Settings,
   History,
@@ -102,7 +107,13 @@ export function QrScansTab() {
   const registerInsurance = useRegisterInsuranceUsage();
   const { data: insurancePayStatus = [] } = useInsurancePaymentStatus();
   const setInsurancePay = useSetInsurancePaymentStatus();
-  const { data: payStatusMap = new Map<number, { status: string; clientName?: string; clientNames?: string[]; method: string }>() } = useInsurancePaymentStatusHybrid();
+  const { data: payStatusMap = new Map<number, { 
+    status: string; 
+    clientName?: string; 
+    clientNames?: string[]; 
+    method: string;
+    links?: { id: string; nome: string; produto: string | null; data_renovacao: string | null; isPaid: boolean }[];
+  }>() } = useInsurancePaymentStatusHybrid();
   
   // Para saber se o status veio de uma marcação manual ou automática
   const manualStatusIds = new Set(insurancePayStatus.map(p => p.baserow_row_id));
