@@ -81,24 +81,42 @@ const CATEGORY_LABEL: Record<string, string> = {
 };
 
 export default function LigacoesIA() {
-  const [configStatus, setConfigStatus] = useState<{ wavoip: boolean; eleven: boolean; dialer: boolean } | null>(null);
+  const [configStatus, setConfigStatus] = useState<{ 
+    wavoip: boolean; 
+    eleven: boolean; 
+    dialer: boolean;
+    twilio: boolean;
+    provider: string;
+  } | null>(null);
 
   const refreshStatus = async () => {
     const { data } = await supabase
       .from("ligacoes_ia_config")
       .select("config_key, config_value")
-      .in("config_key", ["wavoip_token", "wavoip_dialer_number", "elevenlabs_api_key"]);
+      .in("config_key", [
+        "wavoip_token", 
+        "wavoip_dialer_number", 
+        "elevenlabs_api_key",
+        "twilio_account_sid",
+        "twilio_auth_token",
+        "twilio_phone_number",
+        "calling_provider"
+      ]);
     const map: Record<string, string> = {};
     (data ?? []).forEach((r: any) => map[r.config_key] = r.config_value ?? "");
+    
     setConfigStatus({
       wavoip: !!map.wavoip_token,
       dialer: !!map.wavoip_dialer_number,
       eleven: !!map.elevenlabs_api_key,
+      twilio: !!(map.twilio_account_sid && map.twilio_auth_token && map.twilio_phone_number),
+      provider: map.calling_provider || "wavoip",
     });
   };
   useEffect(() => { refreshStatus(); }, []);
 
-  const allOk = configStatus?.wavoip && configStatus?.dialer && configStatus?.eleven;
+  const providerOk = configStatus?.provider === "twilio" ? configStatus.twilio : (configStatus?.wavoip && configStatus?.dialer);
+  const allOk = providerOk && configStatus?.eleven;
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTab = searchParams.get("tab");
   const urlCliente = searchParams.get("cliente");
@@ -122,7 +140,7 @@ export default function LigacoesIA() {
                 Ligações IA <Sparkles className="h-5 w-5 text-amber-400" />
               </h1>
               <p className="text-sm text-muted-foreground">
-                Ligações automáticas via WhatsApp (Wavoip) com voz natural (ElevenLabs)
+                Ligações automáticas via WhatsApp ({configStatus?.provider === "twilio" ? "Twilio" : "Wavoip"}) com voz natural (ElevenLabs)
               </p>
             </div>
           </div>
@@ -134,8 +152,16 @@ export default function LigacoesIA() {
             <div className="flex-1 text-sm">
               <p className="font-medium">Configuração incompleta — as ligações não funcionarão</p>
               <ul className="text-xs text-muted-foreground mt-1 list-disc pl-4">
-                {!configStatus.wavoip && <li>Token Wavoip ausente</li>}
-                {!configStatus.dialer && <li>Número discador (WhatsApp Business) ausente</li>}
+                {configStatus.provider === "wavoip" ? (
+                  <>
+                    {!configStatus.wavoip && <li>Token Wavoip ausente</li>}
+                    {!configStatus.dialer && <li>Número discador (WhatsApp Business) ausente</li>}
+                  </>
+                ) : (
+                  <>
+                    {!configStatus.twilio && <li>Configurações do Twilio incompletas</li>}
+                  </>
+                )}
                 {!configStatus.eleven && <li>API Key ElevenLabs ausente</li>}
               </ul>
               <p className="text-xs mt-1">Vá para a aba <strong>Configurações</strong> abaixo.</p>
@@ -846,11 +872,50 @@ function ConfigTab({ onSaved }: { onSaved?: () => void }) {
 
   return (
     <Card className="p-6 space-y-6 max-w-3xl">
-      <section className="space-y-3">
-        <h3 className="font-semibold text-sm uppercase text-muted-foreground">Wavoip (discador)</h3>
-        {field("wavoip_token", "Token Wavoip", "No painel da Wavoip, abra o Dispositivo (número WhatsApp) e copie o Token de API/Integração.", "password")}
-        {field("wavoip_dialer_number", "Número WhatsApp Business discador", "Com DDI, sem símbolos. Ex: 5511999999999")}
+      <section className="space-y-4">
+        <h3 className="font-semibold text-sm uppercase text-muted-foreground">Provedor de Ligação</h3>
+        <div className="flex gap-4 p-4 rounded-lg border bg-muted/20">
+          <div className="flex items-center space-x-2">
+            <input 
+              type="radio" 
+              id="wavoip" 
+              name="provider" 
+              value="wavoip" 
+              checked={cfg.calling_provider === "wavoip"} 
+              onChange={() => setCfg({...cfg, calling_provider: "wavoip"})}
+              className="w-4 h-4 text-primary"
+            />
+            <Label htmlFor="wavoip" className="cursor-pointer">Wavoip (WhatsApp)</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <input 
+              type="radio" 
+              id="twilio" 
+              name="provider" 
+              value="twilio" 
+              checked={cfg.calling_provider === "twilio"} 
+              onChange={() => setCfg({...cfg, calling_provider: "twilio"})}
+              className="w-4 h-4 text-primary"
+            />
+            <Label htmlFor="twilio" className="cursor-pointer">Twilio (Ligação Normal)</Label>
+          </div>
+        </div>
       </section>
+
+      {cfg.calling_provider === "wavoip" ? (
+        <section className="space-y-3 p-4 rounded-lg border bg-card">
+          <h3 className="font-semibold text-sm uppercase text-muted-foreground">Wavoip (WhatsApp)</h3>
+          {field("wavoip_token", "Token Wavoip", "No painel da Wavoip, abra o Dispositivo (número WhatsApp) e copie o Token de API/Integração.", "password")}
+          {field("wavoip_dialer_number", "Número WhatsApp Business discador", "Com DDI, sem símbolos. Ex: 5511999999999")}
+        </section>
+      ) : (
+        <section className="space-y-3 p-4 rounded-lg border bg-card">
+          <h3 className="font-semibold text-sm uppercase text-muted-foreground">Twilio (Ligação Normal)</h3>
+          {field("twilio_account_sid", "Account SID", "Encontrado no console do Twilio.")}
+          {field("twilio_auth_token", "Auth Token", "Encontrado no console do Twilio.", "password")}
+          {field("twilio_phone_number", "Número Twilio (De)", "Seu número comprado no Twilio (ex: +1234567890)")}
+        </section>
+      )}
 
       <section className="space-y-3">
         <h3 className="font-semibold text-sm uppercase text-muted-foreground">ElevenLabs (voz)</h3>
