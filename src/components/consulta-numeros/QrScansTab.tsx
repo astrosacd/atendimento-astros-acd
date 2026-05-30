@@ -859,9 +859,9 @@ export function QrScansTab() {
                                    hDate.getUTCMonth() === now.getUTCMonth() &&
                                    hDate.getUTCFullYear() === now.getUTCFullYear();
                           });
-                          const payStatus = payStatusMap.get(n.baserow_row_id);
-                          const isPago = payStatus === "pago";
-                          const isVencido = !payStatus || payStatus === "vencido";
+                          const payData = payStatusMap.get(n.baserow_row_id);
+                          const isPago = payData?.status === "pago";
+                          const isVencido = !payData || payData.status === "vencido";
                           const isManual = manualStatusIds.has(n.baserow_row_id);
 
                           return (
