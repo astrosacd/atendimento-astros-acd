@@ -574,8 +574,8 @@ export function QrScansTab() {
                       const c = getCounter(n.baserow_row_id);
                       const max = config?.qtd_gratis_por_mes ?? 4;
                       const rd = n.row_data || {};
-                      const obsRaw = (rd.observacao || n.auto_hospedado_observacao || "").toLowerCase();
-                      const temSeguro = obsRaw.includes("com seguro") || obsRaw.includes("tem seguro");
+                      const obsRaw = (rd.observacoes || rd.observacao || n.auto_hospedado_observacao || "").toLowerCase();
+                      const temSeguro = obsRaw.includes("com seguro");
                       const usedInsuranceThisMonth = insuranceHistory.some(h => {
                         const hDate = new Date(h.used_at);
                         const now = new Date();
@@ -1101,8 +1101,8 @@ export function QrScansTab() {
             <div className="max-h-[400px] overflow-y-auto space-y-1">
               {localSearchResults.map((r: any) => {
                 const rd = r.row_data || {};
-                const obsRaw = (rd.observacao || r.auto_hospedado_observacao || "").toLowerCase();
-                const temSeguro = obsRaw.includes("com seguro") || obsRaw.includes("tem seguro");
+                const obsRaw = (rd.observacoes || rd.observacao || r.auto_hospedado_observacao || "").toLowerCase();
+                const temSeguro = obsRaw.includes("com seguro");
 
                 return (
                   <div
