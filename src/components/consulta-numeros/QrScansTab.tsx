@@ -139,6 +139,11 @@ export function QrScansTab() {
   // View receipt dialog
   const [viewReceiptUrl, setViewReceiptUrl] = useState<string | null>(null);
 
+  // Search states for tabs
+  const [numerosSearch, setNumerosSearch] = useState("");
+  const [pendentesSearch, setPendentesSearch] = useState("");
+  const [historySearch, setHistorySearch] = useState("");
+
   useEffect(() => {
     if (config) {
       setConfigDraft({
@@ -160,7 +165,33 @@ export function QrScansTab() {
       configDraft.payment_provider_default !== config.payment_provider_default ||
       configDraft.ativo !== config.ativo);
 
-  const pendentes = history.filter((h) => h.payment_status === "pendente");
+  const filteredAutoHosp = autoHosp.filter((n) => {
+    const rd = n.row_data || {};
+    const search = numerosSearch.toLowerCase();
+    return (
+      (rd.numero?.toLowerCase() || "").includes(search) ||
+      (rd.nome?.toLowerCase() || "").includes(search) ||
+      (rd.cliente?.toLowerCase() || "").includes(search)
+    );
+  });
+
+  const filteredPendentes = history
+    .filter((h) => h.payment_status === "pendente")
+    .filter((h) => {
+      const search = pendentesSearch.toLowerCase();
+      return (
+        (h.numero?.toLowerCase() || "").includes(search) ||
+        (h.cliente_nome?.toLowerCase() || "").includes(search)
+      );
+    });
+
+  const filteredHistory = history.filter((h) => {
+    const search = historySearch.toLowerCase();
+    return (
+      (h.numero?.toLowerCase() || "").includes(search) ||
+      (h.cliente_nome?.toLowerCase() || "").includes(search)
+    );
+  });
 
   const getCounter = (id: number) =>
     counters?.get(id) ?? { qtd_gratis_usados: 0, qtd_pagos: 0 };
@@ -456,11 +487,11 @@ export function QrScansTab() {
       <Tabs defaultValue="numeros" className="w-full">
         <TabsList>
           <TabsTrigger value="numeros">
-            <QrCode className="h-4 w-4 mr-2" /> Números ({autoHosp.length})
+            <QrCode className="h-4 w-4 mr-2" /> Números ({filteredAutoHosp.length})
           </TabsTrigger>
           <TabsTrigger value="pendentes">
             <AlertCircle className="h-4 w-4 mr-2" /> Pendentes (
-            {pendentes.length})
+            {filteredPendentes.length})
           </TabsTrigger>
           <TabsTrigger value="historico">
             <History className="h-4 w-4 mr-2" /> Histórico
@@ -475,19 +506,32 @@ export function QrScansTab() {
         <TabsContent value="numeros" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Números auto-hospedados</CardTitle>
-              <CardDescription>
-                Clique em "Registrar escaneamento" para contabilizar um QR.
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Números auto-hospedados</CardTitle>
+                  <CardDescription>
+                    Clique em "Registrar escaneamento" para contabilizar um QR.
+                  </CardDescription>
+                </div>
+                <div className="relative w-64">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por número ou nome..."
+                    value={numerosSearch}
+                    onChange={(e) => setNumerosSearch(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {loadingHosp ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
-              ) : autoHosp.length === 0 ? (
+              ) : filteredAutoHosp.length === 0 ? (
                 <p className="text-center py-8 text-muted-foreground">
-                  Nenhum número marcado como auto-hospedado ainda.
+                  {numerosSearch ? "Nenhum resultado encontrado." : "Nenhum número marcado como auto-hospedado ainda."}
                 </p>
               ) : (
                 <Table>
@@ -502,7 +546,7 @@ export function QrScansTab() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {autoHosp.map((n) => {
+                    {filteredAutoHosp.map((n) => {
                       const c = getCounter(n.baserow_row_id);
                       const max = config?.qtd_gratis_por_mes ?? 4;
                       const rd = n.row_data || {};
@@ -593,16 +637,29 @@ export function QrScansTab() {
         <TabsContent value="pendentes" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Cobranças pendentes</CardTitle>
-              <CardDescription>
-                Confirme o pagamento (PIX, saldo, link MP/Stripe) para liberar o
-                escaneamento.
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Cobranças pendentes</CardTitle>
+                  <CardDescription>
+                    Confirme o pagamento (PIX, saldo, link MP/Stripe) para liberar o
+                    escaneamento.
+                  </CardDescription>
+                </div>
+                <div className="relative w-64">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por número ou nome..."
+                    value={pendentesSearch}
+                    onChange={(e) => setPendentesSearch(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              {pendentes.length === 0 ? (
+              {filteredPendentes.length === 0 ? (
                 <p className="text-center py-8 text-muted-foreground">
-                  Nenhuma cobrança pendente.
+                  {pendentesSearch ? "Nenhum resultado encontrado." : "Nenhuma cobrança pendente."}
                 </p>
               ) : (
                 <Table>
@@ -618,7 +675,7 @@ export function QrScansTab() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pendentes.map((s) => (
+                    {filteredPendentes.map((s) => (
                       <TableRow key={s.id}>
                         <TableCell className="text-xs">
                           {new Date(s.created_at).toLocaleString("pt-BR")}
@@ -675,7 +732,18 @@ export function QrScansTab() {
         <TabsContent value="historico" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Histórico completo</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Histórico completo</CardTitle>
+                <div className="relative w-64">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por número ou nome..."
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {loadingHist ? (
@@ -689,14 +757,15 @@ export function QrScansTab() {
                       <TableHead>Data</TableHead>
                       <TableHead>Número</TableHead>
                       <TableHead>Cliente</TableHead>
-                      <TableHead>Tipo</TableHead>
+                       <TableHead>Tipo</TableHead>
+                      <TableHead>Confirmação</TableHead>
                       <TableHead>Valor</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Método</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {history.map((s) => {
+                    {filteredHistory.map((s) => {
                       const b = STATUS_BADGES[s.payment_status] ?? {
                         label: s.payment_status,
                         variant: "outline",
@@ -718,6 +787,11 @@ export function QrScansTab() {
                             >
                               {s.tipo}
                             </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {s.paid_at 
+                              ? new Date(s.paid_at).toLocaleString("pt-BR")
+                              : "—"}
                           </TableCell>
                           <TableCell>
                             {s.valor_cobrado
