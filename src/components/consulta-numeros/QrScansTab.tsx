@@ -247,22 +247,26 @@ export function QrScansTab() {
   })();
 
   const maxPorDia = config?.qtd_por_dia ?? 1;
+  const monthlyMax = config?.qtd_gratis_por_mes ?? 4;
 
-  const getTodayScans = (baserowRowId: number) =>
+  const getConfirmedScansToday = (baserowRowId: number) =>
     history.filter(
       (h) =>
         h.baserow_row_id === baserowRowId &&
         h.scan_date === todayBrt &&
-        h.payment_status !== "cancelado",
+        (h.payment_status === "pago" || h.payment_status === "nao_aplica"),
     );
 
-  const getLastTodayScan = (baserowRowId: number) => {
-    const scans = getTodayScans(baserowRowId);
-    return scans.length > 0 ? scans[0] : undefined;
-  };
+  const getPendingScanToday = (baserowRowId: number) =>
+    history.find(
+      (h) =>
+        h.baserow_row_id === baserowRowId &&
+        h.scan_date === todayBrt &&
+        h.payment_status === "pendente",
+    );
 
   const isDailyLimitReached = (baserowRowId: number) =>
-    getTodayScans(baserowRowId).length >= maxPorDia;
+    getConfirmedScansToday(baserowRowId).length >= maxPorDia;
 
   const formatTime = (iso?: string | null) => {
     if (!iso) return "";
@@ -641,22 +645,41 @@ export function QrScansTab() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex flex-col items-end gap-2">
-                              {(() => {
-                                const todayCount = getTodayScans(n.baserow_row_id).length;
-                                const limitReached = todayCount >= maxPorDia;
-                                const monthlyMax = config?.qtd_gratis_por_mes ?? 4;
-                                const monthlyUsed = getCounter(n.baserow_row_id).qtd_gratis_usados;
-                                const monthlyFreeReached = monthlyUsed >= monthlyMax;
+                                {(() => {
+                                  const confirmedToday = getConfirmedScansToday(n.baserow_row_id);
+                                  const pendingToday = getPendingScanToday(n.baserow_row_id);
+                                  const limitReached = confirmedToday.length >= maxPorDia;
+                                  const monthlyUsed = getCounter(n.baserow_row_id).qtd_gratis_usados;
+                                  const monthlyFreeReached = monthlyUsed >= monthlyMax;
 
-                                if (limitReached) {
-                                  const lastScan = getTodayScans(n.baserow_row_id)[0];
-                                  return (
-                                    <Button size="sm" variant="outline" disabled className="gap-2">
-                                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                      Registrado hoje ({formatTime(lastScan?.created_at)})
-                                    </Button>
-                                  );
-                                }
+                                  if (limitReached) {
+                                    const lastScan = confirmedToday[0];
+                                    return (
+                                      <Button size="sm" variant="outline" disabled className="gap-2 border-green-200 bg-green-50 text-green-700">
+                                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                        Registrado hoje ({formatTime(lastScan?.created_at)})
+                                      </Button>
+                                    );
+                                  }
+
+                                  if (pendingToday) {
+                                    return (
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        className="gap-2 border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                                        onClick={() => {
+                                          setScanToConfirm(pendingToday);
+                                          setPaymentReceipt(null);
+                                          setPaymentReceiptPreview(null);
+                                          setConfirmPaymentDialogOpen(true);
+                                        }}
+                                      >
+                                        <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                                        Aguardando Pagamento
+                                      </Button>
+                                    );
+                                  }
 
                                 return (
                                   <Button
@@ -1407,30 +1430,45 @@ export function QrScansTab() {
           </DialogHeader>
 
           {scanStep === "initial" && (() => {
-            const todayCount = scanTarget
-              ? getTodayScans(scanTarget.baserow_row_id).length
-              : 0;
-            const todayScan = scanTarget
-              ? getLastTodayScan(scanTarget.baserow_row_id)
+            const confirmedToday = scanTarget
+              ? getConfirmedScansToday(scanTarget.baserow_row_id)
+              : [];
+            const pendingToday = scanTarget
+              ? getPendingScanToday(scanTarget.baserow_row_id)
               : undefined;
-            const limitReached = scanTarget
-              ? isDailyLimitReached(scanTarget.baserow_row_id)
-              : false;
+            const limitReached = confirmedToday.length >= maxPorDia;
 
             const c = getCounter(scanTarget?.baserow_row_id);
             const monthlyMax = config?.qtd_gratis_por_mes ?? 4;
             const monthlyFreeReached = c.qtd_gratis_usados >= monthlyMax;
 
-            if (limitReached && todayScan) {
+            if (limitReached && confirmedToday.length > 0) {
+              return (
+                <div className="space-y-3">
+                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/40 rounded-md space-y-2">
+                    <div className="flex items-center gap-2 font-medium text-sm text-emerald-700">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Limite diário atingido ({confirmedToday.length}/{maxPorDia})
+                    </div>
+                    <div className="text-xs text-emerald-800">
+                      Este número já tem um escaneamento confirmado hoje ({formatTime(confirmedToday[0].created_at)}).
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            if (pendingToday) {
               return (
                 <div className="space-y-3">
                   <div className="p-4 bg-amber-500/10 border border-amber-500/40 rounded-md space-y-2">
-                    <div className="flex items-center gap-2 font-medium text-sm">
-                      <AlertCircle className="h-4 w-4 text-amber-600" />
-                      Limite diário atingido ({todayCount}/{maxPorDia})
+                    <div className="flex items-center gap-2 font-medium text-sm text-amber-700">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Pagamento pendente
                     </div>
                     <div className="text-xs text-amber-800">
-                      Este número já tem um escaneamento registrado hoje ({formatTime(todayScan.created_at)}). Por favor, aguarde até a meia-noite para o próximo registro.
+                      Já existe uma cobrança pendente para este número hoje. 
+                      Por favor, confirme o pagamento na aba "Pendentes" ou clique no botão "Aguardando Pagamento" na lista.
                     </div>
                   </div>
                 </div>
@@ -1762,6 +1800,86 @@ export function QrScansTab() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setViewReceiptUrl(null)}>
               Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Insurance Dialog */}
+      <Dialog open={insuranceDialogOpen} onOpenChange={setInsuranceDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Acionar Seguro de Número</DialogTitle>
+            <DialogDescription>
+              Número: <span className="font-mono">{insuranceTarget?.numero || insuranceTarget?.row_data?.numero}</span>
+              <br />
+              O acionamento do seguro permite um escaneamento extra no mês.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded text-sm text-blue-800">
+              <ShieldCheck className="h-4 w-4 inline mr-2" />
+              Este acionamento será registrado no histórico de seguros do cliente.
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Observação (opcional)</Label>
+              <Textarea
+                placeholder="Ex: Cliente relatou número banido, fornecendo novo número..."
+                value={insuranceObs}
+                onChange={(e) => setInsuranceObs(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setInsuranceDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!insuranceTarget) return;
+                try {
+                  const target = insuranceTarget.row_data ? {
+                    baserow_row_id: insuranceTarget.baserow_row_id,
+                    numero: insuranceTarget.row_data.numero,
+                    cliente_nome: insuranceTarget.row_data.nome || insuranceTarget.row_data.cliente
+                  } : insuranceTarget;
+
+                  await registerInsurance.mutateAsync({
+                    baserow_row_id: target.baserow_row_id,
+                    numero: target.numero,
+                    cliente_nome: target.cliente_nome,
+                    observacao: insuranceObs,
+                  });
+
+                  // Registrar também no histórico de scans como 'gratis' (via seguro)
+                  // para liberar o número hoje.
+                  await registerScan.mutateAsync({
+                    baserow_row_id: target.baserow_row_id,
+                    observacao: `[SEGURO] ${insuranceObs}`,
+                  });
+
+                  toast({
+                    title: "✅ Seguro acionado com sucesso",
+                    description: "O número foi liberado para escaneamento hoje.",
+                  });
+                  setInsuranceDialogOpen(false);
+                } catch (e: any) {
+                  toast({
+                    title: "Erro ao acionar seguro",
+                    description: e?.message || "Ocorreu um erro inesperado.",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              disabled={registerInsurance.isPending || registerScan.isPending}
+            >
+              {(registerInsurance.isPending || registerScan.isPending) && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              Confirmar acionamento
             </Button>
           </DialogFooter>
         </DialogContent>
