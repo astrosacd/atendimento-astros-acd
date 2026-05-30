@@ -67,7 +67,7 @@ import {
   useConfirmScanPayment,
   useSearchNumbers,
 } from "@/hooks/useQrScan";
-import { useInsuranceHistory, useRegisterInsuranceUsage, useInsuranceNumbers } from "@/hooks/useInsurance";
+import { useInsuranceHistory, useRegisterInsuranceUsage, useInsuranceNumbers, useInsurancePaymentStatus, useSetInsurancePaymentStatus } from "@/hooks/useInsurance";
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   link_mp: "🔗 Link Mercado Pago",
@@ -100,6 +100,9 @@ export function QrScansTab() {
   const { data: insuranceHistory = [], isLoading: loadingInsurance } = useInsuranceHistory();
   const { data: insuranceNumbers = [], isLoading: loadingInsuranceNumbers } = useInsuranceNumbers();
   const registerInsurance = useRegisterInsuranceUsage();
+  const { data: insurancePayStatus = [] } = useInsurancePaymentStatus();
+  const setInsurancePay = useSetInsurancePaymentStatus();
+  const payStatusMap = new Map(insurancePayStatus.map((p) => [p.baserow_row_id, p.status]));
 
   // Dialog states
   const [flagDialogOpen, setFlagDialogOpen] = useState(false);
@@ -584,6 +587,8 @@ export function QrScansTab() {
                                hDate.getUTCMonth() === now.getUTCMonth() && 
                                hDate.getUTCFullYear() === now.getUTCFullYear();
                       });
+                      const segPayStatus = payStatusMap.get(n.baserow_row_id);
+                      const seguroPago = segPayStatus === "pago";
 
                       return (
                         <TableRow key={n.baserow_row_id}>
@@ -606,6 +611,10 @@ export function QrScansTab() {
                           <TableCell>
                             {!temSeguro ? (
                               <Badge variant="outline" className="opacity-50">Sem seguro</Badge>
+                            ) : !seguroPago ? (
+                              <Badge variant="destructive" className="gap-1">
+                                <ShieldAlert className="h-3 w-3" /> Vencido
+                              </Badge>
                             ) : (
                               <Badge variant={usedInsuranceThisMonth ? "destructive" : "default"} className="gap-1">
                                 {usedInsuranceThisMonth ? <ShieldAlert className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
@@ -652,7 +661,7 @@ export function QrScansTab() {
                                   </Button>
                                 );
                               })()}
-                              {temSeguro && !usedInsuranceThisMonth && (
+                              {temSeguro && seguroPago && !usedInsuranceThisMonth && (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -828,6 +837,7 @@ export function QrScansTab() {
                         <TableHead>Número</TableHead>
                         <TableHead>Cliente</TableHead>
                         <TableHead>Auto-hospedado?</TableHead>
+                        <TableHead>Pagamento do mês</TableHead>
                         <TableHead>Status do mês</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
@@ -846,6 +856,9 @@ export function QrScansTab() {
                                    hDate.getUTCMonth() === now.getUTCMonth() &&
                                    hDate.getUTCFullYear() === now.getUTCFullYear();
                           });
+                          const payStatus = payStatusMap.get(n.baserow_row_id);
+                          const isPago = payStatus === "pago";
+                          const isVencido = !payStatus || payStatus === "vencido";
                           return (
                             <TableRow key={n.baserow_row_id}>
                               <TableCell className="font-mono">{n.numero}</TableCell>
@@ -858,29 +871,79 @@ export function QrScansTab() {
                                 )}
                               </TableCell>
                               <TableCell>
-                                <Badge variant={usedThisMonth ? "destructive" : "default"} className="gap-1">
-                                  {usedThisMonth ? <ShieldAlert className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
-                                  {usedThisMonth ? "Já acionado" : "Disponível"}
-                                </Badge>
+                                {isPago ? (
+                                  <Badge className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white border-transparent">
+                                    <CheckCircle2 className="h-3 w-3" /> Pago
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="destructive" className="gap-1">
+                                    <ShieldAlert className="h-3 w-3" /> Vencido / Não pago
+                                  </Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {!isPago ? (
+                                  <Badge variant="outline" className="gap-1 opacity-60">
+                                    <Shield className="h-3 w-3" /> Bloqueado
+                                  </Badge>
+                                ) : (
+                                  <Badge variant={usedThisMonth ? "destructive" : "default"} className="gap-1">
+                                    {usedThisMonth ? <ShieldAlert className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
+                                    {usedThisMonth ? "Já acionado" : "Disponível"}
+                                  </Badge>
+                                )}
                               </TableCell>
                               <TableCell className="text-right">
-                                {!usedThisMonth && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="border-blue-500 text-blue-600 hover:bg-blue-50"
-                                    onClick={() => {
-                                      setInsuranceTarget({
-                                        baserow_row_id: n.baserow_row_id,
-                                        row_data: { numero: n.numero, nome: n.cliente_nome },
-                                      });
-                                      setInsuranceObs("");
-                                      setInsuranceDialogOpen(true);
-                                    }}
-                                  >
-                                    <Shield className="h-4 w-4 mr-1" /> Acionar Seguro
-                                  </Button>
-                                )}
+                                <div className="flex flex-col items-end gap-2">
+                                  {isVencido ? (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+                                      disabled={setInsurancePay.isPending}
+                                      onClick={() =>
+                                        setInsurancePay.mutate({
+                                          baserow_row_id: n.baserow_row_id,
+                                          status: "pago",
+                                        })
+                                      }
+                                    >
+                                      <CheckCircle2 className="h-4 w-4 mr-1" /> Marcar como Pago
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="text-muted-foreground hover:text-destructive"
+                                      disabled={setInsurancePay.isPending}
+                                      onClick={() =>
+                                        setInsurancePay.mutate({
+                                          baserow_row_id: n.baserow_row_id,
+                                          status: "vencido",
+                                        })
+                                      }
+                                    >
+                                      Marcar como Vencido
+                                    </Button>
+                                  )}
+                                  {isPago && !usedThisMonth && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+                                      onClick={() => {
+                                        setInsuranceTarget({
+                                          baserow_row_id: n.baserow_row_id,
+                                          row_data: { numero: n.numero, nome: n.cliente_nome },
+                                        });
+                                        setInsuranceObs("");
+                                        setInsuranceDialogOpen(true);
+                                      }}
+                                    >
+                                      <Shield className="h-4 w-4 mr-1" /> Acionar Seguro
+                                    </Button>
+                                  )}
+                                </div>
                               </TableCell>
                             </TableRow>
                           );

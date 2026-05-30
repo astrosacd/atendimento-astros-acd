@@ -7341,6 +7341,45 @@ export type Database = {
         }
         Relationships: []
       }
+      qr_scan_insurance_payment_status: {
+        Row: {
+          ano: number
+          baserow_row_id: number
+          created_at: string
+          id: string
+          marcado_em: string
+          marcado_por: string | null
+          mes: number
+          observacao: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ano: number
+          baserow_row_id: number
+          created_at?: string
+          id?: string
+          marcado_em?: string
+          marcado_por?: string | null
+          mes: number
+          observacao?: string | null
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          ano?: number
+          baserow_row_id?: number
+          created_at?: string
+          id?: string
+          marcado_em?: string
+          marcado_por?: string | null
+          mes?: number
+          observacao?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       qr_scan_insurance_usage: {
         Row: {
           baserow_row_id: number
