@@ -37,6 +37,11 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   QrCode,
   Settings,
   History,
@@ -102,7 +107,13 @@ export function QrScansTab() {
   const registerInsurance = useRegisterInsuranceUsage();
   const { data: insurancePayStatus = [] } = useInsurancePaymentStatus();
   const setInsurancePay = useSetInsurancePaymentStatus();
-  const { data: payStatusMap = new Map<number, { status: string; clientName?: string; clientNames?: string[]; method: string }>() } = useInsurancePaymentStatusHybrid();
+  const { data: payStatusMap = new Map<number, { 
+    status: string; 
+    clientName?: string; 
+    clientNames?: string[]; 
+    method: string;
+    links?: { id: string; nome: string; produto: string | null; data_renovacao: string | null; isPaid: boolean }[];
+  }>() } = useInsurancePaymentStatusHybrid();
   
   // Para saber se o status veio de uma marcação manual ou automática
   const manualStatusIds = new Set(insurancePayStatus.map(p => p.baserow_row_id));
@@ -888,12 +899,63 @@ export function QrScansTab() {
                                   )}
                                   <span className="text-[9px] text-muted-foreground uppercase font-semibold">
                                     {isManual ? "✍️ Marcação Manual" : (
-                                      <span className="flex flex-col">
+                                      <span className="flex flex-col gap-1">
                                         <span>🤖 Detecção Automática</span>
                                         {payData?.clientNames && payData.clientNames.length > 0 && (
-                                          <span className="text-[8px] normal-case opacity-70">
-                                            Vínculo: {payData.clientNames.join(" + ")}
-                                          </span>
+                                          <div className="flex items-center gap-1 normal-case opacity-70">
+                                            <span className="text-[8px]">
+                                              Vínculo: {payData.clientNames.join(" + ")}
+                                            </span>
+                                            {payData.links && payData.links.length > 0 && (
+                                              <Popover>
+                                                <PopoverTrigger asChild>
+                                                  <Button variant="ghost" size="icon" className="h-4 w-4 hover:bg-muted p-0" title="Ver clientes vinculados">
+                                                    <Search className="h-2 w-2" />
+                                                  </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-80 p-0" align="start">
+                                                  <div className="p-3 border-b bg-muted/50">
+                                                    <h4 className="text-xs font-bold flex items-center gap-2">
+                                                      <Search className="h-3 w-3" />
+                                                      Vínculos Encontrados ({payData.links.length})
+                                                    </h4>
+                                                  </div>
+                                                  <div className="max-h-[300px] overflow-y-auto">
+                                                    <Table>
+                                                      <TableHeader>
+                                                        <TableRow className="hover:bg-transparent">
+                                                          <TableHead className="h-8 text-[10px]">Cliente</TableHead>
+                                                          <TableHead className="h-8 text-[10px]">Produto</TableHead>
+                                                          <TableHead className="h-8 text-[10px]">Vence</TableHead>
+                                                        </TableRow>
+                                                      </TableHeader>
+                                                      <TableBody>
+                                                        {payData.links.map((link) => (
+                                                          <TableRow key={link.id} className="text-[10px]">
+                                                            <TableCell className="py-2 font-medium">
+                                                              <div className="flex flex-col">
+                                                                <span>{link.nome}</span>
+                                                                <span className="text-[9px] text-muted-foreground">ID: {link.id.split('-')[0]}...</span>
+                                                              </div>
+                                                            </TableCell>
+                                                            <TableCell className="py-2">{link.produto || "—"}</TableCell>
+                                                            <TableCell className="py-2 text-right">
+                                                              <Badge 
+                                                                variant={link.isPaid ? "default" : "destructive"}
+                                                                className="text-[8px] h-4 px-1"
+                                                              >
+                                                                {link.data_renovacao ? new Date(link.data_renovacao).toLocaleDateString('pt-BR') : "—"}
+                                                              </Badge>
+                                                            </TableCell>
+                                                          </TableRow>
+                                                        ))}
+                                                      </TableBody>
+                                                    </Table>
+                                                  </div>
+                                                </PopoverContent>
+                                              </Popover>
+                                            )}
+                                          </div>
                                         )}
                                       </span>
                                     )}
