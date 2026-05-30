@@ -95,6 +95,9 @@ export default function ConsultaNumeros() {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [quickViewRow, setQuickViewRow] = useState<NumeroResult | null>(null);
 
+  // Insurance status (hybrid: manual + auto-detected) — used in quick view dialog
+  const { data: insurancePayStatusMap } = useInsurancePaymentStatusHybrid();
+
   // Sync status
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastStatusCache, setLastStatusCache] = useState<LastStatusInfo>({});
