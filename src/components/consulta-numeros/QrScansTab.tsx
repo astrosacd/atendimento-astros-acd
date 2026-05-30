@@ -102,7 +102,10 @@ export function QrScansTab() {
   const registerInsurance = useRegisterInsuranceUsage();
   const { data: insurancePayStatus = [] } = useInsurancePaymentStatus();
   const setInsurancePay = useSetInsurancePaymentStatus();
-  const payStatusMap = new Map(insurancePayStatus.map((p) => [p.baserow_row_id, p.status]));
+  const { data: payStatusMap = new Map<number, any>() } = useInsurancePaymentStatusHybrid();
+  
+  // Para saber se o status veio de uma marcação manual ou automática
+  const manualStatusIds = new Set(insurancePayStatus.map(p => p.baserow_row_id));
 
   // Dialog states
   const [flagDialogOpen, setFlagDialogOpen] = useState(false);
