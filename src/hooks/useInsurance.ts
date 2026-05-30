@@ -2,6 +2,35 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { QrScanInsuranceUsage } from "./useQrScan";
 
+export interface InsuranceNumber {
+  baserow_row_id: number;
+  numero: string;
+  cliente_nome: string | null;
+  observacoes: string | null;
+  auto_hospedado: boolean;
+}
+
+export function useInsuranceNumbers() {
+  return useQuery({
+    queryKey: ["qr-scan-insurance-numbers"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("consulta_numeros_cache")
+        .select("baserow_row_id, row_data, auto_hospedado")
+        .or("row_data->>observacoes.ilike.%COM SEGURO%,row_data->>observacao.ilike.%COM SEGURO%")
+        .limit(500);
+      if (error) throw error;
+      return (data ?? []).map((r: any) => ({
+        baserow_row_id: r.baserow_row_id,
+        numero: r.row_data?.numero ?? "",
+        cliente_nome: r.row_data?.nome ?? r.row_data?.cliente ?? null,
+        observacoes: r.row_data?.observacoes ?? r.row_data?.observacao ?? null,
+        auto_hospedado: !!r.auto_hospedado,
+      })) as InsuranceNumber[];
+    },
+  });
+}
+
 export function useInsuranceHistory() {
   return useQuery({
     queryKey: ["qr-scan-insurance-history"],
@@ -39,6 +68,7 @@ export function useRegisterInsuranceUsage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["qr-scan-insurance-history"] });
+      qc.invalidateQueries({ queryKey: ["qr-scan-insurance-numbers"] });
     },
   });
 }

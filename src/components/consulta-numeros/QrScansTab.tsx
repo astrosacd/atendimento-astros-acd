@@ -67,7 +67,7 @@ import {
   useConfirmScanPayment,
   useSearchNumbers,
 } from "@/hooks/useQrScan";
-import { useInsuranceHistory, useRegisterInsuranceUsage } from "@/hooks/useInsurance";
+import { useInsuranceHistory, useRegisterInsuranceUsage, useInsuranceNumbers } from "@/hooks/useInsurance";
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   link_mp: "🔗 Link Mercado Pago",
@@ -98,6 +98,7 @@ export function QrScansTab() {
   const registerScan = useRegisterScan();
   const confirmPay = useConfirmScanPayment();
   const { data: insuranceHistory = [], isLoading: loadingInsurance } = useInsuranceHistory();
+  const { data: insuranceNumbers = [], isLoading: loadingInsuranceNumbers } = useInsuranceNumbers();
   const registerInsurance = useRegisterInsuranceUsage();
 
   // Dialog states
@@ -808,39 +809,127 @@ export function QrScansTab() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              {loadingInsurance ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : filteredInsuranceHistory.length === 0 ? (
-                <p className="text-center py-8 text-muted-foreground">
-                  Nenhum registro de seguro acionado.
-                </p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Data de Acionamento</TableHead>
-                      <TableHead>Número</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Observação</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredInsuranceHistory.map((h) => (
-                      <TableRow key={h.id}>
-                        <TableCell>
-                          {new Date(h.used_at).toLocaleString("pt-BR")}
-                        </TableCell>
-                        <TableCell className="font-mono">{h.numero}</TableCell>
-                        <TableCell>{h.cliente_nome ?? "—"}</TableCell>
-                        <TableCell className="text-xs">{h.observacao ?? "—"}</TableCell>
+            <CardContent className="space-y-6">
+              {/* Section 1: Available insurance numbers */}
+              <div>
+                <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-blue-600" />
+                  Números com Seguro ({insuranceNumbers.length})
+                </h3>
+                {loadingInsuranceNumbers ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  </div>
+                ) : insuranceNumbers.length === 0 ? (
+                  <p className="text-center py-4 text-sm text-muted-foreground">
+                    Nenhum número marcado com "COM SEGURO" nas observações.
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Número</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Auto-hospedado?</TableHead>
+                        <TableHead>Status do mês</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+                    </TableHeader>
+                    <TableBody>
+                      {insuranceNumbers
+                        .filter((n) => {
+                          const s = insuranceSearch.toLowerCase();
+                          return !s || n.numero.toLowerCase().includes(s) || (n.cliente_nome || "").toLowerCase().includes(s);
+                        })
+                        .map((n) => {
+                          const usedThisMonth = insuranceHistory.some(h => {
+                            const hDate = new Date(h.used_at);
+                            const now = new Date();
+                            return h.baserow_row_id === n.baserow_row_id &&
+                                   hDate.getUTCMonth() === now.getUTCMonth() &&
+                                   hDate.getUTCFullYear() === now.getUTCFullYear();
+                          });
+                          return (
+                            <TableRow key={n.baserow_row_id}>
+                              <TableCell className="font-mono">{n.numero}</TableCell>
+                              <TableCell>{n.cliente_nome ?? "—"}</TableCell>
+                              <TableCell>
+                                {n.auto_hospedado ? (
+                                  <Badge variant="secondary" className="text-[10px]">Sim</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-[10px]">Não</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={usedThisMonth ? "destructive" : "default"} className="gap-1">
+                                  {usedThisMonth ? <ShieldAlert className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
+                                  {usedThisMonth ? "Já acionado" : "Disponível"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {!usedThisMonth && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                                    onClick={() => {
+                                      setInsuranceTarget({
+                                        baserow_row_id: n.baserow_row_id,
+                                        row_data: { numero: n.numero, nome: n.cliente_nome },
+                                      });
+                                      setInsuranceObs("");
+                                      setInsuranceDialogOpen(true);
+                                    }}
+                                  >
+                                    <Shield className="h-4 w-4 mr-1" /> Acionar Seguro
+                                  </Button>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+
+              {/* Section 2: Insurance usage history */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                  <History className="h-4 w-4" />
+                  Histórico de Acionamentos ({filteredInsuranceHistory.length})
+                </h3>
+                {loadingInsurance ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  </div>
+                ) : filteredInsuranceHistory.length === 0 ? (
+                  <p className="text-center py-4 text-sm text-muted-foreground">
+                    Nenhum acionamento registrado ainda.
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Data de Acionamento</TableHead>
+                        <TableHead>Número</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Observação</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredInsuranceHistory.map((h) => (
+                        <TableRow key={h.id}>
+                          <TableCell>{new Date(h.used_at).toLocaleString("pt-BR")}</TableCell>
+                          <TableCell className="font-mono">{h.numero}</TableCell>
+                          <TableCell>{h.cliente_nome ?? "—"}</TableCell>
+                          <TableCell className="text-xs">{h.observacao ?? "—"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
