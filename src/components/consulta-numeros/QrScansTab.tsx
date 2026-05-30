@@ -49,6 +49,9 @@ import {
   Image as ImageIcon,
   Camera,
   Upload,
+  Shield,
+  ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -64,6 +67,7 @@ import {
   useConfirmScanPayment,
   useSearchNumbers,
 } from "@/hooks/useQrScan";
+import { useInsuranceHistory, useRegisterInsuranceUsage } from "@/hooks/useInsurance";
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   link_mp: "🔗 Link Mercado Pago",
@@ -93,6 +97,8 @@ export function QrScansTab() {
   const toggleHosp = useToggleAutoHospedado();
   const registerScan = useRegisterScan();
   const confirmPay = useConfirmScanPayment();
+  const { data: insuranceHistory = [], isLoading: loadingInsurance } = useInsuranceHistory();
+  const registerInsurance = useRegisterInsuranceUsage();
 
   // Dialog states
   const [flagDialogOpen, setFlagDialogOpen] = useState(false);
@@ -139,10 +145,16 @@ export function QrScansTab() {
   // View receipt dialog
   const [viewReceiptUrl, setViewReceiptUrl] = useState<string | null>(null);
 
+  // Insurance dialog
+  const [insuranceDialogOpen, setInsuranceDialogOpen] = useState(false);
+  const [insuranceTarget, setInsuranceTarget] = useState<any>(null);
+  const [insuranceObs, setInsuranceObs] = useState("");
+
   // Search states for tabs
   const [numerosSearch, setNumerosSearch] = useState("");
   const [pendentesSearch, setPendentesSearch] = useState("");
   const [historySearch, setHistorySearch] = useState("");
+  const [insuranceSearch, setInsuranceSearch] = useState("");
 
   useEffect(() => {
     if (config) {
@@ -187,6 +199,14 @@ export function QrScansTab() {
 
   const filteredHistory = history.filter((h) => {
     const search = historySearch.toLowerCase();
+    return (
+      (h.numero?.toLowerCase() || "").includes(search) ||
+      (h.cliente_nome?.toLowerCase() || "").includes(search)
+      );
+    });
+
+  const filteredInsuranceHistory = insuranceHistory.filter((h) => {
+    const search = insuranceSearch.toLowerCase();
     return (
       (h.numero?.toLowerCase() || "").includes(search) ||
       (h.cliente_nome?.toLowerCase() || "").includes(search)
@@ -496,6 +516,9 @@ export function QrScansTab() {
           <TabsTrigger value="historico">
             <History className="h-4 w-4 mr-2" /> Histórico
           </TabsTrigger>
+          <TabsTrigger value="seguros">
+            <Shield className="h-4 w-4 mr-2" /> Seguros
+          </TabsTrigger>
           {isAdmin && (
             <TabsTrigger value="config">
               <Settings className="h-4 w-4 mr-2" /> Configurações
@@ -541,6 +564,7 @@ export function QrScansTab() {
                       <TableHead>Cliente</TableHead>
                       <TableHead>Grátis no mês</TableHead>
                       <TableHead>Pagos no mês</TableHead>
+                      <TableHead>Seguro</TableHead>
                       <TableHead>Observação</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
@@ -550,6 +574,16 @@ export function QrScansTab() {
                       const c = getCounter(n.baserow_row_id);
                       const max = config?.qtd_gratis_por_mes ?? 4;
                       const rd = n.row_data || {};
+                      const obsRaw = (rd.observacao || n.auto_hospedado_observacao || "").toLowerCase();
+                      const temSeguro = obsRaw.includes("com seguro") || obsRaw.includes("tem seguro");
+                      const usedInsuranceThisMonth = insuranceHistory.some(h => {
+                        const hDate = new Date(h.used_at);
+                        const now = new Date();
+                        return h.baserow_row_id === n.baserow_row_id && 
+                               hDate.getUTCMonth() === now.getUTCMonth() && 
+                               hDate.getUTCFullYear() === now.getUTCFullYear();
+                      });
+
                       return (
                         <TableRow key={n.baserow_row_id}>
                           <TableCell className="font-mono">
@@ -568,6 +602,16 @@ export function QrScansTab() {
                             </Badge>
                           </TableCell>
                           <TableCell>{c.qtd_pagos}</TableCell>
+                          <TableCell>
+                            {!temSeguro ? (
+                              <Badge variant="outline" className="opacity-50">Sem seguro</Badge>
+                            ) : (
+                              <Badge variant={usedInsuranceThisMonth ? "destructive" : "default"} className="gap-1">
+                                {usedInsuranceThisMonth ? <ShieldAlert className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
+                                {usedInsuranceThisMonth ? "Acionado" : "Disponível"}
+                              </Badge>
+                            )}
+                          </TableCell>
                           <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
                             {n.auto_hospedado_observacao ?? "—"}
                           </TableCell>
@@ -611,6 +655,20 @@ export function QrScansTab() {
                                 </Button>
                               );
                             })()}
+                            {temSeguro && !usedInsuranceThisMonth && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                                onClick={() => {
+                                  setInsuranceTarget(n);
+                                  setInsuranceObs("");
+                                  setInsuranceDialogOpen(true);
+                                }}
+                              >
+                                <Shield className="h-4 w-4 mr-1" /> Acionar Seguro
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="ghost"
@@ -712,7 +770,7 @@ export function QrScansTab() {
                             <CheckCircle2 className="h-4 w-4 mr-1" /> Confirmar
                             pagto
                           </Button>
-                          <Button
+                            <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => handleCancelPayment(s.id)}
@@ -720,6 +778,64 @@ export function QrScansTab() {
                             <XCircle className="h-4 w-4 mr-1" /> Cancelar
                           </Button>
                         </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="seguros" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Acionamentos de Seguro</CardTitle>
+                  <CardDescription>
+                    Lista de seguros utilizados no mês atual. Limite de 1 por mês.
+                  </CardDescription>
+                </div>
+                <div className="relative w-64">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por número ou nome..."
+                    value={insuranceSearch}
+                    onChange={(e) => setInsuranceSearch(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingInsurance ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : filteredInsuranceHistory.length === 0 ? (
+                <p className="text-center py-8 text-muted-foreground">
+                  Nenhum registro de seguro acionado.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data de Acionamento</TableHead>
+                      <TableHead>Número</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Observação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredInsuranceHistory.map((h) => (
+                      <TableRow key={h.id}>
+                        <TableCell>
+                          {new Date(h.used_at).toLocaleString("pt-BR")}
+                        </TableCell>
+                        <TableCell className="font-mono">{h.numero}</TableCell>
+                        <TableCell>{h.cliente_nome ?? "—"}</TableCell>
+                        <TableCell className="text-xs">{h.observacao ?? "—"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
