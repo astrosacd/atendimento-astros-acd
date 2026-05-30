@@ -1099,20 +1099,29 @@ export function QrScansTab() {
               />
             </div>
             <div className="max-h-[400px] overflow-y-auto space-y-1">
-              {localSearchResults.map((r: any) => (
-                <div
-                  key={r.baserow_row_id}
-                  className="flex items-center justify-between p-2 border rounded hover:bg-muted/50"
-                >
-                  <div>
-                    <div className="font-mono text-sm">
-                      {r.row_data?.numero}
+              {localSearchResults.map((r: any) => {
+                const rd = r.row_data || {};
+                const obsRaw = (rd.observacao || r.auto_hospedado_observacao || "").toLowerCase();
+                const temSeguro = obsRaw.includes("com seguro") || obsRaw.includes("tem seguro");
+
+                return (
+                  <div
+                    key={r.baserow_row_id}
+                    className="flex items-center justify-between p-2 border rounded hover:bg-muted/50"
+                  >
+                    <div>
+                      <div className="font-mono text-sm">
+                        {r.row_data?.numero}
+                      </div>
+                      <div className="text-xs text-muted-foreground flex flex-col gap-1">
+                        <span>{r.row_data?.nome ?? r.row_data?.cliente ?? "—"} · {r.row_data?.email ?? ""}</span>
+                        {temSeguro && (
+                          <Badge variant="secondary" className="w-fit text-[10px] py-0 h-4 gap-1 bg-blue-50 text-blue-700 border-blue-200">
+                            <ShieldCheck className="h-3 w-3" /> COM SEGURO
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {r.row_data?.nome ?? r.row_data?.cliente ?? "—"} ·{" "}
-                      {r.row_data?.email ?? ""}
-                    </div>
-                  </div>
                   <div className="flex items-center gap-2">
                     {r.auto_hospedado ? (
                       <>
@@ -1137,7 +1146,7 @@ export function QrScansTab() {
                     )}
                   </div>
                 </div>
-              ))}
+              )})}
               {searchingNumbers && (
                 <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Buscando...
