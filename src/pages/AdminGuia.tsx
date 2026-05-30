@@ -163,6 +163,9 @@ const categoryToPermission: Record<string, string> = {
   'instagram': 'view_guia_instagram',
   'seguros-visao-geral': 'view_seguros',
   'seguros-marcar': 'manage_seguros',
+  'ligacoes-ia-geral': 'view_ligacoes_ia',
+  'ligacoes-ia-roteiros': 'view_ligacoes_ia',
+  'ligacoes-ia-config': 'view_ligacoes_ia',
 };
 
 const AdminGuia = () => {
@@ -420,6 +423,14 @@ const AdminGuia = () => {
       color: "text-emerald-400",
       categories: ["seguros-visao-geral", "seguros-marcar"],
       permissionKey: "view_seguros"
+    },
+    {
+      id: "ligacoes-ia-grupo",
+      title: "Ligações IA",
+      icon: PhoneCall,
+      color: "text-fuchsia-400",
+      categories: ["ligacoes-ia-geral", "ligacoes-ia-roteiros", "ligacoes-ia-config"],
+      permissionKey: "view_ligacoes_ia"
     }
   ];
 
