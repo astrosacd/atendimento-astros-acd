@@ -161,6 +161,8 @@ const categoryToPermission: Record<string, string> = {
   'aprovacoes-visao-geral': 'view_guia_aprovacoes',
   'automacoes-visao-geral': 'view_guia_automacoes',
   'instagram': 'view_guia_instagram',
+  'seguros-visao-geral': 'view_seguros',
+  'seguros-marcar': 'manage_seguros',
 };
 
 const AdminGuia = () => {
