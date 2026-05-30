@@ -67,7 +67,7 @@ import {
   useConfirmScanPayment,
   useSearchNumbers,
 } from "@/hooks/useQrScan";
-import { useInsuranceHistory, useRegisterInsuranceUsage, useInsuranceNumbers, useInsurancePaymentStatus, useSetInsurancePaymentStatus } from "@/hooks/useInsurance";
+import { useInsuranceHistory, useRegisterInsuranceUsage, useInsuranceNumbers, useInsurancePaymentStatus, useSetInsurancePaymentStatus, useInsurancePaymentStatusHybrid } from "@/hooks/useInsurance";
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   link_mp: "🔗 Link Mercado Pago",
