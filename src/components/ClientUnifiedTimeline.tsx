@@ -162,7 +162,8 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         supabase.from('client_score_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('client_ai_upsell_suggestions').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20),
         supabase.from('social_media_client_profiles').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20),
-        supabase.from('qr_scan_insurance_usage').select('*').or(`cliente_nome.ilike.%${clienteName}%,numero.eq.${clienteId}`).order('created_at', { ascending: false }).limit(50),
+        supabase.from('qr_scan_insurance_usage').select('*').or(`cliente_nome.ilike.%${clienteName}%,numero.eq.${clientPhone || ''}`).order('created_at', { ascending: false }).limit(50),
+        supabase.from('qr_scan_history').select('*').or(`cliente_nome.ilike.%${clienteName}%,numero.eq.${clientPhone || ''}`).order('created_at', { ascending: false }).limit(50),
       ]);
 
       const clientInfo = clientDataRes.data;
