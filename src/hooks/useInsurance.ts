@@ -83,9 +83,12 @@ export function useInsurancePaymentStatusHybrid() {
     queryKey: ["qr-scan-insurance-payment-status-hybrid", manualStatus],
     queryFn: async () => {
       // 1. Criar mapa de status manuais
-      const statusMap = new Map<number, InsurancePaymentStatus>();
+      const statusMap = new Map<number, { status: InsurancePaymentStatus; clientName?: string; method: 'manual' | 'auto' }>();
       manualStatus.forEach(row => {
-        statusMap.set(row.baserow_row_id, row.status);
+        statusMap.set(row.baserow_row_id, {
+          status: row.status,
+          method: 'manual'
+        });
       });
 
       // 2. Buscar clientes com Seguro
@@ -108,9 +111,14 @@ export function useInsurancePaymentStatusHybrid() {
       // Função para extrair números puros de uma string
       const extractNumbers = (text: string | null) => {
         if (!text) return [];
-        // Busca sequências de 10 a 13 dígitos
-        const matches = text.match(/\d{10,13}/g);
-        return matches ? matches.map(m => m.replace(/\D/g, '')) : [];
+        // Busca sequências que parecem números (pelo menos 10 dígitos, permitindo separadores comuns)
+        const regex = /(?:\d[ \-\(\)\.]*){10,14}/g;
+        const matches = text.match(regex);
+        if (!matches) return [];
+        
+        return matches
+          .map(m => m.replace(/\D/g, ''))
+          .filter(digits => digits.length >= 10 && digits.length <= 14);
       };
 
       const normalize = (num: string) => {
@@ -149,7 +157,11 @@ export function useInsurancePaymentStatusHybrid() {
             const rowId = cacheEntry.baserow_row_id;
             // Só aplica automático se não houver marcação manual
             if (!statusMap.has(rowId)) {
-              statusMap.set(rowId, status);
+              statusMap.set(rowId, {
+                status,
+                clientName: cliente.nome,
+                method: 'auto'
+              });
             }
           }
         });

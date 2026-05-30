@@ -102,7 +102,7 @@ export function QrScansTab() {
   const registerInsurance = useRegisterInsuranceUsage();
   const { data: insurancePayStatus = [] } = useInsurancePaymentStatus();
   const setInsurancePay = useSetInsurancePaymentStatus();
-  const { data: payStatusMap = new Map<number, any>() } = useInsurancePaymentStatusHybrid();
+  const { data: payStatusMap = new Map<number, { status: string; clientName?: string; method: string }>() } = useInsurancePaymentStatusHybrid();
   
   // Para saber se o status veio de uma marcação manual ou automática
   const manualStatusIds = new Set(insurancePayStatus.map(p => p.baserow_row_id));
@@ -590,8 +590,8 @@ export function QrScansTab() {
                                hDate.getUTCMonth() === now.getUTCMonth() && 
                                hDate.getUTCFullYear() === now.getUTCFullYear();
                       });
-                      const segPayStatus = payStatusMap.get(n.baserow_row_id);
-                      const seguroPago = segPayStatus === "pago";
+                      const segPayData = payStatusMap.get(n.baserow_row_id);
+                      const seguroPago = segPayData?.status === "pago";
 
                       return (
                         <TableRow key={n.baserow_row_id}>
@@ -859,9 +859,9 @@ export function QrScansTab() {
                                    hDate.getUTCMonth() === now.getUTCMonth() &&
                                    hDate.getUTCFullYear() === now.getUTCFullYear();
                           });
-                          const payStatus = payStatusMap.get(n.baserow_row_id);
-                          const isPago = payStatus === "pago";
-                          const isVencido = !payStatus || payStatus === "vencido";
+                          const payData = payStatusMap.get(n.baserow_row_id);
+                          const isPago = payData?.status === "pago";
+                          const isVencido = !payData || payData.status === "vencido";
                           const isManual = manualStatusIds.has(n.baserow_row_id);
 
                           return (
@@ -887,7 +887,14 @@ export function QrScansTab() {
                                     </Badge>
                                   )}
                                   <span className="text-[9px] text-muted-foreground uppercase font-semibold">
-                                    {isManual ? "✍️ Marcação Manual" : "🤖 Detecção Automática"}
+                                    {isManual ? "✍️ Marcação Manual" : (
+                                      <span className="flex flex-col">
+                                        <span>🤖 Detecção Automática</span>
+                                        {payData?.clientName && (
+                                          <span className="text-[8px] normal-case opacity-70">Vínculo: {payData.clientName}</span>
+                                        )}
+                                      </span>
+                                    )}
                                   </span>
                                 </div>
                               </TableCell>
