@@ -161,6 +161,8 @@ const categoryToPermission: Record<string, string> = {
   'aprovacoes-visao-geral': 'view_guia_aprovacoes',
   'automacoes-visao-geral': 'view_guia_automacoes',
   'instagram': 'view_guia_instagram',
+  'seguros-visao-geral': 'view_seguros',
+  'seguros-marcar': 'manage_seguros',
 };
 
 const AdminGuia = () => {
@@ -410,6 +412,14 @@ const AdminGuia = () => {
       color: "text-pink-400",
       categories: ["instagram"],
       permissionKey: "view_guia_instagram"
+    },
+    {
+      id: "seguros-grupo",
+      title: "Seguro de Números",
+      icon: Shield,
+      color: "text-emerald-400",
+      categories: ["seguros-visao-geral", "seguros-marcar"],
+      permissionKey: "view_seguros"
     }
   ];
 
@@ -5046,6 +5056,63 @@ Menu lateral → **Link de Pagamento**`
         "Sempre verifique a validade do token nas configurações",
         "Vídeos de Reels devem ter formato vertical (9:16)",
         "Você pode revogar links de acesso provisório a qualquer momento"
+      ]
+    },
+    {
+      id: "seguros-visao-geral",
+      title: "Seguro de Números Aquecidos",
+      icon: Shield,
+      color: "text-emerald-400",
+      bgColor: "bg-emerald-500/10",
+      description: "Entenda como funciona o sistema de seguro para números de WhatsApp",
+      steps: [
+        {
+          title: "Como funciona a detecção",
+          content: `O sistema utiliza uma lógica híbrida para identificar quais números possuem seguro:
+1. **Marcação Manual**: Você pode marcar um número como 'Pago' ou 'Vencido' diretamente na aba de Seguros.
+2. **Detecção Automática**: O sistema busca clientes que possuem o produto "Seguro de Numeros Aquecidos" ou que tenham "COM SEGURO" nas observações do Baserow.
+3. **Vínculo por CRM**: Se o cliente estiver em dia no CRM (data de renovação futura), o número é considerado 'Pago' automaticamente.`
+        },
+        {
+          title: "Uso do Seguro",
+          content: `Sempre que um número com seguro precisar ser 'escaneado' (troca de aparelho ou reativação), o sistema registra esse uso.
+- Números 'Pagos' permitem o scan normalmente.
+- Números 'Vencidos' ou 'Sem Seguro' alertam o operador sobre a necessidade de regularização.`
+        }
+      ],
+      tips: [
+        "Marcações manuais sempre prevalecem sobre a detecção automática",
+        "Mantenha as observações dos clientes atualizadas com os números vinculados",
+        "Use o 'olhozinho' na consulta de números para auditoria rápida de vínculos"
+      ]
+    },
+    {
+      id: "seguros-marcar",
+      title: "Gerenciamento de Seguros",
+      icon: Shield,
+      color: "text-emerald-400",
+      bgColor: "bg-emerald-500/10",
+      description: "Aprenda a gerenciar status e auditoria de seguros",
+      steps: [
+        {
+          title: "Marcar Status Manualmente",
+          content: `1. Vá na aba **Seguros** (Módulo de Scans)
+2. Localize o número na lista (apenas números com a marcação 'COM SEGURO' aparecem aqui)
+3. Clique nos botões de ação:
+   - **Verde**: Marcar como PAGO (válido para o mês atual)
+   - **Vermelho**: Marcar como VENCIDO
+   - **Cinza**: Ver detalhes e clientes vinculados`
+        },
+        {
+          title: "Auditoria de Vínculos",
+          content: `No módulo de **Consulta de Números**, ao abrir os detalhes de um número (ícone do olho), você verá um bloco dedicado ao Seguro.
+Lá são listados todos os clientes que possuem aquele número em suas observações ou cadastro principal, facilitando identificar quem é o dono do número em caso de suporte.`
+        }
+      ],
+      tips: [
+        "O status manual expira ao final de cada mês, exigindo nova conferência",
+        "A detecção por CRM é permanente enquanto o cliente estiver ativo",
+        "Use filtros para encontrar rapidamente números vencidos ou sem seguro"
       ]
     }
   ];

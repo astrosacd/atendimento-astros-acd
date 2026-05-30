@@ -341,6 +341,9 @@ export default function ConsultaNumerosGuia() {
                         { key: 'api_consulta_numeros', desc: 'Usar API externa' },
                         { key: 'manage_webhooks_consulta_numeros', desc: 'Gerenciar webhooks' },
                         { key: 'manage_config_consulta_numeros', desc: 'Gerenciar configurações' },
+                        { key: 'view_seguros', desc: 'Visualizar aba de Seguros' },
+                        { key: 'manage_seguros', desc: 'Gerenciar status de seguros' },
+                        { key: 'view_scans', desc: 'Visualizar histórico de scans' },
                       ].map((perm) => (
                         <tr key={perm.key}>
                           <td className="p-3">

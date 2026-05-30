@@ -6,7 +6,8 @@ import {
   History, CreditCard, Mail, FileText, CheckSquare, ShoppingBag, 
   File, RefreshCw, ChevronDown, AlertTriangle, Send, MessageSquare,
   Clock, ArrowUpDown, Image, Key, Columns3, Zap, Users, Award, ExternalLink, User,
-  Sparkles, ShoppingCart, PhoneCall, CalendarClock, TrendingUp, Lightbulb, Instagram
+  Sparkles, ShoppingCart, PhoneCall, CalendarClock, TrendingUp, Lightbulb, Instagram,
+  ShieldCheck, ShieldAlert, ShieldOff, Search
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface TimelineEvent {
   id: string;
-  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery' | 'whatsapp_group' | 'logo' | 'credential' | 'pipeline' | 'automation' | 'license' | 'share_link' | 'client' | 'ai_log' | 'ticket' | 'appointment' | 'sale' | 'sms_validation' | 'ia_call' | 'scheduled_call' | 'score_change' | 'upsell' | 'social_profile';
+  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery' | 'whatsapp_group' | 'logo' | 'credential' | 'pipeline' | 'automation' | 'license' | 'share_link' | 'client' | 'ai_log' | 'ticket' | 'appointment' | 'sale' | 'sms_validation' | 'ia_call' | 'scheduled_call' | 'score_change' | 'upsell' | 'social_profile' | 'insurance' | 'scan';
   date: string;
   title: string;
   description: string;
@@ -56,6 +57,8 @@ const TYPE_CONFIG: Record<TimelineEvent['type'], { icon: React.ElementType; colo
   score_change: { icon: TrendingUp, color: 'text-emerald-400', label: 'Score IA' },
   upsell: { icon: Lightbulb, color: 'text-yellow-400', label: 'Sugestão Upsell' },
   social_profile: { icon: Instagram, color: 'text-pink-400', label: 'Perfil Social' },
+  insurance: { icon: ShieldCheck, color: 'text-emerald-500', label: 'Seguro' },
+  scan: { icon: Search, color: 'text-blue-500', label: 'Scan de QR' },
 };
 
 const IA_CALL_STATUS_LABEL: Record<string, string> = {
@@ -130,6 +133,8 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         scoreHistoryRes,
         upsellRes,
         socialProfilesRes,
+        insuranceUsageRes,
+        scanHistoryRes,
       ] = await Promise.all([
         supabase.from('client_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('billing_logs').select('*').eq('cliente_id', clienteId).order('sent_at', { ascending: false }).limit(50),
@@ -158,6 +163,8 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         supabase.from('client_score_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('client_ai_upsell_suggestions').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20),
         supabase.from('social_media_client_profiles').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20),
+        supabase.from('qr_scan_insurance_usage').select('*').or(`cliente_nome.ilike.%${clienteName}%`).order('created_at', { ascending: false }).limit(50),
+        supabase.from('qr_scan_history').select('*').or(`cliente_nome.ilike.%${clienteName}%`).order('created_at', { ascending: false }).limit(50),
       ]);
 
       const clientInfo = clientDataRes.data;
@@ -446,9 +453,33 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
           id: `sms-${sms.id}`,
           type: 'sms_validation',
           date: sms.created_at,
-          title: 'Validação SMS',
-          description: `${sms.resultado} — ${sms.motivo || ''}`,
-          status: sms.resultado === 'sucesso' ? 'default' : 'destructive',
+          title: `Validação SMS: ${sms.status}`,
+          description: `Número: ${sms.numero}${sms.error_message ? ` — ${sms.error_message}` : ''}`,
+          status: sms.status,
+        });
+      });
+
+      // Insurance Usage
+      (insuranceUsageRes.data || []).forEach((iu: any) => {
+        allEvents.push({
+          id: `insurance-usage-${iu.id}`,
+          type: 'insurance',
+          date: iu.used_at || iu.created_at,
+          title: `Uso de Seguro: ${iu.numero}`,
+          description: `Baserow ID: ${iu.baserow_row_id}${iu.observacao ? ` — ${iu.observacao}` : ''}`,
+          status: 'used',
+        });
+      });
+
+      // Scan History
+      (scanHistoryRes.data || []).forEach((sh: any) => {
+        allEvents.push({
+          id: `scan-history-${sh.id}`,
+          type: 'scan',
+          date: sh.created_at,
+          title: `Scan QR Code: ${sh.numero}`,
+          description: `Modelo: ${sh.modelo || 'N/A'} — Status: ${sh.status || 'Sucesso'}`,
+          status: sh.status,
         });
       });
 
