@@ -192,6 +192,18 @@ export function useInsurancePaymentStatusHybrid() {
           links: links?.map(l => ({ id: l.id, nome: l.clientName, produto: l.produto, data_renovacao: l.data_renovacao, isPaid: l.isPaid })),
         });
       });
+      
+      // 8. Garantir que números marcados com "COM SEGURO" no cache apareçam mesmo sem vínculos no CRM
+      numbersCache?.forEach(c => {
+        const obs = String((c.row_data as any)?.observacoes || (c.row_data as any)?.observacao || "").toLowerCase();
+        if (obs.includes("com seguro") && !statusMap.get(c.baserow_row_id)) {
+          statusMap.set(c.baserow_row_id, {
+            status: "vencido",
+            method: "auto",
+            links: [],
+          });
+        }
+      });
 
       return statusMap;
     },
