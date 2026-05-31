@@ -215,6 +215,9 @@ function HistoricoTab({ clienteIdFilter, onClearFilter }: { clienteIdFilter?: st
   const [loading, setLoading] = useState(true);
   const [periodo, setPeriodo] = useState("7"); // dias
   const [clienteNome, setClienteNome] = useState<string | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [loadingAudioId, setLoadingAudioId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -250,6 +253,81 @@ function HistoricoTab({ clienteIdFilter, onClearFilter }: { clienteIdFilter?: st
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line
   }, [clienteIdFilter, periodo]);
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setPlayingId(null);
+  };
+
+  const handleOuvirGravacao = async (it: any) => {
+    if (playingId === it.id) {
+      stopAudio();
+      return;
+    }
+
+    if (playingId) {
+      stopAudio();
+    }
+
+    setLoadingAudioId(it.id);
+    const url = it.recording_url.includes(".mp3") ? it.recording_url : `${it.recording_url}.mp3`;
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/twilio-recording-proxy`;
+      const res = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ url }),
+      });
+      
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const audio = new Audio(blobUrl);
+      audioRef.current = audio;
+      
+      audio.onplay = () => {
+        setLoadingAudioId(null);
+        setPlayingId(it.id);
+      };
+
+      audio.onended = () => {
+        setPlayingId(null);
+        audioRef.current = null;
+        URL.revokeObjectURL(blobUrl);
+      };
+
+      audio.onerror = () => {
+        setPlayingId(null);
+        setLoadingAudioId(null);
+        audioRef.current = null;
+        sonnerToast.error("Erro ao reproduzir áudio.");
+      };
+
+      await audio.play();
+    } catch (e) {
+      console.error("Erro ao processar gravação:", e);
+      setLoadingAudioId(null);
+      sonnerToast.error("Erro ao acessar a gravação. Tente novamente.");
+    }
+  };
 
   return (
     <Card className="p-4">
@@ -315,39 +393,23 @@ function HistoricoTab({ clienteIdFilter, onClearFilter }: { clienteIdFilter?: st
                 {it.recording_url && (
                   <div className="flex items-center gap-1">
                     <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className="h-8 w-8 text-primary"
-                      title="Ouvir gravação"
-                      onClick={async () => {
-                        const url = it.recording_url.includes(".mp3") ? it.recording_url : `${it.recording_url}.mp3`;
-                        try {
-                          const { data: { session } } = await supabase.auth.getSession();
-                          const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/twilio-recording-proxy`;
-                          const res = await fetch(functionUrl, {
-                            method: 'POST',
-                            headers: {
-                              'Content-Type': 'application/json',
-                              'Authorization': `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-                              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                            },
-                            body: JSON.stringify({ url }),
-                          });
-                          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                          const blob = await res.blob();
-                          const blobUrl = URL.createObjectURL(blob);
-                          const audio = new Audio(blobUrl);
-                          audio.play().catch(e => {
-                            console.error("Erro ao tocar áudio:", e);
-                            window.open(blobUrl, "_blank");
-                          });
-                        } catch (e) {
-                          console.error("Erro ao processar gravação:", e);
-                          sonnerToast.error("Erro ao acessar a gravação. Tente novamente.");
-                        }
-                      }}
+                      size="sm" 
+                      variant={playingId === it.id ? "secondary" : "ghost"}
+                      className={`h-8 gap-2 ${playingId === it.id ? "text-amber-600 animate-pulse" : "text-primary"}`}
+                      title={playingId === it.id ? "Parar gravação" : "Ouvir gravação"}
+                      onClick={() => handleOuvirGravacao(it)}
+                      disabled={loadingAudioId === it.id}
                     >
-                      <Headphones className="h-4 w-4" />
+                      {loadingAudioId === it.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : playingId === it.id ? (
+                        <X className="h-4 w-4" />
+                      ) : (
+                        <Headphones className="h-4 w-4" />
+                      )}
+                      <span className="text-xs font-medium">
+                        {loadingAudioId === it.id ? "Carregando..." : playingId === it.id ? "Ouvindo..." : "Ouvir"}
+                      </span>
                     </Button>
                     <Button 
                       size="icon" 
@@ -556,6 +618,7 @@ function useElevenVoices() {
 
 function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: () => void; onSaved: () => void }) {
   const isDuplicate = !!roteiro.__duplicate;
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [form, setForm] = useState({
     nome: isDuplicate ? `${roteiro.nome ?? ""} (cópia)` : (roteiro.nome ?? ""),
     categoria: roteiro.categoria ?? "cobranca",
@@ -573,6 +636,15 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
   const { voices, loading: loadingVoices, fetch: fetchVoices } = useElevenVoices();
 
   useEffect(() => { fetchVoices(undefined, { silent: true }); /* eslint-disable-next-line */ }, []);
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   // Sincroniza idioma/moeda padrão quando troca tipo
   const setTipo = (tipo: string) => {
@@ -642,13 +714,25 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
       });
       if (error) throw error;
       const audio = new Audio((data as any).signed_url);
+      audioRef.current = audio;
+      
+      // Update state for visual feedback
+      audio.onended = () => {
+        setPreviewing(false);
+        audioRef.current = null;
+      };
+      audio.onerror = () => {
+        setPreviewing(false);
+        audioRef.current = null;
+        toast({ title: "Erro ao reproduzir preview", variant: "destructive" });
+      };
+
       await audio.play();
     } catch (e: any) {
       const description = e?.message?.includes("Failed to send a request")
         ? "O navegador bloqueou a chamada do preview. Atualize a página e tente novamente."
         : e.message;
       toast({ title: "Erro no preview", description, variant: "destructive" });
-    } finally {
       setPreviewing(false);
     }
   };
@@ -756,9 +840,9 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={preview} disabled={previewing}>
+          <Button variant="outline" onClick={preview} disabled={previewing && !audioRef.current}>
             {previewing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Play className="h-4 w-4 mr-1" />}
-            Pré-ouvir
+            {previewing ? "Ouvindo..." : "Pré-ouvir"}
           </Button>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
           <Button onClick={save} disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}Salvar</Button>
