@@ -274,14 +274,16 @@ Deno.serve(async (req) => {
         : `+${String(numeroDestino).replace(/\D/g, "")}`;
       let twimlUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml?audio_url=${encodeURIComponent(ttsData.signed_url)}&hist_id=${hist.id}`;
       let targetTo = normalizedDestination;
+      let isBridgeMode = false;
 
       if (manual && consultor_phone) {
         // Bridge mode: Twilio calls the consultant first, then bridges to customer
+        isBridgeMode = true;
         targetTo = consultor_phone.startsWith("+") ? consultor_phone : `+${consultor_phone.replace(/\D/g, "")}`;
         twimlUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml?bridge_to=${encodeURIComponent(normalizedDestination)}&hist_id=${hist.id}`;
       }
       
-      const statusCallbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml?hist_id=${hist.id}`;
+      const statusCallbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml?hist_id=${hist.id}&twilio_event=${isBridgeMode ? "bridge_parent" : "direct_call"}`;
       
       const basicAuth = btoa(`${twilioSid}:${twilioAuth}`);
       
@@ -293,7 +295,8 @@ Deno.serve(async (req) => {
         StatusCallback: statusCallbackUrl,
         StatusCallbackMethod: "POST",
       });
-      ["initiated", "ringing", "answered", "completed"].forEach((event) => {
+      const statusEvents = isBridgeMode ? ["initiated", "ringing", "answered"] : ["initiated", "ringing", "answered", "completed"];
+      statusEvents.forEach((event) => {
         callParams.append("StatusCallbackEvent", event);
       });
 
