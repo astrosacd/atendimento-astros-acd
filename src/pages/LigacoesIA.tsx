@@ -215,6 +215,9 @@ function HistoricoTab({ clienteIdFilter, onClearFilter }: { clienteIdFilter?: st
   const [loading, setLoading] = useState(true);
   const [periodo, setPeriodo] = useState("7"); // dias
   const [clienteNome, setClienteNome] = useState<string | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [loadingAudioId, setLoadingAudioId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const load = async () => {
     setLoading(true);
