@@ -107,6 +107,7 @@ export default function ConsultarCliente() {
   const [groupClienteName, setGroupClienteName] = useState<string>('');
   const [groupClienteNumero, setGroupClienteNumero] = useState<string>('');
   const [ligarIACliente, setLigarIACliente] = useState<{ id: string; nome: string; numero: string } | null>(null);
+  const [sendSmsCliente, setSendSmsCliente] = useState<{ id: string; nome: string; numero: string } | null>(null);
   const { canViewSocialCredentials, canViewServerCredentials, canCreateWhatsAppGroups, canViewClientAI, canViewClientGraph, canViewPaymentSecurity } = usePermissions();
   const canViewUpsell = canViewClientAI; // Reusing AI permission for now
   const [availableTags, setAvailableTags] = useState<string[]>([]);
@@ -956,6 +957,14 @@ export default function ConsultarCliente() {
                                       <PhoneCall className="h-4 w-4 text-fuchsia-500" />
                                       <span>Ligar com IA</span>
                                     </DropdownMenuItem>
+
+                                    <DropdownMenuItem
+                                      onClick={() => setSendSmsCliente({ id: cliente.id, nome: cliente.nome, numero: cliente.numero })}
+                                      className="gap-2"
+                                    >
+                                      <MessageSquare className="h-4 w-4 text-blue-500" />
+                                      <span>Enviar SMS</span>
+                                    </DropdownMenuItem>
                                   </>
                                 )}
                               </DropdownMenuContent>
@@ -1320,6 +1329,15 @@ export default function ConsultarCliente() {
             onOpenChange={(o) => !o && setLigarIACliente(null)}
           />
         )}
+
+        {sendSmsCliente && (
+          <SendSMSDialog
+            clienteId={sendSmsCliente.id}
+            clienteNome={sendSmsCliente.nome}
+            clienteNumero={sendSmsCliente.numero}
+            open={!!sendSmsCliente}
+            onOpenChange={(o) => !o && setSendSmsCliente(null)}
+          />
 
         <AlertDialog open={!!duplicateTarget} onOpenChange={(open) => !open && setDuplicateTarget(null)}>
           <AlertDialogContent>
