@@ -785,19 +785,13 @@ function ConsultorTab({ provider, wavoipToken }: { provider: string; wavoipToken
           },
         });
         
-        setCallStatus("Twilio ligando para você... Atenda para conectar ao cliente.");
+        const d = data as any;
+        setCallStatus("Twilio ligando para você... Atenda e aguarde a chamada do cliente.");
         toast({ 
           title: "Chamada Twilio Iniciada", 
-          description: "O Twilio está ligando para o seu número. Atenda para ser conectado ao cliente." 
+          description: "Atenda seu telefone e aguarde na linha enquanto o Twilio chama o cliente." 
         });
-        // For Twilio bridge, we don't have a "hangup" handle in the browser unless we use the SDK.
-        // But we can show a "calling" state.
-        setTimeout(() => {
-          if (calling) {
-             setCalling(false);
-             setCallStatus("");
-          }
-        }, 30000);
+        if (d?.historico_id) startTwilioStatusPolling(d.historico_id);
       }
     } catch (e: any) {
       setCalling(false);
