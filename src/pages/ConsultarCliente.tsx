@@ -1338,6 +1338,7 @@ export default function ConsultarCliente() {
             open={!!sendSmsCliente}
             onOpenChange={(o) => !o && setSendSmsCliente(null)}
           />
+        )}
 
         <AlertDialog open={!!duplicateTarget} onOpenChange={(open) => !open && setDuplicateTarget(null)}>
           <AlertDialogContent>
