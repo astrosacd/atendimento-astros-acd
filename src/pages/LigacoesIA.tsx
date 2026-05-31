@@ -706,6 +706,49 @@ function ConsultorTab({ provider, wavoipToken }: { provider: string; wavoipToken
     if (twilioPollRef.current) window.clearInterval(twilioPollRef.current);
   }, []);
 
+  const startTwilioStatusPolling = (historicoId: string) => {
+    if (twilioPollRef.current) window.clearInterval(twilioPollRef.current);
+
+    const statusText: Record<string, string> = {
+      iniciando: "Preparando ponte Twilio...",
+      discando: "Twilio discando. Primeiro chama seu telefone; depois chama o cliente.",
+      tocando: "Telefone chamando. Atenda e aguarde a conexão com o cliente.",
+      atendida: "Chamada atendida. Mantendo a ponte ativa com o cliente.",
+      finalizada: "Chamada finalizada.",
+      nao_atendeu: "A chamada não foi atendida.",
+      ocupado: "Número ocupado.",
+      cancelada: "Chamada cancelada.",
+      erro: "Falha ao conectar a chamada.",
+    };
+
+    let attempts = 0;
+    twilioPollRef.current = window.setInterval(async () => {
+      attempts += 1;
+      const { data } = await supabase
+        .from("ligacoes_ia_historico")
+        .select("status,error_message")
+        .eq("id", historicoId)
+        .maybeSingle();
+
+      if (!data) return;
+      const status = data.status ?? "discando";
+      setCallStatus(statusText[status] ?? STATUS_LABEL[status] ?? status);
+
+      if (["finalizada", "nao_atendeu", "ocupado", "cancelada", "erro"].includes(status) || attempts >= 40) {
+        if (twilioPollRef.current) window.clearInterval(twilioPollRef.current);
+        twilioPollRef.current = null;
+        setCalling(false);
+        if (status !== "finalizada" || data.error_message) {
+          toast({
+            title: status === "finalizada" ? "Chamada encerrada" : "Chamada não conectada",
+            description: data.error_message || statusText[status] || "A ponte Twilio foi encerrada antes de conectar ao cliente.",
+            variant: status === "finalizada" ? "default" : "destructive",
+          });
+        }
+      }
+    }, 3000);
+  };
+
   const ligar = async () => {
     const cleanNum = numero.replace(/\D/g, "");
     if (!cleanNum) return toast({ title: "Informe o número de destino", variant: "destructive" });
