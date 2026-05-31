@@ -5374,6 +5374,7 @@ export type Database = {
           numero_destino: string
           numero_origem: string | null
           raw_payload: Json | null
+          recording_url: string | null
           roteiro_id: string | null
           source: string
           started_at: string | null
@@ -5397,6 +5398,7 @@ export type Database = {
           numero_destino: string
           numero_origem?: string | null
           raw_payload?: Json | null
+          recording_url?: string | null
           roteiro_id?: string | null
           source?: string
           started_at?: string | null
@@ -5420,6 +5422,7 @@ export type Database = {
           numero_destino?: string
           numero_origem?: string | null
           raw_payload?: Json | null
+          recording_url?: string | null
           roteiro_id?: string | null
           source?: string
           started_at?: string | null

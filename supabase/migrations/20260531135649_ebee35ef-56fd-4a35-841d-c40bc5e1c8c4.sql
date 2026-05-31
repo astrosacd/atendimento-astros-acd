@@ -1,0 +1,1 @@
+ALTER TABLE public.ligacoes_ia_historico ADD COLUMN IF NOT EXISTS recording_url TEXT;
