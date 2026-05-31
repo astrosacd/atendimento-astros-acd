@@ -186,6 +186,7 @@ export default function LigacoesIA() {
           <TabsList className="flex flex-wrap w-full max-w-5xl h-auto">
             <TabsTrigger value="historico"><History className="h-4 w-4 mr-2" />Histórico</TabsTrigger>
             <TabsTrigger value="fila"><ListChecks className="h-4 w-4 mr-2" />Fila do dia</TabsTrigger>
+            <TabsTrigger value="consultor"><User className="h-4 w-4 mr-2" />Consultor</TabsTrigger>
             <TabsTrigger value="roteiros"><FileText className="h-4 w-4 mr-2" />Roteiros</TabsTrigger>
             <TabsTrigger value="disparo"><Phone className="h-4 w-4 mr-2" />Disparo</TabsTrigger>
             <TabsTrigger value="campanhas"><Megaphone className="h-4 w-4 mr-2" />Campanhas</TabsTrigger>
