@@ -7,14 +7,26 @@ const corsHeaders = {
 }
 
 // Normalize phone to E.164 format (Twilio requires + prefix)
-function normalizeToE164(raw: string): { ok: true; value: string } | { ok: false; reason: string } {
+function normalizeToE164(raw: string, isTwilioNumber = false): { ok: true; value: string } | { ok: false; reason: string } {
   if (!raw) return { ok: false, reason: 'Número vazio.' };
-  let digits = String(raw).replace(/\D/g, '');
+  let cleaned = String(raw).trim();
+  
+  // If it already starts with +, just ensure it only has digits after that
+  if (cleaned.startsWith('+')) {
+    const digitsOnly = cleaned.substring(1).replace(/\D/g, '');
+    return { ok: true, value: '+' + digitsOnly };
+  }
+
+  let digits = cleaned.replace(/\D/g, '');
   if (!digits) return { ok: false, reason: 'Número sem dígitos válidos.' };
 
-  // If user typed BR local format (10 or 11 digits), prepend 55
-  if (digits.length === 10 || digits.length === 11) {
-    digits = '55' + digits;
+  // For Twilio numbers (usually US in trial), we don't want to auto-prepend 55
+  // US numbers are 11 digits (1 + area + number), same as BR mobile + DDD.
+  if (!isTwilioNumber) {
+    // If user typed BR local format (10 or 11 digits), prepend 55
+    if (digits.length === 10 || digits.length === 11) {
+      digits = '55' + digits;
+    }
   }
 
   // Basic E.164 sanity: between 8 and 15 digits total
@@ -109,8 +121,8 @@ serve(async (req) => {
       finalBody = finalBody.replace(regex, String(val || ''));
     });
 
-    // Normalize destination to E.164
-    const normalized = normalizeToE164(to);
+    // Normalize destination to E.164 (not a Twilio number)
+    const normalized = normalizeToE164(to, false);
     if (!normalized.ok) {
       return new Response(JSON.stringify({ error: normalized.reason }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -132,8 +144,8 @@ serve(async (req) => {
       throw new Error('Configuração do Twilio incompleta. Configure em Ligações IA → Configurações.')
     }
 
-    // Normalize From number
-    const fromNormalized = normalizeToE164(config.twilio_phone_number);
+    // Normalize From number (IS a Twilio number, skip auto-prepend 55)
+    const fromNormalized = normalizeToE164(config.twilio_phone_number, true);
     const fromE164 = fromNormalized.ok ? fromNormalized.value : config.twilio_phone_number;
 
     const auth = btoa(`${config.twilio_account_sid}:${config.twilio_auth_token}`)
