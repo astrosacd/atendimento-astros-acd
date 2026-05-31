@@ -37,8 +37,41 @@ Deno.serve(async (req) => {
       voice_id_override, 
       valor_extenso = false,
       manual = false,
-      consultor_phone = ""
+      consultor_phone = "",
+      action = "call",
+      call_sid = ""
     } = body;
+
+    // Handle hangup action
+    if (action === "hangup") {
+      if (!call_sid) return new Response(JSON.stringify({ error: "call_sid ausente para desligamento" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      
+      const { data: configRows } = await supabase.from("ligacoes_ia_config").select("config_key, config_value");
+      const cfg: Record<string, string> = {};
+      (configRows ?? []).forEach((r: any) => cfg[r.config_key] = r.config_value ?? "");
+
+      const sid = cfg.twilio_account_sid;
+      const auth = cfg.twilio_auth_token;
+      if (!sid || !auth) return new Response(JSON.stringify({ error: "Twilio não configurado" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+      const basicAuth = btoa(`${sid}:${auth}`);
+      const hangupRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Calls/${call_sid}.json`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Authorization": `Basic ${basicAuth}`,
+        },
+        body: new URLSearchParams({ Status: "completed" }),
+      });
+
+      if (!hangupRes.ok) {
+        const err = await hangupRes.json();
+        return new Response(JSON.stringify({ error: err.message || "Erro ao desligar no Twilio" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
 
     // Load config
     const { data: configRows } = await supabase.from("ligacoes_ia_config").select("config_key, config_value");
