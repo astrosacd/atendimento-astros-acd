@@ -34,6 +34,34 @@ function mapTwilioStatus(callStatus?: string | null) {
   return "atualizado";
 }
 
+function mapDialStatus(dialStatus?: string | null) {
+  if (dialStatus === "completed") return "finalizada";
+  if (dialStatus === "answered" || dialStatus === "in-progress") return "atendida";
+  if (dialStatus === "busy") return "ocupado";
+  if (dialStatus === "no-answer") return "nao_atendeu";
+  if (dialStatus === "canceled") return "cancelada";
+  if (dialStatus === "failed") return "erro";
+  return "atualizado";
+}
+
+function terminalStatus(status: string) {
+  return ["finalizada", "nao_atendeu", "ocupado", "erro", "cancelada"].includes(status);
+}
+
+function twimlForBridge(customerNumber: string, histId?: string | null) {
+  const baseUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml`;
+  const actionUrl = `${baseUrl}?hist_id=${encodeURIComponent(histId ?? "")}&twilio_event=dial_action`;
+  const numberStatusUrl = `${baseUrl}?hist_id=${encodeURIComponent(histId ?? "")}&twilio_event=dial_number`;
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say language="pt-BR">Conectando você ao cliente agora. Aguarde na linha.</Say>
+    <Dial action="${escapeXml(actionUrl)}" method="POST" timeout="35" answerOnBridge="true">
+        <Number statusCallback="${escapeXml(numberStatusUrl)}" statusCallbackMethod="POST" statusCallbackEvent="initiated ringing answered completed">${escapeXml(customerNumber)}</Number>
+    </Dial>
+</Response>`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
