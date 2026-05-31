@@ -695,8 +695,10 @@ function ConsultorTab({ provider, wavoipToken }: { provider: string; wavoipToken
   const [consultorPhone, setConsultorPhone] = useState(() => localStorage.getItem("ligacoes_consultor_phone") || "");
   const [calling, setCalling] = useState(false);
   const [callStatus, setCallStatus] = useState("");
+  const [lastCallSid, setLastCallSid] = useState<string | null>(null);
   const callRef = useRef<ActiveCallHandle | null>(null);
   const twilioPollRef = useRef<number | null>(null);
+
 
   useEffect(() => {
     localStorage.setItem("ligacoes_consultor_phone", consultorPhone);
@@ -787,6 +789,7 @@ function ConsultorTab({ provider, wavoipToken }: { provider: string; wavoipToken
         });
         
         const d = data as any;
+        setLastCallSid(d?.call_sid || null);
         setCallStatus("Twilio ligando para você... Atenda e aguarde a chamada do cliente.");
         toast({ 
           title: "Chamada Twilio Iniciada", 
@@ -806,6 +809,18 @@ function ConsultorTab({ provider, wavoipToken }: { provider: string; wavoipToken
       window.clearInterval(twilioPollRef.current);
       twilioPollRef.current = null;
     }
+
+    if (provider === "twilio" && lastCallSid) {
+      try {
+        await invokeFunction("ligacoes-ia-call", {
+          body: { action: "hangup", call_sid: lastCallSid }
+        });
+        setLastCallSid(null);
+      } catch (e) {
+        console.error("Erro ao desligar Twilio:", e);
+      }
+    }
+
     await callRef.current?.hangup();
     callRef.current = null;
     setCalling(false);
@@ -897,6 +912,7 @@ function DisparoTab() {
   const [nome, setNome] = useState("");
   const [valor, setValor] = useState("");
   const [calling, setCalling] = useState(false);
+  const [lastCallSid, setLastCallSid] = useState<string | null>(null);
   const [clienteDialogOpen, setClienteDialogOpen] = useState(false);
   const { voices, fetch: fetchVoices } = useElevenVoices();
 
@@ -929,7 +945,13 @@ function DisparoTab() {
       const d = data as any;
       if (d?.provider === "twilio") {
         setCallStatus("Ligação iniciada via Twilio...");
-        setCalling(false); // In Twilio, we don't hold the call in the browser
+        setLastCallSid(d?.call_sid || null);
+        setCalling(false); // In Twilio, we don't hold the call in the browser unless we want to allow hangup from UI
+        // We'll keep calling true if we want to show the hangup button for Twilio PSTN calls too
+        // but currently the AI flow is "fire and forget" or "bridge and hangup".
+        // Let's enable hangup for Twilio PSTN manual fires too
+        if (d?.call_sid) setCalling(true); 
+        
         toast({ title: "Ligação Twilio iniciada", description: "O Twilio está discando para o cliente." });
         return;
       }
@@ -955,6 +977,16 @@ function DisparoTab() {
   };
 
   const desligar = async () => {
+    if (lastCallSid) {
+      try {
+        await invokeFunction("ligacoes-ia-call", {
+          body: { action: "hangup", call_sid: lastCallSid }
+        });
+        setLastCallSid(null);
+      } catch (e) {
+        console.error("Erro ao desligar Twilio:", e);
+      }
+    }
     await callRef.current?.hangup();
     callRef.current = null;
     setCalling(false);
