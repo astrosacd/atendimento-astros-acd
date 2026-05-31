@@ -313,22 +313,36 @@ function HistoricoTab({ clienteIdFilter, onClearFilter }: { clienteIdFilter?: st
               
               <div className="flex items-center gap-2">
                 {it.recording_url && (
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    className="h-8 w-8 text-primary"
-                    title="Ouvir gravação"
-                    onClick={() => {
-                      const url = it.recording_url.includes(".mp3") ? it.recording_url : `${it.recording_url}.mp3`;
-                      const audio = new Audio(url);
-                      audio.play().catch(e => {
-                        console.error("Erro ao tocar áudio:", e);
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8 text-primary"
+                      title="Ouvir gravação"
+                      onClick={() => {
+                        const url = it.recording_url.includes(".mp3") ? it.recording_url : `${it.recording_url}.mp3`;
+                        const audio = new Audio(url);
+                        audio.play().catch(e => {
+                          console.error("Erro ao tocar áudio:", e);
+                          window.open(url, "_blank");
+                        });
+                      }}
+                    >
+                      <Headphones className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8 text-muted-foreground"
+                      title="Baixar gravação"
+                      onClick={() => {
+                        const url = it.recording_url.includes(".mp3") ? it.recording_url : `${it.recording_url}.mp3`;
                         window.open(url, "_blank");
-                      });
-                    }}
-                  >
-                    <Headphones className="h-4 w-4" />
-                  </Button>
+                      }}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
                 )}
                 <code className="text-xs text-muted-foreground hidden md:block">{it.numero_destino}</code>
               </div>
