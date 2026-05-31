@@ -269,14 +269,21 @@ Deno.serve(async (req) => {
       const twilioAuth = cfg.twilio_auth_token;
       const twilioFrom = cfg.twilio_phone_number;
       
-      const twimlUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml?audio_url=${encodeURIComponent(ttsData.signed_url)}&hist_id=${hist.id}`;
+      let twimlUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml?audio_url=${encodeURIComponent(ttsData.signed_url)}&hist_id=${hist.id}`;
+      let targetTo = normalizedDestination;
+
+      if (manual && consultor_phone) {
+        // Bridge mode: Twilio calls the consultant first, then bridges to customer
+        targetTo = consultor_phone.startsWith("+") ? consultor_phone : `+${consultor_phone.replace(/\D/g, "")}`;
+        twimlUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml?bridge_to=${encodeURIComponent(normalizedDestination)}&hist_id=${hist.id}`;
+      }
+      
       const statusCallbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml?hist_id=${hist.id}`;
-      const normalizedDestination = numeroDestino.startsWith("+") ? numeroDestino : `+${numeroDestino.replace(/\D/g, "")}`;
       
       const basicAuth = btoa(`${twilioSid}:${twilioAuth}`);
       
       const callParams = new URLSearchParams({
-        To: normalizedDestination,
+        To: targetTo,
         From: twilioFrom,
         Url: twimlUrl,
         Method: "GET",
