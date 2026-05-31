@@ -347,51 +347,61 @@ export function FilaLigacoesTab({ mode = "normal" }: { mode?: "normal" | "standa
         throw new Error(realMsg);
       }
       const d = data as any;
-      if (!d?.wavoip_token || !d?.audio_url || !d?.phone) throw new Error("Resposta inválida (faltam token/áudio/número)");
-
-
       await supabase.from("ligacoes_agendadas").update({ historico_id: d.historico_id }).eq("id", item.id);
 
-      await new Promise<void>((resolve, reject) => {
-        let settled = false;
-        placeCallWithTTS({
-          token: d.wavoip_token,
-          phone: d.phone,
-          audioUrl: d.audio_url,
-          historicoId: d.historico_id,
-          audioContext: audioCtxRef.current || undefined,
-          onStatus: (s) => setCurrentStatus(`${displayName}: ${s}`),
-          onEnded: () => { 
-            callRef.current = null; 
-            if (!settled) {
-              settled = true;
-              resolve(); 
-            }
-          },
-        }).then((handle) => { 
-          callRef.current = handle; 
-        }).catch((err) => {
-          if (!settled) {
-            settled = true;
-            reject(err);
-          }
+      if (d?.provider === "twilio") {
+        // Twilio: ligação foi disparada pelo servidor via PSTN. Aguarda o webhook de status atualizar o histórico.
+        setCurrentStatus(`${displayName}: discando via Twilio…`);
+        const TERMINAL = new Set(["finalizada", "erro", "ocupado", "nao_atendeu", "cancelada", "falhou"]);
+        const start = Date.now();
+        const MAX_MS = 3 * 60 * 1000; // 3 minutos
+        let outcome = "finalizada";
+        while (Date.now() - start < MAX_MS) {
+          if (pauseRef.current) break;
+          await new Promise(r => setTimeout(r, 4000));
+          const { data: hist } = await supabase.from("ligacoes_ia_historico").select("status").eq("id", d.historico_id).maybeSingle();
+          const s = (hist?.status ?? "").toLowerCase();
+          if (s) setCurrentStatus(`${displayName}: ${s}`);
+          if (TERMINAL.has(s)) { outcome = s; break; }
+        }
+        const finalStatus: Agendada["status"] = (outcome === "finalizada" || outcome === "nao_atendeu" || outcome === "ocupado") ? "finalizada" : "falhou";
+        await supabase.from("ligacoes_agendadas").update({
+          status: finalStatus,
+          processada_em: new Date().toISOString(),
+          erro: finalStatus === "falhou" ? `Twilio: ${outcome}` : null,
+        }).eq("id", item.id);
+      } else {
+        // Wavoip: fluxo WebRTC no navegador
+        if (!d?.wavoip_token || !d?.audio_url || !d?.phone) throw new Error("Resposta inválida (faltam token/áudio/número)");
+
+        await new Promise<void>((resolve, reject) => {
+          let settled = false;
+          placeCallWithTTS({
+            token: d.wavoip_token,
+            phone: d.phone,
+            audioUrl: d.audio_url,
+            historicoId: d.historico_id,
+            audioContext: audioCtxRef.current || undefined,
+            onStatus: (s) => setCurrentStatus(`${displayName}: ${s}`),
+            onEnded: () => {
+              callRef.current = null;
+              if (!settled) { settled = true; resolve(); }
+            },
+          }).then((handle) => { callRef.current = handle; })
+            .catch((err) => { if (!settled) { settled = true; reject(err); } });
         });
-      });
 
-      // Busca o status real do histórico para decidir se marca como finalizada ou falhou
-      const { data: hist } = await supabase.from("ligacoes_ia_historico").select("status").eq("id", d.historico_id).maybeSingle();
-      const outcome = (hist?.status ?? "").toLowerCase();
-      
-      let finalStatus: Agendada["status"] = "finalizada";
-      if (outcome.includes("error") || outcome.includes("fail")) {
-        finalStatus = "falhou";
+        const { data: hist } = await supabase.from("ligacoes_ia_historico").select("status").eq("id", d.historico_id).maybeSingle();
+        const outcome = (hist?.status ?? "").toLowerCase();
+        let finalStatus: Agendada["status"] = "finalizada";
+        if (outcome.includes("error") || outcome.includes("fail")) finalStatus = "falhou";
+
+        await supabase.from("ligacoes_agendadas").update({
+          status: finalStatus,
+          processada_em: new Date().toISOString(),
+          erro: finalStatus === "falhou" ? "Erro detectado no histórico da chamada" : null,
+        }).eq("id", item.id);
       }
-
-      await supabase.from("ligacoes_agendadas").update({ 
-        status: finalStatus, 
-        processada_em: new Date().toISOString(), 
-        erro: finalStatus === "falhou" ? "Erro detectado no histórico da chamada" : null 
-      }).eq("id", item.id);
     } catch (e: any) {
       console.error("[Fila] Erro no processOne:", e);
       await supabase.from("ligacoes_agendadas").update({
