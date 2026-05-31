@@ -739,10 +739,11 @@ function ConsultorTab({ provider, wavoipToken }: { provider: string; wavoipToken
         twilioPollRef.current = null;
         setCalling(false);
         if (status !== "finalizada" || data.error_message) {
+          const hasBridgeError = Boolean(data.error_message);
           toast({
-            title: status === "finalizada" ? "Chamada encerrada" : "Chamada não conectada",
+            title: status === "finalizada" && !hasBridgeError ? "Chamada encerrada" : "Chamada não conectada",
             description: data.error_message || statusText[status] || "A ponte Twilio foi encerrada antes de conectar ao cliente.",
-            variant: status === "finalizada" ? "default" : "destructive",
+            variant: status === "finalizada" && !hasBridgeError ? "default" : "destructive",
           });
         }
       }
