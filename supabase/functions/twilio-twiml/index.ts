@@ -25,7 +25,7 @@ function twimlForAudio(audioUrl: string) {
 function mapTwilioStatus(callStatus?: string | null) {
   if (callStatus === "initiated" || callStatus === "queued") return "discando";
   if (callStatus === "ringing") return "tocando";
-  if (callStatus === "in-progress") return "atendida";
+  if (callStatus === "in-progress" || callStatus === "answered") return "atendida";
   if (callStatus === "completed") return "finalizada";
   if (callStatus === "busy") return "ocupado";
   if (callStatus === "no-answer") return "nao_atendeu";
