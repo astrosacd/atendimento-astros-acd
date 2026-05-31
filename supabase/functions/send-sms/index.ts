@@ -121,8 +121,8 @@ serve(async (req) => {
       finalBody = finalBody.replace(regex, String(val || ''));
     });
 
-    // Normalize destination to E.164
-    const normalized = normalizeToE164(to);
+    // Normalize destination to E.164 (not a Twilio number)
+    const normalized = normalizeToE164(to, false);
     if (!normalized.ok) {
       return new Response(JSON.stringify({ error: normalized.reason }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -144,8 +144,8 @@ serve(async (req) => {
       throw new Error('Configuração do Twilio incompleta. Configure em Ligações IA → Configurações.')
     }
 
-    // Normalize From number
-    const fromNormalized = normalizeToE164(config.twilio_phone_number);
+    // Normalize From number (IS a Twilio number, skip auto-prepend 55)
+    const fromNormalized = normalizeToE164(config.twilio_phone_number, true);
     const fromE164 = fromNormalized.ok ? fromNormalized.value : config.twilio_phone_number;
 
     const auth = btoa(`${config.twilio_account_sid}:${config.twilio_auth_token}`)
