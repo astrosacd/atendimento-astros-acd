@@ -319,13 +319,27 @@ function HistoricoTab({ clienteIdFilter, onClearFilter }: { clienteIdFilter?: st
                       variant="ghost" 
                       className="h-8 w-8 text-primary"
                       title="Ouvir gravação"
-                      onClick={() => {
+                      onClick={async () => {
                         const url = it.recording_url.includes(".mp3") ? it.recording_url : `${it.recording_url}.mp3`;
-                        const audio = new Audio(url);
-                        audio.play().catch(e => {
-                          console.error("Erro ao tocar áudio:", e);
-                          window.open(url, "_blank");
-                        });
+                        try {
+                          const { data, error } = await supabase.functions.invoke('twilio-recording-proxy', {
+                            body: { url }
+                          });
+                          
+                          if (error) throw error;
+                          
+                          // Create a blob URL and play it
+                          const blob = new Blob([data], { type: 'audio/mpeg' });
+                          const blobUrl = URL.createObjectURL(blob);
+                          const audio = new Audio(blobUrl);
+                          audio.play().catch(e => {
+                            console.error("Erro ao tocar áudio:", e);
+                            window.open(blobUrl, "_blank");
+                          });
+                        } catch (e) {
+                          console.error("Erro ao processar gravação:", e);
+                          sonnerToast.error("Erro ao acessar a gravação. Tente novamente.");
+                        }
                       }}
                     >
                       <Headphones className="h-4 w-4" />
@@ -335,9 +349,27 @@ function HistoricoTab({ clienteIdFilter, onClearFilter }: { clienteIdFilter?: st
                       variant="ghost" 
                       className="h-8 w-8 text-muted-foreground"
                       title="Baixar gravação"
-                      onClick={() => {
+                      onClick={async () => {
                         const url = it.recording_url.includes(".mp3") ? it.recording_url : `${it.recording_url}.mp3`;
-                        window.open(url, "_blank");
+                        try {
+                          const { data, error } = await supabase.functions.invoke('twilio-recording-proxy', {
+                            body: { url }
+                          });
+                          
+                          if (error) throw error;
+                          
+                          const blob = new Blob([data], { type: 'audio/mpeg' });
+                          const blobUrl = URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = blobUrl;
+                          link.download = `gravacao-${it.id.slice(0, 8)}.mp3`;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        } catch (e) {
+                          console.error("Erro ao baixar gravação:", e);
+                          sonnerToast.error("Erro ao baixar a gravação.");
+                        }
                       }}
                     >
                       <Download className="h-4 w-4" />
