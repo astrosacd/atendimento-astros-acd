@@ -64,9 +64,45 @@ function todayInBrazil() {
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
-export function FilaSMSTab() {
+export function FilaSMSTab({ mode = "normal" }: { mode?: "normal" | "standalone" } = {}) {
+  const isStandalone = mode === "standalone";
   const { hasPermission } = usePermissions();
   const canExecute = hasPermission("execute_sms_fila");
+
+  const openFilaTab = () => {
+    const search = window.location.search;
+    const handoffParam = search ? (search.includes('?') ? '&handoff=1' : '?handoff=1') : '?handoff=1';
+    const url = `${FILA_STANDALONE_PATH}${search}${handoffParam}`;
+    
+    const win = window.open(url, "_blank");
+    if (!win) {
+      copyToClipboard(url.toString());
+      toast({
+        title: "Pop-up bloqueado",
+        description: "Link copiado. Cole numa nova guia ou libere pop-ups.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const handleHandoffRequest = async (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.source !== win) return;
+      if (event.data?.type !== "SMS_IA_AUTH_HANDOFF_REQUEST") return;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      win.postMessage({
+        type: "SMS_IA_AUTH_HANDOFF_RESPONSE",
+        session: session ? {
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        } : null,
+      }, window.location.origin);
+    };
+
+    window.addEventListener("message", handleHandoffRequest);
+    window.setTimeout(() => window.removeEventListener("message", handleHandoffRequest), 15000);
+  };
 
   const [items, setItems] = useState<AgendadoSMS[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,10 +115,12 @@ export function FilaSMSTab() {
   const [confirmClear, setConfirmClear] = useState(false);
 
   const [remoteRunning, setRemoteRunning] = useState<boolean>(() => {
+    if (isStandalone) return false;
     try { return !!localStorage.getItem(FILA_FLAG_KEY); } catch { return false; }
   });
 
   useEffect(() => {
+    if (isStandalone) return;
     const sync = () => {
       try { setRemoteRunning(!!localStorage.getItem(FILA_FLAG_KEY)); } catch {}
     };
@@ -95,7 +133,7 @@ export function FilaSMSTab() {
       window.removeEventListener("focus", sync);
       window.clearInterval(itv);
     };
-  }, []);
+  }, [isStandalone]);
 
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterTipoD, setFilterTipoD] = useState<string>("todos");
