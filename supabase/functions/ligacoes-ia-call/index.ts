@@ -258,22 +258,29 @@ Deno.serve(async (req) => {
       
       const twimlUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml?audio_url=${encodeURIComponent(ttsData.signed_url)}&hist_id=${hist.id}`;
       const statusCallbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml?hist_id=${hist.id}`;
+      const normalizedDestination = numeroDestino.startsWith("+") ? numeroDestino : `+${numeroDestino.replace(/\D/g, "")}`;
       
       const basicAuth = btoa(`${twilioSid}:${twilioAuth}`);
       
+      const callParams = new URLSearchParams({
+        To: normalizedDestination,
+        From: twilioFrom,
+        Url: twimlUrl,
+        Method: "GET",
+        StatusCallback: statusCallbackUrl,
+        StatusCallbackMethod: "POST",
+      });
+      ["initiated", "ringing", "answered", "completed"].forEach((event) => {
+        callParams.append("StatusCallbackEvent", event);
+      });
+
       const twilioRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Calls.json`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
           "Authorization": `Basic ${basicAuth}`,
         },
-        body: new URLSearchParams({
-          To: numeroDestino.startsWith("+") ? numeroDestino : `+${numeroDestino.replace(/\D/g, "")}`,
-          From: twilioFrom,
-          Url: twimlUrl,
-          StatusCallback: statusCallbackUrl,
-          StatusCallbackEvent: "initiated,ringing,answered,completed",
-        }),
+        body: callParams,
       });
 
       const twilioData = await twilioRes.json();
@@ -291,7 +298,7 @@ Deno.serve(async (req) => {
       await supabase.from("ligacoes_ia_historico").update({
         status: "discando",
         wavoip_call_id: twilioData.sid,
-        raw_payload: { mode: "twilio_pstn", call_sid: twilioData.sid },
+        raw_payload: { mode: "twilio_pstn", call_sid: twilioData.sid, to: normalizedDestination, from: twilioFrom, twiml_url: twimlUrl, status_callback_url: statusCallbackUrl },
       }).eq("id", hist.id);
 
       return new Response(JSON.stringify({
