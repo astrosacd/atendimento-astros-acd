@@ -156,7 +156,7 @@ serve(async (req) => {
     const twilioData = await response.json()
     const { data: userData } = await supabaseClient.auth.getUser(req.headers.get('Authorization')?.split(' ')[1] ?? '')
 
-    const friendly = response.ok ? null : friendlyTwilioError(twilioData.code, twilioData.message, toE164);
+    const friendly = response.ok ? null : friendlyTwilioError(twilioData.code, twilioData.message, toE164, fromE164);
 
     const { data: hist } = await supabaseClient.from('sms_history').insert({
       cliente_id: cliente_id || null,
