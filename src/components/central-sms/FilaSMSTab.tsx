@@ -19,8 +19,10 @@ import {
   Trash2, Megaphone, Bot, ExternalLink,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
+import { copyToClipboard } from "@/utils/clipboard";
 
 const FILA_FLAG_KEY = "sms_fila_executando";
+const FILA_STANDALONE_PATH = "/central-sms/fila-executando";
 
 type AgendadoSMS = {
   id: string;
