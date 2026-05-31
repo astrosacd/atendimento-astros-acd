@@ -20,7 +20,7 @@ import { format, subDays, startOfDay, addHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LigarComIADialog } from "@/components/LigarComIADialog";
 import { User } from "lucide-react";
-import { placeCallWithTTS, type ActiveCallHandle } from "@/lib/wavoipCall";
+import { placeCallWithTTS, placeManualCall, type ActiveCallHandle } from "@/lib/wavoipCall";
 import { CobrancaConfigTab } from "@/components/ligacoes-ia/CobrancaConfigTab";
 import { FilaLigacoesTab } from "@/components/ligacoes-ia/FilaLigacoesTab";
 import { CampanhasLigacoesTab } from "@/components/ligacoes-ia/CampanhasLigacoesTab";
