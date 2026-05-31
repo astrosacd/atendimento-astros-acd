@@ -7,14 +7,26 @@ const corsHeaders = {
 }
 
 // Normalize phone to E.164 format (Twilio requires + prefix)
-function normalizeToE164(raw: string): { ok: true; value: string } | { ok: false; reason: string } {
+function normalizeToE164(raw: string, isTwilioNumber = false): { ok: true; value: string } | { ok: false; reason: string } {
   if (!raw) return { ok: false, reason: 'Número vazio.' };
-  let digits = String(raw).replace(/\D/g, '');
+  let cleaned = String(raw).trim();
+  
+  // If it already starts with +, just ensure it only has digits after that
+  if (cleaned.startsWith('+')) {
+    const digitsOnly = cleaned.substring(1).replace(/\D/g, '');
+    return { ok: true, value: '+' + digitsOnly };
+  }
+
+  let digits = cleaned.replace(/\D/g, '');
   if (!digits) return { ok: false, reason: 'Número sem dígitos válidos.' };
 
-  // If user typed BR local format (10 or 11 digits), prepend 55
-  if (digits.length === 10 || digits.length === 11) {
-    digits = '55' + digits;
+  // For Twilio numbers (usually US in trial), we don't want to auto-prepend 55
+  // US numbers are 11 digits (1 + area + number), same as BR mobile + DDD.
+  if (!isTwilioNumber) {
+    // If user typed BR local format (10 or 11 digits), prepend 55
+    if (digits.length === 10 || digits.length === 11) {
+      digits = '55' + digits;
+    }
   }
 
   // Basic E.164 sanity: between 8 and 15 digits total
