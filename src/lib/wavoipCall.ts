@@ -130,8 +130,6 @@ export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveC
         observacao = "Roteiro reproduzido por completo";
       }
 
-      // Se for erro de permissão ou browser, registra no log local mas talvez não queiramos marcar como "não atendeu" no CRM
-      // Mas para manter a compatibilidade, enviamos o que temos.
       void postHistoricoOutcome(historicoId, {
         status: mappedStatus,
         duration_seconds: answeredAt ? Math.round(listenedMs / 1000) : 0,
@@ -147,16 +145,10 @@ export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveC
   };
 
   try {
-    // 3. Create a fresh Wavoip client per call.
-    // Added a small wait to ensure the WebSocket connection is established before startCall.
     onStatus?.("Conectando ao Wavoip...");
     const wavoip = params.wavoipInstance ?? new Wavoip({ tokens: [token], platform: "lovable-call-ai" });
-    
-    // Give the socket 2 seconds to stabilize. 
-    // This fixed the "instant drop" / "failed to start" issue on some browsers/networks.
     await new Promise(r => setTimeout(r, 2000));
 
-    // 4. Start outgoing call
     onStatus?.("Discando...");
     const result = await wavoip.startCall({ to: phone });
     if (result.err || !result.call) {
@@ -192,7 +184,6 @@ export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveC
         }, 800);
       });
 
-      // Delay before starting playback so it doesn't fire right on top of "alô"
       setTimeout(() => {
         if (ended) return;
         onStatus?.("Reproduzindo roteiro...");
@@ -209,7 +200,73 @@ export async function placeCallWithTTS(params: PlaceCallParams): Promise<ActiveC
     };
   } catch (e) {
     console.error("[wavoipCall] Fatal error during setup/call:", e);
-    await cleanup((e as Error)?.message, true); // true = skip onEnded so we don't resolve the "wait for end" promise prematurely
+    await cleanup((e as Error)?.message, true);
+    throw e;
+  }
+}
+
+/**
+ * Place a manual Wavoip call using the browser microphone.
+ * Consultant talks directly to the customer.
+ */
+export async function placeManualCall(params: {
+  token: string;
+  phone: string;
+  onStatus?: (status: string) => void;
+  onEnded?: () => void;
+  wavoipInstance?: Wavoip;
+}): Promise<ActiveCallHandle> {
+  const { token, phone, onStatus, onEnded } = params;
+
+  let activeCall: CallActive | CallOutgoing | null = null;
+  let ended = false;
+
+  const cleanup = async () => {
+    if (ended) return;
+    ended = true;
+    onEnded?.();
+  };
+
+  try {
+    onStatus?.("Conectando ao Wavoip...");
+    const wavoip = params.wavoipInstance ?? new Wavoip({ tokens: [token], platform: "lovable-call-ai" });
+    await new Promise(r => setTimeout(r, 1500));
+
+    onStatus?.("Discando...");
+    const result = await wavoip.startCall({ to: phone });
+    if (result.err || !result.call) {
+      const detail = result.err?.devices?.map((d) => `${d.token.slice(-6)}:${d.reason}`).join(" | ");
+      throw new Error(result.err?.message || detail || "Falha ao iniciar ligação");
+    }
+    
+    const outgoing = result.call;
+    activeCall = outgoing;
+
+    const wireEndEvents = (call: { on: (e: "ended", cb: () => void) => unknown }) => {
+      call.on("ended", () => { onStatus?.("Ligação encerrada"); cleanup(); });
+    };
+
+    outgoing.on("status", (s) => onStatus?.(`Status: ${s}`));
+    outgoing.on("peerReject", () => { onStatus?.("Rejeitada"); cleanup(); });
+    outgoing.on("unanswered", () => { onStatus?.("Não atendida"); cleanup(); });
+    wireEndEvents(outgoing);
+
+    outgoing.on("peerAccept", (active: CallActive) => {
+      onStatus?.("Chamada em andamento (Consultor)");
+      activeCall = active;
+      active.on("status", (s) => onStatus?.(`Chamada: ${s}`));
+      wireEndEvents(active);
+    });
+
+    return {
+      hangup: async () => {
+        try { await (activeCall as CallActive | CallOutgoing | null)?.end?.(); } catch { /* ignore */ }
+        await cleanup();
+      },
+    };
+  } catch (e) {
+    console.error("[wavoipCall] Manual call error:", e);
+    await cleanup();
     throw e;
   }
 }
