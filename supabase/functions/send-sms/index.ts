@@ -25,7 +25,7 @@ function normalizeToE164(raw: string): { ok: true; value: string } | { ok: false
   return { ok: true, value: '+' + digits };
 }
 
-function friendlyTwilioError(code: number | undefined, message: string, to: string): string {
+function friendlyTwilioError(code: number | undefined, message: string, to: string, from?: string): string {
   if (code === 21211) {
     return `Número de destino inválido: ${to}. Verifique se está no formato DDI + DDD + Número (ex: 5585999998888) e se foi VERIFICADO na sua conta Trial do Twilio.`;
   }
@@ -34,6 +34,9 @@ function friendlyTwilioError(code: number | undefined, message: string, to: stri
   }
   if (code === 21614) {
     return `Número ${to} não é capaz de receber SMS (provavelmente é um telefone fixo).`;
+  }
+  if (code === 21659) {
+    return `❌ CONFIGURAÇÃO ERRADA: O número remetente ${from} NÃO é um número do Twilio. Você está usando um número VERIFICADO como remetente, mas o Twilio exige que o "From" seja um número COMPRADO no Twilio (aparece em Phone Numbers → Active Numbers no console). Em contas Trial, o Twilio fornece UM número grátis (geralmente americano +1...). Acesse https://console.twilio.com/us1/develop/phone-numbers/manage/incoming e use esse número em Ligações IA → Configurações → Twilio Phone Number.`;
   }
   if (code === 21408) {
     return `Sua conta Twilio não tem permissão geográfica para enviar SMS para este país.`;
@@ -153,7 +156,7 @@ serve(async (req) => {
     const twilioData = await response.json()
     const { data: userData } = await supabaseClient.auth.getUser(req.headers.get('Authorization')?.split(' ')[1] ?? '')
 
-    const friendly = response.ok ? null : friendlyTwilioError(twilioData.code, twilioData.message, toE164);
+    const friendly = response.ok ? null : friendlyTwilioError(twilioData.code, twilioData.message, toE164, fromE164);
 
     const { data: hist } = await supabaseClient.from('sms_history').insert({
       cliente_id: cliente_id || null,
