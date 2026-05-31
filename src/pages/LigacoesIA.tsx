@@ -254,6 +254,81 @@ function HistoricoTab({ clienteIdFilter, onClearFilter }: { clienteIdFilter?: st
     // eslint-disable-next-line
   }, [clienteIdFilter, periodo]);
 
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setPlayingId(null);
+  };
+
+  const handleOuvirGravacao = async (it: any) => {
+    if (playingId === it.id) {
+      stopAudio();
+      return;
+    }
+
+    if (playingId) {
+      stopAudio();
+    }
+
+    setLoadingAudioId(it.id);
+    const url = it.recording_url.includes(".mp3") ? it.recording_url : `${it.recording_url}.mp3`;
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/twilio-recording-proxy`;
+      const res = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ url }),
+      });
+      
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const audio = new Audio(blobUrl);
+      audioRef.current = audio;
+      
+      audio.onplay = () => {
+        setLoadingAudioId(null);
+        setPlayingId(it.id);
+      };
+
+      audio.onended = () => {
+        setPlayingId(null);
+        audioRef.current = null;
+        URL.revokeObjectURL(blobUrl);
+      };
+
+      audio.onerror = () => {
+        setPlayingId(null);
+        setLoadingAudioId(null);
+        audioRef.current = null;
+        sonnerToast.error("Erro ao reproduzir áudio.");
+      };
+
+      await audio.play();
+    } catch (e) {
+      console.error("Erro ao processar gravação:", e);
+      setLoadingAudioId(null);
+      sonnerToast.error("Erro ao acessar a gravação. Tente novamente.");
+    }
+  };
+
   return (
     <Card className="p-4">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
