@@ -196,6 +196,7 @@ export default function LigacoesIA() {
 
           <TabsContent value="historico"><HistoricoTab clienteIdFilter={urlCliente} onClearFilter={() => { const n = new URLSearchParams(searchParams); n.delete("cliente"); setSearchParams(n, { replace: true }); }} /></TabsContent>
           <TabsContent value="fila"><FilaLigacoesTab /></TabsContent>
+          <TabsContent value="consultor"><ConsultorTab provider={configStatus?.provider || "wavoip"} wavoipToken={configStatus?.wavoip ? "ok" : ""} /></TabsContent>
           <TabsContent value="roteiros"><RoteirosTab /></TabsContent>
           <TabsContent value="disparo"><DisparoTab /></TabsContent>
           <TabsContent value="campanhas"><CampanhasLigacoesTab /></TabsContent>
