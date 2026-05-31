@@ -27,19 +27,19 @@ function normalizeToE164(raw: string): { ok: true; value: string } | { ok: false
 
 function friendlyTwilioError(code: number | undefined, message: string, to: string): string {
   if (code === 21211) {
-    return `Número de destino inválido: ${to}. Verifique se está no formato DDI + DDD + Número (ex: 5585999998888) e se foi VERIFICADO na sua conta Trial do Twilio (https://console.twilio.com/us1/develop/phone-numbers/manage/verified).`;
+    return `Número de destino inválido: ${to}. Verifique se está no formato DDI + DDD + Número (ex: 5585999998888) e se foi VERIFICADO na sua conta Trial do Twilio.`;
   }
   if (code === 21608 || code === 21219) {
-    return `Número ${to} NÃO está verificado na sua conta Trial do Twilio. Contas Trial só enviam SMS para números previamente verificados. Acesse o console do Twilio e verifique este número antes de enviar.`;
+    return `Número ${to} NÃO está verificado na sua conta Trial do Twilio. Contas Trial só enviam SMS para números previamente verificados.`;
   }
   if (code === 21614) {
     return `Número ${to} não é capaz de receber SMS (provavelmente é um telefone fixo).`;
   }
   if (code === 21408) {
-    return `Sua conta Twilio não tem permissão geográfica para enviar SMS para este país. Habilite a região em Messaging Geo Permissions no console do Twilio.`;
+    return `Sua conta Twilio não tem permissão geográfica para enviar SMS para este país.`;
   }
   if (code === 20003) {
-    return `Credenciais do Twilio inválidas (Account SID ou Auth Token). Revise as configurações em Ligações IA.`;
+    return `Credenciais do Twilio inválidas. Revise as configurações em Ligações IA.`;
   }
   if (code === 21610) {
     return `O destinatário enviou STOP/CANCEL e bloqueou mensagens do seu número Twilio.`;
@@ -58,14 +58,53 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { to, body, cliente_id, source } = await req.json()
+    const payload = await req.json()
+    let { to, body, cliente_id, template_id, variables, source } = payload
+
+    // If we have cliente_id, try to get info if not provided
+    let clienteNome = "";
+    if (cliente_id && (!to || !variables?.nome)) {
+      const { data: cliente } = await supabaseClient
+        .from('clientes')
+        .select('nome, numero')
+        .eq('id', cliente_id)
+        .maybeSingle()
+      
+      if (cliente) {
+        if (!to) to = cliente.numero
+        clienteNome = cliente.nome || ""
+      }
+    }
+
+    // If we have template_id, use its content
+    if (template_id && !body) {
+      const { data: template } = await supabaseClient
+        .from('sms_templates')
+        .select('conteudo')
+        .eq('id', template_id)
+        .maybeSingle()
+      
+      if (template) {
+        body = template.conteudo
+      } else {
+        throw new Error("Template não encontrado")
+      }
+    }
 
     if (!to || !body) {
-      return new Response(JSON.stringify({ error: 'Número (to) e corpo (body) são obrigatórios' }), {
+      return new Response(JSON.stringify({ error: 'Número (to) e corpo (body/template) são obrigatórios' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       })
     }
+
+    // Variable substitution
+    const finalVariables = { nome: clienteNome, ...(variables || {}) };
+    let finalBody = body;
+    Object.entries(finalVariables).forEach(([key, val]) => {
+      const regex = new RegExp(`{${key}}`, 'gi');
+      finalBody = finalBody.replace(regex, String(val || ''));
+    });
 
     // Normalize destination to E.164
     const normalized = normalizeToE164(to);
@@ -87,10 +126,10 @@ serve(async (req) => {
     configData?.forEach((r: any) => config[r.config_key] = r.config_value)
 
     if (!config.twilio_account_sid || !config.twilio_auth_token || !config.twilio_phone_number) {
-      throw new Error('Configuração do Twilio incompleta. Configure Account SID, Auth Token e o número Twilio em Ligações IA → Configurações.')
+      throw new Error('Configuração do Twilio incompleta. Configure em Ligações IA → Configurações.')
     }
 
-    // Normalize From number too
+    // Normalize From number
     const fromNormalized = normalizeToE164(config.twilio_phone_number);
     const fromE164 = fromNormalized.ok ? fromNormalized.value : config.twilio_phone_number;
 
@@ -100,7 +139,7 @@ serve(async (req) => {
     const params = new URLSearchParams()
     params.append('To', toE164)
     params.append('From', fromE164)
-    params.append('Body', body)
+    params.append('Body', finalBody)
 
     const response = await fetch(twilioUrl, {
       method: 'POST',
@@ -112,34 +151,33 @@ serve(async (req) => {
     })
 
     const twilioData = await response.json()
-
     const { data: userData } = await supabaseClient.auth.getUser(req.headers.get('Authorization')?.split(' ')[1] ?? '')
 
     const friendly = response.ok ? null : friendlyTwilioError(twilioData.code, twilioData.message, toE164);
 
-    await supabaseClient.from('sms_history').insert({
+    const { data: hist } = await supabaseClient.from('sms_history').insert({
       cliente_id: cliente_id || null,
       numero_destino: toE164,
-      conteudo: body,
+      conteudo: finalBody,
       status: response.ok ? 'enviado' : 'erro',
       provider_message_id: twilioData.sid || null,
       error_message: response.ok ? null : friendly,
       source: source || 'manual',
       created_by: userData.user?.id || null
-    })
+    }).select().single()
 
     if (!response.ok) {
       return new Response(JSON.stringify({
         error: friendly,
+        id: hist?.id,
         twilio_code: twilioData.code ?? null,
-        twilio_more_info: twilioData.more_info ?? null,
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       })
     }
 
-    return new Response(JSON.stringify({ success: true, sid: twilioData.sid, to: toE164 }), {
+    return new Response(JSON.stringify({ success: true, id: hist?.id, sid: twilioData.sid, to: toE164 }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })

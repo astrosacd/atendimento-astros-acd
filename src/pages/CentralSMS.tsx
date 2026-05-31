@@ -14,9 +14,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { useSearchParams } from "react-router-dom";
-import { MessageSquare, Plus, Trash2, Loader2, Send, History, Settings as SettingsIcon, FileText, Sparkles, RefreshCw, CheckCircle2, X, Filter } from "lucide-react";
+import { MessageSquare, Plus, Trash2, Loader2, Send, History, Settings as SettingsIcon, FileText, Sparkles, RefreshCw, CheckCircle2, X, Filter, Megaphone, ListChecks, CalendarClock } from "lucide-react";
 import { format, subDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { CampanhasSMSTab } from "@/components/central-sms/CampanhasSMSTab";
+import { FilaSMSTab } from "@/components/central-sms/FilaSMSTab";
+import { CobrancaSMSConfigTab } from "@/components/central-sms/CobrancaSMSConfigTab";
 
 const STATUS_COLOR: Record<string, string> = {
   pendente: "bg-slate-500",
@@ -84,20 +87,27 @@ export default function CentralSMS() {
           next.set("tab", v);
           setSearchParams(next, { replace: true });
         }} className="space-y-4">
-          <TabsList className="flex flex-wrap w-full max-w-md h-auto">
+          <TabsList className="flex flex-wrap w-full max-w-5xl h-auto">
             <TabsTrigger value="historico"><History className="h-4 w-4 mr-2" />Histórico</TabsTrigger>
+            <TabsTrigger value="fila"><ListChecks className="h-4 w-4 mr-2" />Fila do dia</TabsTrigger>
             <TabsTrigger value="templates"><FileText className="h-4 w-4 mr-2" />Templates</TabsTrigger>
             <TabsTrigger value="envio"><Send className="h-4 w-4 mr-2" />Enviar</TabsTrigger>
+            <TabsTrigger value="campanhas"><Megaphone className="h-4 w-4 mr-2" />Campanhas</TabsTrigger>
+            <TabsTrigger value="cobranca"><CalendarClock className="h-4 w-4 mr-2" />Cobrança</TabsTrigger>
           </TabsList>
 
           <TabsContent value="historico"><HistoricoTab /></TabsContent>
+          <TabsContent value="fila"><FilaSMSTab /></TabsContent>
           <TabsContent value="templates"><TemplatesTab /></TabsContent>
           <TabsContent value="envio"><EnvioTab twilioOk={configStatus?.twilio || false} /></TabsContent>
+          <TabsContent value="campanhas"><CampanhasSMSTab /></TabsContent>
+          <TabsContent value="cobranca"><CobrancaSMSConfigTab /></TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
   );
 }
+
 
 function HistoricoTab() {
   const [items, setItems] = useState<any[]>([]);

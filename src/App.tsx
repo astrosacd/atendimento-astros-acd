@@ -89,6 +89,7 @@ import AutorizarInstagram from "./pages/AutorizarInstagram";
 import LigacoesIA from "./pages/LigacoesIA";
 import CentralSMS from "./pages/CentralSMS";
 import FilaExecutando from "./pages/FilaExecutando";
+import FilaSMSExecutando from "./pages/FilaSMSExecutando";
 
 const queryClient = new QueryClient();
 
@@ -203,7 +204,8 @@ function AppRoutes() {
       <Route path="/ligacoes-ia/fila-executando" element={<FilaExecutando />} />
       
       {/* Central de SMS */}
-      <Route path="/central-sms" element={<ProtectedRoute permission="view_ligacoes_ia"><CentralSMS /></ProtectedRoute>} />
+      <Route path="/central-sms" element={<ProtectedRoute permission="view_central_sms"><CentralSMS /></ProtectedRoute>} />
+      <Route path="/central-sms/fila-executando" element={<FilaSMSExecutando />} />
       
       {/* Public Routes - NO AUTH */}
       <Route path="/chamados" element={<ChamadosPublico />} />
