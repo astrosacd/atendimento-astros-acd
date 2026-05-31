@@ -39,12 +39,25 @@ serve(async (req) => {
 
   const url = new URL(req.url);
   const audioUrl = url.searchParams.get("audio_url");
+  const bridgeTo = url.searchParams.get("bridge_to");
   const histId = url.searchParams.get("hist_id");
 
-  // Twilio may request the call TwiML via GET or POST. If audio_url is present,
-  // this is the voice instruction request, not the status callback.
+  // Twilio may request the call TwiML via GET or POST. 
+  // If it's a voice instruction request:
   if (audioUrl) {
     return new Response(twimlForAudio(audioUrl), {
+      headers: { ...corsHeaders, "Content-Type": "text/xml" },
+    });
+  }
+
+  if (bridgeTo) {
+    const customerNumber = bridgeTo.startsWith("+") ? bridgeTo : `+${bridgeTo.replace(/\D/g, "")}`;
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say language="pt-BR">Conectando você ao cliente...</Say>
+    <Dial>${escapeXml(customerNumber)}</Dial>
+</Response>`;
+    return new Response(twiml, {
       headers: { ...corsHeaders, "Content-Type": "text/xml" },
     });
   }

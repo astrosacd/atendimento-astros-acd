@@ -28,7 +28,17 @@ Deno.serve(async (req) => {
     if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const body = await req.json();
-    const { cliente_id, roteiro_id, variables = {}, numero_destino: numDestino, source = "manual", voice_id_override, valor_extenso = false } = body;
+    const { 
+      cliente_id, 
+      roteiro_id, 
+      variables = {}, 
+      numero_destino: numDestino, 
+      source = "manual", 
+      voice_id_override, 
+      valor_extenso = false,
+      manual = false,
+      consultor_phone = ""
+    } = body;
 
     // Load config
     const { data: configRows } = await supabase.from("ligacoes_ia_config").select("config_key, config_value");
@@ -201,34 +211,37 @@ Deno.serve(async (req) => {
     };
 
     // Generate (or get cached) audio
-    const ttsRes = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/ligacoes-ia-tts`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: authHeader },
-      body: JSON.stringify({ roteiro_id, variables: finalVars, preview_voice_id: voice_id_override }),
-    });
-    const ttsData = await ttsRes.json();
-    if (!ttsRes.ok) {
-      const raw = String(ttsData?.error ?? "");
-      let friendly = raw;
-      if (raw.includes("detected_unusual_activity") || raw.includes("Free Tier usage disabled")) {
-        friendly = "ElevenLabs bloqueou a conta Free Tier (atividade incomum detectada). É necessário ativar um plano pago no ElevenLabs ou usar outra chave de API. Verifique em Ligações IA → Configurações.";
-      } else if (raw.includes("quota") || raw.includes("character_limit")) {
-        friendly = "Cota de caracteres do ElevenLabs esgotada. Faça upgrade do plano ou aguarde a renovação.";
+    let ttsData: any = { signed_url: "", texto_final: "Chamada manual" };
+    if (!manual) {
+      const ttsRes = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/ligacoes-ia-tts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: authHeader },
+        body: JSON.stringify({ roteiro_id, variables: finalVars, preview_voice_id: voice_id_override }),
+      });
+      ttsData = await ttsRes.json();
+      if (!ttsRes.ok) {
+        const raw = String(ttsData?.error ?? "");
+        let friendly = raw;
+        if (raw.includes("detected_unusual_activity") || raw.includes("Free Tier usage disabled")) {
+          friendly = "ElevenLabs bloqueou a conta Free Tier (atividade incomum detectada). É necessário ativar um plano pago no ElevenLabs ou usar outra chave de API. Verifique em Ligações IA → Configurações.";
+        } else if (raw.includes("quota") || raw.includes("character_limit")) {
+          friendly = "Cota de caracteres do ElevenLabs esgotada. Faça upgrade do plano ou aguarde a renovação.";
+        }
+        return new Response(JSON.stringify({ error: friendly, raw }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      return new Response(JSON.stringify({ error: friendly, raw }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Create historico row first (pending)
     const { data: hist, error: histErr } = await supabase.from("ligacoes_ia_historico").insert({
       cliente_id: cliente_id ?? null,
       roteiro_id: roteiro_id ?? null,
-      audio_cache_id: ttsData.audio_cache_id,
+      audio_cache_id: ttsData.audio_cache_id || null,
       numero_destino: numeroDestino,
       numero_origem: provider === "twilio" ? cfg.twilio_phone_number : dialer,
       status: "iniciando",
-      context: { variables: finalVars, texto_final: ttsData.texto_final },
+      context: { variables: finalVars, texto_final: ttsData.texto_final, manual: !!manual },
       triggered_by: user.id,
-      source,
+      source: manual ? "manual_consultor" : source,
     }).select("*").single();
     if (histErr) return new Response(JSON.stringify({ error: histErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
@@ -256,14 +269,21 @@ Deno.serve(async (req) => {
       const twilioAuth = cfg.twilio_auth_token;
       const twilioFrom = cfg.twilio_phone_number;
       
-      const twimlUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml?audio_url=${encodeURIComponent(ttsData.signed_url)}&hist_id=${hist.id}`;
+      let twimlUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml?audio_url=${encodeURIComponent(ttsData.signed_url)}&hist_id=${hist.id}`;
+      let targetTo = normalizedDestination;
+
+      if (manual && consultor_phone) {
+        // Bridge mode: Twilio calls the consultant first, then bridges to customer
+        targetTo = consultor_phone.startsWith("+") ? consultor_phone : `+${consultor_phone.replace(/\D/g, "")}`;
+        twimlUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml?bridge_to=${encodeURIComponent(normalizedDestination)}&hist_id=${hist.id}`;
+      }
+      
       const statusCallbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml?hist_id=${hist.id}`;
-      const normalizedDestination = numeroDestino.startsWith("+") ? numeroDestino : `+${numeroDestino.replace(/\D/g, "")}`;
       
       const basicAuth = btoa(`${twilioSid}:${twilioAuth}`);
       
       const callParams = new URLSearchParams({
-        To: normalizedDestination,
+        To: targetTo,
         From: twilioFrom,
         Url: twimlUrl,
         Method: "GET",
