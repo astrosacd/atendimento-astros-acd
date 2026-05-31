@@ -352,6 +352,11 @@ export function FilaSMSTab({ mode = "normal" }: { mode?: "normal" | "standalone"
       <Card className="p-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
+            {!isStandalone && (
+              <Button onClick={openFilaTab} variant="outline" size="icon" title="Executar em nova guia" className="h-12 w-12 border-blue-200">
+                <ExternalLink className="h-5 w-5 text-blue-600" />
+              </Button>
+            )}
             {!running ? (
               <Button 
                 onClick={() => setConfirmStart(true)} 
