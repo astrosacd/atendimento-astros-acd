@@ -393,39 +393,23 @@ function HistoricoTab({ clienteIdFilter, onClearFilter }: { clienteIdFilter?: st
                 {it.recording_url && (
                   <div className="flex items-center gap-1">
                     <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className="h-8 w-8 text-primary"
-                      title="Ouvir gravação"
-                      onClick={async () => {
-                        const url = it.recording_url.includes(".mp3") ? it.recording_url : `${it.recording_url}.mp3`;
-                        try {
-                          const { data: { session } } = await supabase.auth.getSession();
-                          const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/twilio-recording-proxy`;
-                          const res = await fetch(functionUrl, {
-                            method: 'POST',
-                            headers: {
-                              'Content-Type': 'application/json',
-                              'Authorization': `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-                              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                            },
-                            body: JSON.stringify({ url }),
-                          });
-                          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                          const blob = await res.blob();
-                          const blobUrl = URL.createObjectURL(blob);
-                          const audio = new Audio(blobUrl);
-                          audio.play().catch(e => {
-                            console.error("Erro ao tocar áudio:", e);
-                            window.open(blobUrl, "_blank");
-                          });
-                        } catch (e) {
-                          console.error("Erro ao processar gravação:", e);
-                          sonnerToast.error("Erro ao acessar a gravação. Tente novamente.");
-                        }
-                      }}
+                      size="sm" 
+                      variant={playingId === it.id ? "secondary" : "ghost"}
+                      className={`h-8 gap-2 ${playingId === it.id ? "text-amber-600 animate-pulse" : "text-primary"}`}
+                      title={playingId === it.id ? "Parar gravação" : "Ouvir gravação"}
+                      onClick={() => handleOuvirGravacao(it)}
+                      disabled={loadingAudioId === it.id}
                     >
-                      <Headphones className="h-4 w-4" />
+                      {loadingAudioId === it.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : playingId === it.id ? (
+                        <X className="h-4 w-4" />
+                      ) : (
+                        <Headphones className="h-4 w-4" />
+                      )}
+                      <span className="text-xs font-medium">
+                        {loadingAudioId === it.id ? "Carregando..." : playingId === it.id ? "Ouvindo..." : "Ouvir"}
+                      </span>
                     </Button>
                     <Button 
                       size="icon" 
