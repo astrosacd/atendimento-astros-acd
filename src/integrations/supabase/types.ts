@@ -7741,6 +7741,216 @@ export type Database = {
         }
         Relationships: []
       }
+      sms_agendados: {
+        Row: {
+          campanha_id: string | null
+          cliente_id: string | null
+          created_at: string
+          dia_alvo: string
+          erro: string | null
+          historico_id: string | null
+          id: string
+          nome_manual: string | null
+          numero_manual: string | null
+          processada_em: string | null
+          status: string
+          template_id: string | null
+          tentativas: number
+          tipo_d: string | null
+          updated_at: string
+        }
+        Insert: {
+          campanha_id?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          dia_alvo: string
+          erro?: string | null
+          historico_id?: string | null
+          id?: string
+          nome_manual?: string | null
+          numero_manual?: string | null
+          processada_em?: string | null
+          status?: string
+          template_id?: string | null
+          tentativas?: number
+          tipo_d?: string | null
+          updated_at?: string
+        }
+        Update: {
+          campanha_id?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          dia_alvo?: string
+          erro?: string | null
+          historico_id?: string | null
+          id?: string
+          nome_manual?: string | null
+          numero_manual?: string | null
+          processada_em?: string | null
+          status?: string
+          template_id?: string | null
+          tentativas?: number
+          tipo_d?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_agendados_campanha_id_fkey"
+            columns: ["campanha_id"]
+            isOneToOne: false
+            referencedRelation: "sms_campanhas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_agendados_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_agendados_historico_id_fkey"
+            columns: ["historico_id"]
+            isOneToOne: false
+            referencedRelation: "sms_history"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_agendados_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "sms_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sms_campanhas: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          delay_minutes_override: number | null
+          dia_alvo: string | null
+          id: string
+          nome: string
+          status: string
+          template_id: string | null
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          delay_minutes_override?: number | null
+          dia_alvo?: string | null
+          id?: string
+          nome: string
+          status?: string
+          template_id?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          delay_minutes_override?: number | null
+          dia_alvo?: string | null
+          id?: string
+          nome?: string
+          status?: string
+          template_id?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_campanhas_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "sms_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sms_cobranca_config: {
+        Row: {
+          apenas_cobranca_ativa: boolean
+          created_at: string
+          delay_minutes: number
+          dias_disparo: number[] | null
+          enabled: boolean
+          horario_fim: string | null
+          horario_inicio: string | null
+          id: string
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          apenas_cobranca_ativa?: boolean
+          created_at?: string
+          delay_minutes?: number
+          dias_disparo?: number[] | null
+          enabled?: boolean
+          horario_fim?: string | null
+          horario_inicio?: string | null
+          id?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          apenas_cobranca_ativa?: boolean
+          created_at?: string
+          delay_minutes?: number
+          dias_disparo?: number[] | null
+          enabled?: boolean
+          horario_fim?: string | null
+          horario_inicio?: string | null
+          id?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_cobranca_config_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "sms_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sms_cobranca_logs: {
+        Row: {
+          dias_processados: number[] | null
+          enqueued: number | null
+          executed_at: string
+          id: string
+          message: string | null
+          scanned: number | null
+          status: string
+          triggered_by: string | null
+        }
+        Insert: {
+          dias_processados?: number[] | null
+          enqueued?: number | null
+          executed_at?: string
+          id?: string
+          message?: string | null
+          scanned?: number | null
+          status: string
+          triggered_by?: string | null
+        }
+        Update: {
+          dias_processados?: number[] | null
+          enqueued?: number | null
+          executed_at?: string
+          id?: string
+          message?: string | null
+          scanned?: number | null
+          status?: string
+          triggered_by?: string | null
+        }
+        Relationships: []
+      }
       sms_history: {
         Row: {
           cliente_id: string | null
@@ -8853,6 +9063,7 @@ export type Database = {
             Returns: boolean
           }
         | { Args: { _role: string; _user_id: string }; Returns: boolean }
+      has_sms_temp_perm: { Args: { p_perm: string }; Returns: boolean }
       increment_participant_count: {
         Args: { p_group_id: string }
         Returns: undefined
