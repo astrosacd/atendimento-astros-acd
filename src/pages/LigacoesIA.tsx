@@ -705,16 +705,20 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
       });
       if (error) throw error;
       const audio = new Audio((data as any).signed_url);
+      audioRef.current = audio;
       
       // Update state for visual feedback
-      audio.onended = () => setPreviewing(false);
+      audio.onended = () => {
+        setPreviewing(false);
+        audioRef.current = null;
+      };
       audio.onerror = () => {
         setPreviewing(false);
+        audioRef.current = null;
         toast({ title: "Erro ao reproduzir preview", variant: "destructive" });
       };
 
       await audio.play();
-      // We keep setPreviewing(true) until onended or error
     } catch (e: any) {
       const description = e?.message?.includes("Failed to send a request")
         ? "O navegador bloqueou a chamada do preview. Atualize a página e tente novamente."
