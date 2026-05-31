@@ -696,10 +696,15 @@ function ConsultorTab({ provider, wavoipToken }: { provider: string; wavoipToken
   const [calling, setCalling] = useState(false);
   const [callStatus, setCallStatus] = useState("");
   const callRef = useRef<ActiveCallHandle | null>(null);
+  const twilioPollRef = useRef<number | null>(null);
 
   useEffect(() => {
     localStorage.setItem("ligacoes_consultor_phone", consultorPhone);
   }, [consultorPhone]);
+
+  useEffect(() => () => {
+    if (twilioPollRef.current) window.clearInterval(twilioPollRef.current);
+  }, []);
 
   const ligar = async () => {
     const cleanNum = numero.replace(/\D/g, "");
