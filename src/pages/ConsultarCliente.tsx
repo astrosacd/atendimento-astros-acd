@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server, ShieldCheck, MoreHorizontal, TrendingUp, Copy, PhoneCall } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server, ShieldCheck, MoreHorizontal, TrendingUp, Copy, PhoneCall, MessageSquare } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,6 +68,7 @@ import { ClientPaymentApprovalBadge } from '@/components/ClientPaymentApprovalBa
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { LigarComIADialog } from '@/components/LigarComIADialog';
+import { SendSMSDialog } from '@/components/central-sms/SendSMSDialog';
 
 export default function ConsultarCliente() {
   const navigate = useNavigate();
@@ -106,6 +107,7 @@ export default function ConsultarCliente() {
   const [groupClienteName, setGroupClienteName] = useState<string>('');
   const [groupClienteNumero, setGroupClienteNumero] = useState<string>('');
   const [ligarIACliente, setLigarIACliente] = useState<{ id: string; nome: string; numero: string } | null>(null);
+  const [sendSmsCliente, setSendSmsCliente] = useState<{ id: string; nome: string; numero: string } | null>(null);
   const { canViewSocialCredentials, canViewServerCredentials, canCreateWhatsAppGroups, canViewClientAI, canViewClientGraph, canViewPaymentSecurity } = usePermissions();
   const canViewUpsell = canViewClientAI; // Reusing AI permission for now
   const [availableTags, setAvailableTags] = useState<string[]>([]);
@@ -955,6 +957,14 @@ export default function ConsultarCliente() {
                                       <PhoneCall className="h-4 w-4 text-fuchsia-500" />
                                       <span>Ligar com IA</span>
                                     </DropdownMenuItem>
+
+                                    <DropdownMenuItem
+                                      onClick={() => setSendSmsCliente({ id: cliente.id, nome: cliente.nome, numero: cliente.numero })}
+                                      className="gap-2"
+                                    >
+                                      <MessageSquare className="h-4 w-4 text-blue-500" />
+                                      <span>Enviar SMS</span>
+                                    </DropdownMenuItem>
                                   </>
                                 )}
                               </DropdownMenuContent>
@@ -1317,6 +1327,16 @@ export default function ConsultarCliente() {
             clienteNumero={ligarIACliente.numero}
             open={!!ligarIACliente}
             onOpenChange={(o) => !o && setLigarIACliente(null)}
+          />
+        )}
+
+        {sendSmsCliente && (
+          <SendSMSDialog
+            clienteId={sendSmsCliente.id}
+            clienteNome={sendSmsCliente.nome}
+            clienteNumero={sendSmsCliente.numero}
+            open={!!sendSmsCliente}
+            onOpenChange={(o) => !o && setSendSmsCliente(null)}
           />
         )}
 

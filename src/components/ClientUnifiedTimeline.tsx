@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface TimelineEvent {
   id: string;
-  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery' | 'whatsapp_group' | 'logo' | 'credential' | 'pipeline' | 'automation' | 'license' | 'share_link' | 'client' | 'ai_log' | 'ticket' | 'appointment' | 'sale' | 'sms_validation' | 'ia_call' | 'scheduled_call' | 'score_change' | 'upsell' | 'social_profile' | 'insurance' | 'scan';
+  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery' | 'whatsapp_group' | 'logo' | 'credential' | 'pipeline' | 'automation' | 'license' | 'share_link' | 'client' | 'ai_log' | 'ticket' | 'appointment' | 'sale' | 'sms_validation' | 'ia_call' | 'scheduled_call' | 'score_change' | 'upsell' | 'social_profile' | 'insurance' | 'scan' | 'sms';
   date: string;
   title: string;
   description: string;
@@ -59,6 +59,7 @@ const TYPE_CONFIG: Record<TimelineEvent['type'], { icon: React.ElementType; colo
   social_profile: { icon: Instagram, color: 'text-pink-400', label: 'Perfil Social' },
   insurance: { icon: ShieldCheck, color: 'text-emerald-500', label: 'Seguro' },
   scan: { icon: Search, color: 'text-blue-500', label: 'Scan de QR' },
+  sms: { icon: MessageSquare, color: 'text-blue-400', label: 'SMS Enviado' },
 };
 
 const IA_CALL_STATUS_LABEL: Record<string, string> = {
@@ -135,6 +136,7 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         socialProfilesRes,
         insuranceUsageRes,
         scanHistoryRes,
+        smsHistoryRes,
       ] = await Promise.all([
         supabase.from('client_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('billing_logs').select('*').eq('cliente_id', clienteId).order('sent_at', { ascending: false }).limit(50),
@@ -165,6 +167,7 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         supabase.from('social_media_client_profiles').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20),
         supabase.from('qr_scan_insurance_usage').select('*').or(`cliente_nome.ilike.%${clienteName}%`).order('created_at', { ascending: false }).limit(50),
         supabase.from('qr_scan_history').select('*').or(`cliente_nome.ilike.%${clienteName}%`).order('created_at', { ascending: false }).limit(50),
+        supabase.from('sms_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
       ]);
 
       const clientInfo = clientDataRes.data;
@@ -379,6 +382,19 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
           title: `Proposta: ${p.title || 'Sem título'}`,
           description: `Status: ${p.status || 'Pendente'}`,
           status: p.status,
+        });
+      });
+      
+      // SMS History
+      (smsHistoryRes.data || []).forEach((s: any) => {
+        allEvents.push({
+          id: `sms-${s.id}`,
+          type: 'sms',
+          date: s.created_at,
+          title: `SMS: ${s.status === 'enviado' ? 'Enviado' : 'Erro'}`,
+          description: s.conteudo,
+          status: s.status,
+          metadata: { error: s.error_message }
         });
       });
       
