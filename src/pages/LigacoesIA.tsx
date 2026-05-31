@@ -322,14 +322,19 @@ function HistoricoTab({ clienteIdFilter, onClearFilter }: { clienteIdFilter?: st
                       onClick={async () => {
                         const url = it.recording_url.includes(".mp3") ? it.recording_url : `${it.recording_url}.mp3`;
                         try {
-                          const { data, error } = await supabase.functions.invoke('twilio-recording-proxy', {
-                            body: { url }
+                          const { data: { session } } = await supabase.auth.getSession();
+                          const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/twilio-recording-proxy`;
+                          const res = await fetch(functionUrl, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                            },
+                            body: JSON.stringify({ url }),
                           });
-                          
-                          if (error) throw error;
-                          
-                          // Create a blob URL and play it
-                          const blob = new Blob([data], { type: 'audio/mpeg' });
+                          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                          const blob = await res.blob();
                           const blobUrl = URL.createObjectURL(blob);
                           const audio = new Audio(blobUrl);
                           audio.play().catch(e => {
@@ -352,13 +357,19 @@ function HistoricoTab({ clienteIdFilter, onClearFilter }: { clienteIdFilter?: st
                       onClick={async () => {
                         const url = it.recording_url.includes(".mp3") ? it.recording_url : `${it.recording_url}.mp3`;
                         try {
-                          const { data, error } = await supabase.functions.invoke('twilio-recording-proxy', {
-                            body: { url }
+                          const { data: { session } } = await supabase.auth.getSession();
+                          const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/twilio-recording-proxy`;
+                          const res = await fetch(functionUrl, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                            },
+                            body: JSON.stringify({ url }),
                           });
-                          
-                          if (error) throw error;
-                          
-                          const blob = new Blob([data], { type: 'audio/mpeg' });
+                          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                          const blob = await res.blob();
                           const blobUrl = URL.createObjectURL(blob);
                           const link = document.createElement('a');
                           link.href = blobUrl;
@@ -366,6 +377,7 @@ function HistoricoTab({ clienteIdFilter, onClearFilter }: { clienteIdFilter?: st
                           document.body.appendChild(link);
                           link.click();
                           document.body.removeChild(link);
+                          setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
                         } catch (e) {
                           console.error("Erro ao baixar gravação:", e);
                           sonnerToast.error("Erro ao baixar a gravação.");
