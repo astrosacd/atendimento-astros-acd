@@ -618,6 +618,7 @@ function useElevenVoices() {
 
 function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: () => void; onSaved: () => void }) {
   const isDuplicate = !!roteiro.__duplicate;
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [form, setForm] = useState({
     nome: isDuplicate ? `${roteiro.nome ?? ""} (cópia)` : (roteiro.nome ?? ""),
     categoria: roteiro.categoria ?? "cobranca",
