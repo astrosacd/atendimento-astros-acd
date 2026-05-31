@@ -202,6 +202,9 @@ function AppRoutes() {
       <Route path="/ligacoes-ia" element={<ProtectedRoute permission="view_ligacoes_ia"><LigacoesIA /></ProtectedRoute>} />
       <Route path="/ligacoes-ia/fila-executando" element={<FilaExecutando />} />
       
+      {/* Central de SMS */}
+      <Route path="/central-sms" element={<ProtectedRoute permission="view_ligacoes_ia"><CentralSMS /></ProtectedRoute>} />
+      
       {/* Public Routes - NO AUTH */}
       <Route path="/chamados" element={<ChamadosPublico />} />
       <Route path="/chamados/*" element={<ChamadosPublico />} />
