@@ -291,13 +291,17 @@ function EnvioTab({ twilioOk }: { twilioOk: boolean }) {
       });
       
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        const msg = data.error || "Erro ao enviar SMS";
+        const extra = data.twilio_code ? ` (Twilio code ${data.twilio_code})` : "";
+        throw new Error(msg + extra);
+      }
       
       sonnerToast.success("SMS enviado com sucesso!");
       setMensagem("");
       setNumero("");
     } catch (e: any) {
-      sonnerToast.error(e.message);
+      sonnerToast.error(e.message, { duration: 12000 });
     } finally {
       setSending(false);
     }
