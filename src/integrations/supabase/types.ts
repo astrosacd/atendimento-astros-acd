@@ -7741,6 +7741,92 @@ export type Database = {
         }
         Relationships: []
       }
+      sms_history: {
+        Row: {
+          cliente_id: string | null
+          conteudo: string
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          id: string
+          numero_destino: string
+          provider_message_id: string | null
+          source: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          conteudo: string
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          numero_destino: string
+          provider_message_id?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string | null
+          conteudo?: string
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          numero_destino?: string
+          provider_message_id?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_history_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sms_templates: {
+        Row: {
+          ativo: boolean | null
+          categoria: string | null
+          conteudo: string
+          created_at: string
+          created_by: string | null
+          id: string
+          nome: string
+          updated_at: string
+          variaveis: string[] | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria?: string | null
+          conteudo: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+          variaveis?: string[] | null
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria?: string | null
+          conteudo?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+          variaveis?: string[] | null
+        }
+        Relationships: []
+      }
       sms_validation_logs: {
         Row: {
           baserow_row_id: string | null
