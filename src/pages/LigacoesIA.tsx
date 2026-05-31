@@ -728,7 +728,7 @@ function ConsultorTab({ provider, wavoipToken }: { provider: string; wavoipToken
         callRef.current = handle;
       } else {
         // Twilio: Uses Bridge (Calls consultant then bridges to customer)
-        const { data, error } = await supabase.functions.invoke("ligacoes-ia-call", {
+        const data = await invokeFunction("ligacoes-ia-call", {
           body: {
             numero_destino: cleanNum,
             manual: true,
@@ -736,7 +736,6 @@ function ConsultorTab({ provider, wavoipToken }: { provider: string; wavoipToken
             source: "manual_consultor",
           },
         });
-        if (error) throw error;
         
         setCallStatus("Twilio ligando para você... Atenda para conectar ao cliente.");
         toast({ 
