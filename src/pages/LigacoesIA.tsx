@@ -319,8 +319,12 @@ function HistoricoTab({ clienteIdFilter, onClearFilter }: { clienteIdFilter?: st
                     className="h-8 w-8 text-primary"
                     title="Ouvir gravação"
                     onClick={() => {
-                      const audio = new Audio(it.recording_url);
-                      audio.play();
+                      const url = it.recording_url.includes(".mp3") ? it.recording_url : `${it.recording_url}.mp3`;
+                      const audio = new Audio(url);
+                      audio.play().catch(e => {
+                        console.error("Erro ao tocar áudio:", e);
+                        window.open(url, "_blank");
+                      });
                     }}
                   >
                     <Headphones className="h-4 w-4" />
