@@ -826,9 +826,9 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={preview} disabled={previewing}>
+          <Button variant="outline" onClick={preview} disabled={previewing && !audioRef.current}>
             {previewing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Play className="h-4 w-4 mr-1" />}
-            Pré-ouvir
+            {previewing ? "Ouvindo..." : "Pré-ouvir"}
           </Button>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
           <Button onClick={save} disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}Salvar</Button>
