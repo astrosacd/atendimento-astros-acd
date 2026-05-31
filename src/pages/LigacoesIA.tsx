@@ -870,7 +870,7 @@ function DisparoTab() {
     setCalling(true);
     setCallStatus("Gerando áudio do roteiro...");
     try {
-      const { data, error } = await supabase.functions.invoke("ligacoes-ia-call", {
+      const data = await invokeFunction("ligacoes-ia-call", {
         body: {
           roteiro_id: roteiroId,
           numero_destino: numero.replace(/\D/g, ""),
@@ -879,7 +879,6 @@ function DisparoTab() {
           source: "manual",
         },
       });
-      if (error) throw error;
       const d = data as any;
       if (d?.provider === "twilio") {
         setCallStatus("Ligação iniciada via Twilio...");
