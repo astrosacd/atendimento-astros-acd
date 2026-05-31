@@ -269,6 +269,9 @@ Deno.serve(async (req) => {
       const twilioAuth = cfg.twilio_auth_token;
       const twilioFrom = cfg.twilio_phone_number;
       
+      const normalizedDestination = String(numeroDestino).startsWith("+")
+        ? String(numeroDestino)
+        : `+${String(numeroDestino).replace(/\D/g, "")}`;
       let twimlUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml?audio_url=${encodeURIComponent(ttsData.signed_url)}&hist_id=${hist.id}`;
       let targetTo = normalizedDestination;
 
