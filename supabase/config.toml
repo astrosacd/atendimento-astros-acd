@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.client-payment-stripe-webhook]
 verify_jwt = false
+
+[functions.twilio-twiml]
+verify_jwt = false
