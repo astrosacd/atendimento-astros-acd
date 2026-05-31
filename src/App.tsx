@@ -89,6 +89,7 @@ import AutorizarInstagram from "./pages/AutorizarInstagram";
 import LigacoesIA from "./pages/LigacoesIA";
 import CentralSMS from "./pages/CentralSMS";
 import FilaExecutando from "./pages/FilaExecutando";
+import FilaSMSExecutando from "./pages/FilaSMSExecutando";
 
 const queryClient = new QueryClient();
 
