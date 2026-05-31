@@ -637,6 +637,15 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
 
   useEffect(() => { fetchVoices(undefined, { silent: true }); /* eslint-disable-next-line */ }, []);
 
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
   // Sincroniza idioma/moeda padrão quando troca tipo
   const setTipo = (tipo: string) => {
     if (tipo === "brasileiro") {
