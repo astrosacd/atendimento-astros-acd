@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { 
   UserPlus, Search, Edit, Trash2, Users, Settings, 
   LayoutDashboard, Webhook, LogOut, ChevronLeft, ChevronRight, 
-  Key, FileText, CreditCard, MessageCircle, ShieldCheck, Tag, Megaphone, Smartphone, Database, HelpCircle, ShoppingBag, Ticket, Sparkles, Store, BarChart3, ListTodo, FileSignature, Receipt, CalendarClock, Columns3, Crosshair, CalendarDays, Link2, Brain, Network, Package, UserCircle, Bot,
+  Key, FileText, CreditCard, MessageCircle, MessageSquare, ShieldCheck, Tag, Megaphone, Smartphone, Database, HelpCircle, ShoppingBag, Ticket, Sparkles, Store, BarChart3, ListTodo, FileSignature, Receipt, CalendarClock, Columns3, Crosshair, CalendarDays, Link2, Brain, Network, Package, UserCircle, Bot,
   Instagram, History, Activity, PhoneCall
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -275,6 +275,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
         { title: t('sidebar.proposals'), icon: FileSignature, path: '/propostas', adminOnly: !canViewProposals(), color: 'text-emerald-500', gradient: 'from-emerald-500 to-teal-500' },
         { title: t('sidebar.paymentlink'), icon: Link2, path: '/link-pagamento', adminOnly: !canViewPaymentLinks(), color: 'text-green-500', gradient: 'from-green-500 to-emerald-500' },
         { title: 'Ligações IA', icon: PhoneCall, path: '/ligacoes-ia', adminOnly: !hasPermission('view_ligacoes_ia'), color: 'text-fuchsia-500', gradient: 'from-fuchsia-500 to-purple-500' },
+        { title: 'Central de SMS', icon: MessageSquare, path: '/central-sms', adminOnly: !hasPermission('view_ligacoes_ia'), color: 'text-blue-500', gradient: 'from-blue-500 to-indigo-500' },
       ]
     },
     {
