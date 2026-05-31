@@ -262,21 +262,25 @@ Deno.serve(async (req) => {
       
       const basicAuth = btoa(`${twilioSid}:${twilioAuth}`);
       
+      const callParams = new URLSearchParams({
+        To: normalizedDestination,
+        From: twilioFrom,
+        Url: twimlUrl,
+        Method: "GET",
+        StatusCallback: statusCallbackUrl,
+        StatusCallbackMethod: "POST",
+      });
+      ["initiated", "ringing", "answered", "completed"].forEach((event) => {
+        callParams.append("StatusCallbackEvent", event);
+      });
+
       const twilioRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Calls.json`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
           "Authorization": `Basic ${basicAuth}`,
         },
-        body: new URLSearchParams({
-          To: normalizedDestination,
-          From: twilioFrom,
-          Url: twimlUrl,
-          Method: "GET",
-          StatusCallback: statusCallbackUrl,
-          StatusCallbackMethod: "POST",
-          StatusCallbackEvent: "initiated,ringing,answered,completed",
-        }),
+        body: callParams,
       });
 
       const twilioData = await twilioRes.json();
