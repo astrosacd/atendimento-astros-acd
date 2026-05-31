@@ -25,13 +25,41 @@ function twimlForAudio(audioUrl: string) {
 function mapTwilioStatus(callStatus?: string | null) {
   if (callStatus === "initiated" || callStatus === "queued") return "discando";
   if (callStatus === "ringing") return "tocando";
-  if (callStatus === "in-progress") return "atendida";
+  if (callStatus === "in-progress" || callStatus === "answered") return "atendida";
   if (callStatus === "completed") return "finalizada";
   if (callStatus === "busy") return "ocupado";
   if (callStatus === "no-answer") return "nao_atendeu";
   if (callStatus === "canceled") return "cancelada";
   if (callStatus === "failed") return "erro";
   return "atualizado";
+}
+
+function mapDialStatus(dialStatus?: string | null) {
+  if (dialStatus === "completed") return "finalizada";
+  if (dialStatus === "answered" || dialStatus === "in-progress") return "atendida";
+  if (dialStatus === "busy") return "ocupado";
+  if (dialStatus === "no-answer") return "nao_atendeu";
+  if (dialStatus === "canceled") return "cancelada";
+  if (dialStatus === "failed") return "erro";
+  return "atualizado";
+}
+
+function terminalStatus(status: string) {
+  return ["finalizada", "nao_atendeu", "ocupado", "erro", "cancelada"].includes(status);
+}
+
+function twimlForBridge(customerNumber: string, histId?: string | null) {
+  const baseUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml`;
+  const actionUrl = `${baseUrl}?hist_id=${encodeURIComponent(histId ?? "")}&twilio_event=dial_action`;
+  const numberStatusUrl = `${baseUrl}?hist_id=${encodeURIComponent(histId ?? "")}&twilio_event=dial_number`;
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say language="pt-BR">Conectando você ao cliente agora. Aguarde na linha.</Say>
+    <Dial action="${escapeXml(actionUrl)}" method="POST" timeout="35" answerOnBridge="true">
+        <Number statusCallback="${escapeXml(numberStatusUrl)}" statusCallbackMethod="POST" statusCallbackEvent="initiated ringing answered completed">${escapeXml(customerNumber)}</Number>
+    </Dial>
+</Response>`;
 }
 
 serve(async (req) => {
@@ -41,6 +69,7 @@ serve(async (req) => {
   const audioUrl = url.searchParams.get("audio_url");
   const bridgeTo = url.searchParams.get("bridge_to");
   const histId = url.searchParams.get("hist_id");
+  const twilioEvent = url.searchParams.get("twilio_event");
 
   // Twilio may request the call TwiML via GET or POST. 
   // If it's a voice instruction request:
@@ -52,12 +81,7 @@ serve(async (req) => {
 
   if (bridgeTo) {
     const customerNumber = bridgeTo.startsWith("+") ? bridgeTo : `+${bridgeTo.replace(/\D/g, "")}`;
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Say language="pt-BR">Conectando você ao cliente...</Say>
-    <Dial>${escapeXml(customerNumber)}</Dial>
-</Response>`;
-    return new Response(twiml, {
+    return new Response(twimlForBridge(customerNumber, histId), {
       headers: { ...corsHeaders, "Content-Type": "text/xml" },
     });
   }
@@ -68,9 +92,12 @@ serve(async (req) => {
     const callStatus = formData.get("CallStatus")?.toString();
     const callSid = formData.get("CallSid")?.toString();
     const duration = formData.get("CallDuration")?.toString();
+    const dialStatus = formData.get("DialCallStatus")?.toString();
+    const dialSid = formData.get("DialCallSid")?.toString();
+    const dialDuration = formData.get("DialCallDuration")?.toString();
     const formPayload = Object.fromEntries(formData.entries());
 
-    console.log(`[twilio-twiml] Status callback: ${callSid} - ${callStatus} - ${histId}`);
+    console.log(`[twilio-twiml] Status callback: ${twilioEvent || "call"} - ${callSid || dialSid} - ${callStatus || dialStatus} - ${histId}`);
 
     if (histId) {
       const supabase = createClient(
@@ -78,19 +105,28 @@ serve(async (req) => {
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       );
 
-      const status = mapTwilioStatus(callStatus);
-      const terminal = ["finalizada", "nao_atendeu", "ocupado", "erro", "cancelada"].includes(status);
+      const status = twilioEvent === "dial_action" ? mapDialStatus(dialStatus) : mapTwilioStatus(callStatus);
+      const terminal = terminalStatus(status);
+      const sidForRow = dialSid || callSid;
+      const durationValue = dialDuration || duration;
+      const errorMessage = twilioEvent === "dial_action" && ["nao_atendeu", "ocupado", "erro", "cancelada"].includes(status)
+        ? `Cliente não conectado via Twilio: ${dialStatus || "status desconhecido"}`
+        : undefined;
+
+      const update: Record<string, any> = {
+        status,
+        raw_payload: { twilio_event: twilioEvent || "call", ...formPayload },
+      };
+
+      if (durationValue) update.duration_seconds = parseInt(durationValue);
+      if (sidForRow) update.wavoip_call_id = sidForRow;
+      if (errorMessage) update.error_message = errorMessage;
+      if (status === "atendida") update.answered_at = new Date().toISOString();
+      if (terminal) update.ended_at = new Date().toISOString();
 
       await supabase
         .from("ligacoes_ia_historico")
-        .update({ 
-          status,
-          duration_seconds: duration ? parseInt(duration) : undefined,
-          wavoip_call_id: callSid,
-          raw_payload: formPayload,
-          answered_at: status === "atendida" ? new Date().toISOString() : undefined,
-          ended_at: terminal ? new Date().toISOString() : undefined,
-        })
+        .update(update)
         .eq("id", histId);
     }
 
