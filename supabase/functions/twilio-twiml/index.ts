@@ -80,12 +80,7 @@ serve(async (req) => {
 
   if (bridgeTo) {
     const customerNumber = bridgeTo.startsWith("+") ? bridgeTo : `+${bridgeTo.replace(/\D/g, "")}`;
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Say language="pt-BR">Conectando você ao cliente...</Say>
-    <Dial>${escapeXml(customerNumber)}</Dial>
-</Response>`;
-    return new Response(twiml, {
+    return new Response(twimlForBridge(customerNumber, histId), {
       headers: { ...corsHeaders, "Content-Type": "text/xml" },
     });
   }
