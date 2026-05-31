@@ -52,11 +52,20 @@ function twimlForBridge(customerNumber: string, histId?: string | null) {
   const baseUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-twiml`;
   const actionUrl = `${baseUrl}?hist_id=${encodeURIComponent(histId ?? "")}&twilio_event=dial_action`;
   const numberStatusUrl = `${baseUrl}?hist_id=${encodeURIComponent(histId ?? "")}&twilio_event=dial_number`;
+  const recordingStatusUrl = `${baseUrl}?hist_id=${encodeURIComponent(histId ?? "")}&twilio_event=recording_callback`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say language="pt-BR">Conectando você ao cliente agora. Aguarde na linha.</Say>
-    <Dial action="${escapeXml(actionUrl)}" method="POST" timeout="35" answerOnBridge="true">
+    <Dial 
+      action="${escapeXml(actionUrl)}" 
+      method="POST" 
+      timeout="35" 
+      answerOnBridge="true"
+      record="record-from-answer-dual"
+      recordingStatusCallback="${escapeXml(recordingStatusUrl)}"
+      recordingStatusCallbackMethod="POST"
+    >
         <Number statusCallback="${escapeXml(numberStatusUrl)}" statusCallbackMethod="POST" statusCallbackEvent="initiated ringing answered completed">${escapeXml(customerNumber)}</Number>
     </Dial>
 </Response>`;
@@ -96,6 +105,7 @@ serve(async (req) => {
     const dialSid = formData.get("DialCallSid")?.toString();
     const dialDuration = formData.get("DialCallDuration")?.toString();
     const formPayload = Object.fromEntries(formData.entries());
+    const recordingUrl = formData.get("RecordingUrl")?.toString();
 
     console.log(`[twilio-twiml] Status callback: ${twilioEvent || "call"} - ${callSid || dialSid} - ${callStatus || dialStatus} - ${histId}`);
 
@@ -104,6 +114,17 @@ serve(async (req) => {
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       );
+
+      if (twilioEvent === "recording_callback" && recordingUrl) {
+        await supabase
+          .from("ligacoes_ia_historico")
+          .update({ recording_url: recordingUrl })
+          .eq("id", histId);
+        
+        return new Response("<Response></Response>", {
+          headers: { ...corsHeaders, "Content-Type": "text/xml" },
+        });
+      }
 
       const status = twilioEvent === "dial_action" ? mapDialStatus(dialStatus) : mapTwilioStatus(callStatus);
       const terminal = terminalStatus(status);
