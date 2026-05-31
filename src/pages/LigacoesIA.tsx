@@ -801,6 +801,10 @@ function ConsultorTab({ provider, wavoipToken }: { provider: string; wavoipToken
   };
 
   const desligar = async () => {
+    if (twilioPollRef.current) {
+      window.clearInterval(twilioPollRef.current);
+      twilioPollRef.current = null;
+    }
     await callRef.current?.hangup();
     callRef.current = null;
     setCalling(false);
