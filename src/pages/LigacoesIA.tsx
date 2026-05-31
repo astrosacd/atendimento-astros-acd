@@ -689,6 +689,159 @@ function RoteiroDialog({ roteiro, onClose, onSaved }: { roteiro: any; onClose: (
   );
 }
 
+// ============ CONSULTOR ============
+function ConsultorTab({ provider, wavoipToken }: { provider: string; wavoipToken: string }) {
+  const [numero, setNumero] = useState("");
+  const [consultorPhone, setConsultorPhone] = useState(() => localStorage.getItem("ligacoes_consultor_phone") || "");
+  const [calling, setCalling] = useState(false);
+  const [callStatus, setCallStatus] = useState("");
+  const callRef = useRef<ActiveCallHandle | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem("ligacoes_consultor_phone", consultorPhone);
+  }, [consultorPhone]);
+
+  const ligar = async () => {
+    const cleanNum = numero.replace(/\D/g, "");
+    if (!cleanNum) return toast({ title: "Informe o número de destino", variant: "destructive" });
+    
+    if (provider === "twilio" && !consultorPhone.replace(/\D/g, "")) {
+      return toast({ title: "Informe seu número (Consultor) para a ponte Twilio", variant: "destructive" });
+    }
+
+    setCalling(true);
+    setCallStatus("Iniciando chamada...");
+
+    try {
+      if (provider === "wavoip") {
+        // Wavoip: Uses WebRTC with real microphone
+        const { data: config } = await supabase.from("ligacoes_ia_config").select("config_value").eq("config_key", "wavoip_token").maybeSingle();
+        const token = config?.config_value;
+        if (!token) throw new Error("Token Wavoip não configurado");
+
+        const handle = await placeManualCall({
+          token,
+          phone: cleanNum,
+          onStatus: (s) => setCallStatus(s),
+          onEnded: () => { setCalling(false); setCallStatus(""); callRef.current = null; },
+        });
+        callRef.current = handle;
+      } else {
+        // Twilio: Uses Bridge (Calls consultant then bridges to customer)
+        const { data, error } = await supabase.functions.invoke("ligacoes-ia-call", {
+          body: {
+            numero_destino: cleanNum,
+            manual: true,
+            consultor_phone: consultorPhone.replace(/\D/g, ""),
+            source: "manual_consultor",
+          },
+        });
+        if (error) throw error;
+        
+        setCallStatus("Twilio ligando para você... Atenda para conectar ao cliente.");
+        toast({ 
+          title: "Chamada Twilio Iniciada", 
+          description: "O Twilio está ligando para o seu número. Atenda para ser conectado ao cliente." 
+        });
+        // For Twilio bridge, we don't have a "hangup" handle in the browser unless we use the SDK.
+        // But we can show a "calling" state.
+        setTimeout(() => {
+          if (calling) {
+             setCalling(false);
+             setCallStatus("");
+          }
+        }, 30000);
+      }
+    } catch (e: any) {
+      setCalling(false);
+      setCallStatus("");
+      toast({ title: "Erro ao ligar", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const desligar = async () => {
+    await callRef.current?.hangup();
+    callRef.current = null;
+    setCalling(false);
+    setCallStatus("");
+  };
+
+  return (
+    <Card className="p-6 max-w-2xl">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 rounded-lg bg-primary/10 text-primary">
+          <User className="h-5 w-5" />
+        </div>
+        <div>
+          <h2 className="font-semibold text-lg">Central do Consultor</h2>
+          <p className="text-sm text-muted-foreground">Fale diretamente com o cliente através do {provider === "twilio" ? "Twilio (Ponte)" : "Wavoip (Navegador)"}</p>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {provider === "twilio" && (
+          <div className="p-4 rounded-lg border bg-amber-500/5 border-amber-500/20 mb-4">
+            <Label className="flex items-center gap-2 mb-2">
+              <PhoneCall className="h-4 w-4" /> Seu número (Consultor)
+            </Label>
+            <Input 
+              value={consultorPhone} 
+              onChange={e => setConsultorPhone(e.target.value)} 
+              placeholder="Ex: 5511999999999"
+              className="bg-background"
+            />
+            <p className="text-[10px] text-muted-foreground mt-2">
+              O Twilio ligará para este número primeiro. Ao atender, você será conectado ao cliente.
+            </p>
+          </div>
+        )}
+
+        <div>
+          <Label>Número do Cliente (DDI + DDD + Número)</Label>
+          <div className="flex gap-2 mt-1.5">
+            <Input 
+              value={numero} 
+              onChange={e => setNumero(e.target.value)} 
+              placeholder="5511999999999" 
+              className="text-lg font-mono"
+            />
+          </div>
+        </div>
+
+        {calling && (
+          <div className="p-4 rounded-lg border border-primary/30 bg-primary/5 flex items-center gap-3">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">{callStatus}</p>
+              {provider === "wavoip" && <p className="text-xs text-muted-foreground">O microfone do seu computador está ativo.</p>}
+            </div>
+          </div>
+        )}
+
+        <div className="pt-2">
+          {calling ? (
+            <Button size="lg" variant="destructive" className="w-full h-14 text-lg" onClick={desligar}>
+              <PhoneOff className="mr-2 h-5 w-5" /> Encerrar Chamada
+            </Button>
+          ) : (
+            <Button size="lg" className="w-full h-14 text-lg bg-emerald-600 hover:bg-emerald-700" onClick={ligar}>
+              <PhoneCall className="mr-2 h-5 w-5" /> Iniciar Ligação
+            </Button>
+          )}
+        </div>
+
+        <div className="text-center">
+          <p className="text-xs text-muted-foreground">
+            {provider === "wavoip" 
+              ? "Esta chamada utiliza o Wavoip e o microfone do seu navegador." 
+              : "Esta chamada cria uma ponte entre seu número e o do cliente via Twilio."}
+          </p>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 // ============ DISPARO ============
 function DisparoTab() {
   const [roteiros, setRoteiros] = useState<any[]>([]);
