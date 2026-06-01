@@ -453,26 +453,34 @@ function RCSSend() {
     let successCount = 0;
     
     try {
-      toast.info(`Iniciando envio para ${cleanNumbers.length} contatos...`);
+      toast.info(`Iniciando envio para ${cleanNumbers.length} contatos com delay de ${delay}s...`);
 
-      for (const numero of cleanNumbers) {
+      for (let i = 0; i < cleanNumbers.length; i++) {
+        const numero = cleanNumbers[i];
+        
+        // Process message with spintax if enabled
+        const finalMessage = useSpintax ? processSpintax(mensagem) : mensagem;
+
         const { error: msgError } = await supabase
           .from("rcs_messages")
           .insert({
             session_id: session.id,
             numero_destino: numero,
-            conteudo: mensagem,
+            conteudo: finalMessage,
             status: 'pendente',
             user_id: session.user_id,
             template_id: selectedTemplate !== "manual" ? selectedTemplate : null
           });
 
         if (!msgError) successCount++;
-        // Small delay between queueing
-        await new Promise(r => setTimeout(r, 100));
+        
+        // Apply delay between messages (except for the last one)
+        if (i < cleanNumbers.length - 1) {
+          await new Promise(r => setTimeout(r, delay * 1000));
+        }
       }
 
-      toast.success(`${successCount} mensagens enfileiradas para seu celular!`);
+      toast.success(`${successCount} mensagens enfileiradas com sucesso!`);
       setMensagem("");
       setNumbersInput("");
     } catch (error: any) {
