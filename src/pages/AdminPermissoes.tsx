@@ -359,6 +359,7 @@ export default function AdminPermissoes() {
     'Follow-ups Configuração': 'Follow-ups Configuração',
     'Seguros': 'Seguros de Números',
     'Scans': 'Módulo de Scans',
+    'RCS': 'Módulo RCS',
   });
 
   const colorOptions = getColorOptions(t);
