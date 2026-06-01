@@ -20,6 +20,7 @@ import { ptBR } from "date-fns/locale";
 import { CampanhasSMSTab } from "@/components/central-sms/CampanhasSMSTab";
 import { FilaSMSTab } from "@/components/central-sms/FilaSMSTab";
 import { CobrancaSMSConfigTab } from "@/components/central-sms/CobrancaSMSConfigTab";
+import { RCSTab } from "@/components/central-sms/RCSTab";
 
 const STATUS_COLOR: Record<string, string> = {
   pendente: "bg-slate-500",
