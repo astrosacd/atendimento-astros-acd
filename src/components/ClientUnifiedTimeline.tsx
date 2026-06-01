@@ -7,7 +7,7 @@ import {
   File, RefreshCw, ChevronDown, AlertTriangle, Send, MessageSquare,
   Clock, ArrowUpDown, Image, Key, Columns3, Zap, Users, Award, ExternalLink, User,
   Sparkles, ShoppingCart, PhoneCall, CalendarClock, TrendingUp, Lightbulb, Instagram,
-  ShieldCheck, ShieldAlert, ShieldOff, Search
+  ShieldCheck, ShieldAlert, ShieldOff, Search, Smartphone
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface TimelineEvent {
   id: string;
-  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery' | 'whatsapp_group' | 'logo' | 'credential' | 'pipeline' | 'automation' | 'license' | 'share_link' | 'client' | 'ai_log' | 'ticket' | 'appointment' | 'sale' | 'sms_validation' | 'ia_call' | 'scheduled_call' | 'score_change' | 'upsell' | 'social_profile' | 'insurance' | 'scan' | 'sms';
+  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery' | 'whatsapp_group' | 'logo' | 'credential' | 'pipeline' | 'automation' | 'license' | 'share_link' | 'client' | 'ai_log' | 'ticket' | 'appointment' | 'sale' | 'sms_validation' | 'ia_call' | 'scheduled_call' | 'score_change' | 'upsell' | 'social_profile' | 'insurance' | 'scan' | 'sms' | 'rcs';
   date: string;
   title: string;
   description: string;
@@ -60,6 +60,7 @@ const TYPE_CONFIG: Record<TimelineEvent['type'], { icon: React.ElementType; colo
   insurance: { icon: ShieldCheck, color: 'text-emerald-500', label: 'Seguro' },
   scan: { icon: Search, color: 'text-blue-500', label: 'Scan de QR' },
   sms: { icon: MessageSquare, color: 'text-blue-400', label: 'SMS Enviado' },
+  rcs: { icon: Smartphone, color: 'text-indigo-400', label: 'RCS Enviado' },
 };
 
 const IA_CALL_STATUS_LABEL: Record<string, string> = {
@@ -137,6 +138,7 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         insuranceUsageRes,
         scanHistoryRes,
         smsHistoryRes,
+        rcsHistoryRes,
       ] = await Promise.all([
         supabase.from('client_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('billing_logs').select('*').eq('cliente_id', clienteId).order('sent_at', { ascending: false }).limit(50),
@@ -168,6 +170,7 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         supabase.from('qr_scan_insurance_usage').select('*').or(`cliente_nome.ilike.%${clienteName}%`).order('created_at', { ascending: false }).limit(50),
         supabase.from('qr_scan_history').select('*').or(`cliente_nome.ilike.%${clienteName}%`).order('created_at', { ascending: false }).limit(50),
         supabase.from('sms_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('rcs_messages').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
       ]);
 
       const clientInfo = clientDataRes.data;

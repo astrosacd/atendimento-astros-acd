@@ -252,6 +252,9 @@ export function usePermissions() {
   const canManageTemporaryAccess = () => hasPermission('manage_temporary_access');
   const canViewGuiaInstagram = () => hasPermission('view_guia_instagram');
   const canManageSystemHealth = () => hasPermission('manage_system_health');
+  const canViewRCS = () => hasPermission('view_rcs');
+  const canManageRCS = () => hasPermission('manage_rcs');
+  const canManageRCSTemplates = () => hasPermission('manage_rcs_templates');
 
   return {
     permissions,
@@ -382,6 +385,9 @@ export function usePermissions() {
     canViewLeadHunter,
     canManageLeadHunterLeads,
     canManageLeadHunterCampanhas,
+    canViewRCS,
+    canManageRCS,
+    canManageRCSTemplates,
     canManageLeadHunterConfig,
     canManageLeadHunterBaserow,
     canViewLeadHunterHistorico,
