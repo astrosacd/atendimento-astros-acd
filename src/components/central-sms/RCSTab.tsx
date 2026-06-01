@@ -310,28 +310,31 @@ function RCSConnection() {
                 <QRCodeSVG 
                   value={session.qr_code} 
                   size={240} 
-                  level="M"
+                  level="L"
                   includeMargin={true}
                 />
               </div>
-              <p className="text-[9px] text-muted-foreground font-mono max-w-[240px] break-all text-center">
-                Sessão: {session.id}
-              </p>
-              <div className="flex flex-col gap-2 w-full mt-4">
+              <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg mb-4 max-w-[280px]">
+                <p className="text-[11px] text-amber-800 leading-tight">
+                  <AlertTriangle className="h-3 w-3 inline mr-1 mb-0.5" />
+                  <strong>Dica:</strong> Se o QR Code não carregar no app, use o botão abaixo para copiar o token e colar manualmente no campo de configuração do aplicativo.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 w-full mt-2">
                 <Button 
-                  variant="outline" 
+                  variant="default" 
                   size="sm" 
-                  className="text-[10px] h-8"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
                   onClick={() => {
                     navigator.clipboard.writeText(session.qr_code);
-                    toast.success("Configuração copiada!");
+                    toast.success("Token de configuração copiado!");
                   }}
                 >
-                  <ExternalLink className="h-3 w-3 mr-1" />
-                  Copiar Token de Configuração
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Copiar Token (Configuração Manual)
                 </Button>
                 <p className="text-[10px] text-center text-muted-foreground italic">
-                  Aponte o app do gateway para este código ou cole o token
+                  Abra o app, vá em "Configurações" e cole este token.
                 </p>
               </div>
             </>
