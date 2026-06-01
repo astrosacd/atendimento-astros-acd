@@ -647,9 +647,10 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
           body: { 
             to: numero, 
             body: finalMessage,
-            session_id: session.id
+            session_id: null // Removido session.id que causava o erro de null
           }
         });
+
 
         if (error) {
           console.error(`Erro ao enviar para ${numero}:`, error);
