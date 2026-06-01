@@ -367,7 +367,7 @@ function RCSTemplateDialog({ template, onClose, onSaved }: any) {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-blue-700 font-bold">Botões Interativos (Links)</Label>
-              <Button size="xs" variant="outline" onClick={addBotao} type="button" className="h-7 text-[10px]">
+              <Button size="sm" variant="outline" onClick={addBotao} type="button" className="h-7 text-[10px]">
                 <Plus className="h-3 w-3 mr-1" /> Add Botão
               </Button>
             </div>
