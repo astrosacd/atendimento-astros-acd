@@ -563,7 +563,8 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
         const numero = cleanNumbers[i];
         const finalMessage = useSpintax ? processSpintax(mensagem) : mensagem;
 
-        const { error } = await supabase.functions.invoke('send-rcs', {
+        console.log(`Enviando RCS para ${numero}...`);
+        const { data, error } = await supabase.functions.invoke('send-rcs', {
           body: { 
             to: numero, 
             body: finalMessage,
@@ -571,7 +572,15 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
           }
         });
 
-        if (!error) successCount++;
+        if (error) {
+          console.error(`Erro ao enviar para ${numero}:`, error);
+          toast.error(`Erro no número ${numero}: ${error.message || 'Erro desconhecido'}`);
+        } else if (data?.error) {
+          console.error(`Erro retornado pelo Twilio para ${numero}:`, data.error);
+          toast.error(`Twilio (${numero}): ${data.error}`);
+        } else {
+          successCount++;
+        }
         
         if (i < cleanNumbers.length - 1) {
           const randomDelay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
@@ -580,8 +589,7 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
       }
 
       toast.success(`${successCount} mensagens processadas com sucesso!`);
-      setMensagem("");
-      setNumbersInput("");
+      // Removi a limpeza automática dos campos para você ver o que foi enviado
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -709,7 +717,7 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
         <Button 
           className="w-full h-14 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 shadow-lg text-lg font-bold" 
           onClick={handleSend}
-          disabled={sending || !session || session.status !== 'connected' || !canSend}
+          disabled={sending || !canSend}
         >
           {sending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Send className="mr-2 h-5 w-5" />}
           {session?.status === 'connected' ? (
