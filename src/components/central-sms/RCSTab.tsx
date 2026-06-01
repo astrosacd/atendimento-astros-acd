@@ -413,7 +413,8 @@ function RCSSend() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("manual");
 
-  const [delay, setDelay] = useState(5); // Default 5 seconds
+  const [minDelay, setMinDelay] = useState(10);
+  const [maxDelay, setMaxDelay] = useState(20);
   const [useSpintax, setUseSpintax] = useState(true);
 
   // Helper to process spintax: {Olá|Oi|Bom dia}
@@ -453,7 +454,7 @@ function RCSSend() {
     let successCount = 0;
     
     try {
-      toast.info(`Iniciando envio para ${cleanNumbers.length} contatos com delay de ${delay}s...`);
+      toast.info(`Iniciando envio para ${cleanNumbers.length} contatos com delay aleatório entre ${minDelay}s e ${maxDelay}s...`);
 
       for (let i = 0; i < cleanNumbers.length; i++) {
         const numero = cleanNumbers[i];
@@ -474,9 +475,10 @@ function RCSSend() {
 
         if (!msgError) successCount++;
         
-        // Apply delay between messages (except for the last one)
+        // Apply randomized delay between messages (except for the last one)
         if (i < cleanNumbers.length - 1) {
-          await new Promise(r => setTimeout(r, delay * 1000));
+          const randomDelay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+          await new Promise(r => setTimeout(r, randomDelay * 1000));
         }
       }
 
@@ -547,16 +549,26 @@ function RCSSend() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground">Delay (seg)</span>
-                    <span className="text-[10px] font-bold text-blue-600">{delay}s</span>
+                    <span className="text-[10px] text-muted-foreground uppercase font-bold">Delay (Min-Max)</span>
                   </div>
-                  <Input 
-                    type="number" 
-                    value={delay} 
-                    onChange={e => setDelay(Number(e.target.value))} 
-                    className="h-8 text-xs"
-                    min={1}
-                  />
+                  <div className="flex items-center gap-1">
+                    <Input 
+                      type="number" 
+                      value={minDelay} 
+                      onChange={e => setMinDelay(Number(e.target.value))} 
+                      className="h-8 text-xs w-14"
+                      min={1}
+                    />
+                    <span className="text-[10px] text-muted-foreground">à</span>
+                    <Input 
+                      type="number" 
+                      value={maxDelay} 
+                      onChange={e => setMaxDelay(Number(e.target.value))} 
+                      className="h-8 text-xs w-14"
+                      min={1}
+                    />
+                    <span className="text-[10px] text-muted-foreground">seg</span>
+                  </div>
                 </div>
                 <div className="space-y-1 flex flex-col justify-end">
                    <Button 
@@ -586,11 +598,10 @@ function RCSSend() {
               onChange={e => setMensagem(e.target.value)} 
               placeholder="Sua mensagem RCS aparecerá aqui..."
               rows={4}
-              readOnly={selectedTemplate !== "manual"}
-              className={selectedTemplate !== "manual" ? "bg-muted/30" : ""}
+              className={selectedTemplate !== "manual" ? "border-blue-200 bg-blue-50/10" : ""}
             />
             {selectedTemplate !== "manual" && (
-              <p className="text-[10px] text-blue-600 mt-1">Este template inclui botões interativos configurados.</p>
+              <p className="text-[10px] text-blue-600 mt-1">Template selecionado. Você pode editar o texto acima e incluir Spintax.</p>
             )}
           </div>
         </div>
