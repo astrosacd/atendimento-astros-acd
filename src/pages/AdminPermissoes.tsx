@@ -16,7 +16,7 @@ import {
   CreditCard, Webhook, Key, FileText, Settings, LayoutDashboard,
   Plus, Save, X, Check, Pencil, Download, Tag, Megaphone,
   MessageSquare, Send, UserMinus, BarChart3, Database, ShoppingCart,
-  Award, Share2, Phone, Crosshair, Globe, Search, Instagram
+  Award, Share2, Phone, Crosshair, Globe, Search, Instagram, Smartphone
 } from 'lucide-react';
 import {
   Dialog,
@@ -110,6 +110,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'Segurança de Pagamento': <Shield className="h-4 w-4" />,
   'Seguros': <Shield className="h-4 w-4 text-emerald-500" />,
   'Scans': <Search className="h-4 w-4 text-blue-500" />,
+  'RCS': <Smartphone className="h-4 w-4 text-indigo-500" />,
 };
 
 // Icons removed from individual permissions — only category titles have icons
@@ -358,6 +359,7 @@ export default function AdminPermissoes() {
     'Follow-ups Configuração': 'Follow-ups Configuração',
     'Seguros': 'Seguros de Números',
     'Scans': 'Módulo de Scans',
+    'RCS': 'Módulo RCS',
   });
 
   const colorOptions = getColorOptions(t);

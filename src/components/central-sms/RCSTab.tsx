@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,13 +25,66 @@ import {
   Plus,
   Trash2,
   ExternalLink,
-  Users
+  Users,
+  ShieldAlert
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export function RCSTab() {
+  const { canViewRCS, canManageRCS, canManageRCSTemplates } = usePermissions();
   const [activeTab, setActiveTab] = useState("conexao");
+  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<any>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadSession = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("rcs_sessions")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      setSession(data);
+    } catch (error) {
+      console.error("Error loading RCS session:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSession();
+  }, []);
+
+  if (!canViewRCS()) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <ShieldAlert className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium">Acesso Negado</h3>
+          <p className="text-muted-foreground text-center max-w-sm">
+            Você não tem permissão para visualizar o módulo de RCS. Solicite acesso ao administrador.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 space-y-4">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <p className="text-muted-foreground">Verificando conexão...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -68,10 +121,10 @@ export function RCSTab() {
           <RCSConnection />
         </TabsContent>
         <TabsContent value="templates">
-          <RCSTemplates />
+          <RCSTemplates canManageRCSTemplates={canManageRCSTemplates} />
         </TabsContent>
         <TabsContent value="enviar">
-          <RCSSend />
+          <RCSSend canManageRCS={canManageRCS} />
         </TabsContent>
         <TabsContent value="historico">
           <RCSHistory />
@@ -88,22 +141,23 @@ function RCSConnection() {
   const [refreshing, setRefreshing] = useState(false);
 
   const loadSession = async () => {
-    setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const { data, error } = await supabase
-      .from("rcs_sessions")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
+      const { data, error } = await supabase
+        .from("rcs_sessions")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-    if (error) {
-      console.error("Error loading RCS session:", error);
-    } else {
+      if (error) throw error;
       setSession(data);
+    } catch (error) {
+      console.error("Error loading RCS session:", error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const createSession = async () => {
@@ -137,6 +191,7 @@ function RCSConnection() {
   useEffect(() => {
     loadSession();
   }, []);
+
 
   if (loading) {
     return (
@@ -238,10 +293,11 @@ function RCSConnection() {
 }
 
 // --- Templates Component ---
-function RCSTemplates() {
+function RCSTemplates({ canManageRCSTemplates }: { canManageRCSTemplates: () => boolean }) {
   const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any | null>(null);
+  const canEdit = canManageRCSTemplates();
 
   const load = async () => {
     setLoading(true);
@@ -256,9 +312,11 @@ function RCSTemplates() {
     <Card className="p-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-semibold">Templates RCS Rich Content</h2>
-        <Button size="sm" onClick={() => setEditing({ botoes: [] })}>
-          <Plus className="h-4 w-4 mr-1" /> Novo Template RCS
-        </Button>
+        {canEdit && (
+          <Button size="sm" onClick={() => setEditing({ botoes: [] })}>
+            <Plus className="h-4 w-4 mr-1" /> Novo Template RCS
+          </Button>
+        )}
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -266,19 +324,21 @@ function RCSTemplates() {
           <div key={t.id} className="p-4 rounded-lg border bg-card flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
               <h3 className="font-bold text-sm text-blue-700">{t.nome}</h3>
-              <div className="flex gap-1">
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditing(t)}>
-                  <FileText className="h-4 w-4" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={async () => {
-                   if(confirm('Excluir este template?')) {
-                     await supabase.from("rcs_templates").delete().eq("id", t.id);
-                     load();
-                   }
-                }}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+              {canEdit && (
+                <div className="flex gap-1">
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditing(t)}>
+                    <FileText className="h-4 w-4" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={async () => {
+                    if(confirm('Excluir este template?')) {
+                      await supabase.from("rcs_templates").delete().eq("id", t.id);
+                      load();
+                    }
+                  }}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
             
             <div className="bg-slate-50 p-3 rounded border text-xs text-slate-700 italic leading-relaxed">
@@ -405,7 +465,8 @@ function RCSTemplateDialog({ template, onClose, onSaved }: any) {
 }
 
 // --- Send Component (Single + Bulk) ---
-function RCSSend() {
+function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
+  const canSend = canManageRCS();
   const [numbersInput, setNumbersInput] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [sending, setSending] = useState(false);
@@ -609,11 +670,11 @@ function RCSSend() {
         <Button 
           className="w-full h-14 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 shadow-lg text-lg font-bold" 
           onClick={handleSend}
-          disabled={sending || !session || session.status !== 'connected'}
+          disabled={sending || !session || session.status !== 'connected' || !canSend}
         >
           {sending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Send className="mr-2 h-5 w-5" />}
           {session?.status === 'connected' ? (
-            sending ? 'Processando fila...' : `Disparar para ${numbersInput.split(/[\n, ]+/).filter(n => n.trim()).length} contatos`
+            !canSend ? 'Sem permissão de envio' : (sending ? 'Processando fila...' : `Disparar para ${numbersInput.split(/[\n, ]+/).filter(n => n.trim()).length} contatos`)
           ) : 'Conecte um Celular Primeiro'}
         </Button>
 
