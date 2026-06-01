@@ -139,7 +139,21 @@ function RCSConnection() {
   }, []);
 
   if (loading) {
+  if (!canViewRCS()) {
     return (
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <ShieldAlert className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium">Acesso Negado</h3>
+          <p className="text-muted-foreground text-center max-w-sm">
+            Você não tem permissão para visualizar o módulo de RCS.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
       <div className="flex flex-col items-center justify-center p-12 space-y-4">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
         <p className="text-muted-foreground">Verificando conexão...</p>

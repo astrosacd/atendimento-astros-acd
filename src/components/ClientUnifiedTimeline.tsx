@@ -108,38 +108,8 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
     setLoading(true);
     try {
       const [
-        historyRes,
-        billingRes,
-        paymentsRes,
-        followupsRes,
-        tasksRes,
-        purchasesRes,
-        filesRes,
-        recoveryRes,
-        whatsappGroupsRes,
-        logosRes,
-        credentialsRes,
-        pipelineRes,
-        automationRes,
-        licensesRes,
-        shareLinksRes,
-        proposalsRes,
-        clientDataRes,
-        aiLogsRes,
-        ticketsRes,
-        appointmentsRes,
-        salesRes,
-        smsLogsRes,
-        iaCallsRes,
-        scheduledCallsRes,
-        scoreHistoryRes,
-        upsellRes,
-        socialProfilesRes,
-        insuranceUsageRes,
-        scanHistoryRes,
-        smsHistoryRes,
-        rcsHistoryRes,
-      ] = await Promise.all([
+      // Split fetches into smaller batches to avoid TS "Type instantiation is excessively deep" error
+      const batch1 = await Promise.all([
         supabase.from('client_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('billing_logs').select('*').eq('cliente_id', clienteId).order('sent_at', { ascending: false }).limit(50),
         supabase.from('client_payments').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
@@ -150,6 +120,9 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         supabase.from('client_recovery_attempts').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('client_whatsapp_groups').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('client_logos').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
+      ]);
+
+      const batch2 = await Promise.all([
         supabase.from('client_social_credentials').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('client_pipeline').select('*, stage:pipeline_stages(name)').eq('cliente_id', clienteId).limit(10),
         supabase.from('automation_logs').select('*, rule:automation_rules(name)').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
@@ -160,6 +133,9 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         canViewClientAI() ? supabase.from('client_ai_logs').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
         supabase.from('chamados').select('*').or(`email.eq.${clienteId},contato.eq.${clienteId}`).order('created_at', { ascending: false }).limit(50),
         supabase.from('calendar_events').select('*').or(`client_email.eq.${clienteId},client_phone.eq.${clienteId}`).order('created_at', { ascending: false }).limit(50),
+      ]);
+
+      const batch3 = await Promise.all([
         supabase.from('gateway_orders').select('*').eq('customer_email', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('sms_validation_logs').select('*').eq('numero', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('ligacoes_ia_historico').select('*, roteiro:ligacoes_ia_roteiros(nome)').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
@@ -172,6 +148,46 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         supabase.from('sms_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('rcs_messages').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
       ]);
+
+      const [
+        historyRes,
+        billingRes,
+        paymentsRes,
+        followupsRes,
+        tasksRes,
+        purchasesRes,
+        filesRes,
+        recoveryRes,
+        whatsappGroupsRes,
+        logosRes,
+      ] = batch1;
+
+      const [
+        credentialsRes,
+        pipelineRes,
+        automationRes,
+        licensesRes,
+        shareLinksRes,
+        proposalsRes,
+        clientDataRes,
+        aiLogsRes,
+        ticketsRes,
+        appointmentsRes,
+      ] = batch2;
+
+      const [
+        salesRes,
+        smsLogsRes,
+        iaCallsRes,
+        scheduledCallsRes,
+        scoreHistoryRes,
+        upsellRes,
+        socialProfilesRes,
+        insuranceUsageRes,
+        scanHistoryRes,
+        smsHistoryRes,
+        rcsHistoryRes,
+      ] = batch3;
 
       const clientInfo = clientDataRes.data;
       const clientEmail = clientInfo?.email;
