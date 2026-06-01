@@ -192,19 +192,6 @@ function RCSConnection() {
     loadSession();
   }, []);
 
-  if (!canViewRCS()) {
-    return (
-      <Card className="border-dashed">
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <ShieldAlert className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium">Acesso Negado</h3>
-          <p className="text-muted-foreground text-center max-w-sm">
-            Você não tem permissão para visualizar o módulo de RCS. Solicite acesso ao administrador.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
 
   if (loading) {
     return (
