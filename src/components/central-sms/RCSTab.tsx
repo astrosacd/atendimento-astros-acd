@@ -121,10 +121,10 @@ export function RCSTab() {
           <RCSConnection />
         </TabsContent>
         <TabsContent value="templates">
-          <RCSTemplates />
+          <RCSTemplates canManageRCSTemplates={canManageRCSTemplates} />
         </TabsContent>
         <TabsContent value="enviar">
-          <RCSSend />
+          <RCSSend canManageRCS={canManageRCS} />
         </TabsContent>
         <TabsContent value="historico">
           <RCSHistory />
@@ -311,9 +311,11 @@ function RCSTemplates() {
     <Card className="p-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-semibold">Templates RCS Rich Content</h2>
-        <Button size="sm" onClick={() => setEditing({ botoes: [] })}>
-          <Plus className="h-4 w-4 mr-1" /> Novo Template RCS
-        </Button>
+        {canEdit && (
+          <Button size="sm" onClick={() => setEditing({ botoes: [] })}>
+            <Plus className="h-4 w-4 mr-1" /> Novo Template RCS
+          </Button>
+        )}
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -321,19 +323,21 @@ function RCSTemplates() {
           <div key={t.id} className="p-4 rounded-lg border bg-card flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
               <h3 className="font-bold text-sm text-blue-700">{t.nome}</h3>
-              <div className="flex gap-1">
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditing(t)}>
-                  <FileText className="h-4 w-4" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={async () => {
-                   if(confirm('Excluir este template?')) {
-                     await supabase.from("rcs_templates").delete().eq("id", t.id);
-                     load();
-                   }
-                }}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+              {canEdit && (
+                <div className="flex gap-1">
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditing(t)}>
+                    <FileText className="h-4 w-4" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={async () => {
+                    if(confirm('Excluir este template?')) {
+                      await supabase.from("rcs_templates").delete().eq("id", t.id);
+                      load();
+                    }
+                  }}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
             
             <div className="bg-slate-50 p-3 rounded border text-xs text-slate-700 italic leading-relaxed">
@@ -460,7 +464,8 @@ function RCSTemplateDialog({ template, onClose, onSaved }: any) {
 }
 
 // --- Send Component (Single + Bulk) ---
-function RCSSend() {
+function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
+  const canSend = canManageRCS();
   const [numbersInput, setNumbersInput] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [sending, setSending] = useState(false);
