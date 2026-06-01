@@ -107,8 +107,39 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
   const loadAllEvents = async () => {
     setLoading(true);
     try {
-      // Split fetches into smaller batches to avoid TS "Type instantiation is excessively deep" error
-      const batch1 = await Promise.all([
+      const [
+        historyRes,
+        billingRes,
+        paymentsRes,
+        followupsRes,
+        tasksRes,
+        purchasesRes,
+        filesRes,
+        recoveryRes,
+        whatsappGroupsRes,
+        logosRes,
+        credentialsRes,
+        pipelineRes,
+        automationRes,
+        licensesRes,
+        shareLinksRes,
+        proposalsRes,
+        clientDataRes,
+        aiLogsRes,
+        ticketsRes,
+        appointmentsRes,
+        salesRes,
+        smsLogsRes,
+        iaCallsRes,
+        scheduledCallsRes,
+        scoreHistoryRes,
+        upsellRes,
+        socialProfilesRes,
+        insuranceUsageRes,
+        scanHistoryRes,
+        smsHistoryRes,
+        rcsHistoryRes,
+      ] = await Promise.all([
         supabase.from('client_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('billing_logs').select('*').eq('cliente_id', clienteId).order('sent_at', { ascending: false }).limit(50),
         supabase.from('client_payments').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
@@ -119,9 +150,6 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         supabase.from('client_recovery_attempts').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('client_whatsapp_groups').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('client_logos').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
-      ]);
-
-      const batch2 = await Promise.all([
         supabase.from('client_social_credentials').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('client_pipeline').select('*, stage:pipeline_stages(name)').eq('cliente_id', clienteId).limit(10),
         supabase.from('automation_logs').select('*, rule:automation_rules(name)').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
@@ -132,9 +160,6 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         canViewClientAI() ? supabase.from('client_ai_logs').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
         supabase.from('chamados').select('*').or(`email.eq.${clienteId},contato.eq.${clienteId}`).order('created_at', { ascending: false }).limit(50),
         supabase.from('calendar_events').select('*').or(`client_email.eq.${clienteId},client_phone.eq.${clienteId}`).order('created_at', { ascending: false }).limit(50),
-      ]);
-
-      const batch3 = await Promise.all([
         supabase.from('gateway_orders').select('*').eq('customer_email', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('sms_validation_logs').select('*').eq('numero', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('ligacoes_ia_historico').select('*, roteiro:ligacoes_ia_roteiros(nome)').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
@@ -148,51 +173,10 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         supabase.from('rcs_messages').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
       ]);
 
-      const [
-        historyRes,
-        billingRes,
-        paymentsRes,
-        followupsRes,
-        tasksRes,
-        purchasesRes,
-        filesRes,
-        recoveryRes,
-        whatsappGroupsRes,
-        logosRes,
-      ] = batch1;
-
-      const [
-        credentialsRes,
-        pipelineRes,
-        automationRes,
-        licensesRes,
-        shareLinksRes,
-        proposalsRes,
-        clientDataRes,
-        aiLogsRes,
-        ticketsRes,
-        appointmentsRes,
-      ] = batch2;
-
-      const [
-        salesRes,
-        smsLogsRes,
-        iaCallsRes,
-        scheduledCallsRes,
-        scoreHistoryRes,
-        upsellRes,
-        socialProfilesRes,
-        insuranceUsageRes,
-        scanHistoryRes,
-        smsHistoryRes,
-        rcsHistoryRes,
-      ] = batch3;
-
       const clientInfo = clientDataRes.data;
       const clientEmail = clientInfo?.email;
       const clientPhone = clientInfo?.numero;
 
-      // Re-fetch some by email/phone if we have them
       if (clientEmail || clientPhone) {
         const [extraTickets, extraAppointments, extraSales, extraSms] = await Promise.all([
           clientEmail ? supabase.from('chamados').select('*').eq('email', clientEmail).order('created_at', { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
@@ -200,17 +184,14 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
           clientEmail ? supabase.from('gateway_orders').select('*').eq('customer_email', clientEmail).order('created_at', { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
           clientPhone ? supabase.from('sms_validation_logs').select('*').eq('numero', clientPhone).order('created_at', { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
         ]);
-        
-        // Merge or replace results
-        if (extraTickets.data) ticketsRes.data = extraTickets.data;
-        if (extraAppointments.data) appointmentsRes.data = extraAppointments.data;
-        if (extraSales.data) salesRes.data = extraSales.data;
-        if (extraSms.data) smsLogsRes.data = extraSms.data;
+        if (extraTickets.data) (ticketsRes as any).data = extraTickets.data;
+        if (extraAppointments.data) (appointmentsRes as any).data = extraAppointments.data;
+        if (extraSales.data) (salesRes as any).data = extraSales.data;
+        if (extraSms.data) (smsLogsRes as any).data = extraSms.data;
       }
 
       const allEvents: TimelineEvent[] = [];
 
-      // Client history
       (historyRes.data || []).forEach((h: any) => {
         const actionLabels: Record<string, string> = { created: 'Cliente cadastrado', updated: 'Cliente atualizado', deleted: 'Cliente excluído' };
         allEvents.push({
@@ -223,9 +204,7 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         });
       });
 
-      // Billing logs
       (billingRes.data || []).forEach((b: any) => {
-        const statusLabels: Record<string, string> = { sent: 'Enviado', error: 'Erro', pending: 'Pendente' };
         allEvents.push({
           id: `billing-${b.id}`,
           type: 'billing',
@@ -236,57 +215,49 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         });
       });
 
-      // Payments
       (paymentsRes.data || []).forEach((p: any) => {
-        const statusLabels: Record<string, string> = { paid: 'Pago', pending: 'Pendente', overdue: 'Atrasado', cancelled: 'Cancelado' };
         allEvents.push({
           id: `payment-${p.id}`,
           type: 'payment',
           date: p.created_at,
-          title: `Pagamento ${statusLabels[p.status] || p.status}`,
+          title: `Pagamento ${p.status}`,
           description: `R$ ${Number(p.amount).toFixed(2)} — ${p.payment_type}`,
           status: p.status,
         });
       });
 
-      // Follow-ups
       (followupsRes.data || []).forEach((f: any) => {
-        const statusLabels: Record<string, string> = { pending: 'Pendente', sent: 'Enviado', completed: 'Concluído', cancelled: 'Cancelado', failed: 'Falhou', resolved: 'Resolvido' };
         allEvents.push({
           id: `followup-${f.id}`,
           type: 'followup',
           date: f.created_at,
           title: `Follow-up: ${f.produto}`,
-          description: `Canal: ${f.channel} — ${statusLabels[f.status] || f.status}`,
+          description: `Canal: ${f.channel} — ${f.status}`,
           status: f.status,
         });
       });
 
-      // Tasks
       (tasksRes.data || []).forEach((t: any) => {
-        const statusLabels: Record<string, string> = { pending: 'Pendente', in_progress: 'Em andamento', completed: 'Concluída', cancelled: 'Cancelada' };
         allEvents.push({
           id: `task-${t.id}`,
           type: 'task',
           date: t.created_at,
           title: `Tarefa: ${t.title}`,
-          description: `${t.codigo || ''} — ${statusLabels[t.status] || t.status}${t.priority ? ` (${t.priority})` : ''}`,
+          description: `${t.codigo || ''} — ${t.status}`,
           status: t.status,
         });
       });
 
-      // Purchases
       (purchasesRes.data || []).forEach((p: any) => {
         allEvents.push({
           id: `purchase-${p.id}`,
           type: 'purchase',
           date: p.created_at,
           title: `Compra: ${p.produto}`,
-          description: `${p.moeda === 'USD' ? '$' : 'R$'} ${Number(p.valor).toFixed(2)}${p.descricao ? ` — ${p.descricao}` : ''}`,
+          description: `${p.moeda === 'USD' ? '$' : 'R$'} ${Number(p.valor).toFixed(2)}`,
         });
       });
 
-      // Files
       (filesRes.data || []).forEach((f: any) => {
         allEvents.push({
           id: `file-${f.id}`,
@@ -297,42 +268,38 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         });
       });
 
-      // Recovery attempts
       (recoveryRes.data || []).forEach((r: any) => {
         allEvents.push({
           id: `recovery-${r.id}`,
           type: 'recovery',
           date: r.created_at,
           title: `Recuperação — ${r.canal}`,
-          description: `${r.status}${r.converteu ? ' ✓ Converteu' : ''}${r.error_message ? ` — ${r.error_message}` : ''}`,
+          description: `${r.status}${r.converteu ? ' ✓ Converteu' : ''}`,
           status: r.status,
         });
       });
 
-      // WhatsApp Groups
       (whatsappGroupsRes.data || []).forEach((g: any) => {
         allEvents.push({
           id: `whatsapp-${g.id}`,
           type: 'whatsapp_group',
           date: g.created_at,
           title: `Grupo: ${g.group_name}`,
-          description: `${g.participants?.length || 0} participantes${g.motivo ? ` — ${g.motivo}` : ''}`,
+          description: `${g.participants?.length || 0} participantes`,
           status: g.status,
         });
       });
 
-      // Logos
       (logosRes.data || []).forEach((l: any) => {
         allEvents.push({
           id: `logo-${l.id}`,
           type: 'logo',
           date: l.created_at,
           title: `Logo: ${l.file_name}`,
-          description: l.description || l.file_type || '',
+          description: l.description || '',
         });
       });
 
-      // Social Credentials
       (credentialsRes.data || []).forEach((c: any) => {
         allEvents.push({
           id: `credential-${c.id}`,
@@ -343,7 +310,6 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         });
       });
 
-      // Pipeline
       (pipelineRes.data || []).forEach((p: any) => {
         const stageName = (p.stage as any)?.name || 'Sem etapa';
         allEvents.push({
@@ -356,7 +322,6 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         });
       });
 
-      // Automation logs
       (automationRes.data || []).forEach((a: any) => {
         const ruleName = (a.rule as any)?.name || 'Regra';
         allEvents.push({
@@ -364,34 +329,30 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
           type: 'automation',
           date: a.created_at,
           title: `Automação: ${ruleName}`,
-          description: `${a.action_taken}${a.result ? ` — ${a.result}` : ''}`,
+          description: `${a.action_taken}`,
         });
       });
 
-      // Licenças entregues
       (licensesRes.data || []).forEach((l: any) => {
         allEvents.push({
           id: `license-${l.id}`,
           type: 'license',
           date: l.data_entrega || l.created_at,
           title: `Licença: ${l.ferramenta}`,
-          description: `${l.origem ? `Origem: ${l.origem}` : ''}${l.observacao ? ` — ${l.observacao}` : ''}`.trim() || 'Licença entregue',
+          description: l.observacao || 'Licença entregue',
         });
       });
 
-      // Links de compartilhamento de credenciais
       (shareLinksRes.data || []).forEach((s: any) => {
-        const expiresAt = new Date(s.expires_at).toLocaleDateString('pt-BR');
         allEvents.push({
           id: `share-link-${s.id}`,
           type: 'share_link',
           date: s.created_at,
           title: 'Link de credenciais compartilhado',
-          description: `Expira em: ${expiresAt}`,
+          description: `Expira em: ${new Date(s.expires_at).toLocaleDateString('pt-BR')}`,
         });
       });
       
-      // Propostas
       (proposalsRes.data || []).forEach((p: any) => {
         allEvents.push({
           id: `proposal-${p.id}`,
@@ -403,7 +364,6 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         });
       });
       
-      // SMS History
       (smsHistoryRes.data || []).forEach((s: any) => {
         allEvents.push({
           id: `sms-${s.id}`,
@@ -416,7 +376,6 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         });
       });
       
-      // Client Base Info
       if (clientDataRes.data) {
         const c = clientDataRes.data;
         allEvents.push({
@@ -424,28 +383,21 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
           type: 'client',
           date: c.created_at,
           title: `Cliente Cadastrado: ${c.nome}`,
-          description: `${c.produto ? `Produto: ${c.produto}` : ''}${c.email ? ` — Email: ${c.email}` : ''}${c.numero ? ` — Tel: ${c.numero}` : ''}${c.tags?.length ? ` — Tags: ${c.tags.join(', ')}` : ''}`,
+          description: `${c.produto ? `Produto: ${c.produto}` : ''}${c.email ? ` — Email: ${c.email}` : ''}`,
           status: 'Ativo',
         });
       }
 
-      // AI Logs
       (aiLogsRes.data || []).forEach((a: any) => {
-        const modeLabels: Record<string, string> = { 
-          summary: 'Briefing', 
-          churn: 'Análise de Churn',
-          'recovery-message': 'Mensagem de Recuperação'
-        };
         allEvents.push({
           id: `ai-log-${a.id}`,
           type: 'ai_log',
           date: a.created_at,
-          title: `Insight de IA gerado (${modeLabels[a.mode] || a.mode})`,
+          title: `Insight de IA gerado`,
           description: `Modelo: ${a.model}`,
         });
       });
 
-      // Chamados
       (ticketsRes.data || []).forEach((t: any) => {
         allEvents.push({
           id: `ticket-${t.id}`,
@@ -457,7 +409,6 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         });
       });
 
-      // Agendamentos
       (appointmentsRes.data || []).forEach((a: any) => {
         allEvents.push({
           id: `appointment-${a.id}`,
@@ -469,7 +420,6 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         });
       });
 
-      // Sales
       (salesRes.data || []).forEach((s: any) => {
         allEvents.push({
           id: `sale-${s.id}`,
@@ -481,58 +431,52 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         });
       });
 
-      // SMS Logs
       (smsLogsRes.data || []).forEach((sms: any) => {
         allEvents.push({
           id: `sms-${sms.id}`,
           type: 'sms_validation',
           date: sms.created_at,
           title: `Validação SMS: ${sms.status}`,
-          description: `Número: ${sms.numero}${sms.error_message ? ` — ${sms.error_message}` : ''}`,
+          description: `Número: ${sms.numero}`,
           status: sms.status,
         });
       });
 
-      // Insurance Usage
       (insuranceUsageRes.data || []).forEach((iu: any) => {
         allEvents.push({
           id: `insurance-usage-${iu.id}`,
           type: 'insurance',
           date: iu.used_at || iu.created_at,
           title: `Uso de Seguro: ${iu.numero}`,
-          description: `Baserow ID: ${iu.baserow_row_id}${iu.observacao ? ` — ${iu.observacao}` : ''}`,
+          description: `Baserow ID: ${iu.baserow_row_id}`,
           status: 'used',
         });
       });
 
-      // Scan History
       (scanHistoryRes.data || []).forEach((sh: any) => {
         allEvents.push({
           id: `scan-history-${sh.id}`,
           type: 'scan',
           date: sh.created_at,
           title: `Scan QR Code: ${sh.numero}`,
-          description: `Modelo: ${sh.modelo || 'N/A'} — Status: ${sh.status || 'Sucesso'}`,
+          description: `Status: ${sh.status || 'Sucesso'}`,
           status: sh.status,
         });
       });
 
-      // Ligações IA (histórico de chamadas feitas)
       (iaCallsRes.data || []).forEach((c: any) => {
         const roteiroNome = (c.roteiro as any)?.nome || 'Sem roteiro';
-        const dur = c.duration_seconds ? ` — ${c.duration_seconds}s` : '';
         const statusLabel = IA_CALL_STATUS_LABEL[c.status] || c.status;
         allEvents.push({
           id: `ia-call-${c.id}`,
           type: 'ia_call',
           date: c.created_at,
           title: `Ligação IA: ${roteiroNome}`,
-          description: `${c.numero_destino || ''} — ${statusLabel}${dur}${c.source ? ` (${c.source})` : ''}${c.error_message ? ` — ${c.error_message}` : ''}`,
+          description: `${c.numero_destino || ''} — ${statusLabel}`,
           status: statusLabel,
         });
       });
 
-      // Ligações Agendadas (fila de cobrança IA)
       (scheduledCallsRes.data || []).forEach((s: any) => {
         const roteiroNome = (s.roteiro as any)?.nome || 'Sem roteiro';
         const statusLabel = SCHEDULED_CALL_STATUS_LABEL[s.status] || s.status;
@@ -541,51 +485,44 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
           type: 'scheduled_call',
           date: s.created_at,
           title: `Ligação agendada: ${roteiroNome}`,
-          description: `${s.tipo_d || ''} — alvo: ${s.dia_alvo} — ${statusLabel}${s.tentativas ? ` (tent. ${s.tentativas})` : ''}${s.erro ? ` — ${s.erro}` : ''}`,
+          description: `${s.tipo_d || ''} — ${statusLabel}`,
           status: statusLabel,
         });
       });
 
-      // Histórico de Score IA
       (scoreHistoryRes.data || []).forEach((s: any) => {
-        const delta = (s.score_novo ?? 0) - (s.score_anterior ?? 0);
-        const sign = delta > 0 ? '+' : '';
         allEvents.push({
           id: `score-${s.id}`,
           type: 'score_change',
           date: s.created_at,
-          title: `Score: ${s.score_anterior ?? 0} → ${s.score_novo ?? 0} (${sign}${delta})`,
-          description: `${s.faixa_anterior || '—'} → ${s.faixa_nova || '—'}${s.motivo ? ` — ${s.motivo}` : ''}`,
+          title: `Score: ${s.score_anterior ?? 0} → ${s.score_novo ?? 0}`,
+          description: `${s.faixa_nova || '—'}`,
           status: s.faixa_nova,
         });
       });
 
-      // Sugestões de Upsell IA
       (upsellRes.data || []).forEach((u: any) => {
-        const count = Array.isArray(u.suggestions) ? u.suggestions.length : 0;
         allEvents.push({
           id: `upsell-${u.id}`,
           type: 'upsell',
           date: u.last_analysis_at || u.created_at,
           title: `Sugestões de upsell geradas`,
-          description: `${count} sugestão(ões) — status: ${u.status || 'pendente'}`,
+          description: `Status: ${u.status || 'pendente'}`,
           status: u.status,
         });
       });
 
-      // Perfis de Redes Sociais vinculados
       (socialProfilesRes.data || []).forEach((p: any) => {
         allEvents.push({
           id: `social-profile-${p.id}`,
           type: 'social_profile',
           date: p.created_at,
-          title: `Perfil Instagram vinculado: @${p.username || 'sem usuário'}`,
-          description: `${p.display_name || ''}${p.followers_count ? ` — ${p.followers_count} seguidores` : ''}${p.oauth_connected ? ' — OAuth conectado' : ''}`,
+          title: `Perfil Instagram: @${p.username || 'sem usuário'}`,
+          description: `${p.display_name || ''}`,
           status: p.is_active ? 'Ativo' : 'Inativo',
         });
       });
 
-      // RCS History
       (rcsHistoryRes.data || []).forEach((r: any) => {
         allEvents.push({
           id: `rcs-${r.id}`,
@@ -647,7 +584,6 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
     return formatDateTime(dateString);
   };
 
-  // Group events by date
   const groupedEvents: Record<string, TimelineEvent[]> = {};
   visibleEvents.forEach(event => {
     const dateKey = new Date(event.date).toLocaleDateString('pt-BR');
@@ -673,7 +609,6 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
 
   return (
     <div className="space-y-4 p-1">
-      {/* Toolbar */}
       <div className="flex items-center gap-2 flex-wrap">
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm focus:ring-offset-0">
@@ -717,7 +652,6 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         </span>
       </div>
 
-      {/* Timeline */}
       {filteredEvents.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Clock className="h-10 w-10 mx-auto mb-3 opacity-40" />
@@ -729,7 +663,6 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
           <div className="space-y-6 pr-4">
             {Object.entries(groupedEvents).map(([dateKey, dayEvents]) => (
               <div key={dateKey}>
-                {/* Date header */}
                 <div className="flex items-center gap-2 mb-3">
                   <div className="h-px flex-1 bg-border" />
                   <span className="text-xs font-medium text-muted-foreground bg-card px-2">
@@ -738,9 +671,7 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
                   <div className="h-px flex-1 bg-border" />
                 </div>
 
-                {/* Events for this date */}
                 <div className="space-y-2 relative ml-4">
-                  {/* Vertical line */}
                   <div className="absolute left-3 top-4 bottom-4 w-px bg-border" />
 
                   {dayEvents.map((event) => {
@@ -801,7 +732,6 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
             ))}
           </div>
 
-          {/* Load more */}
           {visibleCount < filteredEvents.length && (
             <div className="text-center py-4">
               <Button
