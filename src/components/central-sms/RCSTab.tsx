@@ -454,7 +454,7 @@ function RCSSend() {
     let successCount = 0;
     
     try {
-      toast.info(`Iniciando envio para ${cleanNumbers.length} contatos com delay de ${delay}s...`);
+      toast.info(`Iniciando envio para ${cleanNumbers.length} contatos com delay aleatório entre ${minDelay}s e ${maxDelay}s...`);
 
       for (let i = 0; i < cleanNumbers.length; i++) {
         const numero = cleanNumbers[i];
