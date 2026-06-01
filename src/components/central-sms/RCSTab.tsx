@@ -524,18 +524,30 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
 
   useEffect(() => {
     const init = async () => {
+      await loadStatus(); // Carrega o status do Twilio para a aba de envio
       const { data: tmpls } = await supabase.from("rcs_templates").select("*").eq("ativo", true);
       setTemplates(tmpls || []);
     };
     init();
-
   }, []);
 
   const handleSend = async () => {
     if (!numbersInput || !mensagem) return toast.error("Preencha os números e a mensagem");
-    if (!session || session.status !== 'connected') {
-      return toast.error("Configuração do Twilio incompleta.");
+    
+    // Recarregar status antes de enviar para garantir
+    const { data: configs } = await supabase
+      .from("ligacoes_ia_config")
+      .select("config_key, config_value")
+      .in("config_key", ["twilio_account_sid", "twilio_auth_token", "twilio_messaging_service_sid"]);
+    
+    const map: any = {};
+    configs?.forEach(c => map[c.config_key] = c.config_value);
+    const isConnected = map.twilio_account_sid && map.twilio_auth_token && map.twilio_messaging_service_sid;
+
+    if (!isConnected) {
+      return toast.error("Configuração do Twilio incompleta. Preencha os campos na aba 'Configuração'.");
     }
+
 
     const rawNumbers = numbersInput.split(/[\n, ]+/).filter(n => n.trim().length > 0);
     const cleanNumbers = rawNumbers.map(n => n.replace(/\D/g, ""));
