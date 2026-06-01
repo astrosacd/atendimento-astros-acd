@@ -549,16 +549,26 @@ function RCSSend() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground">Delay (seg)</span>
-                    <span className="text-[10px] font-bold text-blue-600">{delay}s</span>
+                    <span className="text-[10px] text-muted-foreground uppercase font-bold">Delay (Min-Max)</span>
                   </div>
-                  <Input 
-                    type="number" 
-                    value={delay} 
-                    onChange={e => setDelay(Number(e.target.value))} 
-                    className="h-8 text-xs"
-                    min={1}
-                  />
+                  <div className="flex items-center gap-1">
+                    <Input 
+                      type="number" 
+                      value={minDelay} 
+                      onChange={e => setMinDelay(Number(e.target.value))} 
+                      className="h-8 text-xs w-14"
+                      min={1}
+                    />
+                    <span className="text-[10px] text-muted-foreground">à</span>
+                    <Input 
+                      type="number" 
+                      value={maxDelay} 
+                      onChange={e => setMaxDelay(Number(e.target.value))} 
+                      className="h-8 text-xs w-14"
+                      min={1}
+                    />
+                    <span className="text-[10px] text-muted-foreground">seg</span>
+                  </div>
                 </div>
                 <div className="space-y-1 flex flex-col justify-end">
                    <Button 
