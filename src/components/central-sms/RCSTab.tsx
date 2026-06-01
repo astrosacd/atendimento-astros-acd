@@ -11,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
-  Smartphone, 
   Send, 
   History, 
   RefreshCw, 
@@ -519,7 +518,6 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
   const [numbersInput, setNumbersInput] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [sending, setSending] = useState(false);
-  const [session, setSession] = useState<any>(null);
   const [templates, setTemplates] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("manual");
 
@@ -736,17 +734,13 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
           disabled={sending || !canSend}
         >
           {sending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Send className="mr-2 h-5 w-5" />}
-          {session?.status === 'connected' ? (
-            !canSend ? 'Sem permissão de envio' : (sending ? 'Processando fila...' : `Disparar para ${numbersInput.split(/[\n, ]+/).filter(n => n.trim()).length} contatos`)
-          ) : 'Configuração Incompleta'}
+          {!canSend ? 'Sem permissão de envio' : (sending ? 'Processando fila...' : `Disparar via Twilio para ${numbersInput.split(/[\n, ]+/).filter(n => n.trim()).length} contatos`)}
         </Button>
 
-        {session?.status === 'connected' && (
-          <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground">
-            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-            Twilio Cloud: <span className="font-bold">Conectado</span>
-          </div>
-        )}
+        <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground text-center">
+          <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+          Integração ativa: <span className="font-bold">Twilio API</span>. O Android QR foi removido porque não havia motor real conectado.
+        </div>
       </div>
     </Card>
   );
