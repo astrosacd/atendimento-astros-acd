@@ -526,7 +526,7 @@ function RCSSend() {
         </div>
 
         <div className="space-y-4 pt-2 border-t border-dashed">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label>Modelo de Mensagem</Label>
               <Select value={selectedTemplate} onValueChange={handleTemplateChange}>
@@ -543,19 +543,44 @@ function RCSSend() {
             </div>
             
             <div className="space-y-1">
-              <Label>Dispositivo Ativo</Label>
-              <div className="h-10 flex items-center px-3 border rounded bg-muted/20 text-xs font-medium">
-                {session?.status === 'connected' ? (
-                  <><CheckCircle2 className="h-3 w-3 text-emerald-500 mr-2" /> {session.name}</>
-                ) : (
-                  <><XCircle className="h-3 w-3 text-destructive mr-2" /> Nenhum conectado</>
-                )}
+              <Label>Anti-Bloqueio (Delay & Spintax)</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-muted-foreground">Delay (seg)</span>
+                    <span className="text-[10px] font-bold text-blue-600">{delay}s</span>
+                  </div>
+                  <Input 
+                    type="number" 
+                    value={delay} 
+                    onChange={e => setDelay(Number(e.target.value))} 
+                    className="h-8 text-xs"
+                    min={1}
+                  />
+                </div>
+                <div className="space-y-1 flex flex-col justify-end">
+                   <Button 
+                    variant={useSpintax ? "default" : "outline"} 
+                    size="sm" 
+                    className="h-8 text-[10px] w-full"
+                    onClick={() => setUseSpintax(!useSpintax)}
+                   >
+                     Spintax: {useSpintax ? 'Ativo' : 'Inativo'}
+                   </Button>
+                </div>
               </div>
             </div>
           </div>
 
           <div className="space-y-1">
-            <Label>Mensagem Final</Label>
+            <div className="flex justify-between items-center">
+              <Label>Mensagem Final</Label>
+              {useSpintax && (
+                <Badge variant="outline" className="text-[9px] border-blue-200 text-blue-600">
+                  Uso: {'{Oi|Olá|Tudo bem}'}
+                </Badge>
+              )}
+            </div>
             <Textarea 
               value={mensagem} 
               onChange={e => setMensagem(e.target.value)} 
