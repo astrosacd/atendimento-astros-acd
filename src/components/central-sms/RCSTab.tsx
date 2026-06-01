@@ -122,7 +122,7 @@ export function RCSTab() {
         </TabsList>
 
         <TabsContent value="conexao">
-          <RCSConnection />
+          <RCSConnection onConfigChange={loadStatus} />
         </TabsContent>
         <TabsContent value="templates">
           <RCSTemplates canManageRCSTemplates={canManageRCSTemplates} />
