@@ -534,17 +534,22 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
     });
   };
 
-  const appendTemplateLinks = (text: string) => {
-    if (selectedTemplate === "manual") return text;
+  const getTemplateButtons = () => {
+    if (selectedTemplate === "manual") return [];
     const template = templates.find((x) => x.id === selectedTemplate);
-    const links = Array.isArray(template?.botoes)
+    return Array.isArray(template?.botoes)
       ? template.botoes.filter((b: any) => b?.label && b?.url)
       : [];
+  };
 
+  const appendTemplateLinks = (text: string) => {
+    const links = getTemplateButtons();
     if (links.length === 0) return text;
 
+    // Se houver botões, adicionamos os links de forma limpa no final
+    // O Android/Google Messages detecta URLs e as transforma em chips clicáveis automaticamente
     const linkBlock = links
-      .map((b: any) => `${String(b.label).trim()}: ${String(b.url).trim()}`)
+      .map((b: any) => `${String(b.url).trim()}`)
       .join("\n");
 
     return `${text.trim()}\n\n${linkBlock}`;
@@ -590,7 +595,11 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
         let data: any;
         try {
           data = await invokeFunction<any>('send-rcs', {
-            body: { to: numero, body: finalMessage }
+            body: { 
+              to: numero, 
+              body: finalMessage,
+              buttons: getTemplateButtons() 
+            }
           });
         } catch (error: any) {
           toast.error(`Falha no envio para ${numero}: ${error?.message || 'erro desconhecido'}`, { duration: 12000 });
@@ -728,11 +737,14 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
           <div className="space-y-1">
             <div className="flex justify-between items-center">
               <Label>Mensagem Final</Label>
-              {useSpintax && (
-                <Badge variant="outline" className="text-[9px] border-blue-200 text-blue-600">
-                  Uso: {'{Oi|Olá|Tudo bem}'}
+              <div className="flex gap-2">
+                <Badge variant="outline" className="text-[9px] border-slate-200">
+                  SMS: ~160 carac.
                 </Badge>
-              )}
+                <Badge variant="outline" className="text-[9px] border-blue-200 text-blue-600">
+                  RCS: ~2000+ carac.
+                </Badge>
+              </div>
             </div>
             <Textarea 
               value={mensagem} 
@@ -744,7 +756,7 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
             {selectedTemplate !== "manual" && (
               <p className="text-[10px] text-blue-600 mt-1">
                 <Sparkles className="h-3 w-3 inline mr-1" />
-                Template selecionado. Você pode personalizar o texto e adicionar <strong>Spintax</strong> (ex: {'{Olá|Oi}'}).
+                Links serão anexados ao final da mensagem para ativação dos botões automáticos do Android.
               </p>
             )}
           </div>
