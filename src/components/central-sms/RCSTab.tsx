@@ -293,10 +293,11 @@ function RCSConnection() {
 }
 
 // --- Templates Component ---
-function RCSTemplates() {
+function RCSTemplates({ canManageRCSTemplates }: { canManageRCSTemplates: () => boolean }) {
   const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any | null>(null);
+  const canEdit = canManageRCSTemplates();
 
   const load = async () => {
     setLoading(true);
@@ -669,11 +670,11 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
         <Button 
           className="w-full h-14 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 shadow-lg text-lg font-bold" 
           onClick={handleSend}
-          disabled={sending || !session || session.status !== 'connected'}
+          disabled={sending || !session || session.status !== 'connected' || !canSend}
         >
           {sending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Send className="mr-2 h-5 w-5" />}
           {session?.status === 'connected' ? (
-            sending ? 'Processando fila...' : `Disparar para ${numbersInput.split(/[\n, ]+/).filter(n => n.trim()).length} contatos`
+            !canSend ? 'Sem permissão de envio' : (sending ? 'Processando fila...' : `Disparar para ${numbersInput.split(/[\n, ]+/).filter(n => n.trim()).length} contatos`)
           ) : 'Conecte um Celular Primeiro'}
         </Button>
 
