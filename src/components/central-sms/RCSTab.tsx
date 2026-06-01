@@ -100,8 +100,8 @@ export function RCSTab() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full max-w-2xl grid-cols-4">
           <TabsTrigger value="conexao">
-            <QrCode className="h-4 w-4 mr-2" />
-            Conexão
+            <Settings2 className="h-4 w-4 mr-2" />
+            Configuração
           </TabsTrigger>
           <TabsTrigger value="templates">
             <FileText className="h-4 w-4 mr-2" />
