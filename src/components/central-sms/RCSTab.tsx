@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { usePermissions } from "@/hooks/usePermissions";
+import { invokeFunction } from "@/utils/invokeFunction";
 
 export function RCSTab() {
   const { canViewRCS, canManageRCS, canManageRCSTemplates } = usePermissions();
@@ -531,6 +532,22 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
       const choices = options.split('|');
       return choices[Math.floor(Math.random() * choices.length)];
     });
+  };
+
+  const appendTemplateLinks = (text: string) => {
+    if (selectedTemplate === "manual") return text;
+    const template = templates.find((x) => x.id === selectedTemplate);
+    const links = Array.isArray(template?.botoes)
+      ? template.botoes.filter((b: any) => b?.label && b?.url)
+      : [];
+
+    if (links.length === 0) return text;
+
+    const linkBlock = links
+      .map((b: any) => `${String(b.label).trim()}: ${String(b.url).trim()}`)
+      .join("\n");
+
+    return `${text.trim()}\n\n${linkBlock}`;
   };
 
   useEffect(() => {
