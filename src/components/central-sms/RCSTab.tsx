@@ -598,11 +598,10 @@ function RCSSend() {
               onChange={e => setMensagem(e.target.value)} 
               placeholder="Sua mensagem RCS aparecerá aqui..."
               rows={4}
-              readOnly={selectedTemplate !== "manual"}
-              className={selectedTemplate !== "manual" ? "bg-muted/30" : ""}
+              className={selectedTemplate !== "manual" ? "border-blue-200 bg-blue-50/10" : ""}
             />
             {selectedTemplate !== "manual" && (
-              <p className="text-[10px] text-blue-600 mt-1">Este template inclui botões interativos configurados.</p>
+              <p className="text-[10px] text-blue-600 mt-1">Template selecionado. Você pode editar o texto acima e incluir Spintax.</p>
             )}
           </div>
         </div>
