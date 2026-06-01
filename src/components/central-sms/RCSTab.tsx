@@ -413,7 +413,8 @@ function RCSSend() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("manual");
 
-  const [delay, setDelay] = useState(5); // Default 5 seconds
+  const [minDelay, setMinDelay] = useState(10);
+  const [maxDelay, setMaxDelay] = useState(20);
   const [useSpintax, setUseSpintax] = useState(true);
 
   // Helper to process spintax: {Olá|Oi|Bom dia}
