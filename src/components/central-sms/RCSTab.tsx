@@ -420,7 +420,7 @@ function RCSSend() {
   const processSpintax = (text: string) => {
     return text.replace(/\{([^{}]*)\}/g, (match, options) => {
       const choices = options.split('|');
-      return choices[Math.floor(Math.random() * choices.choices.length)];
+      return choices[Math.floor(Math.random() * choices.length)];
     });
   };
 
