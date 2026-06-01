@@ -139,7 +139,7 @@ export function RCSTab() {
 }
 
 // --- Connection/Config Component (Twilio) ---
-function RCSConnection() {
+function RCSConnection({ onConfigChange }: { onConfigChange: () => void }) {
   const [config, setConfig] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -180,6 +180,8 @@ function RCSConnection() {
 
       if (error) throw error;
       toast.success("Configuração RCS salva com sucesso!");
+      onConfigChange();
+
     } catch (error: any) {
       toast.error("Erro ao salvar: " + error.message);
     } finally {
@@ -524,17 +526,18 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
 
   useEffect(() => {
     const init = async () => {
-      await loadStatus(); // Carrega o status do Twilio para a aba de envio
+      await loadStatus(); 
       const { data: tmpls } = await supabase.from("rcs_templates").select("*").eq("ativo", true);
       setTemplates(tmpls || []);
     };
     init();
   }, []);
 
+
   const handleSend = async () => {
     if (!numbersInput || !mensagem) return toast.error("Preencha os números e a mensagem");
     
-    // Recarregar status antes de enviar para garantir
+    // Recarregar status antes de enviar
     const { data: configs } = await supabase
       .from("ligacoes_ia_config")
       .select("config_key, config_value")
@@ -547,6 +550,7 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
     if (!isConnected) {
       return toast.error("Configuração do Twilio incompleta. Preencha os campos na aba 'Configuração'.");
     }
+
 
 
     const rawNumbers = numbersInput.split(/[\n, ]+/).filter(n => n.trim().length > 0);
