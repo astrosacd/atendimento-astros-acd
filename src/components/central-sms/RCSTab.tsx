@@ -654,18 +654,19 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
 
 
 
-        if (error) {
-          console.error(`Erro ao enviar para ${numero}:`, error);
-          toast.error(`Erro no número ${numero}: ${error.message || 'Erro desconhecido'}`);
+        if (response.error) {
+          toast.error(`Erro: ${response.error.message}`);
           continue;
-        } else if (data?.error) {
-          console.error(`Erro retornado pelo Twilio para ${numero}:`, data.error);
-          const errorMsg = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
-          toast.error(`Twilio (${numero}): ${errorMsg}`, { duration: 8000 });
+        }
+
+        const data: any = response.data;
+        if (data?.error) {
+          toast.error(`Twilio: ${data.error}`);
           continue;
         } else {
           successCount++;
         }
+
         
         if (i < cleanNumbers.length - 1) {
           const randomDelay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
