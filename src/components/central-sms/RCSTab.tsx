@@ -704,7 +704,7 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
           {sending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Send className="mr-2 h-5 w-5" />}
           {session?.status === 'connected' ? (
             !canSend ? 'Sem permissão de envio' : (sending ? 'Processando fila...' : `Disparar para ${numbersInput.split(/[\n, ]+/).filter(n => n.trim()).length} contatos`)
-          ) : 'Conecte um Celular Primeiro'}
+          ) : 'Configuração Incompleta'}
         </Button>
 
         {session?.status === 'connected' && (
