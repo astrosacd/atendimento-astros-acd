@@ -31,6 +31,7 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
 import { usePermissions } from "@/hooks/usePermissions";
+import { copyToClipboard } from "@/utils/clipboard";
 
 export function RCSTab() {
   const { canViewRCS, canManageRCS, canManageRCSTemplates } = usePermissions();
@@ -186,7 +187,9 @@ function RCSConnection() {
         currentSessionId = data.id;
       }
 
-      // Payload JSON estruturado para o App Gateway ler
+      // Payload estruturado para o app Gateway RCS Central ler.
+      // Importante: Google Mensagens NÃO aceita QR próprio/externo; ele só lê
+      // QR gerado pelo site oficial messages.google.com/web.
       const qrPayload = JSON.stringify({
         s: supabaseUrl,
         k: supabaseKey,
@@ -206,7 +209,7 @@ function RCSConnection() {
       if (updateError) throw updateError;
       
       await loadSession();
-      toast.success("QR Code de pareamento gerado!");
+      toast.success("Token do Gateway RCS gerado!");
     } catch (error: any) {
       console.error("Error creating session:", error);
       toast.error("Erro ao gerar QR Code: " + (error.message || "Tente novamente"));
