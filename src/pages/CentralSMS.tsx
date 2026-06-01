@@ -186,15 +186,28 @@ function TemplatesTab() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState<any | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from("sms_templates").select("*").order("created_at", { ascending: false });
+    const { data } = await supabase.from("sms_templates").select("*").eq("ativo", true).order("created_at", { ascending: false });
     setItems(data ?? []);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
+
+  const handleDelete = async () => {
+    if (!deleting) return;
+    setBusy(true);
+    const { error } = await supabase.from("sms_templates").update({ ativo: false }).eq("id", deleting.id);
+    setBusy(false);
+    if (error) return sonnerToast.error(error.message);
+    sonnerToast.success("Template excluído");
+    setDeleting(null);
+    load();
+  };
 
   return (
     <Card className="p-4">
@@ -213,8 +226,17 @@ function TemplatesTab() {
               <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{r.conteudo}</p>
             </div>
             <div className="flex gap-1">
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditing(r)}>
+              <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar" onClick={() => setEditing(r)}>
                 <FileText className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                title="Excluir"
+                onClick={() => setDeleting(r)}
+              >
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -224,9 +246,32 @@ function TemplatesTab() {
       {editing !== null && (
         <TemplateDialog template={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load(); }} />
       )}
+
+      <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir template "{deleting?.nome}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O template ficará indisponível para novos envios e campanhas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={busy}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
+
 
 function TemplateDialog({ template, onClose, onSaved }: any) {
   const [form, setForm] = useState({
