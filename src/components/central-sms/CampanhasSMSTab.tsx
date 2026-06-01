@@ -120,6 +120,47 @@ export function CampanhasSMSTab() {
   const [deleting, setDeleting] = useState<Campanha | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Estados para Templates
+  const [templatesList, setTemplatesList] = useState<any[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const [deletingTemplate, setDeletingTemplate] = useState<any>(null);
+  const [newTemplate, setNewTemplate] = useState({ nome: "", categoria: "outros", conteudo: "" });
+  const [busyTemplate, setBusyTemplate] = useState(false);
+
+  const loadTemplatesList = async () => {
+    setLoadingTemplates(true);
+    const { data } = await supabase.from("sms_templates").select("*").eq("ativo", true).order("nome");
+    setTemplatesList(data ?? []);
+    setLoadingTemplates(false);
+  };
+
+  const saveTemplate = async () => {
+    const t = editingTemplate || newTemplate;
+    if (!t.nome || !t.conteudo) return toast({ title: "Preencha todos os campos", variant: "destructive" });
+    setBusyTemplate(true);
+    const { error } = editingTemplate 
+      ? await supabase.from("sms_templates").update(t).eq("id", t.id)
+      : await supabase.from("sms_templates").insert([t]);
+    setBusyTemplate(false);
+    if (error) return toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    toast({ title: "Modelo salvo com sucesso" });
+    setTemplateDialogOpen(false);
+    loadTemplatesList();
+  };
+
+  const handleDeleteTemplate = async () => {
+    if (!deletingTemplate) return;
+    setBusyTemplate(true);
+    const { error } = await supabase.from("sms_templates").update({ ativo: false }).eq("id", deletingTemplate.id);
+    setBusyTemplate(false);
+    if (error) return toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+    toast({ title: "Modelo excluído" });
+    setDeletingTemplate(null);
+    loadTemplatesList();
+  };
+
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -135,7 +176,10 @@ export function CampanhasSMSTab() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { 
+    load(); 
+    loadTemplatesList();
+  }, []);
 
   const handleDelete = async () => {
     if (!deleting) return;
@@ -153,100 +197,176 @@ export function CampanhasSMSTab() {
 
   return (
     <div className="space-y-4">
-      <Card className="p-4 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 border-blue-500/20">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div className="flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-blue-500/10">
-              <Megaphone className="h-5 w-5 text-blue-500" />
-            </div>
-            <div>
-              <h3 className="font-semibold">Campanhas de SMS</h3>
-              <p className="text-sm text-muted-foreground max-w-2xl">
-                Selecione vários clientes e dispare a mesma mensagem de SMS em sequência.
-                As mensagens entram na <strong>Fila do dia</strong> e são executadas com o delay configurado.
-              </p>
-            </div>
-          </div>
-          <Button onClick={() => setOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="h-4 w-4 mr-2" /> Nova campanha
-          </Button>
-        </div>
-      </Card>
+      <Tabs defaultValue="campanhas" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="campanhas">Campanhas</TabsTrigger>
+          <TabsTrigger value="templates">Modelos (Templates)</TabsTrigger>
+        </TabsList>
 
-      <Card className="p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <ListChecks className="h-4 w-4 text-muted-foreground" />
-          <h4 className="font-medium">Campanhas recentes</h4>
-        </div>
-        {loading ? (
-          <div className="flex items-center justify-center py-8 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin mr-2" /> Carregando...
-          </div>
-        ) : campanhas.length === 0 ? (
-          <div className="text-center py-8 text-sm text-muted-foreground">
-            Nenhuma campanha criada ainda. Clique em <strong>Nova campanha</strong> para começar.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {campanhas.map((c) => (
-              <div
-                key={c.id}
-                className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-accent/40 transition"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium truncate">{c.nome}</span>
-                    {(() => {
-                      const conf = STATUS_CONFIG[c.status] || STATUS_CONFIG.pendente;
-                      const Icon = conf.icon;
-                      return (
-                        <Badge className={`${conf.cls} flex items-center gap-1`}>
-                          <Icon className="h-3 w-3" />
-                          {conf.label}
-                        </Badge>
-                      );
-                    })()}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3">
-                    <span className="inline-flex items-center gap-1">
-                      <Users className="h-3 w-3" /> {c.total} contato(s)
-                    </span>
-                    {c.sms_templates?.nome && (
-                      <span>Template: {c.sms_templates.nome}</span>
-                    )}
-                    {c.dia_alvo && <span>Dia: {c.dia_alvo}</span>}
-                    {c.delay_minutes_override != null && <span>Delay: {c.delay_minutes_override}min</span>}
-                    <span>
-                      {format(new Date(c.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                    </span>
-                  </div>
+        <TabsContent value="campanhas" className="space-y-4">
+          <Card className="p-4 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 border-blue-500/20">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-blue-500/10">
+                  <Megaphone className="h-5 w-5 text-blue-500" />
                 </div>
-                {canManage && (
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      title="Editar / reagendar"
-                      onClick={() => setEditing(c)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      title="Excluir campanha"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => setDeleting(c)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
+                <div>
+                  <h3 className="font-semibold">Campanhas de SMS</h3>
+                  <p className="text-sm text-muted-foreground max-w-2xl">
+                    Selecione vários clientes e dispare a mesma mensagem de SMS em sequência.
+                  </p>
+                </div>
               </div>
-            ))}
-          </div>
-        )}
-      </Card>
+              <Button onClick={() => setOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="h-4 w-4 mr-2" /> Nova campanha
+              </Button>
+            </div>
+          </Card>
+
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <ListChecks className="h-4 w-4 text-muted-foreground" />
+              <h4 className="font-medium">Campanhas recentes</h4>
+            </div>
+            {loading ? (
+              <div className="flex items-center justify-center py-8 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin mr-2" /> Carregando...
+              </div>
+            ) : campanhas.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                Nenhuma campanha criada ainda.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {campanhas.map((c) => (
+                  <div
+                    key={c.id}
+                    className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-accent/40 transition"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium truncate">{c.nome}</span>
+                        {(() => {
+                          const conf = STATUS_CONFIG[c.status] || STATUS_CONFIG.pendente;
+                          const Icon = conf.icon;
+                          return (
+                            <Badge className={`${conf.cls} flex items-center gap-1 text-white`}>
+                              <Icon className="h-3 w-3" />
+                              {conf.label}
+                            </Badge>
+                          );
+                        })()}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3">
+                        <span className="inline-flex items-center gap-1">
+                          <Users className="h-3 w-3" /> {c.total} contato(s)
+                        </span>
+                        <span>
+                          {format(new Date(c.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                        </span>
+                      </div>
+                    </div>
+                    {canManage && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Editar / reagendar"
+                          onClick={() => setEditing(c)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Excluir campanha"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => setDeleting(c)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="templates" className="space-y-4">
+          <Card className="p-4 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border-indigo-500/20">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-indigo-500/10">
+                  <Sparkles className="h-5 w-5 text-indigo-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Gerenciar Modelos (Templates)</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Crie e gerencie modelos de mensagens para usar em campanhas e envios rápidos.
+                  </p>
+                </div>
+              </div>
+              <Button onClick={() => setTemplateDialogOpen(true)} className="bg-indigo-600 hover:bg-indigo-700">
+                <Plus className="h-4 w-4 mr-2" /> Novo modelo
+              </Button>
+            </div>
+          </Card>
+
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <ListChecks className="h-4 w-4 text-muted-foreground" />
+              <h4 className="font-medium">Modelos cadastrados</h4>
+            </div>
+            {loadingTemplates ? (
+              <div className="flex items-center justify-center py-8 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin mr-2" /> Carregando...
+              </div>
+            ) : templatesList.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                Nenhum modelo cadastrado.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {templatesList.map((t) => (
+                  <div key={t.id} className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-accent/40 transition">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium truncate">{t.nome}</span>
+                        <Badge variant="outline" className="text-[10px]">{t.categoria}</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-1 italic">
+                        "{t.conteudo}"
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => {
+                          setEditingTemplate(t);
+                          setTemplateDialogOpen(true);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setDeletingTemplate(t)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <NovaCampanhaSMSDialog
         open={open}
@@ -266,13 +386,113 @@ export function CampanhasSMSTab() {
             <AlertDialogTitle>Excluir campanha "{deleting?.nome}"?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta ação também remove todos os <strong>{deleting?.total ?? 0}</strong> SMS desta
-              campanha da fila (inclusive os pendentes). Esta ação não pode ser desfeita.
+              campanha da fila. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={busy}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} disabled={busy} className="bg-destructive hover:bg-destructive/90">
               {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialogs de Templates */}
+      <Dialog open={templateDialogOpen} onOpenChange={(o) => {
+        setTemplateDialogOpen(o);
+        if (!o) {
+          setEditingTemplate(null);
+          setNewTemplate({ nome: "", categoria: "outros", conteudo: "" });
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingTemplate ? "Editar Modelo" : "Novo Modelo"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nome do modelo</Label>
+              <Input 
+                value={editingTemplate ? editingTemplate.nome : newTemplate.nome} 
+                onChange={(e) => editingTemplate 
+                  ? setEditingTemplate({...editingTemplate, nome: e.target.value})
+                  : setNewTemplate({...newTemplate, nome: e.target.value})
+                }
+                placeholder="Ex: Cobrança Atraso"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Categoria</Label>
+              <Select 
+                value={editingTemplate ? editingTemplate.categoria : newTemplate.categoria}
+                onValueChange={(v) => editingTemplate
+                  ? setEditingTemplate({...editingTemplate, categoria: v})
+                  : setNewTemplate({...newTemplate, categoria: v})
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cobranca">Cobrança</SelectItem>
+                  <SelectItem value="vendas">Vendas</SelectItem>
+                  <SelectItem value="suporte">Suporte</SelectItem>
+                  <SelectItem value="outros">Outros</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <Label>Conteúdo da mensagem</Label>
+                <span className="text-[10px] text-muted-foreground">
+                  {(editingTemplate?.conteudo?.length || newTemplate.conteudo.length)}/160
+                </span>
+              </div>
+              <Textarea 
+                value={editingTemplate ? editingTemplate.conteudo : newTemplate.conteudo}
+                onChange={(e) => editingTemplate
+                  ? setEditingTemplate({...editingTemplate, conteudo: e.target.value})
+                  : setNewTemplate({...newTemplate, conteudo: e.target.value})
+                }
+                placeholder="Olá {nome}, tudo bem?"
+                maxLength={160}
+                className="min-h-[100px]"
+              />
+              <p className="text-[10px] text-muted-foreground italic">Use {"{nome}"} para personalizar.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setTemplateDialogOpen(false)}>Cancelar</Button>
+            <Button 
+              onClick={saveTemplate} 
+              disabled={busyTemplate}
+              className="bg-indigo-600 hover:bg-indigo-700"
+            >
+              {busyTemplate && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Salvar Modelo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deletingTemplate} onOpenChange={(o) => { if(!o) setDeletingTemplate(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir modelo "{deletingTemplate?.nome}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O modelo não estará mais disponível para novos envios.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busyTemplate}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteTemplate} 
+              disabled={busyTemplate}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {busyTemplate ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />}
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
