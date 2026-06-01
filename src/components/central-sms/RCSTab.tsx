@@ -601,8 +601,17 @@ function RCSSend() {
           disabled={sending || !session || session.status !== 'connected'}
         >
           {sending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Send className="mr-2 h-5 w-5" />}
-          {session?.status === 'connected' ? `Disparar para ${numbersInput.split(/[\n, ]+/).filter(n => n.trim()).length} contatos` : 'Conecte um Celular Primeiro'}
+          {session?.status === 'connected' ? (
+            sending ? 'Processando fila...' : `Disparar para ${numbersInput.split(/[\n, ]+/).filter(n => n.trim()).length} contatos`
+          ) : 'Conecte um Celular Primeiro'}
         </Button>
+
+        {session?.status === 'connected' && (
+          <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground">
+            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+            Aparelho pronto: <span className="font-bold">{session.name}</span>
+          </div>
+        )}
       </div>
     </Card>
   );
