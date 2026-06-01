@@ -88,13 +88,23 @@ export function RCSTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-2">
-        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-          Beta
-        </Badge>
-        <span className="text-sm text-muted-foreground italic">
-          Envio gratuito usando seu próprio chip Android
-        </span>
+      <div className="flex flex-col gap-2 mb-2">
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+            Twilio Cloud
+          </Badge>
+          <span className="text-sm text-muted-foreground italic">
+            Envio oficial via API do Twilio (Requer saldo e Messaging Service)
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+            Android Local
+          </Badge>
+          <span className="text-sm text-muted-foreground italic">
+            Envio gratuito usando seu próprio chip Android (Aguardando implementação QR Code)
+          </span>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -578,7 +588,8 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
           continue;
         } else if (data?.error) {
           console.error(`Erro retornado pelo Twilio para ${numero}:`, data.error);
-          toast.error(`Twilio (${numero}): ${data.error}`);
+          const errorMsg = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
+          toast.error(`Twilio (${numero}): ${errorMsg}`, { duration: 8000 });
           continue;
         } else {
           successCount++;
