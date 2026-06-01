@@ -162,35 +162,71 @@ function RCSConnection() {
 
   const createSession = async () => {
     setRefreshing(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const mockQrToken = `rcs-pair-${Math.random().toString(36).substring(7)}`;
-    
-    if (session) {
-      await supabase
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      let currentSessionId = session?.id;
+      
+      if (!currentSessionId) {
+        const { data, error } = await supabase
+          .from("rcs_sessions")
+          .insert({
+            name: "Meu Android",
+            status: "pairing",
+            user_id: user.id
+          })
+          .select()
+          .single();
+        
+        if (error) throw error;
+        currentSessionId = data.id;
+      }
+
+      // Payload JSON estruturado para o App Gateway ler
+      const qrPayload = JSON.stringify({
+        s: supabaseUrl,
+        k: supabaseKey,
+        id: currentSessionId,
+        u: user.id
+      });
+
+      const { error: updateError } = await supabase
         .from("rcs_sessions")
-        .update({ qr_code: mockQrToken, status: "pairing", updated_at: new Date().toISOString() })
-        .eq("id", session.id);
-    } else {
-      await supabase
-        .from("rcs_sessions")
-        .insert({
-          name: "Meu Android",
-          status: "pairing",
-          qr_code: mockQrToken,
-          user_id: user.id
-        });
+        .update({ 
+          qr_code: qrPayload, 
+          status: "pairing", 
+          updated_at: new Date().toISOString() 
+        })
+        .eq("id", currentSessionId);
+
+      if (updateError) throw updateError;
+      
+      await loadSession();
+      toast.success("QR Code de pareamento gerado!");
+    } catch (error: any) {
+      console.error("Error creating session:", error);
+      toast.error("Erro ao gerar QR Code: " + (error.message || "Tente novamente"));
+    } finally {
+      setRefreshing(false);
     }
-    
-    await loadSession();
-    setRefreshing(false);
-    toast.success("Novo QR Code gerado!");
   };
 
   useEffect(() => {
     loadSession();
-  }, []);
+    
+    // Polling para verificar se o status mudou para 'connected' durante o pareamento
+    const interval = setInterval(() => {
+      if (session?.status === 'pairing') {
+        loadSession();
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [session?.status]);
 
 
   if (loading) {
@@ -240,16 +276,16 @@ function RCSConnection() {
               </Badge>
             </div>
 
-            <div className="bg-amber-50 border border-amber-100 rounded-lg p-4">
+            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
               <div className="flex gap-3">
-                <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
-                <div className="text-xs text-amber-800 space-y-1">
-                  <p className="font-bold uppercase tracking-wider">Como conectar:</p>
+                <Smartphone className="h-5 w-5 text-blue-600 shrink-0" />
+                <div className="text-xs text-blue-800 space-y-1">
+                  <p className="font-bold uppercase tracking-wider">Instruções de Pareamento:</p>
                   <ol className="list-decimal ml-4 space-y-1">
-                    <li>Instale o App <strong>Gateway RCS</strong> no seu Android.</li>
-                    <li>Abra o App e clique em "Escanear QR Code".</li>
-                    <li>Aponte a câmera para o código ao lado.</li>
-                    <li>Mantenha o celular conectado à internet.</li>
+                    <li>Baixe o app <strong>Gateway RCS Central</strong> no seu Android.</li>
+                    <li>No app, selecione <strong>"Nova Conexão"</strong> ou "Escanear QR".</li>
+                    <li>Aponte para o código QR à direita para sincronizar.</li>
+                    <li>Uma vez conectado, o status mudará para <strong>Online</strong> automaticamente.</li>
                   </ol>
                 </div>
               </div>
@@ -271,14 +307,33 @@ function RCSConnection() {
           {session?.qr_code ? (
             <>
               <div className="p-4 bg-white rounded-lg shadow-md mb-4 border border-slate-100">
-                <QRCodeSVG value={session.qr_code} size={200} />
+                <QRCodeSVG 
+                  value={session.qr_code} 
+                  size={240} 
+                  level="M"
+                  includeMargin={true}
+                />
               </div>
-              <p className="text-[10px] text-muted-foreground font-mono">
-                Token: {session.qr_code}
+              <p className="text-[9px] text-muted-foreground font-mono max-w-[240px] break-all text-center">
+                Sessão: {session.id}
               </p>
-              <p className="text-xs mt-2 text-center text-muted-foreground italic">
-                Aponte o app do gateway para este código
-              </p>
+              <div className="flex flex-col gap-2 w-full mt-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-[10px] h-8"
+                  onClick={() => {
+                    navigator.clipboard.writeText(session.qr_code);
+                    toast.success("Configuração copiada!");
+                  }}
+                >
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  Copiar Token de Configuração
+                </Button>
+                <p className="text-[10px] text-center text-muted-foreground italic">
+                  Aponte o app do gateway para este código ou cole o token
+                </p>
+              </div>
             </>
           ) : (
             <div className="text-center space-y-3">
