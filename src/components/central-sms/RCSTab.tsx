@@ -31,6 +31,7 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
 import { usePermissions } from "@/hooks/usePermissions";
+import { copyToClipboard } from "@/utils/clipboard";
 
 export function RCSTab() {
   const { canViewRCS, canManageRCS, canManageRCSTemplates } = usePermissions();
@@ -186,7 +187,9 @@ function RCSConnection() {
         currentSessionId = data.id;
       }
 
-      // Payload JSON estruturado para o App Gateway ler
+      // Payload estruturado para o app Gateway RCS Central ler.
+      // Importante: Google Mensagens NÃO aceita QR próprio/externo; ele só lê
+      // QR gerado pelo site oficial messages.google.com/web.
       const qrPayload = JSON.stringify({
         s: supabaseUrl,
         k: supabaseKey,
@@ -206,7 +209,7 @@ function RCSConnection() {
       if (updateError) throw updateError;
       
       await loadSession();
-      toast.success("QR Code de pareamento gerado!");
+      toast.success("Token do Gateway RCS gerado!");
     } catch (error: any) {
       console.error("Error creating session:", error);
       toast.error("Erro ao gerar QR Code: " + (error.message || "Tente novamente"));
@@ -282,9 +285,9 @@ function RCSConnection() {
                 <div className="text-xs text-blue-800 space-y-1">
                   <p className="font-bold uppercase tracking-wider">Instruções de Pareamento:</p>
                   <ol className="list-decimal ml-4 space-y-1">
-                    <li>Baixe o app <strong>Gateway RCS Central</strong> no seu Android.</li>
-                    <li>No app, selecione <strong>"Nova Conexão"</strong> ou "Escanear QR".</li>
-                    <li>Aponte para o código QR à direita para sincronizar.</li>
+                    <li>Instale/abra o app <strong>Gateway RCS Central</strong> no Android.</li>
+                    <li>Não use o app <strong>Google Mensagens</strong> para ler este QR — ele só abre pareamento web oficial do Google.</li>
+                    <li>No Gateway RCS Central, selecione <strong>"Nova Conexão"</strong>, "Escanear QR" ou cole o token manual.</li>
                     <li>Uma vez conectado, o status mudará para <strong>Online</strong> automaticamente.</li>
                   </ol>
                 </div>
@@ -314,10 +317,10 @@ function RCSConnection() {
                   includeMargin={true}
                 />
               </div>
-              <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg mb-4 max-w-[280px]">
+              <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg mb-4 max-w-[320px]">
                 <p className="text-[11px] text-amber-800 leading-tight">
                   <AlertTriangle className="h-3 w-3 inline mr-1 mb-0.5" />
-                  <strong>Dica:</strong> Se o QR Code não carregar no app, use o botão abaixo para copiar o token e colar manualmente no campo de configuração do aplicativo.
+                  <strong>Atenção:</strong> este QR é para o app <strong>Gateway RCS Central</strong>, não para o Google Mensagens. O Google Mensagens só aceita o QR oficial do site messages.google.com/web.
                 </p>
               </div>
               <div className="flex flex-col gap-2 w-full mt-2">
@@ -325,16 +328,16 @@ function RCSConnection() {
                   variant="default" 
                   size="sm" 
                   className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
-                  onClick={() => {
-                    navigator.clipboard.writeText(session.qr_code);
-                    toast.success("Token de configuração copiado!");
+                  onClick={async () => {
+                    const copied = await copyToClipboard(session.qr_code);
+                    if (copied) toast.success("Token de configuração copiado!");
                   }}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  Copiar Token (Configuração Manual)
+                  Copiar Token do Gateway
                 </Button>
                 <p className="text-[10px] text-center text-muted-foreground italic">
-                  Abra o app, vá em "Configurações" e cole este token.
+                  No app Gateway RCS Central, use “Nova Conexão”/“Configuração manual” e cole este token.
                 </p>
               </div>
             </>
