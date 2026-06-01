@@ -11,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
-  Smartphone, 
   Send, 
   History, 
   RefreshCw, 
@@ -102,16 +101,11 @@ export function RCSTab() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-5">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4">
           <TabsTrigger value="conexao">
             <Settings2 className="h-4 w-4 mr-2" />
             Config. Twilio
           </TabsTrigger>
-          <TabsTrigger value="android">
-            <Smartphone className="h-4 w-4 mr-2" />
-            Android QR
-          </TabsTrigger>
-
           <TabsTrigger value="templates">
             <FileText className="h-4 w-4 mr-2" />
             Templates
@@ -129,10 +123,6 @@ export function RCSTab() {
         <TabsContent value="conexao">
           <RCSConnection onConfigChange={loadStatus} />
         </TabsContent>
-        <TabsContent value="android">
-          <RCSAndroidQR />
-        </TabsContent>
-
         <TabsContent value="templates">
           <RCSTemplates canManageRCSTemplates={canManageRCSTemplates} />
         </TabsContent>
@@ -334,71 +324,6 @@ function RCSConnection({ onConfigChange }: { onConfigChange: () => void }) {
   );
 }
 
-function RCSAndroidQR() {
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<'offline' | 'pairing' | 'connected'>('offline');
-
-  const generateQR = async () => {
-    setLoading(true);
-    // Simulação de geração de QR para pareamento (como no link growsoft.io/smsrcs/)
-    // Em um cenário real, isso chamaria uma API que inicia um navegador headless
-    setTimeout(() => {
-      setQrCode("https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=RCS-PAIRING-SESSION-" + Math.random());
-      setLoading(false);
-      setStatus('pairing');
-      toast.info("QR Code gerado. Escaneie no app Mensagens do Google.");
-    }, 1500);
-  };
-
-  return (
-    <Card className="p-8">
-      <div className="flex flex-col items-center justify-center text-center space-y-6 max-w-md mx-auto">
-        <div className={`p-4 rounded-full ${status === 'connected' ? 'bg-emerald-100' : 'bg-blue-100'}`}>
-          <Smartphone className={`h-12 w-12 ${status === 'connected' ? 'text-emerald-600' : 'text-blue-600'}`} />
-        </div>
-        
-        <div className="space-y-2">
-          <h3 className="text-xl font-bold">Conectar via Android (QR Code)</h3>
-          <p className="text-sm text-muted-foreground">
-            Use o seu próprio chip para enviar RCS gratuitamente, como se fosse um humano enviando pelo celular.
-          </p>
-        </div>
-
-        {qrCode ? (
-          <div className="space-y-4">
-            <div className="p-4 bg-white border-4 border-blue-100 rounded-xl inline-block">
-              <img src={qrCode} alt="QR Code para Pareamento RCS" className="w-48 h-48" />
-            </div>
-            <p className="text-xs text-muted-foreground animate-pulse">
-              Abra o app <strong>Mensagens</strong> {" > "} <strong>Pareamento de dispositivos</strong> e escaneie.
-            </p>
-
-            <Button variant="outline" size="sm" onClick={() => setQrCode(null)}>
-              Cancelar
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-4 w-full">
-            <div className="bg-amber-50 border border-amber-100 p-4 rounded-lg text-left">
-              <h4 className="text-sm font-bold text-amber-800 mb-1">Como funciona:</h4>
-              <ul className="text-xs text-amber-700 space-y-1 list-disc pl-4">
-                <li>Não consome saldo da API (usa seu plano de chip).</li>
-                <li>Simula o comportamento humano (Google Mensagens).</li>
-                <li>Requer que o celular Android esteja ligado e online.</li>
-              </ul>
-            </div>
-            <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={generateQR} disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-              Gerar QR Code de Conexão
-            </Button>
-          </div>
-        )}
-      </div>
-    </Card>
-  );
-}
-
 // --- Templates Component ---
 
 function RCSTemplates({ canManageRCSTemplates }: { canManageRCSTemplates: () => boolean }) {
@@ -593,7 +518,6 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
   const [numbersInput, setNumbersInput] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [sending, setSending] = useState(false);
-  const [session, setSession] = useState<any>(null);
   const [templates, setTemplates] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("manual");
 
@@ -651,21 +575,25 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
 
         console.log("Resposta completa:", response);
 
-
-
-
         if (response.error) {
-          toast.error(`Erro: ${response.error.message}`);
+          toast.error(`Falha técnica na função Twilio: ${response.error.message}`, { duration: 10000 });
           continue;
         }
 
         const data: any = response.data;
-        if (data?.error) {
-          toast.error(`Twilio: ${data.error}`);
+        if (!data) {
+          toast.error("A função Twilio não retornou resposta. Tente novamente em alguns segundos.", { duration: 10000 });
           continue;
-        } else {
-          successCount++;
         }
+
+        if (data.success === false || data.error) {
+          const twilioMessage = data.error || data.details?.message || "Twilio recusou o envio.";
+          const twilioCode = data.details?.code ? ` Código: ${data.details.code}.` : "";
+          toast.error(`Twilio recusou: ${twilioMessage}${twilioCode}`, { duration: 12000 });
+          continue;
+        }
+
+        successCount++;
 
         
         if (i < cleanNumbers.length - 1) {
@@ -810,17 +738,13 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
           disabled={sending || !canSend}
         >
           {sending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Send className="mr-2 h-5 w-5" />}
-          {session?.status === 'connected' ? (
-            !canSend ? 'Sem permissão de envio' : (sending ? 'Processando fila...' : `Disparar para ${numbersInput.split(/[\n, ]+/).filter(n => n.trim()).length} contatos`)
-          ) : 'Configuração Incompleta'}
+          {!canSend ? 'Sem permissão de envio' : (sending ? 'Processando fila...' : `Disparar via Twilio para ${numbersInput.split(/[\n, ]+/).filter(n => n.trim()).length} contatos`)}
         </Button>
 
-        {session?.status === 'connected' && (
-          <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground">
-            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-            Twilio Cloud: <span className="font-bold">Conectado</span>
-          </div>
-        )}
+        <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground text-center">
+          <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+          Integração ativa: <span className="font-bold">Twilio API</span>. O Android QR foi removido porque não havia motor real conectado.
+        </div>
       </div>
     </Card>
   );
