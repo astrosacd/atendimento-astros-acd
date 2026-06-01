@@ -404,7 +404,7 @@ function NovaCampanhaSMSDialog({
     (async () => {
       setLoadingData(true);
       const [r, c] = await Promise.all([
-        supabase.from("sms_templates").select("id, nome, categoria").eq("ativo", true).order("nome"),
+        supabase.from("sms_templates").select("id, nome, categoria, conteudo").eq("ativo", true).order("nome"),
         supabase.from("clientes").select("id, nome, numero, produto, cobranca_ativa").order("nome").limit(2000),
       ]);
       setTemplates(r.data ?? []);
