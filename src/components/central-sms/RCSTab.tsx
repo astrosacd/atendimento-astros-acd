@@ -122,7 +122,7 @@ export function RCSTab() {
         </TabsList>
 
         <TabsContent value="conexao">
-          <RCSConnection />
+          <RCSConnection onConfigChange={loadStatus} />
         </TabsContent>
         <TabsContent value="templates">
           <RCSTemplates canManageRCSTemplates={canManageRCSTemplates} />
@@ -139,7 +139,7 @@ export function RCSTab() {
 }
 
 // --- Connection/Config Component (Twilio) ---
-function RCSConnection() {
+function RCSConnection({ onConfigChange }: { onConfigChange: () => void }) {
   const [config, setConfig] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -180,6 +180,8 @@ function RCSConnection() {
 
       if (error) throw error;
       toast.success("Configuração RCS salva com sucesso!");
+      onConfigChange();
+
     } catch (error: any) {
       toast.error("Erro ao salvar: " + error.message);
     } finally {
@@ -528,14 +530,28 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
       setTemplates(tmpls || []);
     };
     init();
-
   }, []);
+
+
 
   const handleSend = async () => {
     if (!numbersInput || !mensagem) return toast.error("Preencha os números e a mensagem");
-    if (!session || session.status !== 'connected') {
-      return toast.error("Configuração do Twilio incompleta.");
+    
+    // Recarregar status antes de enviar
+    const { data: configs } = await supabase
+      .from("ligacoes_ia_config")
+      .select("config_key, config_value")
+      .in("config_key", ["twilio_account_sid", "twilio_auth_token", "twilio_messaging_service_sid"]);
+    
+    const map: any = {};
+    configs?.forEach(c => map[c.config_key] = c.config_value);
+    const isConnected = map.twilio_account_sid && map.twilio_auth_token && map.twilio_messaging_service_sid;
+
+    if (!isConnected) {
+      return toast.error("Configuração do Twilio incompleta. Preencha os campos na aba 'Configuração'.");
     }
+
+
 
     const rawNumbers = numbersInput.split(/[\n, ]+/).filter(n => n.trim().length > 0);
     const cleanNumbers = rawNumbers.map(n => n.replace(/\D/g, ""));
