@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 interface TimelineEvent {
   id: string;
@@ -186,7 +187,7 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         ]);
         if (extraTickets.data) (ticketsRes as any).data = extraTickets.data;
         if (extraAppointments.data) (appointmentsRes as any).data = extraAppointments.data;
-        if (extraSales.data) (salesRes as any).data = extraSales.data;
+        if (extraSales.data) (salesRes.data = extraSales.data);
         if (extraSms.data) (smsLogsRes as any).data = extraSms.data;
       }
 
