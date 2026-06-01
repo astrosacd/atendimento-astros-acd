@@ -312,6 +312,13 @@ function RCSConnection({ onConfigChange }: { onConfigChange: () => void }) {
             </div>
             <Button 
               variant="link" 
+              className="text-blue-600 text-[10px] h-auto p-0 underline"
+              onClick={() => window.open('https://help.twilio.com/articles/360033964434-Google-RCS-Business-Messaging-RBM-on-Twilio', '_blank')}
+            >
+              Tutorial: Como aprovar sua marca no Google/Twilio
+            </Button>
+
+              variant="link" 
               className="text-blue-600 text-xs h-auto p-0"
               onClick={() => window.open('https://console.twilio.com', '_blank')}
             >
