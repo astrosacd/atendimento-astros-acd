@@ -12,7 +12,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
   Smartphone, 
-  QrCode, 
   Send, 
   History, 
   RefreshCw, 
@@ -27,13 +26,11 @@ import {
   ExternalLink,
   Users,
   ShieldAlert,
-  Download,
-  Sparkles
+  Sparkles,
+  Settings2
 } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
 import { usePermissions } from "@/hooks/usePermissions";
-import { copyToClipboard } from "@/utils/clipboard";
 
 export function RCSTab() {
   const { canViewRCS, canManageRCS, canManageRCSTemplates } = usePermissions();
