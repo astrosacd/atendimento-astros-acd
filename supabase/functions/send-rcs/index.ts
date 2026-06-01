@@ -74,20 +74,23 @@ serve(async (req) => {
     const { data: userData } = await supabaseClient.auth.getUser(req.headers.get('Authorization')?.split(' ')[1] ?? '')
 
     // Log the message in rcs_messages
-    const { data: msgHist } = await supabaseClient.from('rcs_messages').insert({
+    const { error: logError } = await supabaseClient.from('rcs_messages').insert({
       session_id: session_id || null,
       numero_destino: toE164,
       conteudo: body,
       status: response.ok ? 'enviado' : 'erro',
-      provider_message_id: twilioData.sid || null,
       error_message: response.ok ? null : (twilioData.message || 'Erro no Twilio'),
       user_id: userData.user?.id || null
-    }).select().single()
+    })
+
+    if (logError) {
+      console.error('[send-rcs] Falha ao registrar histórico:', logError)
+    }
 
     if (!response.ok) {
-      return new Response(JSON.stringify({ error: twilioData.message || 'Erro ao enviar RCS' }), {
+      return new Response(JSON.stringify({ success: false, error: twilioData.message || 'Erro ao enviar RCS', details: twilioData }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: 200,
       })
     }
 
