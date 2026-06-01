@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { usePermissions } from '@/hooks/usePermissions';
 import { 
-  History, Smartphone, MessageSquare, User, Search
+  History, Smartphone, MessageSquare, User, Search, CreditCard, FileText, Download
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface TimelineEvent {
   id: string;
-  type: 'client' | 'sms' | 'rcs' | 'history';
+  type: 'client' | 'sms' | 'rcs' | 'history' | 'payment' | 'proposal' | 'file';
   date: string;
   title: string;
   description: string;
@@ -26,6 +26,9 @@ const TYPE_CONFIG: Record<string, { icon: any; color: string; label: string }> =
   client: { icon: User, color: 'text-blue-500', label: 'Cadastro' },
   sms: { icon: MessageSquare, color: 'text-blue-400', label: 'SMS Enviado' },
   rcs: { icon: Smartphone, color: 'text-indigo-400', label: 'RCS Enviado' },
+  payment: { icon: CreditCard, color: 'text-emerald-500', label: 'Pagamento' },
+  proposal: { icon: FileText, color: 'text-orange-500', label: 'Proposta' },
+  file: { icon: Download, color: 'text-purple-500', label: 'Arquivo' },
 };
 
 export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedTimelineProps) {
@@ -46,11 +49,13 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
       // Use 'as any' to bypass the deep type instantiation issues with the Supabase client
       const s = supabase as any;
       
-      const [historyRes, clientDataRes, smsHistoryRes, rcsHistoryRes] = await Promise.all([
+      const [historyRes, clientDataRes, smsHistoryRes, rcsHistoryRes, paymentsRes, proposalsRes] = await Promise.all([
         s.from('client_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         s.from('clientes').select('*').eq('id', clienteId).single(),
         s.from('sms_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         s.from('rcs_messages').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
+        s.from('pagamentos').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
+        s.from('propostas').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
       ]);
 
       const allEvents: TimelineEvent[] = [];
@@ -78,6 +83,41 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
           description: s.conteudo,
           status: s.status,
           metadata: { error: s.error_message }
+        });
+      });
+
+      // Payments
+      (paymentsRes.data || []).forEach((p: any) => {
+        allEvents.push({
+          id: `payment-${p.id}`,
+          type: 'payment',
+          date: p.created_at,
+          title: `Pagamento: R$ ${p.valor}`,
+          description: `Status: ${p.status} — Método: ${p.metodo_pagamento || 'N/A'}`,
+          status: p.status,
+        });
+      });
+
+      // Proposals
+      (proposalsRes.data || []).forEach((pr: any) => {
+        allEvents.push({
+          id: `proposal-${pr.id}`,
+          type: 'proposal',
+          date: pr.created_at,
+          title: `Proposta: ${pr.titulo || 'Sem título'}`,
+          description: `Status: ${pr.status} — Valor: R$ ${pr.valor_total || 0}`,
+          status: pr.status,
+        });
+      });
+
+      // History
+      (historyRes.data || []).forEach((h: any) => {
+        allEvents.push({
+          id: `history-${h.id}`,
+          type: 'history',
+          date: h.created_at,
+          title: `Alteração: ${h.campo}`,
+          description: `De "${h.valor_antigo}" para "${h.valor_novo}"`,
         });
       });
 

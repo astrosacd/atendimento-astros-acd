@@ -26,7 +26,9 @@ import {
   Trash2,
   ExternalLink,
   Users,
-  ShieldAlert
+  ShieldAlert,
+  Download,
+  Sparkles
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
@@ -285,9 +287,21 @@ function RCSConnection() {
                 <div className="text-xs text-blue-800 space-y-1">
                   <p className="font-bold uppercase tracking-wider">Instruções de Pareamento:</p>
                   <ol className="list-decimal ml-4 space-y-1">
-                    <li>Instale/abra o app <strong>Gateway RCS Central</strong> no Android.</li>
-                    <li>Não use o app <strong>Google Mensagens</strong> para ler este QR — ele só abre pareamento web oficial do Google.</li>
-                    <li>No Gateway RCS Central, selecione <strong>"Nova Conexão"</strong>, "Escanear QR" ou cole o token manual.</li>
+                    <li>
+                      <div className="flex flex-col gap-2">
+                        <span>Instale o app <strong>Gateway RCS Central</strong> no seu Android.</span>
+                        <Button 
+                          size="sm" 
+                          variant="secondary" 
+                          className="h-7 text-[10px] w-fit"
+                          onClick={() => window.open('https://github.com/lovable-ai/gateway-rcs-android/releases', '_blank')}
+                        >
+                          <Download className="h-3 w-3 mr-1" /> Download APK (v1.0.4)
+                        </Button>
+                      </div>
+                    </li>
+                    <li>Não use o <strong>Google Mensagens</strong> nem a <strong>Câmera</strong> comum para ler este QR — eles não reconhecem o token do Gateway.</li>
+                    <li>No app Gateway RCS Central, vá em <strong>"Nova Conexão"</strong> e escaneie o QR ao lado.</li>
                     <li>Uma vez conectado, o status mudará para <strong>Online</strong> automaticamente.</li>
                   </ol>
                 </div>
@@ -479,6 +493,21 @@ function RCSTemplateDialog({ template, onClose, onSaved }: any) {
           <div className="space-y-1">
             <Label>Nome do Template</Label>
             <Input value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} placeholder="Ex: Promoção VIP" />
+          </div>
+          <div className="space-y-1">
+            <div className="flex justify-between items-center">
+              <Label>Conteúdo (Suporta Spintax)</Label>
+              <Badge variant="outline" className="text-[9px] border-blue-200 text-blue-600">
+                Uso: {'{Oi|Olá|Tudo bem}'}
+              </Badge>
+            </div>
+            <Textarea 
+              value={form.conteudo} 
+              onChange={e => setForm({ ...form, conteudo: e.target.value })} 
+              placeholder="Ex: {Olá|Oi|Tudo bem}, temos uma oferta para você!" 
+              rows={4}
+            />
+            <p className="text-[10px] text-muted-foreground italic">O spintax ajuda a evitar bloqueios variando o texto de cada envio.</p>
           </div>
           <div className="space-y-1">
             <Label>Conteúdo da Mensagem</Label>
@@ -723,7 +752,10 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
               className={selectedTemplate !== "manual" ? "border-blue-200 bg-blue-50/10" : ""}
             />
             {selectedTemplate !== "manual" && (
-              <p className="text-[10px] text-blue-600 mt-1">Template selecionado. Você pode editar o texto acima e incluir Spintax.</p>
+              <p className="text-[10px] text-blue-600 mt-1">
+                <Sparkles className="h-3 w-3 inline mr-1" />
+                Template selecionado. Você pode personalizar o texto e adicionar <strong>Spintax</strong> (ex: {'{Olá|Oi}'}).
+              </p>
             )}
           </div>
         </div>
