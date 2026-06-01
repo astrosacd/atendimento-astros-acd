@@ -167,7 +167,7 @@ function RCSConnection() {
       setSaving(true);
       const updates = Object.entries(config).map(([key, value]) => ({
         config_key: key,
-        config_value: value,
+        config_value: String(value || ""),
       }));
 
       const { error } = await supabase
