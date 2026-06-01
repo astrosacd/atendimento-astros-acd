@@ -7509,6 +7509,8 @@ export type Database = {
           id: string
           last_connected_at: string | null
           name: string
+          provider: string | null
+          provider_config: Json | null
           qr_code: string | null
           session_data: string | null
           status: string
@@ -7520,6 +7522,8 @@ export type Database = {
           id?: string
           last_connected_at?: string | null
           name: string
+          provider?: string | null
+          provider_config?: Json | null
           qr_code?: string | null
           session_data?: string | null
           status?: string
@@ -7531,6 +7535,8 @@ export type Database = {
           id?: string
           last_connected_at?: string | null
           name?: string
+          provider?: string | null
+          provider_config?: Json | null
           qr_code?: string | null
           session_data?: string | null
           status?: string
