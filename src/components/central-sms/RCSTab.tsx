@@ -513,8 +513,18 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data: sess } = await supabase.from("rcs_sessions").select("*").eq("user_id", user.id).maybeSingle();
-      setSession(sess);
+      
+      const { data: configs } = await supabase
+        .from("ligacoes_ia_config")
+        .select("config_key, config_value")
+        .in("config_key", ["twilio_account_sid", "twilio_auth_token", "twilio_messaging_service_sid"]);
+      
+      const map: any = {};
+      configs?.forEach(c => map[c.config_key] = c.config_value);
+      setSession({ 
+        status: (map.twilio_account_sid && map.twilio_messaging_service_sid) ? 'connected' : 'offline', 
+        name: 'Twilio Cloud' 
+      });
       
       const { data: tmpls } = await supabase.from("rcs_templates").select("*").eq("ativo", true);
       setTemplates(tmpls || []);
@@ -525,10 +535,9 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
   const handleSend = async () => {
     if (!numbersInput || !mensagem) return toast.error("Preencha os números e a mensagem");
     if (!session || session.status !== 'connected') {
-      return toast.error("Seu celular Android não está conectado.");
+      return toast.error("Configuração do Twilio incompleta.");
     }
 
-    // Process numbers (split by comma, newline or space)
     const rawNumbers = numbersInput.split(/[\n, ]+/).filter(n => n.trim().length > 0);
     const cleanNumbers = rawNumbers.map(n => n.replace(/\D/g, ""));
 
@@ -538,35 +547,29 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
     let successCount = 0;
     
     try {
-      toast.info(`Iniciando envio para ${cleanNumbers.length} contatos com delay aleatório entre ${minDelay}s e ${maxDelay}s...`);
+      toast.info(`Iniciando envio para ${cleanNumbers.length} contatos...`);
 
       for (let i = 0; i < cleanNumbers.length; i++) {
         const numero = cleanNumbers[i];
-        
-        // Process message with spintax if enabled
         const finalMessage = useSpintax ? processSpintax(mensagem) : mensagem;
 
-        const { error: msgError } = await supabase
-          .from("rcs_messages")
-          .insert({
-            session_id: session.id,
-            numero_destino: numero,
-            conteudo: finalMessage,
-            status: 'pendente',
-            user_id: session.user_id,
-            template_id: selectedTemplate !== "manual" ? selectedTemplate : null
-          });
+        const { error } = await supabase.functions.invoke('send-rcs', {
+          body: { 
+            to: numero, 
+            body: finalMessage,
+            session_id: session.id
+          }
+        });
 
-        if (!msgError) successCount++;
+        if (!error) successCount++;
         
-        // Apply randomized delay between messages (except for the last one)
         if (i < cleanNumbers.length - 1) {
           const randomDelay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
           await new Promise(r => setTimeout(r, randomDelay * 1000));
         }
       }
 
-      toast.success(`${successCount} mensagens enfileiradas com sucesso!`);
+      toast.success(`${successCount} mensagens processadas com sucesso!`);
       setMensagem("");
       setNumbersInput("");
     } catch (error: any) {
