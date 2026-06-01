@@ -107,7 +107,6 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
   const loadAllEvents = async () => {
     setLoading(true);
     try {
-      const [
       // Split fetches into smaller batches to avoid TS "Type instantiation is excessively deep" error
       const batch1 = await Promise.all([
         supabase.from('client_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
@@ -586,7 +585,20 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         });
       });
 
-      setEvents(allEvents);
+      // RCS History
+      (rcsHistoryRes.data || []).forEach((r: any) => {
+        allEvents.push({
+          id: `rcs-${r.id}`,
+          type: 'rcs',
+          date: r.created_at,
+          title: `RCS: ${r.status === 'sent' ? 'Enviado' : (r.status === 'failed' ? 'Erro' : 'Pendente')}`,
+          description: r.message_text,
+          status: r.status,
+          metadata: { error: r.error_message }
+        });
+      });
+
+      setEvents(allEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     } catch (err) {
       console.error('Error loading timeline:', err);
     } finally {
