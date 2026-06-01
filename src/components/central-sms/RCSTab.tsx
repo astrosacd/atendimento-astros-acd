@@ -575,9 +575,11 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
         if (error) {
           console.error(`Erro ao enviar para ${numero}:`, error);
           toast.error(`Erro no número ${numero}: ${error.message || 'Erro desconhecido'}`);
+          continue;
         } else if (data?.error) {
           console.error(`Erro retornado pelo Twilio para ${numero}:`, data.error);
           toast.error(`Twilio (${numero}): ${data.error}`);
+          continue;
         } else {
           successCount++;
         }
@@ -588,7 +590,11 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
         }
       }
 
-      toast.success(`${successCount} mensagens processadas com sucesso!`);
+      if (successCount > 0) {
+        toast.success(`${successCount} mensagem(ns) enviada(s) pelo Twilio.`);
+      } else {
+        toast.error("Nenhuma mensagem foi enviada. Veja o erro do Twilio acima.");
+      }
       // Removi a limpeza automática dos campos para você ver o que foi enviado
     } catch (error: any) {
       toast.error(error.message);
