@@ -413,6 +413,17 @@ function RCSSend() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("manual");
 
+  const [delay, setDelay] = useState(5); // Default 5 seconds
+  const [useSpintax, setUseSpintax] = useState(true);
+
+  // Helper to process spintax: {Olá|Oi|Bom dia}
+  const processSpintax = (text: string) => {
+    return text.replace(/\{([^{}]*)\}/g, (match, options) => {
+      const choices = options.split('|');
+      return choices[Math.floor(Math.random() * choices.choices.length)];
+    });
+  };
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
