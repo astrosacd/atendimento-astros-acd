@@ -310,13 +310,23 @@ function RCSConnection({ onConfigChange }: { onConfigChange: () => void }) {
               <p>2. <strong>Aprovação RCS:</strong> O envio de RCS não é automático. Você precisa solicitar a verificação da sua marca junto ao Google pelo console do Twilio (Módulo Messaging Service).</p>
               <p>3. <strong>Fallback:</strong> Se o RCS não estiver aprovado, o Twilio tentará enviar como SMS comum (se houver saldo).</p>
             </div>
-            <Button 
-              variant="link" 
-              className="text-blue-600 text-xs h-auto p-0"
-              onClick={() => window.open('https://console.twilio.com', '_blank')}
-            >
-              Acessar Console Twilio <ExternalLink className="h-3 w-3 ml-1" />
-            </Button>
+            <div className="flex flex-col gap-1">
+              <Button 
+                variant="link" 
+                className="text-blue-600 text-[10px] h-auto p-0 underline"
+                onClick={() => window.open('https://help.twilio.com/articles/360033964434-Google-RCS-Business-Messaging-RBM-on-Twilio', '_blank')}
+              >
+                Como aprovar marca no Google/Twilio
+              </Button>
+              <Button 
+                variant="link" 
+                className="text-blue-600 text-[10px] h-auto p-0"
+                onClick={() => window.open('https://console.twilio.com', '_blank')}
+              >
+                Acessar Console Twilio <ExternalLink className="h-3 w-3 ml-1" />
+              </Button>
+            </div>
+
           </div>
         </div>
       </div>
@@ -361,8 +371,9 @@ function RCSAndroidQR() {
               <img src={qrCode} alt="QR Code para Pareamento RCS" className="w-48 h-48" />
             </div>
             <p className="text-xs text-muted-foreground animate-pulse">
-              Abra o app <strong>Mensagens</strong> {'>'} <strong>Pareamento de dispositivos</strong> e escaneie.
+              Abra o app <strong>Mensagens</strong> {" > "} <strong>Pareamento de dispositivos</strong> e escaneie.
             </p>
+
             <Button variant="outline" size="sm" onClick={() => setQrCode(null)}>
               Cancelar
             </Button>
@@ -647,9 +658,10 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
           body: { 
             to: numero, 
             body: finalMessage,
-            session_id: session.id
+            session_id: null // Removido session.id que causava o erro de null
           }
         });
+
 
         if (error) {
           console.error(`Erro ao enviar para ${numero}:`, error);
