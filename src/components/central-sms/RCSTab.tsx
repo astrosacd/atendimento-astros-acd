@@ -217,7 +217,16 @@ function RCSConnection() {
 
   useEffect(() => {
     loadSession();
-  }, []);
+    
+    // Polling para verificar se o status mudou para 'connected' durante o pareamento
+    const interval = setInterval(() => {
+      if (session?.status === 'pairing') {
+        loadSession();
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [session?.status]);
 
 
   if (loading) {
