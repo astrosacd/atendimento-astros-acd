@@ -315,11 +315,25 @@ function RCSConnection() {
                 />
               </div>
               <p className="text-[9px] text-muted-foreground font-mono max-w-[240px] break-all text-center">
-                ID da Sessão: {session.id}
+                Sessão: {session.id}
               </p>
-              <p className="text-xs mt-3 text-center text-blue-600 font-medium">
-                Aponte o app do gateway para este código
-              </p>
+              <div className="flex flex-col gap-2 w-full mt-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-[10px] h-8"
+                  onClick={() => {
+                    navigator.clipboard.writeText(session.qr_code);
+                    toast.success("Configuração copiada!");
+                  }}
+                >
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  Copiar Token de Configuração
+                </Button>
+                <p className="text-[10px] text-center text-muted-foreground italic">
+                  Aponte o app do gateway para este código ou cole o token
+                </p>
+              </div>
             </>
           ) : (
             <div className="text-center space-y-3">
