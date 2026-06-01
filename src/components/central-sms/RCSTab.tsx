@@ -413,6 +413,17 @@ function RCSSend() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("manual");
 
+  const [delay, setDelay] = useState(5); // Default 5 seconds
+  const [useSpintax, setUseSpintax] = useState(true);
+
+  // Helper to process spintax: {Olá|Oi|Bom dia}
+  const processSpintax = (text: string) => {
+    return text.replace(/\{([^{}]*)\}/g, (match, options) => {
+      const choices = options.split('|');
+      return choices[Math.floor(Math.random() * choices.length)];
+    });
+  };
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -442,26 +453,34 @@ function RCSSend() {
     let successCount = 0;
     
     try {
-      toast.info(`Iniciando envio para ${cleanNumbers.length} contatos...`);
+      toast.info(`Iniciando envio para ${cleanNumbers.length} contatos com delay de ${delay}s...`);
 
-      for (const numero of cleanNumbers) {
+      for (let i = 0; i < cleanNumbers.length; i++) {
+        const numero = cleanNumbers[i];
+        
+        // Process message with spintax if enabled
+        const finalMessage = useSpintax ? processSpintax(mensagem) : mensagem;
+
         const { error: msgError } = await supabase
           .from("rcs_messages")
           .insert({
             session_id: session.id,
             numero_destino: numero,
-            conteudo: mensagem,
+            conteudo: finalMessage,
             status: 'pendente',
             user_id: session.user_id,
             template_id: selectedTemplate !== "manual" ? selectedTemplate : null
           });
 
         if (!msgError) successCount++;
-        // Small delay between queueing
-        await new Promise(r => setTimeout(r, 100));
+        
+        // Apply delay between messages (except for the last one)
+        if (i < cleanNumbers.length - 1) {
+          await new Promise(r => setTimeout(r, delay * 1000));
+        }
       }
 
-      toast.success(`${successCount} mensagens enfileiradas para seu celular!`);
+      toast.success(`${successCount} mensagens enfileiradas com sucesso!`);
       setMensagem("");
       setNumbersInput("");
     } catch (error: any) {
@@ -507,7 +526,7 @@ function RCSSend() {
         </div>
 
         <div className="space-y-4 pt-2 border-t border-dashed">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label>Modelo de Mensagem</Label>
               <Select value={selectedTemplate} onValueChange={handleTemplateChange}>
@@ -524,19 +543,44 @@ function RCSSend() {
             </div>
             
             <div className="space-y-1">
-              <Label>Dispositivo Ativo</Label>
-              <div className="h-10 flex items-center px-3 border rounded bg-muted/20 text-xs font-medium">
-                {session?.status === 'connected' ? (
-                  <><CheckCircle2 className="h-3 w-3 text-emerald-500 mr-2" /> {session.name}</>
-                ) : (
-                  <><XCircle className="h-3 w-3 text-destructive mr-2" /> Nenhum conectado</>
-                )}
+              <Label>Anti-Bloqueio (Delay & Spintax)</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-muted-foreground">Delay (seg)</span>
+                    <span className="text-[10px] font-bold text-blue-600">{delay}s</span>
+                  </div>
+                  <Input 
+                    type="number" 
+                    value={delay} 
+                    onChange={e => setDelay(Number(e.target.value))} 
+                    className="h-8 text-xs"
+                    min={1}
+                  />
+                </div>
+                <div className="space-y-1 flex flex-col justify-end">
+                   <Button 
+                    variant={useSpintax ? "default" : "outline"} 
+                    size="sm" 
+                    className="h-8 text-[10px] w-full"
+                    onClick={() => setUseSpintax(!useSpintax)}
+                   >
+                     Spintax: {useSpintax ? 'Ativo' : 'Inativo'}
+                   </Button>
+                </div>
               </div>
             </div>
           </div>
 
           <div className="space-y-1">
-            <Label>Mensagem Final</Label>
+            <div className="flex justify-between items-center">
+              <Label>Mensagem Final</Label>
+              {useSpintax && (
+                <Badge variant="outline" className="text-[9px] border-blue-200 text-blue-600">
+                  Uso: {'{Oi|Olá|Tudo bem}'}
+                </Badge>
+              )}
+            </div>
             <Textarea 
               value={mensagem} 
               onChange={e => setMensagem(e.target.value)} 
@@ -557,8 +601,17 @@ function RCSSend() {
           disabled={sending || !session || session.status !== 'connected'}
         >
           {sending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Send className="mr-2 h-5 w-5" />}
-          {session?.status === 'connected' ? `Disparar para ${numbersInput.split(/[\n, ]+/).filter(n => n.trim()).length} contatos` : 'Conecte um Celular Primeiro'}
+          {session?.status === 'connected' ? (
+            sending ? 'Processando fila...' : `Disparar para ${numbersInput.split(/[\n, ]+/).filter(n => n.trim()).length} contatos`
+          ) : 'Conecte um Celular Primeiro'}
         </Button>
+
+        {session?.status === 'connected' && (
+          <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground">
+            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+            Aparelho pronto: <span className="font-bold">{session.name}</span>
+          </div>
+        )}
       </div>
     </Card>
   );
