@@ -657,10 +657,10 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
         const { data, error } = await supabase.functions.invoke('send-rcs', {
           body: { 
             to: numero, 
-            body: finalMessage,
-            session_id: null // Removido session.id que causava o erro de null
+            body: finalMessage
           }
         });
+
 
 
         if (error) {
