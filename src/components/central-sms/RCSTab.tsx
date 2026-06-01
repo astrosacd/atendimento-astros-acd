@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,13 +25,66 @@ import {
   Plus,
   Trash2,
   ExternalLink,
-  Users
+  Users,
+  ShieldAlert
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export function RCSTab() {
+  const { canViewRCS, canManageRCS, canManageRCSTemplates } = usePermissions();
   const [activeTab, setActiveTab] = useState("conexao");
+  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<any>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadSession = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("rcs_sessions")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      setSession(data);
+    } catch (error) {
+      console.error("Error loading RCS session:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSession();
+  }, []);
+
+  if (!canViewRCS()) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <ShieldAlert className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium">Acesso Negado</h3>
+          <p className="text-muted-foreground text-center max-w-sm">
+            Você não tem permissão para visualizar o módulo de RCS. Solicite acesso ao administrador.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 space-y-4">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <p className="text-muted-foreground">Verificando conexão...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -88,22 +141,23 @@ function RCSConnection() {
   const [refreshing, setRefreshing] = useState(false);
 
   const loadSession = async () => {
-    setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const { data, error } = await supabase
-      .from("rcs_sessions")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
+      const { data, error } = await supabase
+        .from("rcs_sessions")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-    if (error) {
-      console.error("Error loading RCS session:", error);
-    } else {
+      if (error) throw error;
       setSession(data);
+    } catch (error) {
+      console.error("Error loading RCS session:", error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const createSession = async () => {
@@ -139,21 +193,7 @@ function RCSConnection() {
   }, []);
 
   if (loading) {
-  if (!canViewRCS()) {
     return (
-      <Card className="border-dashed">
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <ShieldAlert className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium">Acesso Negado</h3>
-          <p className="text-muted-foreground text-center max-w-sm">
-            Você não tem permissão para visualizar o módulo de RCS.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
       <div className="flex flex-col items-center justify-center p-12 space-y-4">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
         <p className="text-muted-foreground">Verificando conexão...</p>
