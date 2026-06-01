@@ -30,7 +30,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { to, body, session_id } = await req.json()
+    const { to, body, buttons, session_id } = await req.json()
 
     if (!to || !body) {
       return new Response(JSON.stringify({ error: 'Número e mensagem são obrigatórios' }), {
