@@ -645,12 +645,12 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
         const finalMessage = useSpintax ? processSpintax(mensagem) : mensagem;
 
         console.log(`Enviando RCS para ${numero}...`);
-        const { data, error } = await supabase.functions.invoke('send-rcs', {
-          body: { 
-            to: numero, 
-            body: finalMessage
-          }
+        const response = await supabase.functions.invoke('send-rcs', {
+          body: { to: numero, body: finalMessage }
         });
+
+        console.log("Resposta completa:", response);
+
 
 
 
