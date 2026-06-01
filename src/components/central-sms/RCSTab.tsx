@@ -587,9 +587,15 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
         const finalMessage = useSpintax ? processSpintax(baseMessage) : baseMessage;
 
         console.log(`Enviando RCS para ${numero}...`);
-        const data = await invokeFunction<any>('send-rcs', {
-          body: { to: numero, body: finalMessage }
-        });
+        let data: any;
+        try {
+          data = await invokeFunction<any>('send-rcs', {
+            body: { to: numero, body: finalMessage }
+          });
+        } catch (error: any) {
+          toast.error(`Falha no envio para ${numero}: ${error?.message || 'erro desconhecido'}`, { duration: 12000 });
+          continue;
+        }
 
         console.log("Resposta Twilio:", data);
 
