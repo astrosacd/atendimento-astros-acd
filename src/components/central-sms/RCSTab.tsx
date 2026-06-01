@@ -134,111 +134,69 @@ export function RCSTab() {
   );
 }
 
-// --- Connection Component ---
+// --- Connection/Config Component (Twilio) ---
 function RCSConnection() {
-  const [session, setSession] = useState<any>(null);
+  const [config, setConfig] = useState<any>({});
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const loadSession = async () => {
+  const loadConfig = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      setLoading(true);
+      const { data } = await supabase
+        .from("ligacoes_ia_config")
+        .select("config_key, config_value")
+        .in("config_key", [
+          "twilio_account_sid",
+          "twilio_auth_token",
+          "twilio_messaging_service_sid"
+        ]);
 
-      const { data, error } = await supabase
-        .from("rcs_sessions")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-      setSession(data);
+      const map: any = {};
+      data?.forEach((item) => (map[item.config_key] = item.config_value));
+      setConfig(map);
     } catch (error) {
-      console.error("Error loading RCS session:", error);
+      console.error("Error loading RCS config:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const createSession = async () => {
-    setRefreshing(true);
+  const saveConfig = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      setSaving(true);
+      const updates = Object.entries(config).map(([key, value]) => ({
+        config_key: key,
+        config_value: value,
+      }));
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      
-      let currentSessionId = session?.id;
-      
-      if (!currentSessionId) {
-        const { data, error } = await supabase
-          .from("rcs_sessions")
-          .insert({
-            name: "Meu Android",
-            status: "pairing",
-            user_id: user.id
-          })
-          .select()
-          .single();
-        
-        if (error) throw error;
-        currentSessionId = data.id;
-      }
+      const { error } = await supabase
+        .from("ligacoes_ia_config")
+        .upsert(updates, { onConflict: 'config_key' });
 
-      // Payload estruturado para o app Gateway RCS Central ler.
-      // Importante: Google Mensagens NÃO aceita QR próprio/externo; ele só lê
-      // QR gerado pelo site oficial messages.google.com/web.
-      const qrPayload = JSON.stringify({
-        s: supabaseUrl,
-        k: supabaseKey,
-        id: currentSessionId,
-        u: user.id
-      });
-
-      const { error: updateError } = await supabase
-        .from("rcs_sessions")
-        .update({ 
-          qr_code: qrPayload, 
-          status: "pairing", 
-          updated_at: new Date().toISOString() 
-        })
-        .eq("id", currentSessionId);
-
-      if (updateError) throw updateError;
-      
-      await loadSession();
-      toast.success("Token do Gateway RCS gerado!");
+      if (error) throw error;
+      toast.success("Configuração RCS salva com sucesso!");
     } catch (error: any) {
-      console.error("Error creating session:", error);
-      toast.error("Erro ao gerar QR Code: " + (error.message || "Tente novamente"));
+      toast.error("Erro ao salvar: " + error.message);
     } finally {
-      setRefreshing(false);
+      setSaving(false);
     }
   };
 
   useEffect(() => {
-    loadSession();
-    
-    // Polling para verificar se o status mudou para 'connected' durante o pareamento
-    const interval = setInterval(() => {
-      if (session?.status === 'pairing') {
-        loadSession();
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [session?.status]);
-
+    loadConfig();
+  }, []);
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center p-12 space-y-4">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-        <p className="text-muted-foreground">Verificando conexão...</p>
+        <p className="text-muted-foreground">Carregando configurações...</p>
       </div>
     );
   }
+
+  const isConfigured = config.twilio_account_sid && config.twilio_auth_token && config.twilio_messaging_service_sid;
 
   return (
     <Card className="p-6">
@@ -246,118 +204,96 @@ function RCSConnection() {
         <div className="space-y-6">
           <div>
             <h3 className="text-lg font-bold flex items-center gap-2">
-              <Smartphone className="h-5 w-5 text-blue-600" />
-              Status do Dispositivo
+              <Settings2 className="h-5 w-5 text-blue-600" />
+              Configuração Twilio RCS
             </h3>
             <p className="text-sm text-muted-foreground">
-              Conecte seu celular Android para habilitar o envio de RCS.
+              Integre sua conta Twilio para disparos oficiais de RCS.
             </p>
           </div>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/30">
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-full ${session?.status === 'connected' ? 'bg-emerald-100' : 'bg-slate-100'}`}>
-                  {session?.status === 'connected' ? (
+                <div className={`p-2 rounded-full ${isConfigured ? 'bg-emerald-100' : 'bg-amber-100'}`}>
+                  {isConfigured ? (
                     <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                   ) : (
-                    <XCircle className="h-5 w-5 text-slate-400" />
+                    <AlertTriangle className="h-5 w-5 text-amber-600" />
                   )}
                 </div>
                 <div>
                   <p className="font-medium text-sm">
-                    {session?.status === 'connected' ? 'Dispositivo Conectado' : 'Aguardando Conexão'}
+                    {isConfigured ? 'Pronto para Disparos' : 'Configuração Pendente'}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {session?.name || "Nenhum aparelho pareado"}
+                    {isConfigured ? 'Credenciais validadas localmente' : 'Preencha os dados do Twilio'}
                   </p>
                 </div>
               </div>
-              <Badge variant={session?.status === 'connected' ? 'default' : 'secondary'} className={session?.status === 'connected' ? 'bg-emerald-500' : ''}>
-                {session?.status === 'connected' ? 'Online' : 'Offline'}
+              <Badge variant={isConfigured ? 'default' : 'secondary'} className={isConfigured ? 'bg-emerald-500' : ''}>
+                {isConfigured ? 'Ativo' : 'Inativo'}
               </Badge>
             </div>
 
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
-              <div className="flex gap-3">
-                <Smartphone className="h-5 w-5 text-blue-600 shrink-0" />
-                <div className="text-xs text-blue-800 space-y-1">
-                  <p className="font-bold uppercase tracking-wider">Instruções de Pareamento:</p>
-                  <ol className="list-decimal ml-4 space-y-1">
-                    <li>
-                      <div className="flex flex-col gap-2">
-                        <span>Instale o app <strong>Gateway RCS Central</strong> no seu Android.</span>
-                        <Button 
-                          size="sm" 
-                          variant="secondary" 
-                          className="h-7 text-[10px] w-fit"
-                          onClick={() => window.open('https://github.com/lovable-ai/gateway-rcs-android/releases', '_blank')}
-                        >
-                          <Download className="h-3 w-3 mr-1" /> Download APK (v1.0.4)
-                        </Button>
-                      </div>
-                    </li>
-                    <li>Não use o <strong>Google Mensagens</strong> nem a <strong>Câmera</strong> comum para ler este QR — eles não reconhecem o token do Gateway.</li>
-                    <li>No app Gateway RCS Central, vá em <strong>"Nova Conexão"</strong> e escaneie o QR ao lado.</li>
-                    <li>Uma vez conectado, o status mudará para <strong>Online</strong> automaticamente.</li>
-                  </ol>
-                </div>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label>Account SID</Label>
+                <Input 
+                  value={config.twilio_account_sid || ""} 
+                  onChange={e => setConfig({...config, twilio_account_sid: e.target.value})}
+                  placeholder="AC..."
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Auth Token</Label>
+                <Input 
+                  type="password"
+                  value={config.twilio_auth_token || ""} 
+                  onChange={e => setConfig({...config, twilio_auth_token: e.target.value})}
+                  placeholder="••••••••"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-blue-700 font-bold">Messaging Service SID (RCS)</Label>
+                <Input 
+                  value={config.twilio_messaging_service_sid || ""} 
+                  onChange={e => setConfig({...config, twilio_messaging_service_sid: e.target.value})}
+                  placeholder="MG..."
+                />
+                <p className="text-[10px] text-muted-foreground italic">Crie um Messaging Service no Twilio Console e adicione seu Remetente RCS.</p>
               </div>
             </div>
 
             <Button 
-              variant="outline" 
-              className="w-full" 
-              onClick={createSession}
-              disabled={refreshing}
+              className="w-full bg-blue-600 hover:bg-blue-700" 
+              onClick={saveConfig}
+              disabled={saving}
             >
-              {refreshing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-              Gerar Novo QR Code / Atualizar
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+              Salvar Configurações
             </Button>
           </div>
         </div>
 
-        <div className="flex flex-col items-center justify-center p-6 bg-white rounded-xl border-2 border-dashed border-muted shadow-inner min-h-[300px]">
-          {session?.qr_code ? (
-            <>
-              <div className="p-4 bg-white rounded-lg shadow-md mb-4 border border-slate-100">
-                <QRCodeSVG 
-                  value={session.qr_code} 
-                  size={240} 
-                  level="L"
-                  includeMargin={true}
-                />
-              </div>
-              <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg mb-4 max-w-[320px]">
-                <p className="text-[11px] text-amber-800 leading-tight">
-                  <AlertTriangle className="h-3 w-3 inline mr-1 mb-0.5" />
-                  <strong>Atenção:</strong> este QR é para o app <strong>Gateway RCS Central</strong>, não para o Google Mensagens. O Google Mensagens só aceita o QR oficial do site messages.google.com/web.
-                </p>
-              </div>
-              <div className="flex flex-col gap-2 w-full mt-2">
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
-                  onClick={async () => {
-                    const copied = await copyToClipboard(session.qr_code);
-                    if (copied) toast.success("Token de configuração copiado!");
-                  }}
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Copiar Token do Gateway
-                </Button>
-                <p className="text-[10px] text-center text-muted-foreground italic">
-                  No app Gateway RCS Central, use “Nova Conexão”/“Configuração manual” e cole este token.
-                </p>
-              </div>
-            </>
-          ) : (
-            <div className="text-center space-y-3">
-              <QrCode className="h-16 w-16 text-muted-foreground/30 mx-auto" />
-              <p className="text-sm text-muted-foreground">Clique no botão para gerar o QR Code</p>
+        <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-xl border border-muted min-h-[300px]">
+          <div className="text-center space-y-4 max-w-xs">
+            <MessageSquare className="h-16 w-16 text-blue-400 mx-auto" />
+            <h4 className="font-bold text-slate-800">Como funciona o RCS?</h4>
+            <div className="text-xs text-slate-600 space-y-2 text-left">
+              <p>1. <strong>Conta Twilio:</strong> Você precisa de uma conta ativa no Twilio.</p>
+              <p>2. <strong>Messaging Service:</strong> Crie um serviço em "Messaging Services" no console Twilio.</p>
+              <p>3. <strong>Verificação Google:</strong> O Google exige que sua marca seja verificada para enviar RCS. Solicite via console do Twilio.</p>
+              <p>4. <strong>SID:</strong> Cole o SID do Messaging Service aqui para habilitar os disparos.</p>
             </div>
-          )}
+            <Button 
+              variant="link" 
+              className="text-blue-600 text-xs h-auto p-0"
+              onClick={() => window.open('https://console.twilio.com', '_blank')}
+            >
+              Acessar Console Twilio <ExternalLink className="h-3 w-3 ml-1" />
+            </Button>
+          </div>
         </div>
       </div>
     </Card>
