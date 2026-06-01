@@ -220,23 +220,25 @@ function TemplatesTab() {
 
       <div className="grid md:grid-cols-2 gap-3">
         {items.map((r) => (
-          <div key={r.id} className="p-3 rounded-lg border bg-card flex justify-between items-start gap-2">
+          <div key={r.id} className="p-3 rounded-lg border bg-card flex justify-between items-start gap-4">
             <div className="flex-1 min-w-0">
               <h3 className="font-medium text-sm">{r.nome}</h3>
               <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{r.conteudo}</p>
             </div>
-            <div className="flex gap-1">
-              <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar" onClick={() => setEditing(r)}>
+            <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+              <Button size="sm" variant="outline" className="h-8 px-3" title="Editar template" onClick={() => setEditing(r)}>
                 <FileText className="h-4 w-4" />
+                <span className="ml-1">Editar</span>
               </Button>
               <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                title="Excluir"
+                size="sm"
+                variant="destructive"
+                className="h-8 px-3"
+                title="Excluir template"
                 onClick={() => setDeleting(r)}
               >
                 <Trash2 className="h-4 w-4" />
+                <span className="ml-1">Excluir</span>
               </Button>
             </div>
           </div>
