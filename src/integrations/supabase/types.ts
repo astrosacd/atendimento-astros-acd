@@ -7458,6 +7458,7 @@ export type Database = {
           numero_destino: string
           session_id: string | null
           status: string
+          template_id: string | null
           updated_at: string
           user_id: string | null
         }
@@ -7469,6 +7470,7 @@ export type Database = {
           numero_destino: string
           session_id?: string | null
           status?: string
+          template_id?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -7480,6 +7482,7 @@ export type Database = {
           numero_destino?: string
           session_id?: string | null
           status?: string
+          template_id?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -7489,6 +7492,13 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "rcs_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rcs_messages_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "rcs_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -7524,6 +7534,39 @@ export type Database = {
           qr_code?: string | null
           session_data?: string | null
           status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      rcs_templates: {
+        Row: {
+          ativo: boolean | null
+          botoes: Json | null
+          conteudo: string
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          botoes?: Json | null
+          conteudo: string
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          botoes?: Json | null
+          conteudo?: string
+          created_at?: string
+          id?: string
+          nome?: string
           updated_at?: string
           user_id?: string | null
         }
