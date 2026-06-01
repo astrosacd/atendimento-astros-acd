@@ -255,13 +255,23 @@ function RCSConnection() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-blue-700 font-bold">Messaging Service SID (RCS)</Label>
+                <Label className="text-blue-700 font-bold flex items-center justify-between">
+                  <span>Messaging Service SID (RCS)</span>
+                  <a 
+                    href="https://console.twilio.com/us1/develop/sms/services" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-blue-600 hover:underline flex items-center gap-1 font-normal"
+                  >
+                    Abrir Twilio <ExternalLink className="h-2 w-2" />
+                  </a>
+                </Label>
                 <Input 
                   value={config.twilio_messaging_service_sid || ""} 
                   onChange={e => setConfig({...config, twilio_messaging_service_sid: e.target.value})}
                   placeholder="MG..."
                 />
-                <p className="text-[10px] text-muted-foreground italic">Crie um Messaging Service no Twilio Console e adicione seu Remetente RCS.</p>
+                <p className="text-[10px] text-muted-foreground italic">Crie um Messaging Service no Twilio Console e adicione seu Remetente RCS (Inicia com MG...).</p>
               </div>
             </div>
 
