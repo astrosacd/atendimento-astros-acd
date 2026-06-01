@@ -285,9 +285,9 @@ function RCSConnection() {
                 <div className="text-xs text-blue-800 space-y-1">
                   <p className="font-bold uppercase tracking-wider">Instruções de Pareamento:</p>
                   <ol className="list-decimal ml-4 space-y-1">
-                    <li>Baixe o app <strong>Gateway RCS Central</strong> no seu Android.</li>
-                    <li>No app, selecione <strong>"Nova Conexão"</strong> ou "Escanear QR".</li>
-                    <li>Aponte para o código QR à direita para sincronizar.</li>
+                    <li>Instale/abra o app <strong>Gateway RCS Central</strong> no Android.</li>
+                    <li>Não use o app <strong>Google Mensagens</strong> para ler este QR — ele só abre pareamento web oficial do Google.</li>
+                    <li>No Gateway RCS Central, selecione <strong>"Nova Conexão"</strong>, "Escanear QR" ou cole o token manual.</li>
                     <li>Uma vez conectado, o status mudará para <strong>Online</strong> automaticamente.</li>
                   </ol>
                 </div>
