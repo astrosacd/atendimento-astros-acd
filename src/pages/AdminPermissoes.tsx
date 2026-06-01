@@ -111,6 +111,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'Seguros': <Shield className="h-4 w-4 text-emerald-500" />,
   'Scans': <Search className="h-4 w-4 text-blue-500" />,
   'RCS': <Smartphone className="h-4 w-4 text-indigo-500" />,
+  'Central SMS': <MessageSquare className="h-4 w-4 text-blue-600" />,
 };
 
 // Icons removed from individual permissions — only category titles have icons
@@ -360,6 +361,7 @@ export default function AdminPermissoes() {
     'Seguros': 'Seguros de Números',
     'Scans': 'Módulo de Scans',
     'RCS': 'Módulo RCS',
+    'Central SMS': 'Central SMS',
   });
 
   const colorOptions = getColorOptions(t);
