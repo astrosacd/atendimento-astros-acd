@@ -526,12 +526,12 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
 
   useEffect(() => {
     const init = async () => {
-      await loadStatus(); 
       const { data: tmpls } = await supabase.from("rcs_templates").select("*").eq("ativo", true);
       setTemplates(tmpls || []);
     };
     init();
   }, []);
+
 
 
   const handleSend = async () => {
