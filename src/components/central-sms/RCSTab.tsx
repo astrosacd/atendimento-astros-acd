@@ -583,21 +583,16 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
 
       for (let i = 0; i < cleanNumbers.length; i++) {
         const numero = cleanNumbers[i];
-        const finalMessage = useSpintax ? processSpintax(mensagem) : mensagem;
+        const baseMessage = appendTemplateLinks(mensagem);
+        const finalMessage = useSpintax ? processSpintax(baseMessage) : baseMessage;
 
         console.log(`Enviando RCS para ${numero}...`);
-        const response = await supabase.functions.invoke('send-rcs', {
+        const data = await invokeFunction<any>('send-rcs', {
           body: { to: numero, body: finalMessage }
         });
 
-        console.log("Resposta completa:", response);
+        console.log("Resposta Twilio:", data);
 
-        if (response.error) {
-          toast.error(`Falha técnica na função Twilio: ${response.error.message}`, { duration: 10000 });
-          continue;
-        }
-
-        const data: any = response.data;
         if (!data) {
           toast.error("A função Twilio não retornou resposta. Tente novamente em alguns segundos.", { duration: 10000 });
           continue;
