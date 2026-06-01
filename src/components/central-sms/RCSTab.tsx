@@ -710,7 +710,7 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
         {session?.status === 'connected' && (
           <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground">
             <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-            Aparelho pronto: <span className="font-bold">{session.name}</span>
+            Twilio Cloud: <span className="font-bold">Conectado</span>
           </div>
         )}
       </div>
