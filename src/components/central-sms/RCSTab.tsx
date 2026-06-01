@@ -37,30 +37,32 @@ export function RCSTab() {
   const [activeTab, setActiveTab] = useState("conexao");
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
-  const [refreshing, setRefreshing] = useState(false);
 
-  const loadSession = async () => {
+
+  const loadStatus = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("rcs_sessions")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-      setSession(data);
+      const { data: configs } = await supabase
+        .from("ligacoes_ia_config")
+        .select("config_key, config_value")
+        .in("config_key", ["twilio_account_sid", "twilio_auth_token", "twilio_messaging_service_sid"]);
+      
+      const map: any = {};
+      configs?.forEach(c => map[c.config_key] = c.config_value);
+      
+      const isConnected = map.twilio_account_sid && map.twilio_auth_token && map.twilio_messaging_service_sid;
+      setSession({ 
+        status: isConnected ? 'connected' : 'offline', 
+        name: 'Twilio Cloud' 
+      });
     } catch (error) {
-      console.error("Error loading RCS session:", error);
+      console.error("Error loading RCS status:", error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadSession();
+    loadStatus();
   }, []);
 
   if (!canViewRCS()) {
@@ -94,15 +96,7 @@ export function RCSTab() {
             Twilio Cloud
           </Badge>
           <span className="text-sm text-muted-foreground italic">
-            Envio oficial via API do Twilio (Requer saldo e Messaging Service)
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-            Android Local
-          </Badge>
-          <span className="text-sm text-muted-foreground italic">
-            Envio gratuito usando seu próprio chip Android (Aguardando implementação QR Code)
+            Envio oficial via API do Twilio (Requer saldo e aprovação Google RCS)
           </span>
         </div>
       </div>
@@ -299,12 +293,11 @@ function RCSConnection() {
         <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-xl border border-muted min-h-[300px]">
           <div className="text-center space-y-4 max-w-xs">
             <MessageSquare className="h-16 w-16 text-blue-400 mx-auto" />
-            <h4 className="font-bold text-slate-800">Como funciona o RCS?</h4>
-            <div className="text-xs text-slate-600 space-y-2 text-left">
-              <p>1. <strong>Conta Twilio:</strong> Você precisa de uma conta ativa no Twilio.</p>
-              <p>2. <strong>Messaging Service:</strong> Crie um serviço em "Messaging Services" no console Twilio.</p>
-              <p>3. <strong>Verificação Google:</strong> O Google exige que sua marca seja verificada para enviar RCS. Solicite via console do Twilio.</p>
-              <p>4. <strong>SID:</strong> Cole o SID do Messaging Service aqui para habilitar os disparos.</p>
+            <h4 className="font-bold text-slate-800 text-sm">Atenção: Contas Trial do Twilio</h4>
+            <div className="text-xs text-slate-600 space-y-2 text-left bg-white p-3 rounded-lg border">
+              <p>1. <strong>Restrição Trial:</strong> No modo teste do Twilio, você <strong>só</strong> consegue enviar para números que verificou manualmente em "Verified Caller IDs".</p>
+              <p>2. <strong>Aprovação RCS:</strong> O envio de RCS não é automático. Você precisa solicitar a verificação da sua marca junto ao Google pelo console do Twilio (Módulo Messaging Service).</p>
+              <p>3. <strong>Fallback:</strong> Se o RCS não estiver aprovado, o Twilio tentará enviar como SMS comum (se houver saldo).</p>
             </div>
             <Button 
               variant="link" 
@@ -531,25 +524,11 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
 
   useEffect(() => {
     const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      
-      const { data: configs } = await supabase
-        .from("ligacoes_ia_config")
-        .select("config_key, config_value")
-        .in("config_key", ["twilio_account_sid", "twilio_auth_token", "twilio_messaging_service_sid"]);
-      
-      const map: any = {};
-      configs?.forEach(c => map[c.config_key] = c.config_value);
-      setSession({ 
-        status: (map.twilio_account_sid && map.twilio_messaging_service_sid) ? 'connected' : 'offline', 
-        name: 'Twilio Cloud' 
-      });
-      
       const { data: tmpls } = await supabase.from("rcs_templates").select("*").eq("ativo", true);
       setTemplates(tmpls || []);
     };
     init();
+
   }, []);
 
   const handleSend = async () => {
