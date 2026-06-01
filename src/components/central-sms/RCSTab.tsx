@@ -475,9 +475,10 @@ function RCSSend() {
 
         if (!msgError) successCount++;
         
-        // Apply delay between messages (except for the last one)
+        // Apply randomized delay between messages (except for the last one)
         if (i < cleanNumbers.length - 1) {
-          await new Promise(r => setTimeout(r, delay * 1000));
+          const randomDelay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+          await new Promise(r => setTimeout(r, randomDelay * 1000));
         }
       }
 
