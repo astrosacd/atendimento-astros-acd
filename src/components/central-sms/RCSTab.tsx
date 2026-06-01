@@ -102,16 +102,11 @@ export function RCSTab() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-5">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4">
           <TabsTrigger value="conexao">
             <Settings2 className="h-4 w-4 mr-2" />
             Config. Twilio
           </TabsTrigger>
-          <TabsTrigger value="android">
-            <Smartphone className="h-4 w-4 mr-2" />
-            Android QR
-          </TabsTrigger>
-
           <TabsTrigger value="templates">
             <FileText className="h-4 w-4 mr-2" />
             Templates
@@ -129,10 +124,6 @@ export function RCSTab() {
         <TabsContent value="conexao">
           <RCSConnection onConfigChange={loadStatus} />
         </TabsContent>
-        <TabsContent value="android">
-          <RCSAndroidQR />
-        </TabsContent>
-
         <TabsContent value="templates">
           <RCSTemplates canManageRCSTemplates={canManageRCSTemplates} />
         </TabsContent>
