@@ -622,19 +622,10 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
   const handleSend = async () => {
     if (!numbersInput || !mensagem) return toast.error("Preencha os números e a mensagem");
     
-    // Recarregar status antes de enviar
-    const { data: configs } = await supabase
-      .from("ligacoes_ia_config")
-      .select("config_key, config_value")
-      .in("config_key", ["twilio_account_sid", "twilio_auth_token", "twilio_messaging_service_sid"]);
-    
-    const map: any = {};
-    configs?.forEach(c => map[c.config_key] = c.config_value);
-    const isConnected = map.twilio_account_sid && map.twilio_auth_token && map.twilio_messaging_service_sid;
+    // Forçar a continuação mesmo que a verificação local falhe, 
+    // deixando a Edge Function decidir se tem as chaves
+    console.log("Iniciando processo de envio...");
 
-    if (!isConnected) {
-      return toast.error("Configuração do Twilio incompleta. Preencha os campos na aba 'Configuração'.");
-    }
 
 
 
