@@ -575,21 +575,25 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
 
         console.log("Resposta completa:", response);
 
-
-
-
         if (response.error) {
-          toast.error(`Erro: ${response.error.message}`);
+          toast.error(`Falha técnica na função Twilio: ${response.error.message}`, { duration: 10000 });
           continue;
         }
 
         const data: any = response.data;
-        if (data?.error) {
-          toast.error(`Twilio: ${data.error}`);
+        if (!data) {
+          toast.error("A função Twilio não retornou resposta. Tente novamente em alguns segundos.", { duration: 10000 });
           continue;
-        } else {
-          successCount++;
         }
+
+        if (data.success === false || data.error) {
+          const twilioMessage = data.error || data.details?.message || "Twilio recusou o envio.";
+          const twilioCode = data.details?.code ? ` Código: ${data.details.code}.` : "";
+          toast.error(`Twilio recusou: ${twilioMessage}${twilioCode}`, { duration: 12000 });
+          continue;
+        }
+
+        successCount++;
 
         
         if (i < cleanNumbers.length - 1) {
