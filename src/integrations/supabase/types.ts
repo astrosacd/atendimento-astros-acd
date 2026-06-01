@@ -7449,6 +7449,86 @@ export type Database = {
         }
         Relationships: []
       }
+      rcs_messages: {
+        Row: {
+          conteudo: string
+          created_at: string
+          error_message: string | null
+          id: string
+          numero_destino: string
+          session_id: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          conteudo: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          numero_destino: string
+          session_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          numero_destino?: string
+          session_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rcs_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "rcs_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rcs_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          last_connected_at: string | null
+          name: string
+          qr_code: string | null
+          session_data: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_connected_at?: string | null
+          name: string
+          qr_code?: string | null
+          session_data?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_connected_at?: string | null
+          name?: string
+          qr_code?: string | null
+          session_data?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       recovery_config: {
         Row: {
           config_key: string
