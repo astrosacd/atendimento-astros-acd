@@ -622,19 +622,10 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
   const handleSend = async () => {
     if (!numbersInput || !mensagem) return toast.error("Preencha os números e a mensagem");
     
-    // Recarregar status antes de enviar
-    const { data: configs } = await supabase
-      .from("ligacoes_ia_config")
-      .select("config_key, config_value")
-      .in("config_key", ["twilio_account_sid", "twilio_auth_token", "twilio_messaging_service_sid"]);
-    
-    const map: any = {};
-    configs?.forEach(c => map[c.config_key] = c.config_value);
-    const isConnected = map.twilio_account_sid && map.twilio_auth_token && map.twilio_messaging_service_sid;
+    // Forçar a continuação mesmo que a verificação local falhe, 
+    // deixando a Edge Function decidir se tem as chaves
+    console.log("Iniciando processo de envio...");
 
-    if (!isConnected) {
-      return toast.error("Configuração do Twilio incompleta. Preencha os campos na aba 'Configuração'.");
-    }
 
 
 
@@ -654,27 +645,28 @@ function RCSSend({ canManageRCS }: { canManageRCS: () => boolean }) {
         const finalMessage = useSpintax ? processSpintax(mensagem) : mensagem;
 
         console.log(`Enviando RCS para ${numero}...`);
-        const { data, error } = await supabase.functions.invoke('send-rcs', {
-          body: { 
-            to: numero, 
-            body: finalMessage
-          }
+        const response = await supabase.functions.invoke('send-rcs', {
+          body: { to: numero, body: finalMessage }
         });
 
+        console.log("Resposta completa:", response);
 
 
-        if (error) {
-          console.error(`Erro ao enviar para ${numero}:`, error);
-          toast.error(`Erro no número ${numero}: ${error.message || 'Erro desconhecido'}`);
+
+
+        if (response.error) {
+          toast.error(`Erro: ${response.error.message}`);
           continue;
-        } else if (data?.error) {
-          console.error(`Erro retornado pelo Twilio para ${numero}:`, data.error);
-          const errorMsg = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
-          toast.error(`Twilio (${numero}): ${errorMsg}`, { duration: 8000 });
+        }
+
+        const data: any = response.data;
+        if (data?.error) {
+          toast.error(`Twilio: ${data.error}`);
           continue;
         } else {
           successCount++;
         }
+
         
         if (i < cleanNumbers.length - 1) {
           const randomDelay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
