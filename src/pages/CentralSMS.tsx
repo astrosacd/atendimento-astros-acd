@@ -20,6 +20,7 @@ import { ptBR } from "date-fns/locale";
 import { CampanhasSMSTab } from "@/components/central-sms/CampanhasSMSTab";
 import { FilaSMSTab } from "@/components/central-sms/FilaSMSTab";
 import { CobrancaSMSConfigTab } from "@/components/central-sms/CobrancaSMSConfigTab";
+import { RCSTab } from "@/components/central-sms/RCSTab";
 
 const STATUS_COLOR: Record<string, string> = {
   pendente: "bg-slate-500",
@@ -89,14 +90,16 @@ export default function CentralSMS() {
         }} className="space-y-4">
           <TabsList className="flex flex-wrap w-full max-w-5xl h-auto">
             <TabsTrigger value="historico"><History className="h-4 w-4 mr-2" />Histórico</TabsTrigger>
+            <TabsTrigger value="rcs"><Sparkles className="h-4 w-4 mr-2" />Envio RCS</TabsTrigger>
             <TabsTrigger value="fila"><ListChecks className="h-4 w-4 mr-2" />Fila do dia</TabsTrigger>
             <TabsTrigger value="templates"><FileText className="h-4 w-4 mr-2" />Templates</TabsTrigger>
-            <TabsTrigger value="envio"><Send className="h-4 w-4 mr-2" />Enviar</TabsTrigger>
+            <TabsTrigger value="envio"><Send className="h-4 w-4 mr-2" />Enviar SMS</TabsTrigger>
             <TabsTrigger value="campanhas"><Megaphone className="h-4 w-4 mr-2" />Campanhas</TabsTrigger>
             <TabsTrigger value="cobranca"><CalendarClock className="h-4 w-4 mr-2" />Cobrança</TabsTrigger>
           </TabsList>
 
           <TabsContent value="historico"><HistoricoTab /></TabsContent>
+          <TabsContent value="rcs"><RCSTab /></TabsContent>
           <TabsContent value="fila"><FilaSMSTab /></TabsContent>
           <TabsContent value="templates"><TemplatesTab /></TabsContent>
           <TabsContent value="envio"><EnvioTab twilioOk={configStatus?.twilio || false} /></TabsContent>
