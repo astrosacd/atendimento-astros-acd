@@ -42,6 +42,7 @@ import { LigacoesAgendadasCard } from '@/components/dashboard/LigacoesAgendadasC
 import { AlertsCenter } from '@/components/dashboard/sections/AlertsCenter';
 import { AnaliseAvancadaSection } from '@/components/dashboard/sections/AnaliseAvancadaSection';
 import { useDashboardStats, formatCurrency, formatCurrencyUsd } from '@/hooks/useDashboardStats';
+import { BackupDialog } from '@/components/dashboard/BackupDialog';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -55,6 +56,7 @@ export default function Dashboard() {
   const { followups } = useFollowups();
   const [roleDisplayName, setRoleDisplayName] = useState<string>('');
   const [isBackingUp, setIsBackingUp] = useState(false);
+  const [isBackupDialogOpen, setIsBackupDialogOpen] = useState(false);
 
   const { stats, urgentTasks } = useDashboardStats();
 
@@ -119,38 +121,6 @@ export default function Dashboard() {
     }
   };
 
-  const handleBackup = async () => {
-    setIsBackingUp(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('backup-data');
-      
-      if (error) throw error;
-
-      // Create and download the file
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `backup-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: 'Backup realizado!',
-        description: 'O arquivo foi baixado com sucesso.',
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Erro no backup',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsBackingUp(false);
-    }
-  };
 
   const adminActions = [
     { title: t('dashboard.manageUsers'), description: t('dashboard.manageUsersDesc'), icon: Users, path: '/usuarios' },
@@ -298,7 +268,7 @@ export default function Dashboard() {
                 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={handleBackup} disabled={isBackingUp}>
+                    <Button variant="outline" size="sm" onClick={() => setIsBackupDialogOpen(true)} disabled={isBackingUp}>
                       <Database className="h-4 w-4 mr-2" />
                       {isBackingUp ? t('common.loading') : t('dashboard.backup')}
                     </Button>
@@ -735,6 +705,10 @@ export default function Dashboard() {
           </section>
         )}
       </div>
+      <BackupDialog 
+        open={isBackupDialogOpen} 
+        onOpenChange={setIsBackupDialogOpen} 
+      />
     </DashboardLayout>
   );
 }
