@@ -7,6 +7,12 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Users, Settings, ChevronRight, TrendingUp,
   Webhook, DollarSign, Clock, AlertTriangle,
   Bell, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle,
