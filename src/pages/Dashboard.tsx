@@ -7,6 +7,12 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Users, Settings, ChevronRight, TrendingUp,
   Webhook, DollarSign, Clock, AlertTriangle,
   Bell, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle,
@@ -88,6 +94,16 @@ export default function Dashboard() {
 
 
   const handleEnableNotifications = async () => {
+    // Check if permission is already denied
+    if (Notification.permission === 'denied') {
+      toast({
+        title: 'Notificações Bloqueadas',
+        description: 'Você bloqueou as notificações anteriormente. Para ativar, clique no cadeado ao lado da URL do navegador e altere para "Permitir".',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const granted = await requestPermission();
     if (granted) {
       toast({
@@ -97,7 +113,7 @@ export default function Dashboard() {
     } else {
       toast({
         title: 'Notificações bloqueadas',
-        description: 'Permita notificações nas configurações do navegador.',
+        description: 'Permita notificações nas configurações do navegador para receber alertas importantes.',
         variant: 'destructive',
       });
     }
@@ -265,16 +281,33 @@ export default function Dashboard() {
 
           {isAdmin && (
             <div className="flex items-center gap-2">
-              {isSupported && permission !== 'granted' && (
-                <Button variant="outline" size="sm" onClick={handleEnableNotifications}>
-                  <Bell className="h-4 w-4 mr-2" />
-                  {t('dashboard.enableNotifications')}
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={handleBackup} disabled={isBackingUp}>
-                <Database className="h-4 w-4 mr-2" />
-                {isBackingUp ? t('common.loading') : t('dashboard.backup')}
-              </Button>
+              <TooltipProvider>
+                {isSupported && permission !== 'granted' && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="sm" onClick={handleEnableNotifications}>
+                        <Bell className="h-4 w-4 mr-2" />
+                        {t('dashboard.enableNotifications')}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Ativa alertas visuais no seu computador para novos usuários e falhas de cobrança.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={handleBackup} disabled={isBackingUp}>
+                      <Database className="h-4 w-4 mr-2" />
+                      {isBackingUp ? t('common.loading') : t('dashboard.backup')}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Baixa um arquivo com todas as configurações, clientes e dados do sistema para segurança.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           )}
         </div>
