@@ -59,21 +59,20 @@ export function BackupDialog({ open, onOpenChange }: BackupDialogProps) {
 
   const fetchInitialData = async () => {
     try {
-      // Fetch default email (gmail_user)
+      // Buscar o e-mail remetente (gmail_user) para EXCLUIR da lista de destinatários,
+      // já que ele é quem envia, não precisa receber.
       const { data: configData } = await supabase
         .from("recovery_config")
         .select("config_key, config_value")
         .eq("config_key", "gmail_user")
         .maybeSingle();
-      
-      if (configData?.config_value) {
-        setEmailRecipients([configData.config_value]);
-      }
 
-      // Fetch current user email as secondary option
+      const senderEmail = (configData?.config_value || "").trim().toLowerCase();
+
+      // Pré-preencher apenas com o e-mail do usuário logado (se diferente do remetente)
       const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email && !emailRecipients.includes(user.email)) {
-        setEmailRecipients(prev => prev.includes(user.email!) ? prev : [...prev, user.email!]);
+      if (user?.email && user.email.toLowerCase() !== senderEmail) {
+        setEmailRecipients([user.email]);
       }
 
       // Fetch WhatsApp instances
@@ -92,6 +91,7 @@ export function BackupDialog({ open, onOpenChange }: BackupDialogProps) {
       console.error("Error fetching backup settings:", error);
     }
   };
+
 
   const addEmail = () => {
     if (newEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
