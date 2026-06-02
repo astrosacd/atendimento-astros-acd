@@ -121,38 +121,6 @@ export default function Dashboard() {
     }
   };
 
-  const handleBackup = async () => {
-    setIsBackingUp(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('backup-data');
-      
-      if (error) throw error;
-
-      // Create and download the file
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `backup-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: 'Backup realizado!',
-        description: 'O arquivo foi baixado com sucesso.',
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Erro no backup',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsBackingUp(false);
-    }
-  };
 
   const adminActions = [
     { title: t('dashboard.manageUsers'), description: t('dashboard.manageUsersDesc'), icon: Users, path: '/usuarios' },
