@@ -737,6 +737,10 @@ export default function Dashboard() {
           </section>
         )}
       </div>
+      <BackupDialog 
+        open={isBackupDialogOpen} 
+        onOpenChange={setIsBackupDialogOpen} 
+      />
     </DashboardLayout>
   );
 }
