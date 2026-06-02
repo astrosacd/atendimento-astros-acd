@@ -112,9 +112,51 @@ export const useNotifications = () => {
       )
       .subscribe();
 
+    // Listen for new tickets
+    const chamadosChannel = supabase
+      .channel('chamados-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chamados',
+        },
+        (payload) => {
+          showNotification({
+            title: '🎫 Novo ticket aberto',
+            body: `Assunto: ${payload.new.assunto}`,
+            tag: 'new-ticket',
+          });
+        }
+      )
+      .subscribe();
+
+    // Listen for payments awaiting approval
+    const paymentsChannel = supabase
+      .channel('payments-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'gateway_order_approvals',
+        },
+        (payload) => {
+          showNotification({
+            title: '💰 Pagamento pende aprovação',
+            body: `Um novo pagamento aguarda sua análise`,
+            tag: 'payment-approval',
+          });
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(profilesChannel);
       supabase.removeChannel(billingChannel);
+      supabase.removeChannel(chamadosChannel);
+      supabase.removeChannel(paymentsChannel);
     };
   }, [isAdmin, permission, showNotification]);
 
