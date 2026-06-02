@@ -86,6 +86,28 @@ serve(async (req: Request) => {
       "custom_roles",
       "role_permissions",
       "system_permissions",
+      "system_settings",
+      "recovery_config",
+      "automation_rules",
+      "integration_status",
+      "plano_ferramentas",
+      "sms_templates",
+      "rcs_templates",
+      "numeros_aquecimento_modelos",
+      "agency_products",
+      "gateway_products",
+      "gateway_categories",
+      "pipeline_stages",
+      "chamados_webhooks",
+      "consulta_numeros_config",
+      "lead_hunter_config",
+      "divulgador_config",
+      "ig_auto_reply_rules",
+      "instagram_settings",
+      "social_media_client_profiles",
+      "social_media_report_config",
+      "despesa_categorias",
+      "predefined_products"
     ];
 
     const backupData: Record<string, any[]> = {};
