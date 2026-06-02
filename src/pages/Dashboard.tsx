@@ -42,6 +42,7 @@ import { LigacoesAgendadasCard } from '@/components/dashboard/LigacoesAgendadasC
 import { AlertsCenter } from '@/components/dashboard/sections/AlertsCenter';
 import { AnaliseAvancadaSection } from '@/components/dashboard/sections/AnaliseAvancadaSection';
 import { useDashboardStats, formatCurrency, formatCurrencyUsd } from '@/hooks/useDashboardStats';
+import { BackupDialog } from '@/components/dashboard/BackupDialog';
 
 export default function Dashboard() {
   const navigate = useNavigate();
