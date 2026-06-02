@@ -9164,6 +9164,12 @@ export type Database = {
         Args: { p_share_token: string }
         Returns: Json
       }
+      get_public_tables: {
+        Args: never
+        Returns: {
+          table_name: string
+        }[]
+      }
       get_recaptcha_public_config: { Args: never; Returns: Json }
       get_reports_analysis_cron_schedule: {
         Args: never
