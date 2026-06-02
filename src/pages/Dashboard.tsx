@@ -94,6 +94,16 @@ export default function Dashboard() {
 
 
   const handleEnableNotifications = async () => {
+    // Check if permission is already denied
+    if (Notification.permission === 'denied') {
+      toast({
+        title: 'Notificações Bloqueadas',
+        description: 'Você bloqueou as notificações anteriormente. Para ativar, clique no cadeado ao lado da URL do navegador e altere para "Permitir".',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const granted = await requestPermission();
     if (granted) {
       toast({
@@ -103,7 +113,7 @@ export default function Dashboard() {
     } else {
       toast({
         title: 'Notificações bloqueadas',
-        description: 'Permita notificações nas configurações do navegador.',
+        description: 'Permita notificações nas configurações do navegador para receber alertas importantes.',
         variant: 'destructive',
       });
     }
