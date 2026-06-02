@@ -56,6 +56,7 @@ export default function Dashboard() {
   const { followups } = useFollowups();
   const [roleDisplayName, setRoleDisplayName] = useState<string>('');
   const [isBackingUp, setIsBackingUp] = useState(false);
+  const [isBackupDialogOpen, setIsBackupDialogOpen] = useState(false);
 
   const { stats, urgentTasks } = useDashboardStats();
 
