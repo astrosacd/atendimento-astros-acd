@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Download, Mail, MessageSquare, Plus, Trash2 } from "lucide-react";
+import { Loader2, Download, Mail, MessageSquare, Plus, Trash2, Database } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface BackupDialogProps {
