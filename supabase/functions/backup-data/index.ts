@@ -124,19 +124,20 @@ serve(async (req: Request) => {
     console.log("Starting full backup with options:", options);
 
     // Get all public tables
+    let allTables: string[] = [];
     const { data: tablesData, error: tablesError } = await supabaseAdmin.rpc('get_public_tables');
     
-    // Fallback if RPC doesn't exist (we should create it if needed, or use a list)
-    let allTables: string[] = [];
     if (tablesError) {
-      console.warn("RPC get_public_tables failed, using fallback list:", tablesError);
-      // We can also query information_schema directly if we have permissions
-      const { data: rawTables } = await supabaseAdmin.from('pg_tables').select('tablename').eq('schemaname', 'public');
-      if (rawTables) {
-        allTables = rawTables.map((t: any) => t.tablename);
-      }
-    } else {
-      allTables = tablesData;
+      console.warn("RPC get_public_tables failed:", tablesError);
+    } else if (Array.isArray(tablesData)) {
+      allTables = tablesData
+        .map((t: any) => typeof t === 'string' ? t : (t?.table_name ?? t?.tablename ?? null))
+        .filter((t: any): t is string => typeof t === 'string' && t.length > 0);
+    }
+
+    if (allTables.length === 0) {
+      // Emergency fallback list
+      allTables = ["clientes", "profiles", "user_roles", "billing_config"];
     }
 
     if (allTables.length === 0) {
