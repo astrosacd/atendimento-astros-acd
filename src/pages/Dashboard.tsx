@@ -281,16 +281,33 @@ export default function Dashboard() {
 
           {isAdmin && (
             <div className="flex items-center gap-2">
-              {isSupported && permission !== 'granted' && (
-                <Button variant="outline" size="sm" onClick={handleEnableNotifications}>
-                  <Bell className="h-4 w-4 mr-2" />
-                  {t('dashboard.enableNotifications')}
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={handleBackup} disabled={isBackingUp}>
-                <Database className="h-4 w-4 mr-2" />
-                {isBackingUp ? t('common.loading') : t('dashboard.backup')}
-              </Button>
+              <TooltipProvider>
+                {isSupported && permission !== 'granted' && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="sm" onClick={handleEnableNotifications}>
+                        <Bell className="h-4 w-4 mr-2" />
+                        {t('dashboard.enableNotifications')}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Ativa alertas visuais no seu computador para novos usuários e falhas de cobrança.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={handleBackup} disabled={isBackingUp}>
+                      <Database className="h-4 w-4 mr-2" />
+                      {isBackingUp ? t('common.loading') : t('dashboard.backup')}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Baixa um arquivo com todas as configurações, clientes e dados do sistema para segurança.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           )}
         </div>
