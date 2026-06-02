@@ -300,7 +300,7 @@ export default function Dashboard() {
                 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={handleBackup} disabled={isBackingUp}>
+                    <Button variant="outline" size="sm" onClick={() => setIsBackupDialogOpen(true)} disabled={isBackingUp}>
                       <Database className="h-4 w-4 mr-2" />
                       {isBackingUp ? t('common.loading') : t('dashboard.backup')}
                     </Button>
