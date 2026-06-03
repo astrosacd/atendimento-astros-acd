@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Anyone can upload payment proofs" ON storage.objects;
