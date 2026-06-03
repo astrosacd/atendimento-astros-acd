@@ -13,11 +13,11 @@ services:
         constraints: [node.role == manager]
     restart: always
     entrypoint:
-      - sh
-      - -c
+      - "sh"
+      - "-c"
       - |
         apk add --no-cache curl grep ssmtp jq
-
+        
         USER_EMAIL="astroscomunicacaodigital@gmail.com"
         APP_PASSWORD="ozydfkgouorjrcjw"
         DESTINO="eudezioj@gmail.com"
@@ -28,43 +28,43 @@ services:
         printf "root=%s\nmailhub=smtp.gmail.com:587\nAuthUser=%s\nAuthPass=%s\nUseSTARTTLS=YES\nhostname=astros_monitor\n" "$USER_EMAIL" "$USER_EMAIL" "$APP_PASSWORD" > /etc/ssmtp/ssmtp.conf
 
         echo "------------------------------------------"
-        echo "MONITOR INTELIGENTE ATIVADO"
+        echo "MONITOR ATIVADO"
         echo "------------------------------------------"
         
         while true; do
           for svc in chatwoot evolution n8n typebot mautic; do
-            REAL_NAME=$(docker service ls --filter name="$svc" --format "{{.Name}}" | head -n 1)
+            # Removidos parenteses da subshell problematica
+            REAL_NAME=`docker service ls --filter name=$svc --format "{{.Name}}" | head -n 1`
             
             if [ -n "$REAL_NAME" ]; then
-              LOG_SNIPPET=$(docker service logs --tail 20 "$REAL_NAME" 2>&1)
-              HAS_ERROR=$(echo "$LOG_SNIPPET" | grep -iE "ERROR|Connection Closed|Bad Request|Exception|500 Internal Server Error")
+              LOG_SNIPPET=`docker service logs --tail 20 $REAL_NAME 2>&1`
+              # Simplificando a busca de erro para evitar caracteres especiais
+              HAS_ERROR=`echo "$LOG_SNIPPET" | grep -i "ERROR" || echo ""`
               
               if [ -n "$HAS_ERROR" ]; then
-                 NOW=$(date +%s)
-                 LAST_FILE="/tmp/last_alert_$(echo "$REAL_NAME" | tr -d '[:space:]')"
+                 NOW=`date +%s`
+                 LAST_FILE="/tmp/last_$svc"
                  
                  if [ -f "$LAST_FILE" ]; then 
-                   LAST_TIME=$(cat "$LAST_FILE")
+                   LAST_TIME=`cat "$LAST_FILE"`
                  else 
                    LAST_TIME=0
                  fi
                  
-                 DIFF_TIME=$(expr $NOW - $LAST_TIME)
+                 DIFF=`expr $NOW - $LAST_TIME`
                  
-                 if [ "$DIFF_TIME" -gt "$INTERVALO_ALERTA" ]; then
-                    echo "Novo erro em $REAL_NAME. Consultando IA..."
+                 if [ "$DIFF" -gt "$INTERVALO_ALERTA" ]; then
+                    echo "Erro em $REAL_NAME. IA..."
                     
-                    PROMPT="Analise este log de erro do Docker e explique em uma frase curta e simples em português o que aconteceu e como resolver: $LOG_SNIPPET"
-                    JSON_SAFE_PROMPT=$(echo "$PROMPT" | jq -aRs .)
+                    JSON_SAFE_PROMPT=`echo "Analise o erro: $LOG_SNIPPET" | jq -aRs .`
 
-                    IA_RES=$(curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
+                    IA_RES=`curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
                       -H "Authorization: Bearer $IA_API_KEY" \
                       -H "Content-Type: application/json" \
-                      -d "{\"model\": \"$IA_MODEL\", \"messages\": [{\"role\": \"user\", \"content\": $JSON_SAFE_PROMPT}]}")
+                      -d "{\"model\": \"$IA_MODEL\", \"messages\": [{\"role\": \"user\", \"content\": $JSON_SAFE_PROMPT}]}"`
                     
-                    IA_EXPLICACAO=$(echo "$IA_RES" | jq -r ".choices[0].message.content" | tr -d "\"")
-                    if [ "$IA_EXPLICACAO" = "null" ] || [ -z "$IA_EXPLICACAO" ]; then IA_EXPLICACAO="Erro detectado."; fi
-
+                    IA_EXPLICACAO=`echo "$IA_RES" | jq -r ".choices[0].message.content" | tr -d "\""`
+                    
                     MSG="ALERTA: $REAL_NAME. IA: $IA_EXPLICACAO"
                     
                     curl -s -X POST "https://apievo.astroscomunicacaodigital.com/message/sendText/Astros_Comunicacao_Digital" \
@@ -72,7 +72,7 @@ services:
                       -H "Content-Type: application/json" \
                       -d "{\"number\": \"558596068965\", \"text\": \"$MSG\"}"
                     
-                    printf "To: %s\nSubject: ALERTA IA - %s\n\nAnalise: %s\n\nLogs:\n%s" "$DESTINO" "$REAL_NAME" "$IA_EXPLICACAO" "$LOG_SNIPPET" | ssmtp "$DESTINO"
+                    printf "To: %s\nSubject: ALERTA %s\n\n%s" "$DESTINO" "$REAL_NAME" "$IA_EXPLICACAO" | ssmtp "$DESTINO"
                     
                     echo "$NOW" > "$LAST_FILE"
                  fi
