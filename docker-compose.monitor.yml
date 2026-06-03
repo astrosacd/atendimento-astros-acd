@@ -12,85 +12,115 @@ services:
       placement:
         constraints: [node.role == manager]
     restart: always
+    environment:
+      - USER_EMAIL=astroscomunicacaodigital@gmail.com
+      - APP_PASSWORD=ozydfkgouorjrcjw
+      - DESTINO=eudezioj@gmail.com
+      - IA_API_KEY=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
+      - IA_MODEL=llama-3.3-70b-versatile
+      - INTERVALO_ALERTA=1800
     entrypoint:
       - "sh"
       - "-c"
       - |
-        apk add --no-cache curl grep ssmtp jq
-        
-        USER_EMAIL="astroscomunicacaodigital@gmail.com"
-        APP_PASSWORD="ozydfkgouorjrcjw"
-        DESTINO="eudezioj@gmail.com"
-        INTERVALO_ALERTA=1800
-        IA_API_KEY="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"
-        IA_MODEL="llama-3.3-70b-versatile"
+        echo "Instalando dependencias (curl, jq, grep, ssmtp)..."
+        apk add --no-cache curl jq grep ssmtp > /dev/null 2>&1
 
+        # Configurar SSMTP
         printf "root=%s\nmailhub=smtp.gmail.com:587\nAuthUser=%s\nAuthPass=%s\nUseSTARTTLS=YES\nhostname=astros_monitor\n" "$USER_EMAIL" "$USER_EMAIL" "$APP_PASSWORD" > /etc/ssmtp/ssmtp.conf
 
         echo "------------------------------------------"
-        echo "MONITOR ATIVADO - LENDO CONTAINERS REAIS"
+        echo "MONITOR ATIVADO - ANALISANDO LOGS AGORA"
         echo "------------------------------------------"
         
         while true; do
-          # Captura IDs de todos os containers rodando neste node
-          CONTAINERS=`docker ps --format "{{.ID}}|{{.Names}}"`
-          
-          for row in $CONTAINERS; do
-            ID=`echo $row | cut -d'|' -f1`
-            NAME=`echo $row | cut -d'|' -f2`
+          # Listar containers e iterar
+          docker ps --format "{{.ID}}|{{.Names}}" | while read -r line; do
+            [ -z "$line" ] && continue
             
+            ID=$(echo "$line" | cut -d'|' -f1)
+            NAME=$(echo "$line" | cut -d'|' -f2)
+            
+            # Ignorar o próprio monitor
             if [ "$NAME" = "astros_log_monitor" ]; then continue; fi
             
-            # echo "Analisando logs de: $NAME"
+            echo "Lendo logs de: $NAME..."
             
-            # Captura os ultimos 50 logs do container
-            LOGS=`docker logs --since 2m --tail 50 $ID 2>&1`
+            # Pega os logs dos últimos 2 minutos (para garantir que não perdemos nada)
+            # Redireciona stderr para stdout porque muitos apps logam erros no stderr
+            LOGS=$(docker logs --since 2m --tail 50 "$ID" 2>&1)
             
-            # Filtro agressivo de erros
-            HAS_ERROR=`echo "$LOGS" | grep -iE "error|crit|fail|exception|fatal|panic|refused|timeout|abort|err_|warn" || echo ""`
+            if [ -z "$LOGS" ]; then
+              continue
+            fi
+
+            # Procura por padrões de erro nos logs
+            # Adicionei mais padrões para ser bem sensível
+            HAS_ERROR=$(echo "$LOGS" | grep -iE "error|crit|fail|exception|fatal|panic|refused|timeout|abort|err_|warn|connection lost|stopped|shutdown" || echo "")
             
             if [ -n "$HAS_ERROR" ]; then
-               NOW=`date +%s`
-               CLEAN_NAME=`echo "$NAME" | tr -dc '[:alnum:]'`
+               NOW=$(date +%s)
+               CLEAN_NAME=$(echo "$NAME" | tr -dc '[:alnum:]')
                LAST_FILE="/tmp/last_$CLEAN_NAME"
                
-               if [ -f "$LAST_FILE" ]; then LAST_TIME=`cat "$LAST_FILE"`; else LAST_TIME=0; fi
+               if [ -f "$LAST_FILE" ]; then 
+                 LAST_TIME=$(cat "$LAST_FILE")
+               else 
+                 LAST_TIME=0
+               fi
                
-               DIFF=`expr $NOW - $LAST_TIME`
+               DIFF=$((NOW - LAST_TIME))
                
                if [ "$DIFF" -gt "$INTERVALO_ALERTA" ]; then
-                  echo "!!! ERRO NO CONTAINER: $NAME !!!"
+                  echo "!!! ERRO DETECTADO EM: $NAME !!!"
+                  echo "Enviando para IA analisar..."
                   
-                  # Mandar log real para a IA
-                  JSON_PROMPT=`echo "Container: $NAME. Logs: $LOGS" | jq -aRs .`
-
-                  IA_RES=`curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
+                  # Preparar o prompt para a IA
+                  # Escapar os logs para JSON com jq
+                  JSON_LOGS=$(echo "$LOGS" | jq -aRs .)
+                  PROMPT="O container '$NAME' apresentou os seguintes logs de erro. Por favor, analise e explique o que está acontecendo de forma curta e objetiva em português:\n\n$JSON_LOGS"
+                  
+                  # Chamar API da Groq
+                  IA_RES=$(curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
                     -H "Authorization: Bearer $IA_API_KEY" \
                     -H "Content-Type: application/json" \
-                    -d "{\"model\": \"$IA_MODEL\", \"messages\": [{\"role\": \"user\", \"content\": $JSON_PROMPT}]}"`
+                    -d "{
+                      \"model\": \"$IA_MODEL\",
+                      \"messages\": [
+                        {\"role\": \"system\", \"content\": \"Você é um especialista em DevOps e Docker. Analise logs e explique erros de forma concisa.\"},
+                        {\"role\": \"user\", \"content\": \"$PROMPT\"}
+                      ]
+                    }")
                   
-                  IA_EXPLICACAO=`echo "$IA_RES" | jq -r ".choices[0].message.content" | tr -d "\""`
+                  IA_EXPLICACAO=$(echo "$IA_RES" | jq -r ".choices[0].message.content" 2>/dev/null)
                   
                   if [ "$IA_EXPLICACAO" = "null" ] || [ -z "$IA_EXPLICACAO" ]; then
-                    IA_EXPLICACAO="Erro detectado nos logs do container $NAME."
+                    IA_EXPLICACAO="Erro detectado nos logs do container $NAME, mas a IA não conseguiu gerar uma explicação. Logs brutos:\n$HAS_ERROR"
                   fi
 
-                  MSG="🚨 *CONTAINER:* $NAME\n\n*IA:* $IA_EXPLICACAO"
+                  MSG="🚨 *ALERTA DE ERRO - ASTROS MONITOR*\n\n*CONTAINER:* $NAME\n\n*ANÁLISE DA IA:*\n$IA_EXPLICACAO"
                   
-                  # WhatsApp
+                  # Enviar WhatsApp (Evo API)
+                  echo "Enviando WhatsApp..."
                   curl -s -X POST "https://apievo.astroscomunicacaodigital.com/message/sendText/Astros_Comunicacao_Digital" \
                     -H "apikey: 4C1E13A72DCC-4542-A5C2-556EB2822A06" \
                     -H "Content-Type: application/json" \
-                    -d "{\"number\": \"558596068965\", \"text\": \"$MSG\"}"
+                    -d "{\"number\": \"558596068965\", \"text\": \"$MSG\"}" > /dev/null
                   
-                  # E-mail
-                  printf "To: %s\nSubject: ERRO NO CONTAINER - %s\n\n%s" "$DESTINO" "$NAME" "$IA_EXPLICACAO" | ssmtp "$DESTINO"
+                  # Enviar E-mail (SSMTP)
+                  echo "Enviando E-mail..."
+                  printf "To: %s\nSubject: [ALERTA] Erro no Container: %s\n\n%s" "$DESTINO" "$NAME" "$IA_EXPLICACAO" | ssmtp "$DESTINO"
                   
+                  # Salvar timestamp do último alerta
                   echo "$NOW" > "$LAST_FILE"
-                  echo "Alerta enviado para $NAME"
+                  echo "Sucesso: Alerta enviado para $NAME"
+               else
+                  echo "Erro detectado em $NAME, mas ainda está no intervalo de silêncio de 30min."
                fi
             fi
           done
+          
+          echo "Ciclo concluído. Aguardando 30 segundos..."
           sleep 30
         done
 
