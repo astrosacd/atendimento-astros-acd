@@ -24,84 +24,51 @@ services:
       - "-c"
       - |
         apk add --no-cache curl jq grep ssmtp > /dev/null 2>&1
-
-        # Configurar SSMTP
         printf "root=%s\nmailhub=smtp.gmail.com:587\nAuthUser=%s\nAuthPass=%s\nUseSTARTTLS=YES\nhostname=astros_monitor\n" "$USER_EMAIL" "$USER_EMAIL" "$APP_PASSWORD" > /etc/ssmtp/ssmtp.conf
 
         echo "------------------------------------------"
-        echo "MONITOR ATIVADO - ANALISANDO LOGS AGORA"
+        echo "MONITOR ATIVADO - LENDO LOGS"
         echo "------------------------------------------"
         
         while true; do
-          # Uso do docker ps com formato simplificado para evitar bugs de parsing no SH
-          CONTAINERS=$(docker ps --format "{{.ID}}|{{.Names}}")
-          
-          for line in $CONTAINERS; do
-            ID=$(echo "$line" | cut -d'|' -f1)
-            NAME=$(echo "$line" | cut -d'|' -f2)
+          for id in $(docker ps -q); do
+            name=$(docker inspect --format '{{.Name}}' "$id" | sed 's/^\///')
             
-            # Pular se for o próprio monitor
-            if [ "$NAME" = "astros_log_monitor" ]; then
-              continue
-            fi
+            if [ "$name" = "astros_log_monitor" ]; then continue; fi
             
-            echo "Checando: $NAME"
-            
-            # Captura logs (stderr e stdout)
-            LOGS=$(docker logs --since 2m --tail 50 "$ID" 2>&1)
-            
-            if [ -z "$LOGS" ]; then
-              continue
-            fi
+            logs=$(docker logs --since 2m --tail 50 "$id" 2>&1)
+            [ -z "$logs" ] && continue
 
-            # Busca por erros
-            HAS_ERROR=$(echo "$LOGS" | grep -iE "error|crit|fail|exception|fatal|panic|refused|timeout|abort|err_|warn" || echo "")
+            has_err=$(echo "$logs" | grep -iE "error|crit|fail|exception|fatal|panic|refused|timeout|abort|err_|warn" || echo "")
             
-            if [ -n "$HAS_ERROR" ]; then
-               NOW=$(date +%s)
-               CLEAN_NAME=$(echo "$NAME" | tr -dc '[:alnum:]')
-               LAST_FILE="/tmp/last_$CLEAN_NAME"
+            if [ -n "$has_err" ]; then
+               now=$(date +%s)
+               last_file="/tmp/last_$(echo "$name" | tr -dc '[:alnum:]')"
+               [ -f "$last_file" ] && last_time=$(cat "$last_file") || last_time=0
                
-               if [ -f "$LAST_FILE" ]; then 
-                 LAST_TIME=$(cat "$LAST_FILE")
-               else 
-                 LAST_TIME=0
-               fi
+               diff=$(expr "$now" - "$last_time")
                
-               # Shell puro para calculo (evita $(( )) que pode falhar em sh antigo)
-               DIFF=$(expr $NOW - $LAST_TIME)
-               
-               if [ "$DIFF" -gt "$INTERVALO_ALERTA" ]; then
-                  echo "!!! ERRO EM $NAME !!!"
+               if [ "$diff" -gt "$INTERVALO_ALERTA" ]; then
+                  echo "!!! ERRO EM: $name !!!"
+                  json_logs=$(echo "$logs" | jq -aRs .)
                   
-                  # Escapa logs para JSON
-                  JSON_LOGS=$(echo "$LOGS" | jq -aRs .)
-                  
-                  # Chamada Groq IA
-                  IA_RES=$(curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
+                  ia_res=$(curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
                     -H "Authorization: Bearer $IA_API_KEY" \
                     -H "Content-Type: application/json" \
-                    -d "{\"model\": \"$IA_MODEL\", \"messages\": [{\"role\": \"user\", \"content\": \"Analise estes logs de erro do container $NAME e explique de forma curta em portugues: $JSON_LOGS\"}]}")
+                    -d "{\"model\": \"$IA_MODEL\", \"messages\": [{\"role\": \"user\", \"content\": \"Analise estes logs de erro do container $name e explique de forma curta em portugues: $json_logs\"}]}")
                   
-                  IA_EXPLICACAO=$(echo "$IA_RES" | jq -r ".choices[0].message.content" 2>/dev/null)
-                  
-                  if [ "$IA_EXPLICACAO" = "null" ] || [ -z "$IA_EXPLICACAO" ]; then
-                    IA_EXPLICACAO="Erro detectado no container $NAME. Verifique os logs."
-                  fi
+                  expl=$(echo "$ia_res" | jq -r ".choices[0].message.content" 2>/dev/null)
+                  [ "$expl" = "null" ] || [ -z "$expl" ] && expl="Erro detectado no container $name."
 
-                  MSG="🚨 *CONTAINER:* $NAME\n\n*IA:* $IA_EXPLICACAO"
+                  msg="🚨 *ERRO:* $name\n\n*IA:* $expl"
                   
-                  # WhatsApp
                   curl -s -X POST "https://apievo.astroscomunicacaodigital.com/message/sendText/Astros_Comunicacao_Digital" \
                     -H "apikey: 4C1E13A72DCC-4542-A5C2-556EB2822A06" \
                     -H "Content-Type: application/json" \
-                    -d "{\"number\": \"558596068965\", \"text\": \"$MSG\"}" > /dev/null
+                    -d "{\"number\": \"558596068965\", \"text\": \"$msg\"}" > /dev/null
                   
-                  # E-mail
-                  printf "To: %s\nSubject: ERRO NO CONTAINER %s\n\n%s" "$DESTINO" "$NAME" "$IA_EXPLICACAO" | ssmtp "$DESTINO"
-                  
-                  echo "$NOW" > "$LAST_FILE"
-                  echo "Alerta enviado."
+                  printf "To: %s\nSubject: ERRO %s\n\n%s" "$DESTINO" "$name" "$expl" | ssmtp "$DESTINO"
+                  echo "$now" > "$last_file"
                fi
             fi
           done
