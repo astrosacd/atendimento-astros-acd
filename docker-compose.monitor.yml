@@ -33,7 +33,7 @@ services:
         
         while true; do
           for svc in chatwoot evolution n8n typebot mautic; do
-            REAL_NAME=$(docker service ls --filter "name=$svc" --format "{{.Name}}" | head -n 1)
+            REAL_NAME=$(docker service ls --filter name="$svc" --format "{{.Name}}" | head -n 1)
             
             if [ -n "$REAL_NAME" ]; then
               LOG_SNIPPET=$(docker service logs --tail 20 "$REAL_NAME" 2>&1)
@@ -41,11 +41,17 @@ services:
               
               if [ -n "$HAS_ERROR" ]; then
                  NOW=$(date +%s)
-                 LAST_FILE="/tmp/last_alert_$REAL_NAME"
-                 if [ -f "$LAST_FILE" ]; then LAST_TIME=$(cat "$LAST_FILE"); else LAST_TIME=0; fi
+                 LAST_FILE="/tmp/last_alert_$(echo "$REAL_NAME" | tr -d '[:space:]')"
                  
-                 DIFF=$((NOW - LAST_TIME))
-                 if [ "$DIFF" -gt "$INTERVALO_ALERTA" ]; then
+                 if [ -f "$LAST_FILE" ]; then 
+                   LAST_TIME=$(cat "$LAST_FILE")
+                 else 
+                   LAST_TIME=0
+                 fi
+                 
+                 DIFF_TIME=$(expr $NOW - $LAST_TIME)
+                 
+                 if [ "$DIFF_TIME" -gt "$INTERVALO_ALERTA" ]; then
                     echo "Novo erro em $REAL_NAME. Consultando IA..."
                     
                     PROMPT="Analise este log de erro do Docker e explique em uma frase curta e simples em português o que aconteceu e como resolver: $LOG_SNIPPET"
@@ -54,10 +60,7 @@ services:
                     IA_RES=$(curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
                       -H "Authorization: Bearer $IA_API_KEY" \
                       -H "Content-Type: application/json" \
-                      -d "{
-                        \"model\": \"$IA_MODEL\",
-                        \"messages\": [{\"role\": \"user\", \"content\": $JSON_SAFE_PROMPT}]
-                      }")
+                      -d "{\"model\": \"$IA_MODEL\", \"messages\": [{\"role\": \"user\", \"content\": $JSON_SAFE_PROMPT}]}")
                     
                     IA_EXPLICACAO=$(echo "$IA_RES" | jq -r ".choices[0].message.content" | tr -d "\"")
                     if [ "$IA_EXPLICACAO" = "null" ] || [ -z "$IA_EXPLICACAO" ]; then IA_EXPLICACAO="Erro detectado."; fi
