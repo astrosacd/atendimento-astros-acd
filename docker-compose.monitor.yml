@@ -1,0 +1,99 @@
+version: "3.7"
+
+services:
+  astros_log_monitor:
+    image: docker:latest
+    container_name: astros_log_monitor
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - AstrosNet
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    restart: always
+    entrypoint: >
+      sh -c '
+      apk add --no-cache curl grep ssmtp jq;
+      
+      # --- CONFIGURAÇÕES ---
+      USER_EMAIL="astroscomunicacaodigital@gmail.com"
+      APP_PASSWORD="ozydfkgouorjrcjw"
+      DESTINO="eudezioj@gmail.com"
+      INTERVALO_ALERTA=1800  # Tempo em segundos (1800s = 30 min)
+      
+      # --- CONFIGURAÇÃO IA (Groq ou OpenAI) ---
+      IA_API_KEY="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"
+      IA_MODEL="llama-3.3-70b-versatile"
+
+      # Configuração do E-mail
+      cat <<EOF > /etc/ssmtp/ssmtp.conf
+      root=$USER_EMAIL
+      mailhub=smtp.gmail.com:587
+      AuthUser=$USER_EMAIL
+      AuthPass=$APP_PASSWORD
+      UseSTARTTLS=YES
+      hostname=astros_monitor
+      EOF
+
+      echo "------------------------------------------"
+      echo "🤖 MONITOR INTELIGENTE ATIVADO (IA + INTERVALO)"
+      echo "------------------------------------------"
+      
+      while true; do
+        for svc in chatwoot evolution n8n typebot mautic; do
+          REAL_NAME=$(docker service ls --filter "name=$svc" --format "{{.Name}}" | head -n 1)
+          
+          if [ -n "$REAL_NAME" ]; then
+            LOG_SNIPPET=$(docker service logs --tail 20 "$REAL_NAME" 2>&1)
+            HAS_ERROR=$(echo "$LOG_SNIPPET" | grep -iE "ERROR|Connection Closed|Bad Request|Exception|500 Internal Server Error")
+            
+            if [ -n "$HAS_ERROR" ]; then
+               NOW=$(date +%s)
+               LAST_FILE="/tmp/last_alert_$REAL_NAME"
+               LAST_TIME=$(cat "$LAST_FILE" 2>/dev/null || echo 0)
+               
+               DIFF=$((NOW - LAST_TIME))
+               if [ "$DIFF" -gt "$INTERVALO_ALERTA" ]; then
+                  echo "   [!] Novo erro em $REAL_NAME. Consultando IA..."
+                  
+                  PROMPT="Analise este log de erro do Docker e explique em uma frase curta e simples em português o que aconteceu e como resolver: $LOG_SNIPPET"
+                  
+                  # Sanitizar prompt para o JSON do curl
+                  JSON_SAFE_PROMPT=$(echo "$PROMPT" | jq -aRs .)
+
+                  IA_RES=$(curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
+                    -H "Authorization: Bearer $IA_API_KEY" \
+                    -H "Content-Type: application/json" \
+                    -d "{
+                      \"model\": \"$IA_MODEL\",
+                      \"messages\": [{\"role\": \"user\", \"content\": $JSON_SAFE_PROMPT}]
+                    }")
+                  
+                  IA_EXPLICACAO=$(echo "$IA_RES" | jq -r ".choices[0].message.content" | tr -d "\"")
+                  
+                  if [ "$IA_EXPLICACAO" = "null" ] || [ -z "$IA_EXPLICACAO" ]; then
+                     IA_EXPLICACAO="Erro detectado, mas a IA não conseguiu analisar no momento."
+                  fi
+
+                  MSG="🚨 *ALERTA INTELIGENTE*\n\n*Serviço:* $REAL_NAME\n*Análise da IA:* $IA_EXPLICACAO\n\n*Log Original:* $(echo "$HAS_ERROR" | tail -n 1 | cut -c1-150)..."
+                  
+                  curl -s -X POST "https://apievo.astroscomunicacaodigital.com/message/sendText/Astros_Comunicacao_Digital" \
+                    -H "apikey: 4C1E13A72DCC-4542-A5C2-556EB2822A06" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"number\": \"558596068965\", \"text\": \"$MSG\"}"
+                  
+                  printf "To: %s\nSubject: ALERTA IA - %s\n\nAnalise do Erro:\n%s\n\nLogs:\n%s" "$DESTINO" "$REAL_NAME" "$IA_EXPLICACAO" "$LOG_SNIPPET" | ssmtp "$DESTINO"
+                  
+                  echo "$NOW" > "$LAST_FILE"
+                  echo "   [OK] Alerta enviado para $REAL_NAME"
+               fi
+            fi
+          fi
+        done
+        sleep 60
+      done'
+
+networks:
+  AstrosNet:
+    external: true
