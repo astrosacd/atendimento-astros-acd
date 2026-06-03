@@ -12,76 +12,72 @@ services:
       placement:
         constraints: [node.role == manager]
     restart: always
-    entrypoint: >
-      sh -c '
-      apk add --no-cache curl grep ssmtp jq
+    entrypoint:
+      - sh
+      - -c
+      - |
+        apk add --no-cache curl grep ssmtp jq
 
-      USER_EMAIL="astroscomunicacaodigital@gmail.com"
-      APP_PASSWORD="ozydfkgouorjrcjw"
-      DESTINO="eudezioj@gmail.com"
-      INTERVALO_ALERTA=1800
-      IA_API_KEY="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"
-      IA_MODEL="llama-3.3-70b-versatile"
+        USER_EMAIL="astroscomunicacaodigital@gmail.com"
+        APP_PASSWORD="ozydfkgouorjrcjw"
+        DESTINO="eudezioj@gmail.com"
+        INTERVALO_ALERTA=1800
+        IA_API_KEY="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"
+        IA_MODEL="llama-3.3-70b-versatile"
 
-      cat <<EOF > /etc/ssmtp/ssmtp.conf
-      root=$USER_EMAIL
-      mailhub=smtp.gmail.com:587
-      AuthUser=$USER_EMAIL
-      AuthPass=$APP_PASSWORD
-      UseSTARTTLS=YES
-      hostname=astros_monitor
-      EOF
+        printf "root=%s\nmailhub=smtp.gmail.com:587\nAuthUser=%s\nAuthPass=%s\nUseSTARTTLS=YES\nhostname=astros_monitor\n" "$USER_EMAIL" "$USER_EMAIL" "$APP_PASSWORD" > /etc/ssmtp/ssmtp.conf
 
-      echo "------------------------------------------"
-      echo "MONITOR INTELIGENTE ATIVADO"
-      echo "------------------------------------------"
-      
-      while true; do
-        for svc in chatwoot evolution n8n typebot mautic; do
-          REAL_NAME=$(docker service ls --filter "name=$svc" --format "{{.Name}}" | head -n 1)
-          
-          if [ -n "$REAL_NAME" ]; then
-            LOG_SNIPPET=$(docker service logs --tail 20 "$REAL_NAME" 2>&1)
-            HAS_ERROR=$(echo "$LOG_SNIPPET" | grep -iE "ERROR|Connection Closed|Bad Request|Exception|500 Internal Server Error")
+        echo "------------------------------------------"
+        echo "MONITOR INTELIGENTE ATIVADO"
+        echo "------------------------------------------"
+        
+        while true; do
+          for svc in chatwoot evolution n8n typebot mautic; do
+            REAL_NAME=$(docker service ls --filter "name=$svc" --format "{{.Name}}" | head -n 1)
             
-            if [ -n "$HAS_ERROR" ]; then
-               NOW=$(date +%s)
-               LAST_FILE="/tmp/last_alert_$REAL_NAME"
-               if [ -f "$LAST_FILE" ]; then LAST_TIME=$(cat "$LAST_FILE"); else LAST_TIME=0; fi
-               
-               if [ "$((NOW - LAST_TIME))" -gt "$INTERVALO_ALERTA" ]; then
-                  echo "Novo erro em $REAL_NAME. Consultando IA..."
-                  
-                  PROMPT="Analise este log de erro do Docker e explique em uma frase curta e simples em português o que aconteceu e como resolver: $LOG_SNIPPET"
-                  JSON_SAFE_PROMPT=$(echo "$PROMPT" | jq -aRs .)
+            if [ -n "$REAL_NAME" ]; then
+              LOG_SNIPPET=$(docker service logs --tail 20 "$REAL_NAME" 2>&1)
+              HAS_ERROR=$(echo "$LOG_SNIPPET" | grep -iE "ERROR|Connection Closed|Bad Request|Exception|500 Internal Server Error")
+              
+              if [ -n "$HAS_ERROR" ]; then
+                 NOW=$(date +%s)
+                 LAST_FILE="/tmp/last_alert_$REAL_NAME"
+                 if [ -f "$LAST_FILE" ]; then LAST_TIME=$(cat "$LAST_FILE"); else LAST_TIME=0; fi
+                 
+                 DIFF=$((NOW - LAST_TIME))
+                 if [ "$DIFF" -gt "$INTERVALO_ALERTA" ]; then
+                    echo "Novo erro em $REAL_NAME. Consultando IA..."
+                    
+                    PROMPT="Analise este log de erro do Docker e explique em uma frase curta e simples em português o que aconteceu e como resolver: $LOG_SNIPPET"
+                    JSON_SAFE_PROMPT=$(echo "$PROMPT" | jq -aRs .)
 
-                  IA_RES=$(curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
-                    -H "Authorization: Bearer $IA_API_KEY" \
-                    -H "Content-Type: application/json" \
-                    -d "{
-                      \"model\": \"$IA_MODEL\",
-                      \"messages\": [{\"role\": \"user\", \"content\": $JSON_SAFE_PROMPT}]
-                    }")
-                  
-                  IA_EXPLICACAO=$(echo "$IA_RES" | jq -r ".choices[0].message.content" | tr -d "\"")
-                  if [ "$IA_EXPLICACAO" = "null" ] || [ -z "$IA_EXPLICACAO" ]; then IA_EXPLICACAO="Erro detectado."; fi
+                    IA_RES=$(curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
+                      -H "Authorization: Bearer $IA_API_KEY" \
+                      -H "Content-Type: application/json" \
+                      -d "{
+                        \"model\": \"$IA_MODEL\",
+                        \"messages\": [{\"role\": \"user\", \"content\": $JSON_SAFE_PROMPT}]
+                      }")
+                    
+                    IA_EXPLICACAO=$(echo "$IA_RES" | jq -r ".choices[0].message.content" | tr -d "\"")
+                    if [ "$IA_EXPLICACAO" = "null" ] || [ -z "$IA_EXPLICACAO" ]; then IA_EXPLICACAO="Erro detectado."; fi
 
-                  MSG="ALERTA: $REAL_NAME. IA: $IA_EXPLICACAO"
-                  
-                  curl -s -X POST "https://apievo.astroscomunicacaodigital.com/message/sendText/Astros_Comunicacao_Digital" \
-                    -H "apikey: 4C1E13A72DCC-4542-A5C2-556EB2822A06" \
-                    -H "Content-Type: application/json" \
-                    -d "{\"number\": \"558596068965\", \"text\": \"$MSG\"}"
-                  
-                  printf "To: %s\nSubject: ALERTA IA - %s\n\nAnalise: %s\n\nLogs:\n%s" "$DESTINO" "$REAL_NAME" "$IA_EXPLICACAO" "$LOG_SNIPPET" | ssmtp "$DESTINO"
-                  
-                  echo "$NOW" > "$LAST_FILE"
-               fi
+                    MSG="ALERTA: $REAL_NAME. IA: $IA_EXPLICACAO"
+                    
+                    curl -s -X POST "https://apievo.astroscomunicacaodigital.com/message/sendText/Astros_Comunicacao_Digital" \
+                      -H "apikey: 4C1E13A72DCC-4542-A5C2-556EB2822A06" \
+                      -H "Content-Type: application/json" \
+                      -d "{\"number\": \"558596068965\", \"text\": \"$MSG\"}"
+                    
+                    printf "To: %s\nSubject: ALERTA IA - %s\n\nAnalise: %s\n\nLogs:\n%s" "$DESTINO" "$REAL_NAME" "$IA_EXPLICACAO" "$LOG_SNIPPET" | ssmtp "$DESTINO"
+                    
+                    echo "$NOW" > "$LAST_FILE"
+                 fi
+              fi
             fi
-          fi
+          done
+          sleep 60
         done
-        sleep 60
-      done'
 
 networks:
   AstrosNet:
