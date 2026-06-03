@@ -28,53 +28,54 @@ services:
         printf "root=%s\nmailhub=smtp.gmail.com:587\nAuthUser=%s\nAuthPass=%s\nUseSTARTTLS=YES\nhostname=astros_monitor\n" "$USER_EMAIL" "$USER_EMAIL" "$APP_PASSWORD" > /etc/ssmtp/ssmtp.conf
 
         echo "------------------------------------------"
-        echo "MONITOR ATIVADO - BUSCANDO SERVICOS..."
+        echo "MONITOR ATIVADO - LENDO CONTAINERS REAIS"
         echo "------------------------------------------"
         
         while true; do
-          # Busca todos os servicos que nao sejam o proprio monitor
-          SERVICES=`docker service ls --format "{{.Name}}" | grep -v "astros_log_monitor"`
+          # Captura IDs de todos os containers rodando neste node
+          CONTAINERS=`docker ps --format "{{.ID}}|{{.Names}}"`
           
-          for REAL_NAME in $SERVICES; do
-            echo "Checando: $REAL_NAME"
+          for row in $CONTAINERS; do
+            ID=`echo $row | cut -d'|' -f1`
+            NAME=`echo $row | cut -d'|' -f2`
             
-            # Pega logs dos ultimos 5 minutos para ser mais preciso
-            LOG_SNIPPET=`docker service logs --since 5m --tail 50 $REAL_NAME 2>&1`
+            if [ "$NAME" = "astros_log_monitor" ]; then continue; fi
             
-            # Busca por diversos termos de erro comum
-            HAS_ERROR=`echo "$LOG_SNIPPET" | grep -iE "ERROR|crit|fail|exception|fatal|panic|connrefused|timeout" || echo ""`
+            # echo "Analisando logs de: $NAME"
+            
+            # Captura os ultimos 50 logs do container
+            LOGS=`docker logs --since 2m --tail 50 $ID 2>&1`
+            
+            # Filtro agressivo de erros
+            HAS_ERROR=`echo "$LOGS" | grep -iE "error|crit|fail|exception|fatal|panic|refused|timeout|abort|err_|warn" || echo ""`
             
             if [ -n "$HAS_ERROR" ]; then
                NOW=`date +%s`
-               # Nome do arquivo limpo para o servico
-               SVC_ID=`echo "$REAL_NAME" | tr -dc '[:alnum:]'`
-               LAST_FILE="/tmp/last_$SVC_ID"
+               CLEAN_NAME=`echo "$NAME" | tr -dc '[:alnum:]'`
+               LAST_FILE="/tmp/last_$CLEAN_NAME"
                
-               if [ -f "$LAST_FILE" ]; then 
-                 LAST_TIME=`cat "$LAST_FILE"`
-               else 
-                 LAST_TIME=0
-               fi
+               if [ -f "$LAST_FILE" ]; then LAST_TIME=`cat "$LAST_FILE"`; else LAST_TIME=0; fi
                
                DIFF=`expr $NOW - $LAST_TIME`
                
                if [ "$DIFF" -gt "$INTERVALO_ALERTA" ]; then
-                  echo "!!! ERRO DETECTADO EM $REAL_NAME !!!"
+                  echo "!!! ERRO NO CONTAINER: $NAME !!!"
                   
-                  JSON_SAFE_PROMPT=`echo "Analise o erro no servico $REAL_NAME: $LOG_SNIPPET" | jq -aRs .`
+                  # Mandar log real para a IA
+                  JSON_PROMPT=`echo "Container: $NAME. Logs: $LOGS" | jq -aRs .`
 
                   IA_RES=`curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
                     -H "Authorization: Bearer $IA_API_KEY" \
                     -H "Content-Type: application/json" \
-                    -d "{\"model\": \"$IA_MODEL\", \"messages\": [{\"role\": \"user\", \"content\": $JSON_SAFE_PROMPT}]}"`
+                    -d "{\"model\": \"$IA_MODEL\", \"messages\": [{\"role\": \"user\", \"content\": $JSON_PROMPT}]}"`
                   
                   IA_EXPLICACAO=`echo "$IA_RES" | jq -r ".choices[0].message.content" | tr -d "\""`
                   
                   if [ "$IA_EXPLICACAO" = "null" ] || [ -z "$IA_EXPLICACAO" ]; then
-                    IA_EXPLICACAO="Erro detectado nos logs. Verifique o servico $REAL_NAME."
+                    IA_EXPLICACAO="Erro detectado nos logs do container $NAME."
                   fi
 
-                  MSG="🚨 *ALERTA:* $REAL_NAME\n\n*IA:* $IA_EXPLICACAO"
+                  MSG="🚨 *CONTAINER:* $NAME\n\n*IA:* $IA_EXPLICACAO"
                   
                   # WhatsApp
                   curl -s -X POST "https://apievo.astroscomunicacaodigital.com/message/sendText/Astros_Comunicacao_Digital" \
@@ -83,15 +84,14 @@ services:
                     -d "{\"number\": \"558596068965\", \"text\": \"$MSG\"}"
                   
                   # E-mail
-                  printf "To: %s\nSubject: ALERTA DOCKER - %s\n\n%s" "$DESTINO" "$REAL_NAME" "$IA_EXPLICACAO" | ssmtp "$DESTINO"
+                  printf "To: %s\nSubject: ERRO NO CONTAINER - %s\n\n%s" "$DESTINO" "$NAME" "$IA_EXPLICACAO" | ssmtp "$DESTINO"
                   
                   echo "$NOW" > "$LAST_FILE"
-                  echo "Alerta enviado para $REAL_NAME"
+                  echo "Alerta enviado para $NAME"
                fi
             fi
           done
-          echo "Ciclo concluido. Aguardando 60s..."
-          sleep 60
+          sleep 30
         done
 
 networks:
