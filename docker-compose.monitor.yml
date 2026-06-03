@@ -28,57 +28,69 @@ services:
         printf "root=%s\nmailhub=smtp.gmail.com:587\nAuthUser=%s\nAuthPass=%s\nUseSTARTTLS=YES\nhostname=astros_monitor\n" "$USER_EMAIL" "$USER_EMAIL" "$APP_PASSWORD" > /etc/ssmtp/ssmtp.conf
 
         echo "------------------------------------------"
-        echo "MONITOR ATIVADO"
+        echo "MONITOR ATIVADO - BUSCANDO SERVICOS..."
         echo "------------------------------------------"
         
         while true; do
-          for svc in chatwoot evolution n8n typebot mautic; do
-            # Removidos parenteses da subshell problematica
-            REAL_NAME=`docker service ls --filter name=$svc --format "{{.Name}}" | head -n 1`
+          # Busca todos os servicos que nao sejam o proprio monitor
+          SERVICES=`docker service ls --format "{{.Name}}" | grep -v "astros_log_monitor"`
+          
+          for REAL_NAME in $SERVICES; do
+            echo "Checando: $REAL_NAME"
             
-            if [ -n "$REAL_NAME" ]; then
-              LOG_SNIPPET=`docker service logs --tail 20 $REAL_NAME 2>&1`
-              # Simplificando a busca de erro para evitar caracteres especiais
-              HAS_ERROR=`echo "$LOG_SNIPPET" | grep -i "ERROR" || echo ""`
-              
-              if [ -n "$HAS_ERROR" ]; then
-                 NOW=`date +%s`
-                 LAST_FILE="/tmp/last_$svc"
-                 
-                 if [ -f "$LAST_FILE" ]; then 
-                   LAST_TIME=`cat "$LAST_FILE"`
-                 else 
-                   LAST_TIME=0
-                 fi
-                 
-                 DIFF=`expr $NOW - $LAST_TIME`
-                 
-                 if [ "$DIFF" -gt "$INTERVALO_ALERTA" ]; then
-                    echo "Erro em $REAL_NAME. IA..."
-                    
-                    JSON_SAFE_PROMPT=`echo "Analise o erro: $LOG_SNIPPET" | jq -aRs .`
+            # Pega logs dos ultimos 5 minutos para ser mais preciso
+            LOG_SNIPPET=`docker service logs --since 5m --tail 50 $REAL_NAME 2>&1`
+            
+            # Busca por diversos termos de erro comum
+            HAS_ERROR=`echo "$LOG_SNIPPET" | grep -iE "ERROR|crit|fail|exception|fatal|panic|connrefused|timeout" || echo ""`
+            
+            if [ -n "$HAS_ERROR" ]; then
+               NOW=`date +%s`
+               # Nome do arquivo limpo para o servico
+               SVC_ID=`echo "$REAL_NAME" | tr -dc '[:alnum:]'`
+               LAST_FILE="/tmp/last_$SVC_ID"
+               
+               if [ -f "$LAST_FILE" ]; then 
+                 LAST_TIME=`cat "$LAST_FILE"`
+               else 
+                 LAST_TIME=0
+               fi
+               
+               DIFF=`expr $NOW - $LAST_TIME`
+               
+               if [ "$DIFF" -gt "$INTERVALO_ALERTA" ]; then
+                  echo "!!! ERRO DETECTADO EM $REAL_NAME !!!"
+                  
+                  JSON_SAFE_PROMPT=`echo "Analise o erro no servico $REAL_NAME: $LOG_SNIPPET" | jq -aRs .`
 
-                    IA_RES=`curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
-                      -H "Authorization: Bearer $IA_API_KEY" \
-                      -H "Content-Type: application/json" \
-                      -d "{\"model\": \"$IA_MODEL\", \"messages\": [{\"role\": \"user\", \"content\": $JSON_SAFE_PROMPT}]}"`
-                    
-                    IA_EXPLICACAO=`echo "$IA_RES" | jq -r ".choices[0].message.content" | tr -d "\""`
-                    
-                    MSG="ALERTA: $REAL_NAME. IA: $IA_EXPLICACAO"
-                    
-                    curl -s -X POST "https://apievo.astroscomunicacaodigital.com/message/sendText/Astros_Comunicacao_Digital" \
-                      -H "apikey: 4C1E13A72DCC-4542-A5C2-556EB2822A06" \
-                      -H "Content-Type: application/json" \
-                      -d "{\"number\": \"558596068965\", \"text\": \"$MSG\"}"
-                    
-                    printf "To: %s\nSubject: ALERTA %s\n\n%s" "$DESTINO" "$REAL_NAME" "$IA_EXPLICACAO" | ssmtp "$DESTINO"
-                    
-                    echo "$NOW" > "$LAST_FILE"
-                 fi
-              fi
+                  IA_RES=`curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
+                    -H "Authorization: Bearer $IA_API_KEY" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"model\": \"$IA_MODEL\", \"messages\": [{\"role\": \"user\", \"content\": $JSON_SAFE_PROMPT}]}"`
+                  
+                  IA_EXPLICACAO=`echo "$IA_RES" | jq -r ".choices[0].message.content" | tr -d "\""`
+                  
+                  if [ "$IA_EXPLICACAO" = "null" ] || [ -z "$IA_EXPLICACAO" ]; then
+                    IA_EXPLICACAO="Erro detectado nos logs. Verifique o servico $REAL_NAME."
+                  fi
+
+                  MSG="🚨 *ALERTA:* $REAL_NAME\n\n*IA:* $IA_EXPLICACAO"
+                  
+                  # WhatsApp
+                  curl -s -X POST "https://apievo.astroscomunicacaodigital.com/message/sendText/Astros_Comunicacao_Digital" \
+                    -H "apikey: 4C1E13A72DCC-4542-A5C2-556EB2822A06" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"number\": \"558596068965\", \"text\": \"$MSG\"}"
+                  
+                  # E-mail
+                  printf "To: %s\nSubject: ALERTA DOCKER - %s\n\n%s" "$DESTINO" "$REAL_NAME" "$IA_EXPLICACAO" | ssmtp "$DESTINO"
+                  
+                  echo "$NOW" > "$LAST_FILE"
+                  echo "Alerta enviado para $REAL_NAME"
+               fi
             fi
           done
+          echo "Ciclo concluido. Aguardando 60s..."
           sleep 60
         done
 
