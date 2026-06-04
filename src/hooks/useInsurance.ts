@@ -147,10 +147,11 @@ export function useInsurancePaymentStatusHybrid() {
 
       clientes?.forEach(cliente => {
         const isMonthly = cliente.plano?.toLowerCase().includes('mensal');
+        const isIndividual = cliente.plano?.toLowerCase().includes('individual');
         const isAutoHosted = cliente.produto === 'Número Hospedado Conosco ( Auto-Hospedado )';
         
-        // Se for auto-hospedado, só consideramos se for mensal
-        if (isAutoHosted && !isMonthly) return;
+        // Se for auto-hospedado, aceitamos mensal OU individual (que é o caso do Fernando)
+        if (isAutoHosted && !isMonthly && !isIndividual) return;
 
         const isClientPaid = cliente.data_renovacao >= today;
         const numbersInObs = extractNumbers(cliente.observacao);
