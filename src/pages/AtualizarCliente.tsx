@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat, DollarSign, Phone, Store, AlertCircle, Mail, ShieldCheck, Package, Eye, Calendar } from 'lucide-react';
+import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat, DollarSign, Phone, Store, AlertCircle, Mail, ShieldCheck, Package, Eye, Calendar, TrendingUp } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
@@ -52,6 +52,7 @@ export default function AtualizarCliente() {
   const [newEmail, setNewEmail] = useState('');
   const [newEditProduto, setNewEditProduto] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showUpgradeConfirm, setShowUpgradeConfirm] = useState(false);
   const [newTipo, setNewTipo] = useState('cliente');
   const [newExcluirMetricas, setNewExcluirMetricas] = useState(false);
   const [searchResults, setSearchResults] = useState<Cliente[]>([]);
@@ -176,6 +177,7 @@ export default function AtualizarCliente() {
       tipo?: string;
       excluir_metricas?: boolean;
       produto?: string;
+      cobranca_ativa?: boolean;
     } = {
       observacao: newObservacao,
       tags: newTags,
@@ -189,16 +191,19 @@ export default function AtualizarCliente() {
       produto: newEditProduto,
     };
     
-    // Só atualiza a data e ciclo se for cliente mensal
-    if (selectedCliente.cobranca_ativa) {
+    // Só atualiza a data e ciclo se for cliente mensal ou estiver convertendo
+    if (selectedCliente.cobranca_ativa || showUpgradeConfirm) {
       updateData.data_renovacao = newDate;
       updateData.ciclo_cobranca = newCicloCobranca;
+      if (showUpgradeConfirm) {
+        updateData.cobranca_ativa = true;
+      }
     }
     
     const result = await updateCliente(selectedCliente.id, updateData, selectedCliente);
     
     if (result) {
-      logActivity(`Atualizou dados do cliente: ${selectedCliente.nome}`, 'cliente');
+      logActivity(`${showUpgradeConfirm ? 'Converteu para mensal' : 'Atualizou dados'} do cliente: ${selectedCliente.nome}`, 'cliente');
       setSelectedCliente(null);
       setSearchQuery('');
       setNewDate('');
@@ -213,6 +218,7 @@ export default function AtualizarCliente() {
       setSearchResults([]);
     }
     setShowConfirm(false);
+    setShowUpgradeConfirm(false);
   };
 
   const formatDate = (dateString: string) => {
@@ -388,9 +394,23 @@ export default function AtualizarCliente() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className={`font-semibold text-lg break-words ${isClienteVitalicio ? 'text-amber-500' : 'text-update'}`}>{selectedCliente.nome}</h3>
                   {isClienteVitalicio && (
-                    <span className="px-2 py-0.5 text-xs font-medium bg-amber-500/20 text-amber-500 rounded-full">
-                      {t('clients.registrationOnly')}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 text-xs font-medium bg-amber-500/20 text-amber-500 rounded-full">
+                        {t('clients.registrationOnly')}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20"
+                        onClick={() => {
+                          setNewDate(new Date().toISOString().split('T')[0]);
+                          setShowUpgradeConfirm(true);
+                        }}
+                      >
+                        <TrendingUp className="w-3 h-3 mr-1" />
+                        Ativar Mensalidade (Recorrência)
+                      </Button>
+                    </div>
                   )}
                 </div>
 
@@ -439,10 +459,13 @@ export default function AtualizarCliente() {
                 <p className="text-xs text-muted-foreground">{t('clients.resellerPlanDesc')}</p>
               </div>
 
-              {!isClienteVitalicio && (
+              {(!isClienteVitalicio || showUpgradeConfirm) && (
                 <>
-                  <div className="space-y-2">
-                    <Label htmlFor="newDate" className="text-foreground font-medium">{t('clients.newRenewalDate')}</Label>
+                  <div className="space-y-2 p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Calendar className="w-4 h-4 text-emerald-500" />
+                      <Label htmlFor="newDate" className="text-foreground font-medium">Data do Próximo Vencimento</Label>
+                    </div>
                     <Input
                       id="newDate"
                       type="date"
@@ -450,6 +473,9 @@ export default function AtualizarCliente() {
                       onChange={(e) => setNewDate(e.target.value)}
                       className="bg-secondary border-border text-foreground h-12"
                     />
+                    {showUpgradeConfirm && (
+                      <p className="text-[10px] text-emerald-500 mt-1 font-medium">Defina quando será a primeira cobrança mensal deste cliente.</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -649,12 +675,20 @@ export default function AtualizarCliente() {
               )}
 
               <Button
-                onClick={handleUpdate}
-                className="btn-3d w-full h-12 bg-update text-update-foreground hover:bg-update/90 font-medium"
+                onClick={() => {
+                  if (showUpgradeConfirm) {
+                    if (!newDate) {
+                      toast({ title: 'Erro', description: 'Selecione a data da primeira mensalidade', variant: 'destructive' });
+                      return;
+                    }
+                  }
+                  handleUpdate();
+                }}
+                className={`btn-3d w-full h-12 font-medium ${showUpgradeConfirm ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-update text-update-foreground hover:bg-update/90'}`}
                 disabled={isLoading}
               >
                 <Check className="w-4 h-4 mr-2" />
-                {t('common.update')}
+                {showUpgradeConfirm ? 'Confirmar Ativação de Mensalidade' : t('common.update')}
               </Button>
 
               <Button 
@@ -673,14 +707,21 @@ export default function AtualizarCliente() {
         </CardContent>
       </Card>
 
-      <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+      <AlertDialog open={showConfirm} onOpenChange={(open) => {
+        setShowConfirm(open);
+        if (!open) setShowUpgradeConfirm(false);
+      }}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">{t('clients.confirmUpdate')}</AlertDialogTitle>
+            <AlertDialogTitle className="text-foreground">
+              {showUpgradeConfirm ? 'Ativar Cobrança Mensal?' : t('clients.confirmUpdate')}
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-              {isClienteVitalicio 
-                ? t('clients.confirmUpdateRegistration', { name: selectedCliente?.nome })
-                : t('clients.confirmUpdateRenewal', { name: selectedCliente?.nome, date: newDate ? formatDate(newDate) : '' })
+              {showUpgradeConfirm 
+                ? `Você está transformando ${selectedCliente?.nome} em um cliente recorrente. A primeira mensalidade será cobrada em ${newDate ? formatDate(newDate) : ''}.`
+                : isClienteVitalicio 
+                  ? t('clients.confirmUpdateRegistration', { name: selectedCliente?.nome })
+                  : t('clients.confirmUpdateRenewal', { name: selectedCliente?.nome, date: newDate ? formatDate(newDate) : '' })
               }
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -688,9 +729,9 @@ export default function AtualizarCliente() {
             <AlertDialogCancel className="bg-secondary text-foreground border-border">{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmUpdate}
-              className={isClienteVitalicio ? "bg-amber-500 text-white hover:bg-amber-600" : "bg-update text-update-foreground hover:bg-update/90"}
+              className={showUpgradeConfirm ? "bg-emerald-500 text-white hover:bg-emerald-600" : isClienteVitalicio ? "bg-amber-500 text-white hover:bg-amber-600" : "bg-update text-update-foreground hover:bg-update/90"}
             >
-              {isLoading ? t('common.updating') : t('common.yesUpdate')}
+              {isLoading ? t('common.updating') : showUpgradeConfirm ? 'Sim, Ativar Recorrência' : t('common.yesUpdate')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
