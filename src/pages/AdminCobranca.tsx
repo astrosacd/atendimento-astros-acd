@@ -166,6 +166,7 @@ const AdminCobranca = () => {
     canViewCobrancaRecibo,
     canViewCobrancaRelatorios,
     canViewCobrancaLogs,
+    hasPermission
   } = usePermissions();
   const { checkPaymentStatus, getPaymentStats, isLoading: isCheckingPayments } = usePaymentStatus();
   const [isLoading, setIsLoading] = useState(false);
