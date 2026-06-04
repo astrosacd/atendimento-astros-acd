@@ -561,30 +561,6 @@ const AdminCobranca = () => {
       setIsSearchingClient(false);
     }
   };
-        .from('billing_stripe_config')
-        .update({
-          stripe_secret_key: stripeConfig.stripe_secret_key,
-          stripe_tax_percent: stripeConfig.stripe_tax_percent,
-          stripe_enabled: stripeConfig.stripe_enabled,
-        })
-        .eq('id', (await supabase.from('billing_stripe_config').select('id').limit(1).single()).data?.id);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Configuração da Stripe salva!',
-        description: 'As configurações foram atualizadas com sucesso.',
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Erro ao salvar',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSavingStripe(false);
-    }
-  };
 
   const loadDbCronSchedule = async () => {
     try {
