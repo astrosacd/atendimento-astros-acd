@@ -135,7 +135,7 @@ export function useInsurancePaymentStatusHybrid() {
         const isIndividual = cliente.plano?.toLowerCase().includes('individual');
         const isAutoHosted = cliente.produto === 'Número Hospedado Conosco ( Auto-Hospedado )';
         
-        // Regra para auto-hospedado (upgrade solicitado)
+        // Se for auto-hospedado, o plano deve ser Individual ou Mensal (conforme solicitado anteriormente)
         if (isAutoHosted && !isMonthly && !isIndividual) return;
 
         const isClientPaid = cliente.data_renovacao >= today;
@@ -162,15 +162,21 @@ export function useInsurancePaymentStatusHybrid() {
       linksByRow.forEach((links, rowId) => {
         if (manualSet.has(rowId)) return;
         
+        // Priorizamos o status PAGO se houver múltiplos vínculos para o mesmo número
         const anyPaidLink = links.some(l => l.isPaid);
         
-        // Representante: prioriza o que está pago e tem a maior data de renovação
-        const representativeLink = [...links].sort((a, b) => {
+        // Representante: escolhemos o link pago com a MAIOR data de renovação.
+        // Se todos estiverem vencidos, escolhemos o com a maior data de renovação.
+        const sortedLinks = [...links].sort((a, b) => {
+          // Prioridade 1: Estar pago
           if (a.isPaid !== b.isPaid) return a.isPaid ? -1 : 1;
+          // Prioridade 2: Maior data de renovação
           return (b.data_renovacao || '').localeCompare(a.data_renovacao || '');
-        })[0];
+        });
         
+        const representativeLink = sortedLinks[0];
         const uniqueNames = Array.from(new Set(links.map(l => l.clientName)));
+        
         statusMap.set(rowId, {
           status: anyPaidLink ? 'pago' : 'vencido',
           clientName: representativeLink.clientName,
