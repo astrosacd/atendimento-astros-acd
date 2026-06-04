@@ -1025,8 +1025,8 @@ export default function AdminSegurancaPagamento() {
         open={reasonDialog.open}
         onOpenChange={(open) => setReasonDialog((prev) => ({ ...prev, open }))}
       >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="p-6 pb-2 text-left">
             <DialogTitle className="flex items-center gap-2">
               <ShieldAlert className="h-5 w-5 text-amber-500" />
               Análise de Segurança
@@ -1035,7 +1035,7 @@ export default function AdminSegurancaPagamento() {
               Informações detectadas pela IA e status de duplicidade.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="flex-1 overflow-y-auto p-6 pt-0 space-y-4">
             {reasonDialog.payment && (
               <>
                 <div className="grid grid-cols-2 gap-3">
@@ -1113,7 +1113,7 @@ export default function AdminSegurancaPagamento() {
               </>
             )}
           </div>
-          <div className="flex justify-end">
+          <div className="flex justify-end p-4 border-t bg-muted/20">
             <Button variant="outline" onClick={() => setReasonDialog({ open: false, payment: null })}>
               Fechar
             </Button>
