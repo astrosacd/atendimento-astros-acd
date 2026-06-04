@@ -632,6 +632,21 @@ export function QrScansTab() {
                           </TableCell>
                           <TableCell>{c.qtd_pagos}</TableCell>
                           <TableCell>
+                            {temHospedagemLink ? (
+                              hospedagemAtiva ? (
+                                <Badge className="bg-emerald-500 text-white gap-1">
+                                  <CheckCircle2 className="h-3 w-3" /> Ativa
+                                </Badge>
+                              ) : (
+                                <Badge variant="destructive" className="gap-1">
+                                  <AlertCircle className="h-3 w-3" /> Vencida
+                                </Badge>
+                              )
+                            ) : (
+                              <Badge variant="outline" className="opacity-50">Manual</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
                             {!temSeguro ? (
                               <Badge variant="outline" className="opacity-50">Sem seguro</Badge>
                             ) : !seguroPago ? (
