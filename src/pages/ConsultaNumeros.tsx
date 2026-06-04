@@ -2241,6 +2241,14 @@ export default function ConsultaNumeros() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Highlight number if this is a registration being forced from a sale-like context or if we just want it prominent */}
+            {newValues[visibleFields.find(f => f.name.toLowerCase().includes('numero'))?.name || 'numero'] && (
+              <div className="p-4 rounded-lg bg-primary/10 border border-primary/20 text-center space-y-1">
+                <p className="text-xs font-semibold text-primary uppercase tracking-widest">Número sendo cadastrado</p>
+                <p className="text-2xl font-bold font-mono text-primary">{newValues[visibleFields.find(f => f.name.toLowerCase().includes('numero'))?.name || 'numero']}</p>
+              </div>
+            )}
+
             {visibleFields
               .filter((field) => !hiddenCreateFields.has(field.name.toLowerCase()))
               .map((field) => {
