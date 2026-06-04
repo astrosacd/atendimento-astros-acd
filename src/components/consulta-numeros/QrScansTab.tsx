@@ -657,7 +657,7 @@ export function QrScansTab() {
                                         </Badge>
                                       )}
                                       <span className="text-[10px] text-muted-foreground opacity-70">
-                                        ({hospPayData?.data_renovacao ? new Date(hospPayData.data_renovacao).toLocaleDateString('pt-BR') : 'S/D'})
+                                        ({hospPayData?.data_renovacao ? new Date(hospPayData.data_renovacao + "T12:00:00").toLocaleDateString('pt-BR') : 'S/D'})
                                       </span>
                                     </div>
                                   </TooltipTrigger>
