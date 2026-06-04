@@ -509,6 +509,8 @@ export type Database = {
           cliente_id: string | null
           cliente_nome: string
           cliente_numero: string | null
+          cliente_observacoes: string | null
+          cliente_produto: string | null
           error_message: string | null
           id: string
           message_type: string
@@ -525,6 +527,8 @@ export type Database = {
           cliente_id?: string | null
           cliente_nome: string
           cliente_numero?: string | null
+          cliente_observacoes?: string | null
+          cliente_produto?: string | null
           error_message?: string | null
           id?: string
           message_type: string
@@ -541,6 +545,8 @@ export type Database = {
           cliente_id?: string | null
           cliente_nome?: string
           cliente_numero?: string | null
+          cliente_observacoes?: string | null
+          cliente_produto?: string | null
           error_message?: string | null
           id?: string
           message_type?: string
