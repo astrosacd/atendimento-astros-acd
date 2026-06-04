@@ -87,12 +87,10 @@ const validateWhatsAppNumber = (numero: string): { valid: boolean; reason?: stri
     return { valid: false, reason: `Número WhatsApp inválido (${cleanNumber.length} dígitos): ${numero}` };
   }
 
-  // Check if it's a Brazilian number
-  const isBrazilian = cleanNumber.startsWith('55') 
-    ? (cleanNumber.length === 12 || cleanNumber.length === 13)
-    : (cleanNumber.length === 10 || cleanNumber.length === 11);
+  // Check if it's a Brazilian number (starts with 55) or looks like one
+  const isBrazilianFormat = cleanNumber.startsWith('55') || (cleanNumber.length >= 10 && cleanNumber.length <= 11);
 
-  if (isBrazilian) {
+  if (isBrazilianFormat && !cleanNumber.startsWith('351') && !cleanNumber.startsWith('1')) {
     // Validate Brazilian number format
     const numberWithoutCountry = cleanNumber.startsWith('55') ? cleanNumber.slice(2) : cleanNumber;
     if (numberWithoutCountry.length >= 10) {
@@ -105,7 +103,7 @@ const validateWhatsAppNumber = (numero: string): { valid: boolean; reason?: stri
     return { valid: true };
   }
 
-  // International number - accept but flag
+  // International number - accept any valid length (7 to 15 digits)
   if (cleanNumber.length >= 7 && cleanNumber.length <= 15) {
     return { valid: true, international: true };
   }
