@@ -116,9 +116,11 @@ export function useInsurancePaymentStatusHybrid() {
 
       const extractNumbers = (text: string | null) => {
         if (!text) return [];
-        const cleaned = text.replace(/[\s\-\(\)\.,;:\/]/g, ' ');
-        const matches = cleaned.match(/\d{10,13}/g);
-        return matches ? matches.map(normalize).filter(Boolean) : [];
+        // Remove espaços, traços, parênteses e quebras de linha para capturar números colados
+        const cleaned = text.replace(/[\s\-\(\)\.,;:\/\r\n]/g, ' ');
+        // Regex mais flexível para capturar sequências de números comuns em telefones
+        const matches = cleaned.match(/\d{8,14}/g);
+        return matches ? matches.map(normalize).filter(n => n.length >= 8) : [];
       };
 
       const cacheByNumber = new Map<string, number>();
