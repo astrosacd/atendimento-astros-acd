@@ -98,7 +98,7 @@ export function useInsurancePaymentStatusHybrid() {
       });
 
       // 2. Buscar clientes com produtos relevantes (Seguro ou Auto-Hospedado)
-      // Para Auto-Hospedado, filtramos apenas por clientes mensais conforme solicitado
+      // Buscamos todos para garantir que pegamos os vínculos, e a lógica de filtro por plano (mensal) é feita no loop abaixo
       const { data: clientes, error: clientError } = await supabase
         .from("clientes")
         .select("id, nome, numero, produto, observacao, data_renovacao, plano")
