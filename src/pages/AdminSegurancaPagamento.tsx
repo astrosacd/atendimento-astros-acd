@@ -1110,6 +1110,20 @@ export default function AdminSegurancaPagamento() {
                     )}
                   </div>
                 )}
+
+                {reasonDialog.payment.comprovante_url && (
+                  <div className="mt-4 pt-4 border-t border-border/50">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="w-full flex items-center justify-center gap-2"
+                      onClick={() => window.open(reasonDialog.payment.comprovante_url, '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Visualizar Comprovante Anexado
+                    </Button>
+                  </div>
+                )}
               </>
             )}
           </div>
