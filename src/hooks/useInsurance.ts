@@ -98,10 +98,11 @@ export function useInsurancePaymentStatusHybrid() {
       });
 
       // 2. Buscar clientes com produtos relevantes (Seguro ou Auto-Hospedado)
+      // Para Auto-Hospedado, filtramos apenas por clientes mensais conforme solicitado
       const { data: clientes, error: clientError } = await supabase
         .from("clientes")
-        .select("id, nome, numero, produto, observacao, data_renovacao")
-        .or('produto.eq."Seguro de Numeros Aquecidos",produto.eq."Número Hospedado Conosco ( Auto-Hospedado )"');
+        .select("id, nome, numero, produto, observacao, data_renovacao, plano")
+        .or('produto.eq."Seguro de Numeros Aquecidos",and(produto.eq."Número Hospedado Conosco ( Auto-Hospedado )",plano.ilike.%Mensal%))');
       
       if (clientError) throw clientError;
 
