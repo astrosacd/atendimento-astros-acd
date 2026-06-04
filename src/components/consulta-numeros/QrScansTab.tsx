@@ -608,6 +608,10 @@ export function QrScansTab() {
                       });
                       const segPayData = payStatusMap.get(n.baserow_row_id);
                       const seguroPago = segPayData?.status === "pago";
+                      
+                      const hospPayData = segPayData?.links?.find(l => l.produto === "Número Hospedado Conosco ( Auto-Hospedado )");
+                      const hospedagemAtiva = hospPayData?.isPaid ?? false;
+                      const temHospedagemLink = !!hospPayData;
 
                       return (
                         <TableRow key={n.baserow_row_id}>
