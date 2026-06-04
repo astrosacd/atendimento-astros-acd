@@ -695,9 +695,9 @@ export function QrScansTab() {
                                 </Badge>
                                 <div className="flex items-center gap-1">
                                   {seguroAtivo ? (
-                                    <Badge size="sm" className="bg-emerald-500 text-[9px] h-4 py-0">Ativo</Badge>
+                                    <Badge className="bg-emerald-500 text-[9px] h-4 py-0">Ativo</Badge>
                                   ) : (
-                                    <Badge variant="destructive" size="sm" className="text-[9px] h-4 py-0">Vencido</Badge>
+                                    <Badge variant="destructive" className="text-[9px] h-4 py-0">Vencido</Badge>
                                   )}
                                   <span className="text-[10px] text-muted-foreground opacity-70">
                                     ({seguroPayData?.data_renovacao ? new Date(seguroPayData.data_renovacao + "T12:00:00").toLocaleDateString('pt-BR') : 'S/D'})
