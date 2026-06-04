@@ -683,17 +683,27 @@ export function QrScansTab() {
                             )}
                           </TableCell>
                           <TableCell>
-                            {!temSeguro ? (
-                              <Badge variant="outline" className="opacity-50">Sem seguro</Badge>
-                            ) : !temSeguroLink ? (
+                            {!temSeguroLink ? (
                               <Badge variant="outline" className="opacity-70 bg-muted/30 border-dashed">
                                 ❌ Não vinculado
                               </Badge>
                             ) : (
-                              <Badge variant={usedInsuranceThisMonth ? "destructive" : "default"} className="gap-1">
-                                {usedInsuranceThisMonth ? <ShieldAlert className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
-                                {usedInsuranceThisMonth ? "Acionado" : "Disponível"}
-                              </Badge>
+                              <div className="flex flex-col gap-1">
+                                <Badge variant={usedInsuranceThisMonth ? "destructive" : "default"} className="gap-1">
+                                  {usedInsuranceThisMonth ? <ShieldAlert className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
+                                  {usedInsuranceThisMonth ? "Acionado" : "Disponível"}
+                                </Badge>
+                                <div className="flex items-center gap-1">
+                                  {seguroAtivo ? (
+                                    <Badge size="sm" className="bg-emerald-500 text-[9px] h-4 py-0">Ativo</Badge>
+                                  ) : (
+                                    <Badge variant="destructive" size="sm" className="text-[9px] h-4 py-0">Vencido</Badge>
+                                  )}
+                                  <span className="text-[10px] text-muted-foreground opacity-70">
+                                    ({seguroPayData?.data_renovacao ? new Date(seguroPayData.data_renovacao + "T12:00:00").toLocaleDateString('pt-BR') : 'S/D'})
+                                  </span>
+                                </div>
+                              </div>
                             )}
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
