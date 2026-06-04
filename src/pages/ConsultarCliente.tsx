@@ -1250,11 +1250,10 @@ export default function ConsultarCliente() {
               </div>
               <div className="space-y-2">
                 <Label className="text-foreground font-medium">{t('clients.product')}</Label>
-                <Input
-                  placeholder="Nome do produto"
+                <ProductSelector
                   value={editProduto}
-                  onChange={(e) => setEditProduto(e.target.value)}
-                  className="bg-secondary border-border text-foreground h-10"
+                  onChange={setEditProduto}
+                  category={editingCliente?.cobranca_ativa ? 'mensal' : 'registro'}
                 />
               </div>
               <div className="space-y-2">
