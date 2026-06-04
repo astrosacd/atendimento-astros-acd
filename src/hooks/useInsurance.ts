@@ -90,11 +90,12 @@ export function useInsurancePaymentStatusHybrid() {
         manualSet.set(row.baserow_row_id, row.status);
       });
 
-      // 1. Buscar TODOS os clientes que têm produtos de hospedagem ou seguro
+      // 1. Buscar apenas clientes ATIVOS que possuem o produto de Hospedagem (Auto-Hospedado)
+      // e que fazem parte do faturamento mensal (verificando se o plano não é 'Teste' ou algo do tipo se aplicável)
       const { data: clientes, error: clientError } = await supabase
         .from("clientes")
         .select("id, nome, numero, produto, observacao, data_renovacao, plano")
-        .or('produto.eq."Seguro de Numeros Aquecidos",produto.eq."Número Hospedado Conosco ( Auto-Hospedado )"');
+        .eq('produto', 'Número Hospedado Conosco ( Auto-Hospedado )');
       
       if (clientError) throw clientError;
 
