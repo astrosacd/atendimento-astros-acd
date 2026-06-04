@@ -2314,7 +2314,8 @@ export default function ConsultaNumeros() {
                     <Label>{field.name} {field.primary && '*'}</Label>
                     {field.type === 'single_select' && field.select_options ? (
                       <Select 
-                        value={newValues[field.name] || ''} 
+                        value={newValues[field.name] || '__placeholder__'} 
+
                         onValueChange={(val) => setNewValues(prev => ({ ...prev, [field.name]: val }))}
                       >
                         <SelectTrigger>
