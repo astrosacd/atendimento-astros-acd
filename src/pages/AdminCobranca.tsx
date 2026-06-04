@@ -3478,7 +3478,7 @@ const AdminCobranca = () => {
                                   </TableCell>
                                   <TableCell>
                                     <div className="flex items-center gap-2 flex-wrap">
-                                      {log.status === 'error' && !log.resolution && isConnectionError(log.error_message) && (
+                                      {log.status === 'error' && !log.resolution && (
                                         <Button
                                           onClick={() => handleRetryLog(log)}
                                           variant="outline"
