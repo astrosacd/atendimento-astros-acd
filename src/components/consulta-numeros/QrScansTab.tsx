@@ -42,6 +42,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   QrCode,
   Settings,
   History,
@@ -637,15 +643,32 @@ export function QrScansTab() {
                           <TableCell>{c.qtd_pagos}</TableCell>
                           <TableCell>
                             {temHospedagemLink ? (
-                              hospedagemAtiva ? (
-                                <Badge className="bg-emerald-500 text-white gap-1">
-                                  <CheckCircle2 className="h-3 w-3" /> Ativa
-                                </Badge>
-                              ) : (
-                                <Badge variant="destructive" className="gap-1">
-                                  <AlertCircle className="h-3 w-3" /> Vencida
-                                </Badge>
-                              )
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="flex items-center gap-1 cursor-help">
+                                      {hospedagemAtiva ? (
+                                        <Badge className="bg-emerald-500 text-white gap-1 hover:bg-emerald-600 transition-colors">
+                                          <CheckCircle2 className="h-3 w-3" /> Ativa
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="destructive" className="gap-1 hover:bg-red-600 transition-colors">
+                                          <AlertCircle className="h-3 w-3" /> Vencida
+                                        </Badge>
+                                      )}
+                                      <span className="text-[10px] text-muted-foreground opacity-70">
+                                        ({hospPayData?.data_renovacao ? new Date(hospPayData.data_renovacao).toLocaleDateString('pt-BR') : 'S/D'})
+                                      </span>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="text-xs">
+                                      {hospedagemAtiva ? 'Hospedagem em dia' : 'Hospedagem com pagamento atrasado'}<br />
+                                      Vencimento: {hospPayData?.data_renovacao ? new Date(hospPayData.data_renovacao).toLocaleDateString('pt-BR') : 'Não informada'}
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             ) : (
                               <Badge variant="outline" className="opacity-50">Manual</Badge>
                             )}
