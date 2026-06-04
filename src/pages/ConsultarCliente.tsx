@@ -122,6 +122,7 @@ export default function ConsultarCliente() {
   const [editNumero, setEditNumero] = useState('');
   const [editProduto, setEditProduto] = useState('');
   const [editObservacao, setEditObservacao] = useState('');
+  const [showEditConfirm, setShowEditConfirm] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   
   // Advanced filters
@@ -336,9 +337,8 @@ export default function ConsultarCliente() {
     setEditObservacao(cliente.observacao || '');
   };
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = () => {
     if (!editingCliente) return;
-    setIsSavingEdit(true);
     
     const updates: Partial<any> = {};
     if (editEmail !== editingCliente.email) updates.email = editEmail;
@@ -348,14 +348,27 @@ export default function ConsultarCliente() {
     
     if (Object.keys(updates).length === 0) {
       toast({ title: 'Nenhuma alteração detectada' });
-      setIsSavingEdit(false);
       return;
     }
+    
+    setShowEditConfirm(true);
+  };
+
+  const confirmSaveEdit = async () => {
+    if (!editingCliente) return;
+    setIsSavingEdit(true);
+    
+    const updates: Partial<any> = {};
+    if (editEmail !== editingCliente.email) updates.email = editEmail;
+    if (editNumero !== editingCliente.numero) updates.numero = editNumero;
+    if (editProduto !== editingCliente.produto) updates.produto = editProduto;
+    if (editObservacao !== (editingCliente.observacao || '')) updates.observacao = editObservacao;
     
     const result = await updateCliente(editingCliente.id, updates, editingCliente);
     if (result) {
       await refreshClienteData(editingCliente.id);
       setEditingCliente(null);
+      setShowEditConfirm(false);
     }
     setIsSavingEdit(false);
   };
