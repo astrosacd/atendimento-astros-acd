@@ -409,10 +409,10 @@ export default function AtualizarCliente() {
             </div>
           ) : (
             <div className="space-y-6">
-              <div className={`${isClienteVitalicio ? 'bg-amber-500/10 border-amber-500/30' : 'bg-update/5 border-update/20'} border rounded-xl p-5 space-y-4`}>
+              <div className={`${(isClienteVitalicio && !showUpgradeConfirm) ? 'bg-amber-500/10 border-amber-500/30' : 'bg-emerald-500/10 border-emerald-500/30'} border rounded-xl p-5 space-y-4`}>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className={`font-semibold text-lg break-words ${isClienteVitalicio ? 'text-amber-500' : 'text-update'}`}>{selectedCliente.nome}</h3>
-                  {isClienteVitalicio && (
+                  <h3 className={`font-semibold text-lg break-words ${(isClienteVitalicio && !showUpgradeConfirm) ? 'text-amber-500' : 'text-emerald-500'}`}>{selectedCliente.nome}</h3>
+                  {isClienteVitalicio && !showUpgradeConfirm && (
                     <div className="flex items-center gap-2">
                       <span className="px-2 py-0.5 text-xs font-medium bg-amber-500/20 text-amber-500 rounded-full">
                         {t('clients.registrationOnly')}
@@ -424,12 +424,19 @@ export default function AtualizarCliente() {
                         onClick={() => {
                           setNewDate(new Date().toISOString().split('T')[0]);
                           setShowUpgradeConfirm(true);
+                          setNewEditProduto(''); // Clear previous product to force re-selection
                         }}
                       >
                         <TrendingUp className="w-3 h-3 mr-1" />
                         Ativar Mensalidade (Recorrência)
                       </Button>
                     </div>
+                  )}
+                  {showUpgradeConfirm && (
+                    <span className="px-2 py-0.5 text-xs font-medium bg-emerald-500/20 text-emerald-500 rounded-full flex items-center gap-1 animate-pulse">
+                      <TrendingUp className="w-3 h-3" />
+                      Upgrade para Mensalidade
+                    </span>
                   )}
                 </div>
 
@@ -741,9 +748,9 @@ export default function AtualizarCliente() {
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-foreground">
-              {showUpgradeConfirm ? 'Ativar Cobrança Mensal?' : t('clients.confirmUpdate')}
+              {showUpgradeConfirm ? '⚠️ CONFIRMAR UPGRADE PARA MENSALIDADE' : t('clients.confirmUpdate')}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
+            <AlertDialogDescription className="text-muted-foreground font-medium">
               {showUpgradeConfirm 
                 ? `Você está transformando ${selectedCliente?.nome} em um cliente recorrente. A primeira mensalidade será cobrada em ${newDate ? formatDate(newDate) : ''}.`
                 : isClienteVitalicio 
