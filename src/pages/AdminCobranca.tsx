@@ -3488,7 +3488,7 @@ const AdminCobranca = () => {
                                       <Dialog>
                                         <DialogTrigger asChild>
                                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-primary">
-                                            <Globe className="h-4 w-4" />
+                                            <Search className="h-4 w-4" />
                                           </Button>
                                         </DialogTrigger>
                                         <DialogContent className="bg-card border-border">
