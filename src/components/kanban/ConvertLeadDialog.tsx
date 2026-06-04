@@ -118,7 +118,7 @@ export function ConvertLeadDialog({ open, onOpenChange, lead, onConvert }: Conve
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Data Renovação</Label>
-              <Input type="date" value={dataRenovacao} onChange={e => setDataRenovacao(e.target.value)} className="bg-secondary border-border" />
+              <Input type="date" value={dataRenovacao} onChange={e => setDataRenovacao(e.target.value)} className="bg-secondary border-border h-11" />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
