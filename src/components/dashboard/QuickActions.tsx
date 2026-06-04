@@ -8,13 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export function QuickActions() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { hasPermission } = usePermissions();
   const [clientSearchTerm, setClientSearchTerm] = useState("");
   const [clientSearchHistory, setClientSearchHistory] = useState<any[]>([]);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
+
+  const canViewHistory = hasPermission('view_billing_history_quick');
 
   const handleSearchClientHistory = async (e: React.FormEvent) => {
     e.preventDefault();
