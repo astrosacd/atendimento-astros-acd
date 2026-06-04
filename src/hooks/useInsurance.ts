@@ -69,7 +69,7 @@ export function useSetInsurancePaymentStatus() {
 }
 
 /**
- * Hook que implementa a lógica híbrida de Seguro e Hospedagem
+ * Hook que implementa a lógica de status de Hospedagem/Seguro
  */
 export function useInsurancePaymentStatusHybrid() {
   const { data: manualStatus = [] } = useInsurancePaymentStatus();
@@ -90,7 +90,7 @@ export function useInsurancePaymentStatusHybrid() {
         manualSet.set(row.baserow_row_id, row.status);
       });
 
-      // 1. Buscar clientes relevantes
+      // 1. Buscar TODOS os clientes que têm o produto de hospedagem ou seguro
       const { data: clientes, error: clientError } = await supabase
         .from("clientes")
         .select("id, nome, numero, produto, observacao, data_renovacao, plano")
@@ -98,7 +98,7 @@ export function useInsurancePaymentStatusHybrid() {
       
       if (clientError) throw clientError;
 
-      // 2. Buscar cache de números
+      // 2. Buscar cache de números para vincular o row_id
       const { data: numbersCache, error: cacheError } = await supabase
         .from("consulta_numeros_cache")
         .select("baserow_row_id, row_data");
@@ -127,17 +127,10 @@ export function useInsurancePaymentStatusHybrid() {
         if (n) cacheByNumber.set(n, c.baserow_row_id);
       });
 
-      // 3. Processar cada contrato individualmente
+      // 3. Vincular números aos clientes
       const linksByRow = new Map<number, { id: string; clientName: string; isPaid: boolean; produto: string | null; data_renovacao: string | null }[]>();
 
       clientes?.forEach(cliente => {
-        const isMonthly = cliente.plano?.toLowerCase().includes('mensal');
-        const isIndividual = cliente.plano?.toLowerCase().includes('individual');
-        const isAutoHosted = cliente.produto === 'Número Hospedado Conosco ( Auto-Hospedado )';
-        
-        // Se for auto-hospedado, o plano deve ser Individual ou Mensal
-        if (isAutoHosted && !isMonthly && !isIndividual) return;
-
         const isClientPaid = cliente.data_renovacao >= today;
         const numbersInObs = extractNumbers(cliente.observacao);
         const mainNumber = normalize(cliente.numero);
@@ -158,26 +151,23 @@ export function useInsurancePaymentStatusHybrid() {
         });
       });
 
-      // 4. Agregação Final: UM NÚMERO É PAGO SE HOUVER QUALQUER VÍNCULO PAGO NO SISTEMA
+      // 4. Decidir status: Prioridade TOTAL para o status PAGO
+      // Se um número está em 10 lugares, mas em 1 deles está pago, ele é PAGO (Ativa)
       linksByRow.forEach((links, rowId) => {
         if (manualSet.has(rowId)) return;
         
-        // Verifica se há QUALQUER link de hosp. ou seguro que esteja em dia
-        const anyPaidLink = links.some(l => l.isPaid);
+        const anyPaid = links.some(l => l.isPaid);
         
-        // Representante visual: prioriza o que está pago e tem a maior data de renovação
-        const sortedLinks = [...links].sort((a, b) => {
-          if (a.isPaid !== b.isPaid) return a.isPaid ? -1 : 1;
-          return (b.data_renovacao || '').localeCompare(a.data_renovacao || '');
-        });
-        
-        const representativeLink = sortedLinks[0];
-        const uniqueNames = Array.from(new Set(links.map(l => l.clientName)));
+        // Ordena para pegar o registro com a maior data de renovação como representante
+        const sortedLinks = [...links].sort((a, b) => 
+          (b.data_renovacao || '').localeCompare(a.data_renovacao || '')
+        );
+        const bestLink = links.find(l => l.isPaid) || sortedLinks[0];
         
         statusMap.set(rowId, {
-          status: anyPaidLink ? 'pago' : 'vencido',
-          clientName: representativeLink.clientName,
-          clientNames: uniqueNames,
+          status: anyPaid ? 'pago' : 'vencido',
+          clientName: bestLink.clientName,
+          clientNames: Array.from(new Set(links.map(l => l.clientName))),
           method: 'auto',
           links: links.map(l => ({ 
             id: l.id, 
@@ -192,17 +182,15 @@ export function useInsurancePaymentStatusHybrid() {
       // 5. Marcações manuais
       manualSet.forEach((status, rowId) => {
         const links = linksByRow.get(rowId);
-        const uniqueNames = links ? Array.from(new Set(links.map(l => l.clientName))) : undefined;
         statusMap.set(rowId, {
           status,
-          clientName: uniqueNames?.[0],
-          clientNames: uniqueNames,
+          clientName: links?.[0]?.clientName,
           method: 'manual',
           links: links?.map(l => ({ id: l.id, nome: l.clientName, produto: l.produto, data_renovacao: l.data_renovacao, isPaid: l.isPaid })),
         });
       });
       
-      // 6. Números com "COM SEGURO"
+      // 6. Números com "COM SEGURO" nas observações do cache
       numbersCache?.forEach(c => {
         const obs = String((c.row_data as any)?.observacoes || (c.row_data as any)?.observacao || "").toLowerCase();
         if (obs.includes("com seguro") && !statusMap.get(c.baserow_row_id)) {
