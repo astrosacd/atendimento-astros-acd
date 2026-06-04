@@ -449,7 +449,7 @@ export default function AtualizarCliente() {
                   <ProductSelector
                     value={newEditProduto}
                     onChange={setNewEditProduto}
-                    category={isClienteVitalicio ? 'registro' : 'mensal'}
+                    category={(isClienteVitalicio && !showUpgradeConfirm) ? 'registro' : 'mensal'}
                   />
                 </div>
               </div>
