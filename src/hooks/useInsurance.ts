@@ -163,6 +163,10 @@ export function useInsurancePaymentStatusHybrid() {
           const rowId = cacheByNumber.get(num);
           if (rowId !== undefined) {
             if (!linksByRow.has(rowId)) linksByRow.set(rowId, []);
+            
+            // Log para debug se necessário
+            console.log(`Vinculando número ${num} ao cliente ${cliente.nome}. Pago: ${isClientPaid}, Vencimento: ${cliente.data_renovacao}`);
+            
             linksByRow.get(rowId)!.push({ 
               id: cliente.id, 
               clientName: cliente.nome, 
@@ -174,17 +178,30 @@ export function useInsurancePaymentStatusHybrid() {
         });
       });
 
-      // 6. Decidir status: PAGO vence VENCIDO. Manual sempre vence.
+      // 6. Decidir status: Se houver QUALQUER vínculo pago, o número é PAGO.
+      // Se não houver nenhum pago mas houver vínculos, é VENCIDO.
       linksByRow.forEach((links, rowId) => {
-        if (manualSet.has(rowId)) return; // será adicionado abaixo
+        if (manualSet.has(rowId)) return;
+        
+        // Priorizamos o status PAGO se houver múltiplos vínculos
         const anyPaid = links.some(l => l.isPaid);
+        
+        // Pegamos o link mais relevante para mostrar a data (o pago, ou o primeiro se todos vencidos)
+        const representativeLink = links.find(l => l.isPaid) || links[0];
+        
         const uniqueNames = Array.from(new Set(links.map(l => l.clientName)));
         statusMap.set(rowId, {
           status: anyPaid ? 'pago' : 'vencido',
-          clientName: uniqueNames[0],
+          clientName: representativeLink.clientName,
           clientNames: uniqueNames,
           method: 'auto',
-          links: links.map(l => ({ id: l.id, nome: l.clientName, produto: l.produto, data_renovacao: l.data_renovacao, isPaid: l.isPaid })),
+          links: links.map(l => ({ 
+            id: l.id, 
+            nome: l.clientName, 
+            produto: l.produto, 
+            data_renovacao: l.data_renovacao, 
+            isPaid: l.isPaid 
+          })),
         });
       });
 
