@@ -1248,14 +1248,15 @@ const AdminCobranca = () => {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10">
-                    <Search className="w-4 h-4 mr-2" />
-                    Consultar Cliente
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+              {hasPermission('view_billing_history_quick') && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10">
+                      <Search className="w-4 h-4 mr-2" />
+                      Consultar Cliente
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                       <Search className="w-5 h-5 text-blue-400" />
