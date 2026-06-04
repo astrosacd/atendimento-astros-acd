@@ -98,7 +98,6 @@ export function useInsurancePaymentStatusHybrid() {
       });
 
       // 2. Buscar clientes com produtos relevantes (Seguro ou Auto-Hospedado)
-      // Buscamos todos para garantir que pegamos os vínculos, e a lógica de filtro por plano (mensal) é feita no loop abaixo
       const { data: clientes, error: clientError } = await supabase
         .from("clientes")
         .select("id, nome, numero, produto, observacao, data_renovacao, plano")
@@ -124,17 +123,14 @@ export function useInsurancePaymentStatusHybrid() {
         return n;
       };
 
-      // Extração ampla: pega QUALQUER sequência de 10-13 dígitos no texto,
-      // independente de separadores, vírgulas, quebras de linha ou prefixos.
       const extractNumbers = (text: string | null) => {
         if (!text) return [];
-        // Remove caracteres comuns de separação preservando dígitos
         const cleaned = text.replace(/[\s\-\(\)\.,;:\/]/g, ' ');
         const matches = cleaned.match(/\d{10,13}/g);
         return matches ? matches.map(normalize).filter(Boolean) : [];
       };
 
-      // 4. Indexar cache por número normalizado para lookup O(1)
+      // 4. Indexar cache por número normalizado
       const cacheByNumber = new Map<string, number>();
       numbersCache?.forEach(c => {
         const n = normalize((c.row_data as any)?.numero);
@@ -142,16 +138,14 @@ export function useInsurancePaymentStatusHybrid() {
       });
 
       // 5. Agregar TODOS os clientes vinculados a cada baserow_row_id
-      // (um número pode aparecer em múltiplos registros de cliente)
       const linksByRow = new Map<number, { id: string; clientName: string; isPaid: boolean; produto: string | null; data_renovacao: string | null }[]>();
 
       clientes?.forEach(cliente => {
         const isMonthly = cliente.plano?.toLowerCase().includes('mensal');
         const isIndividual = cliente.plano?.toLowerCase().includes('individual');
         const isAutoHosted = cliente.produto === 'Número Hospedado Conosco ( Auto-Hospedado )';
-        const isSeguro = cliente.produto === 'Seguro de Numeros Aquecidos';
         
-        // Se for auto-hospedado, aceitamos mensal OU individual
+        // Hospedagem: apenas planos Mensais ou Individuais
         if (isAutoHosted && !isMonthly && !isIndividual) return;
 
         const isClientPaid = cliente.data_renovacao >= today;
@@ -176,26 +170,33 @@ export function useInsurancePaymentStatusHybrid() {
         });
       });
 
-      // 6. Decidir status: Se houver QUALQUER vínculo pago para QUALQUER produto, o número é PAGO.
-      // Se houver vínculos mas TODOS estiverem vencidos, é VENCIDO.
+      // 6. Agregação por NOME de cliente: Se o cliente tem QUALQUER contrato pago,
+      // consideramos que ele está em dia no sistema.
+      const paidClients = new Set<string>();
+      clientes?.forEach(c => {
+        if (c.data_renovacao >= today) {
+          paidClients.add(c.nome);
+        }
+      });
+
+      // 7. Decidir status final para cada número
       linksByRow.forEach((links, rowId) => {
         if (manualSet.has(rowId)) return;
         
-        // Filtramos os links por produto para ver se há discrepância dentro do mesmo número
-        const seguroLinks = links.filter(l => l.produto === 'Seguro de Numeros Aquecidos');
-        const hospLinks = links.filter(l => l.produto === 'Número Hospedado Conosco ( Auto-Hospedado )');
-
-        // Se houver QUALQUER vínculo pago (seja seguro ou hospedagem), consideramos ATIVA
-        const anyPaid = links.some(l => l.isPaid);
+        // Um número é PAGO se QUALQUER cliente vinculado a ele tiver ALGUM contrato pago no sistema
+        const isAnyLinkPaidDirectly = links.some(l => l.isPaid);
+        const isAnyClientInPaidList = links.some(l => paidClients.has(l.clientName));
+        const finalIsPaid = isAnyLinkPaidDirectly || isAnyClientInPaidList;
         
-        // Escolhemos o link pago para ser o representante. Se houver mais de um, priorizamos Hospedagem.
-        const representativeLink = links.find(l => l.isPaid && l.produto === 'Número Hospedado Conosco ( Auto-Hospedado )')
-          || links.find(l => l.isPaid)
-          || links[0];
+        // Ordenamos links para pegar a maior data de renovação como representante
+        const sortedLinks = [...links].sort((a, b) => 
+          (b.data_renovacao || '').localeCompare(a.data_renovacao || '')
+        );
+        const representativeLink = links.find(l => l.isPaid) || sortedLinks[0];
         
         const uniqueNames = Array.from(new Set(links.map(l => l.clientName)));
         statusMap.set(rowId, {
-          status: anyPaid ? 'pago' : 'vencido',
+          status: finalIsPaid ? 'pago' : 'vencido',
           clientName: representativeLink.clientName,
           clientNames: uniqueNames,
           method: 'auto',
@@ -209,7 +210,7 @@ export function useInsurancePaymentStatusHybrid() {
         });
       });
 
-      // 7. Aplicar marcações manuais por cima
+      // 8. Aplicar marcações manuais
       manualSet.forEach((status, rowId) => {
         const links = linksByRow.get(rowId);
         const uniqueNames = links ? Array.from(new Set(links.map(l => l.clientName))) : undefined;
@@ -222,7 +223,7 @@ export function useInsurancePaymentStatusHybrid() {
         });
       });
       
-      // 8. Garantir que números marcados com "COM SEGURO" no cache apareçam mesmo sem vínculos no CRM
+      // 9. Garantir números com "COM SEGURO"
       numbersCache?.forEach(c => {
         const obs = String((c.row_data as any)?.observacoes || (c.row_data as any)?.observacao || "").toLowerCase();
         if (obs.includes("com seguro") && !statusMap.get(c.baserow_row_id)) {
