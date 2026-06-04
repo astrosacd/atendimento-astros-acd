@@ -173,6 +173,9 @@ const AdminCobranca = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [config, setConfig] = useState<BillingConfig>({});
   const [logs, setLogs] = useState<BillingLog[]>([]);
+  const [clientSearchHistory, setClientSearchHistory] = useState<BillingLog[]>([]);
+  const [isSearchingClient, setIsSearchingClient] = useState(false);
+  const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [stats, setStats] = useState({ total: 0, sent: 0, errors: 0, today: 0 });
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [selectedClientes, setSelectedClientes] = useState<string[]>([]);
@@ -499,27 +502,63 @@ const AdminCobranca = () => {
     try {
       const { error } = await supabase
         .from('billing_stripe_config')
-        .update({
-          stripe_secret_key: stripeConfig.stripe_secret_key,
-          stripe_tax_percent: stripeConfig.stripe_tax_percent,
-          stripe_enabled: stripeConfig.stripe_enabled,
-        })
-        .eq('id', (await supabase.from('billing_stripe_config').select('id').limit(1).single()).data?.id);
+        .upsert({
+          ...stripeConfig,
+          updated_at: new Date().toISOString(),
+        });
 
       if (error) throw error;
-
-      toast({
-        title: 'Configuração da Stripe salva!',
-        description: 'As configurações foram atualizadas com sucesso.',
-      });
+      toast({ title: 'Configurações Stripe salvas!' });
     } catch (error: any) {
-      toast({
-        title: 'Erro ao salvar',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast({ title: 'Erro ao salvar Stripe', description: error.message, variant: 'destructive' });
     } finally {
       setIsSavingStripe(false);
+    }
+  };
+
+  const handleSearchClientHistory = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!clientSearchTerm.trim()) return;
+
+    setIsSearchingClient(true);
+    try {
+      // Normalizar busca: se for número, tirar caracteres não numéricos
+      const isNumeric = /^\d+$/.test(clientSearchTerm.replace(/\D/g, ''));
+      const searchTerm = clientSearchTerm.trim();
+
+      let query = supabase
+        .from('billing_logs')
+        .select('*')
+        .order('sent_at', { ascending: false })
+        .limit(20);
+
+      if (isNumeric) {
+        const cleanPhone = searchTerm.replace(/\D/g, '');
+        query = query.or(`cliente_nome.ilike.%${searchTerm}%,cliente_numero.ilike.%${cleanPhone}%,cliente_email.ilike.%${searchTerm}%`);
+      } else {
+        query = query.or(`cliente_nome.ilike.%${searchTerm}%,cliente_email.ilike.%${searchTerm}%`);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      setClientSearchHistory(data || []);
+      
+      if (data && data.length === 0) {
+        toast({
+          title: "Nenhum resultado",
+          description: "Não encontramos histórico para este cliente.",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro na busca",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsSearchingClient(false);
     }
   };
 
@@ -1209,6 +1248,84 @@ const AdminCobranca = () => {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10">
+                    <Search className="w-4 h-4 mr-2" />
+                    Consultar Cliente
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Search className="w-5 h-5 text-blue-400" />
+                      Consulta Rápida de Histórico
+                    </DialogTitle>
+                    <DialogDescription>
+                      Busque por nome, e-mail ou telefone para ver o que foi enviado para o cliente.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <form onSubmit={handleSearchClientHistory} className="flex gap-2 mb-4">
+                    <Input 
+                      placeholder="Nome, e-mail ou telefone do cliente..." 
+                      value={clientSearchTerm}
+                      onChange={(e) => setClientSearchTerm(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button type="submit" disabled={isSearchingClient}>
+                      {isSearchingClient ? <Loader2 className="w-4 h-4 animate-spin" /> : "Buscar"}
+                    </Button>
+                  </form>
+
+                  <div className="flex-1 overflow-y-auto rounded-lg border">
+                    <Table>
+                      <TableHeader className="sticky top-0 bg-card">
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Produto</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {clientSearchHistory.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                              {clientSearchTerm ? "Nenhum histórico encontrado para este termo." : "Digite um termo e clique em buscar."}
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          clientSearchHistory.map((log) => (
+                            <TableRow key={log.id}>
+                              <TableCell className="text-xs">
+                                {new Date(log.sent_at).toLocaleString('pt-BR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </TableCell>
+                              <TableCell className="text-sm font-medium">
+                                {log.cliente_produto || '-'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-[10px] h-5">
+                                  {getMessageTypeLabel(log.message_type)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {getStatusBadge(log.status, log.resolution)}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               <Dialog open={isManualDialogOpen} onOpenChange={setIsManualDialogOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10">
