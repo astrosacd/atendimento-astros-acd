@@ -2321,6 +2321,9 @@ export default function ConsultaNumeros() {
                           <SelectValue placeholder={`Selecione ${field.name}`} />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="__placeholder__" disabled className="text-muted-foreground opacity-50 italic">
+                            Escolha uma opção...
+                          </SelectItem>
                           {field.select_options.map((opt) => (
                             <SelectItem key={opt.id} value={opt.value}>{opt.value}</SelectItem>
                           ))}
