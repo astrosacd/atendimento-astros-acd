@@ -1309,38 +1309,40 @@ export default function ConsultarCliente() {
 
         {/* Quick Edit Confirmation Dialog */}
         <AlertDialog open={showEditConfirm} onOpenChange={setShowEditConfirm}>
-          <AlertDialogContent className="bg-card border-border">
+          <AlertDialogContent className="bg-card border-border max-w-lg w-[95vw]">
             <AlertDialogHeader>
               <AlertDialogTitle className="text-foreground">Confirmar Alterações?</AlertDialogTitle>
               <AlertDialogDescription className="space-y-3">
                 <p className="text-muted-foreground">Você está alterando as informações de <strong>{editingCliente?.nome}</strong>. Confira o que mudou:</p>
-                <div className="bg-secondary/50 p-3 rounded-lg border border-border space-y-2 text-xs">
+                <div className="bg-secondary/50 p-3 rounded-lg border border-border space-y-3 text-xs overflow-hidden">
                   {editingCliente?.email !== editEmail && (
                     <div className="flex flex-col gap-0.5">
-                      <span className="font-bold text-update uppercase">E-mail:</span>
-                      <span className="text-muted-foreground line-through">{editingCliente?.email || '(vazio)'}</span>
-                      <span className="text-foreground">➜ {editEmail || '(vazio)'}</span>
+                      <span className="font-bold text-update uppercase tracking-wider">E-mail:</span>
+                      <span className="text-muted-foreground line-through break-all">{editingCliente?.email || '(vazio)'}</span>
+                      <span className="text-foreground break-all font-medium text-sm">➜ {editEmail || '(vazio)'}</span>
                     </div>
                   )}
                   {editingCliente?.numero !== editNumero && (
                     <div className="flex flex-col gap-0.5">
-                      <span className="font-bold text-update uppercase">Telefone:</span>
+                      <span className="font-bold text-update uppercase tracking-wider">Telefone:</span>
                       <span className="text-muted-foreground line-through">{editingCliente?.numero || '(vazio)'}</span>
-                      <span className="text-foreground">➜ {editNumero || '(vazio)'}</span>
+                      <span className="text-foreground font-medium text-sm">➜ {editNumero || '(vazio)'}</span>
                     </div>
                   )}
                   {editingCliente?.produto !== editProduto && (
                     <div className="flex flex-col gap-0.5">
-                      <span className="font-bold text-update uppercase">Produto:</span>
-                      <span className="text-muted-foreground line-through">{editingCliente?.produto || '(vazio)'}</span>
-                      <span className="text-foreground">➜ {editProduto || '(vazio)'}</span>
+                      <span className="font-bold text-update uppercase tracking-wider">Produto:</span>
+                      <span className="text-muted-foreground line-through break-words">{editingCliente?.produto || '(vazio)'}</span>
+                      <span className="text-foreground break-words font-medium text-sm">➜ {editProduto || '(vazio)'}</span>
                     </div>
                   )}
                   {(editingCliente?.observacao || '') !== editObservacao && (
                     <div className="flex flex-col gap-0.5">
-                      <span className="font-bold text-update uppercase">Observações:</span>
-                      <span className="text-muted-foreground line-through truncate max-w-full block">{editingCliente?.observacao || '(vazio)'}</span>
-                      <span className="text-foreground truncate max-w-full block">➜ {editObservacao || '(vazio)'}</span>
+                      <span className="font-bold text-update uppercase tracking-wider">Observações:</span>
+                      <div className="max-h-[120px] overflow-y-auto pr-2 space-y-1 mt-1 scrollbar-thin">
+                        <span className="text-muted-foreground line-through block italic text-[11px] leading-relaxed break-words whitespace-pre-wrap">{editingCliente?.observacao || '(vazio)'}</span>
+                        <span className="text-foreground block font-medium leading-relaxed break-words whitespace-pre-wrap">➜ {editObservacao || '(vazio)'}</span>
+                      </div>
                     </div>
                   )}
                 </div>
