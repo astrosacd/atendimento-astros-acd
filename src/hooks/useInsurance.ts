@@ -102,7 +102,7 @@ export function useInsurancePaymentStatusHybrid() {
       const { data: clientes, error: clientError } = await supabase
         .from("clientes")
         .select("id, nome, numero, produto, observacao, data_renovacao, plano")
-        .or('produto.eq."Seguro de Numeros Aquecidos",and(produto.eq."Número Hospedado Conosco ( Auto-Hospedado )",plano.ilike.%Mensal%))');
+        .or('produto.eq."Seguro de Numeros Aquecidos",produto.eq."Número Hospedado Conosco ( Auto-Hospedado )"');
       
       if (clientError) throw clientError;
 
@@ -146,6 +146,12 @@ export function useInsurancePaymentStatusHybrid() {
       const linksByRow = new Map<number, { id: string; clientName: string; isPaid: boolean; produto: string | null; data_renovacao: string | null }[]>();
 
       clientes?.forEach(cliente => {
+        const isMonthly = cliente.plano?.toLowerCase().includes('mensal');
+        const isAutoHosted = cliente.produto === 'Número Hospedado Conosco ( Auto-Hospedado )';
+        
+        // Se for auto-hospedado, só consideramos se for mensal
+        if (isAutoHosted && !isMonthly) return;
+
         const isClientPaid = cliente.data_renovacao >= today;
         const numbersInObs = extractNumbers(cliente.observacao);
         const mainNumber = normalize(cliente.numero);
