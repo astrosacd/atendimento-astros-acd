@@ -825,6 +825,15 @@ export default function ConsultarCliente() {
                                         <span>Histórico de compras</span>
                                       </DropdownMenuItem>
                                     )}
+                                    {cliente.cobranca_ativa === false && (
+                                      <DropdownMenuItem
+                                        onClick={() => navigate(`/atualizar?id=${cliente.id}`)}
+                                        className="gap-2"
+                                      >
+                                        <TrendingUp className="h-4 w-4 text-emerald-500" />
+                                        <span>Ativar Mensalidade (Recorrência)</span>
+                                      </DropdownMenuItem>
+                                    )}
                                   </>
                                 )}
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSystemActivities } from '@/hooks/useSystemActivities';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useClientes, Cliente, CicloCobranca, Moeda } from '@/hooks/useClientes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +34,7 @@ import { useTranslation } from 'react-i18next';
 
 export default function AtualizarCliente() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { t } = useTranslation();
   const { logActivity } = useSystemActivities();
   const { searchCliente, updateCliente, isLoading } = useClientes();
@@ -105,6 +106,23 @@ export default function AtualizarCliente() {
     setSearchResults(results);
     setSearchPerformed(true);
   };
+
+  useEffect(() => {
+    const id = searchParams.get('id');
+    if (id) {
+      const loadCliente = async () => {
+        const { data } = await supabase
+          .from('clientes')
+          .select('*')
+          .eq('id', id)
+          .single();
+        if (data) {
+          handleSelectCliente(data as Cliente);
+        }
+      };
+      loadCliente();
+    }
+  }, [searchParams]);
 
   const handleSelectCliente = (cliente: Cliente) => {
     const planoNormalizado = normalizePlano(cliente.plano);
