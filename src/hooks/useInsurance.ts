@@ -69,12 +69,7 @@ export function useSetInsurancePaymentStatus() {
 }
 
 /**
- * Hook que implementa a lógica híbrida:
- * 1. Pega marcações manuais do mês corrente
- * 2. Busca clientes que possuem "Seguro" no produto ou observação
- * 3. Extrai números da observação desses clientes
- * 4. Define o status como 'pago' se o cliente estiver em dia (data_renovacao >= hoje)
- * 5. Marcações manuais sempre prevalecem sobre a detecção automática
+ * Hook que implementa a lógica híbrida de Seguro e Hospedagem
  */
 export function useInsurancePaymentStatusHybrid() {
   const { data: manualStatus = [] } = useInsurancePaymentStatus();
@@ -82,7 +77,6 @@ export function useInsurancePaymentStatusHybrid() {
   return useQuery({
     queryKey: ["qr-scan-insurance-payment-status-hybrid", manualStatus],
     queryFn: async () => {
-      // 1. Mapa final de status
       const statusMap = new Map<number, { 
         status: InsurancePaymentStatus; 
         clientName?: string; 
@@ -91,13 +85,12 @@ export function useInsurancePaymentStatusHybrid() {
         links?: { id: string; nome: string; produto: string | null; data_renovacao: string | null; isPaid: boolean }[];
       }>();
 
-      // Marcações manuais (sempre prevalecem)
       const manualSet = new Map<number, InsurancePaymentStatus>();
       manualStatus.forEach(row => {
         manualSet.set(row.baserow_row_id, row.status);
       });
 
-      // 2. Buscar clientes com produtos relevantes (Seguro ou Auto-Hospedado)
+      // 1. Buscar clientes relevantes
       const { data: clientes, error: clientError } = await supabase
         .from("clientes")
         .select("id, nome, numero, produto, observacao, data_renovacao, plano")
@@ -105,7 +98,7 @@ export function useInsurancePaymentStatusHybrid() {
       
       if (clientError) throw clientError;
 
-      // 3. Buscar cache de números
+      // 2. Buscar cache de números
       const { data: numbersCache, error: cacheError } = await supabase
         .from("consulta_numeros_cache")
         .select("baserow_row_id, row_data");
@@ -117,9 +110,7 @@ export function useInsurancePaymentStatusHybrid() {
       const normalize = (num: string | null | undefined) => {
         if (!num) return '';
         let n = String(num).replace(/\D/g, '');
-        if (n.startsWith('55') && n.length > 11) {
-          n = n.substring(2);
-        }
+        if (n.startsWith('55') && n.length > 11) n = n.substring(2);
         return n;
       };
 
@@ -130,14 +121,13 @@ export function useInsurancePaymentStatusHybrid() {
         return matches ? matches.map(normalize).filter(Boolean) : [];
       };
 
-      // 4. Indexar cache por número normalizado
       const cacheByNumber = new Map<string, number>();
       numbersCache?.forEach(c => {
         const n = normalize((c.row_data as any)?.numero);
         if (n) cacheByNumber.set(n, c.baserow_row_id);
       });
 
-      // 5. Agregar TODOS os clientes vinculados a cada baserow_row_id
+      // 3. Processar cada contrato individualmente
       const linksByRow = new Map<number, { id: string; clientName: string; isPaid: boolean; produto: string | null; data_renovacao: string | null }[]>();
 
       clientes?.forEach(cliente => {
@@ -145,20 +135,18 @@ export function useInsurancePaymentStatusHybrid() {
         const isIndividual = cliente.plano?.toLowerCase().includes('individual');
         const isAutoHosted = cliente.produto === 'Número Hospedado Conosco ( Auto-Hospedado )';
         
-        // Hospedagem: apenas planos Mensais ou Individuais
+        // Regra para auto-hospedado (upgrade solicitado)
         if (isAutoHosted && !isMonthly && !isIndividual) return;
 
         const isClientPaid = cliente.data_renovacao >= today;
         const numbersInObs = extractNumbers(cliente.observacao);
         const mainNumber = normalize(cliente.numero);
-
         const allNumbers = new Set<string>([...numbersInObs, mainNumber].filter(Boolean));
 
         allNumbers.forEach(num => {
           const rowId = cacheByNumber.get(num);
           if (rowId !== undefined) {
             if (!linksByRow.has(rowId)) linksByRow.set(rowId, []);
-            
             linksByRow.get(rowId)!.push({ 
               id: cliente.id, 
               clientName: cliente.nome, 
@@ -170,33 +158,21 @@ export function useInsurancePaymentStatusHybrid() {
         });
       });
 
-      // 6. Agregação por NOME de cliente: Se o cliente tem QUALQUER contrato pago,
-      // consideramos que ele está em dia no sistema.
-      const paidClients = new Set<string>();
-      clientes?.forEach(c => {
-        if (c.data_renovacao >= today) {
-          paidClients.add(c.nome);
-        }
-      });
-
-      // 7. Decidir status final para cada número
+      // 4. Agregação Final: Um número é PAGO se houver pelo menos um vínculo com data_renovacao >= hoje
       linksByRow.forEach((links, rowId) => {
         if (manualSet.has(rowId)) return;
         
-        // Um número é PAGO se QUALQUER cliente vinculado a ele tiver ALGUM contrato pago no sistema
-        const isAnyLinkPaidDirectly = links.some(l => l.isPaid);
-        const isAnyClientInPaidList = links.some(l => paidClients.has(l.clientName));
-        const finalIsPaid = isAnyLinkPaidDirectly || isAnyClientInPaidList;
+        const anyPaidLink = links.some(l => l.isPaid);
         
-        // Ordenamos links para pegar a maior data de renovação como representante
-        const sortedLinks = [...links].sort((a, b) => 
-          (b.data_renovacao || '').localeCompare(a.data_renovacao || '')
-        );
-        const representativeLink = links.find(l => l.isPaid) || sortedLinks[0];
+        // Representante: prioriza o que está pago e tem a maior data de renovação
+        const representativeLink = [...links].sort((a, b) => {
+          if (a.isPaid !== b.isPaid) return a.isPaid ? -1 : 1;
+          return (b.data_renovacao || '').localeCompare(a.data_renovacao || '');
+        })[0];
         
         const uniqueNames = Array.from(new Set(links.map(l => l.clientName)));
         statusMap.set(rowId, {
-          status: finalIsPaid ? 'pago' : 'vencido',
+          status: anyPaidLink ? 'pago' : 'vencido',
           clientName: representativeLink.clientName,
           clientNames: uniqueNames,
           method: 'auto',
@@ -210,7 +186,7 @@ export function useInsurancePaymentStatusHybrid() {
         });
       });
 
-      // 8. Aplicar marcações manuais
+      // 5. Marcações manuais
       manualSet.forEach((status, rowId) => {
         const links = linksByRow.get(rowId);
         const uniqueNames = links ? Array.from(new Set(links.map(l => l.clientName))) : undefined;
@@ -223,7 +199,7 @@ export function useInsurancePaymentStatusHybrid() {
         });
       });
       
-      // 9. Garantir números com "COM SEGURO"
+      // 6. Números com "COM SEGURO"
       numbersCache?.forEach(c => {
         const obs = String((c.row_data as any)?.observacoes || (c.row_data as any)?.observacao || "").toLowerCase();
         if (obs.includes("com seguro") && !statusMap.get(c.baserow_row_id)) {
