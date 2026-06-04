@@ -3483,6 +3483,33 @@ const AdminCobranca = () => {
                                       <span className="text-muted-foreground">-</span>
                                     )}
                                   </TableCell>
+                                  <TableCell className="text-center">
+                                    {log.cliente_observacoes && (
+                                      <Dialog>
+                                        <DialogTrigger asChild>
+                                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-primary">
+                                            <Globe className="h-4 w-4" />
+                                          </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="bg-card border-border">
+                                          <DialogHeader>
+                                            <DialogTitle className="flex items-center gap-2">
+                                              <Info className="h-5 w-5 text-primary" />
+                                              Observações do Cliente
+                                            </DialogTitle>
+                                            <DialogDescription>
+                                              {log.cliente_nome}
+                                            </DialogDescription>
+                                          </DialogHeader>
+                                          <div className="mt-4 p-4 rounded-lg bg-muted/50 border border-border">
+                                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                                              {log.cliente_observacoes}
+                                            </p>
+                                          </div>
+                                        </DialogContent>
+                                      </Dialog>
+                                    )}
+                                  </TableCell>
                                   <TableCell>
                                     <div className="flex items-center gap-2 flex-wrap">
                                       {log.status === 'error' && !log.resolution && (
