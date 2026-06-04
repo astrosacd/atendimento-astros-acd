@@ -136,12 +136,19 @@ export function useInsurancePaymentStatusHybrid() {
         const isClientPaid = cliente.data_renovacao >= today;
         const numbersInObs = extractNumbers(cliente.observacao);
         const mainNumber = normalize(cliente.numero);
+        
+        // Se o número principal do cliente (o que está no campo 'numero') também estiver no cache, 
+        // ele deve ser vinculado. Mas nos seus exemplos, o número relevante está na observação.
         const allNumbers = new Set<string>([...numbersInObs, mainNumber].filter(Boolean));
 
         allNumbers.forEach(num => {
           const rowId = cacheByNumber.get(num);
           if (rowId !== undefined) {
             if (!linksByRow.has(rowId)) linksByRow.set(rowId, []);
+            
+            // Log para debug interno (não visível ao usuário)
+            // console.log(`Vinculando row ${rowId} (num ${num}) ao cliente ${cliente.nome} (${cliente.produto}) - Pago: ${isClientPaid} (${cliente.data_renovacao})`);
+            
             linksByRow.get(rowId)!.push({ 
               id: cliente.id, 
               clientName: cliente.nome, 
