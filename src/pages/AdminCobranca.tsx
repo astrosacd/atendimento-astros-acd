@@ -3437,7 +3437,7 @@ const AdminCobranca = () => {
                           <TableBody>
                             {filteredLogs.length === 0 ? (
                               <TableRow>
-                                <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                                <TableCell colSpan={10} className="text-center text-muted-foreground py-10">
                                   <History className="w-8 h-8 mx-auto mb-2 opacity-50" />
                                   Nenhum registro encontrado com os filtros aplicados
                                 </TableCell>
