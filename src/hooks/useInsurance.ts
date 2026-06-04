@@ -161,9 +161,13 @@ export function useInsurancePaymentStatusHybrid() {
         });
       });
 
-      // 4. Decidir status: Regra de prioridade pela data mais recente
-      // Se um número aparece em vários cadastros, o sistema assume que o contrato 
-      // com a maior data de renovação (mais futura) é o vínculo atual e válido.
+      // 4. Decidir status: Regra de prioridade pelo contrato mais recente GLOBALMENTE
+      // Primeiro, identificamos qual é o registro mais recente para CADA NÚMERO
+      // e ignoramos registros antigos se houver um mais novo para aquele mesmo número.
+      // Além disso, se o número NÃO estiver no registro mais recente do CLIENTE (Fernando),
+      // mas estiver em um registro antigo dele, ele deve ser ignorado pois o Fernando 
+      // renovou o contrato e removeu esses números.
+      
       linksByRow.forEach((links, rowId) => {
         if (manualSet.has(rowId)) return;
         
@@ -173,9 +177,29 @@ export function useInsurancePaymentStatusHybrid() {
         );
         
         const bestLink = sortedLinks[0]; // O link mais recente/futuro
+        
+        // REGRA CRUCIAL: Se o registro mais recente do cliente X não contém esse número,
+        // mas um registro antigo do mesmo cliente X contém, o sistema estava mostrando "Vencido".
+        // Vamos buscar se para esse CLIENTE existe um registro mais novo que NÃO inclui este número.
+        const clientLatestRenewals = new Map<string, string>();
+        clientes?.forEach(c => {
+          const currentMax = clientLatestRenewals.get(c.nome) || '';
+          if ((c.data_renovacao || '') > currentMax) {
+            clientLatestRenewals.set(c.nome, c.data_renovacao || '');
+          }
+        });
+
+        // Se o bestLink for de um cliente que já tem um contrato mais novo (data_renovacao maior),
+        // então este número foi "abandonado" ou removido do contrato atual.
+        const latestDateForThisClient = clientLatestRenewals.get(bestLink.clientName);
+        if (latestDateForThisClient && (bestLink.data_renovacao || '') < latestDateForThisClient) {
+          // O número pertence a um contrato antigo e o cliente já renovou com outros números.
+          // Portanto, este vínculo não deve ser considerado para gerar status de "Vencido".
+          return;
+        }
+
         const isPaid = (bestLink.data_renovacao || '') >= today;
         
-        // SÓ adicionamos ao statusMap se houver links REAIS com clientes
         if (links.length > 0) {
           statusMap.set(rowId, {
             status: isPaid ? 'pago' : 'vencido',
