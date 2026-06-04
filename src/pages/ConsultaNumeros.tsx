@@ -718,8 +718,8 @@ export default function ConsultaNumeros() {
     if (type === 'externo') {
       // Para número externo, observações já vem preenchido
       initialValues['observacoes'] = 'Numero Externo';
-      // Para número externo, excluido_da_base vai com "EM ANÁLISE PELA META" por padrão
-      initialValues['excluido_da_base'] = 'EM ANÁLISE PELA META';
+      // Para número externo, excluido_da_base não vem pré-marcado
+      initialValues['excluido_da_base'] = '';
     }
     
     setNewValues(initialValues);
@@ -2241,6 +2241,14 @@ export default function ConsultaNumeros() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Highlight number if this is a registration being forced from a sale-like context or if we just want it prominent */}
+            {newValues[visibleFields.find(f => f.name.toLowerCase().includes('numero'))?.name || 'numero'] && (
+              <div className="p-4 rounded-lg bg-primary/10 border border-primary/20 text-center space-y-1">
+                <p className="text-xs font-semibold text-primary uppercase tracking-widest">Número sendo cadastrado</p>
+                <p className="text-2xl font-bold font-mono text-primary">{newValues[visibleFields.find(f => f.name.toLowerCase().includes('numero'))?.name || 'numero']}</p>
+              </div>
+            )}
+
             {visibleFields
               .filter((field) => !hiddenCreateFields.has(field.name.toLowerCase()))
               .map((field) => {
@@ -2306,13 +2314,17 @@ export default function ConsultaNumeros() {
                     <Label>{field.name} {field.primary && '*'}</Label>
                     {field.type === 'single_select' && field.select_options ? (
                       <Select 
-                        value={newValues[field.name] || ''} 
+                        value={newValues[field.name] || '__placeholder__'} 
+
                         onValueChange={(val) => setNewValues(prev => ({ ...prev, [field.name]: val }))}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder={`Selecione ${field.name}`} />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="__placeholder__" disabled className="text-muted-foreground opacity-50 italic">
+                            Escolha uma opção...
+                          </SelectItem>
                           {field.select_options.map((opt) => (
                             <SelectItem key={opt.id} value={opt.value}>{opt.value}</SelectItem>
                           ))}
