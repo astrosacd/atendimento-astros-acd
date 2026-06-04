@@ -678,9 +678,9 @@ export function QrScansTab() {
                           <TableCell>
                             {!temSeguro ? (
                               <Badge variant="outline" className="opacity-50">Sem seguro</Badge>
-                            ) : !seguroPago ? (
-                              <Badge variant="destructive" className="gap-1">
-                                <ShieldAlert className="h-3 w-3" /> Vencido
+                            ) : (!seguroPago || !segPayData) ? (
+                              <Badge variant="outline" className="opacity-70 bg-muted/30 border-dashed">
+                                ❌ Não vinculado
                               </Badge>
                             ) : (
                               <Badge variant={usedInsuranceThisMonth ? "destructive" : "default"} className="gap-1">
