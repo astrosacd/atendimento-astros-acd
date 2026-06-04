@@ -162,14 +162,16 @@ export function useInsurancePaymentStatusHybrid() {
       linksByRow.forEach((links, rowId) => {
         if (manualSet.has(rowId)) return;
         
-        // Verifica se há QUALQUER link que esteja em dia
+        // Verifica se há QUALQUER link de hosp. ou seguro que esteja em dia
         const anyPaidLink = links.some(l => l.isPaid);
         
-        // Encontra o link representante
-        const sortedByDate = [...links].sort((a, b) => 
-          (b.data_renovacao || '').localeCompare(a.data_renovacao || '')
-        );
-        const representativeLink = links.find(l => l.isPaid) || sortedByDate[0];
+        // Representante visual: prioriza o que está pago e tem a maior data de renovação
+        const sortedLinks = [...links].sort((a, b) => {
+          if (a.isPaid !== b.isPaid) return a.isPaid ? -1 : 1;
+          return (b.data_renovacao || '').localeCompare(a.data_renovacao || '');
+        });
+        
+        const representativeLink = sortedLinks[0];
         const uniqueNames = Array.from(new Set(links.map(l => l.clientName)));
         
         statusMap.set(rowId, {
