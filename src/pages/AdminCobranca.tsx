@@ -81,6 +81,8 @@ interface BillingLog {
   cliente_nome: string;
   cliente_email: string;
   cliente_numero: string;
+  cliente_produto?: string;
+  cliente_observacoes?: string;
   message_type: string;
   channel: string;
   status: string;
@@ -3423,17 +3425,19 @@ const AdminCobranca = () => {
                               <TableHead className="w-[160px]">Data/Hora</TableHead>
                               <TableHead>Cliente</TableHead>
                               <TableHead className="hidden md:table-cell">Contato</TableHead>
+                              <TableHead className="hidden lg:table-cell">Produto</TableHead>
                               <TableHead className="w-[80px]">Tipo</TableHead>
                               <TableHead className="w-[100px]">Canal</TableHead>
                               <TableHead className="w-[100px]">Status</TableHead>
                               <TableHead className="hidden lg:table-cell">Detalhes</TableHead>
+                              <TableHead className="w-[40px]"></TableHead>
                               <TableHead className="w-[100px]">Ações</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {filteredLogs.length === 0 ? (
                               <TableRow>
-                                <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                                <TableCell colSpan={10} className="text-center text-muted-foreground py-10">
                                   <History className="w-8 h-8 mx-auto mb-2 opacity-50" />
                                   Nenhum registro encontrado com os filtros aplicados
                                 </TableCell>
@@ -3456,6 +3460,9 @@ const AdminCobranca = () => {
                                   <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                                     {log.channel === 'email' ? log.cliente_email : log.cliente_numero}
                                   </TableCell>
+                                  <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+                                    {log.cliente_produto || '-'}
+                                  </TableCell>
                                   <TableCell>
                                     <Badge variant="outline" className="text-xs">
                                       {getMessageTypeLabel(log.message_type)}
@@ -3474,6 +3481,33 @@ const AdminCobranca = () => {
                                       </span>
                                     ) : (
                                       <span className="text-muted-foreground">-</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    {log.cliente_observacoes && (
+                                      <Dialog>
+                                        <DialogTrigger asChild>
+                                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-primary">
+                                            <Globe className="h-4 w-4" />
+                                          </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="bg-card border-border">
+                                          <DialogHeader>
+                                            <DialogTitle className="flex items-center gap-2">
+                                              <Info className="h-5 w-5 text-primary" />
+                                              Observações do Cliente
+                                            </DialogTitle>
+                                            <DialogDescription>
+                                              {log.cliente_nome}
+                                            </DialogDescription>
+                                          </DialogHeader>
+                                          <div className="mt-4 p-4 rounded-lg bg-muted/50 border border-border">
+                                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                                              {log.cliente_observacoes}
+                                            </p>
+                                          </div>
+                                        </DialogContent>
+                                      </Dialog>
                                     )}
                                   </TableCell>
                                   <TableCell>
