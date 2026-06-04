@@ -90,11 +90,11 @@ export function useInsurancePaymentStatusHybrid() {
         manualSet.set(row.baserow_row_id, row.status);
       });
 
-      // 1. Buscar TODOS os clientes que têm o produto de hospedagem auto-hospedado
+      // 1. Buscar TODOS os clientes que têm produtos de hospedagem ou seguro
       const { data: clientes, error: clientError } = await supabase
         .from("clientes")
         .select("id, nome, numero, produto, observacao, data_renovacao, plano")
-        .eq('produto', 'Número Hospedado Conosco ( Auto-Hospedado )');
+        .or('produto.eq."Seguro de Numeros Aquecidos",produto.eq."Número Hospedado Conosco ( Auto-Hospedado )"');
       
       if (clientError) throw clientError;
 
@@ -136,12 +136,19 @@ export function useInsurancePaymentStatusHybrid() {
         const isClientPaid = cliente.data_renovacao >= today;
         const numbersInObs = extractNumbers(cliente.observacao);
         const mainNumber = normalize(cliente.numero);
+        
+        // Se o número principal do cliente (o que está no campo 'numero') também estiver no cache, 
+        // ele deve ser vinculado. Mas nos seus exemplos, o número relevante está na observação.
         const allNumbers = new Set<string>([...numbersInObs, mainNumber].filter(Boolean));
 
         allNumbers.forEach(num => {
           const rowId = cacheByNumber.get(num);
           if (rowId !== undefined) {
             if (!linksByRow.has(rowId)) linksByRow.set(rowId, []);
+            
+            // Log para debug interno (não visível ao usuário)
+            // console.log(`Vinculando row ${rowId} (num ${num}) ao cliente ${cliente.nome} (${cliente.produto}) - Pago: ${isClientPaid} (${cliente.data_renovacao})`);
+            
             linksByRow.get(rowId)!.push({ 
               id: cliente.id, 
               clientName: cliente.nome, 

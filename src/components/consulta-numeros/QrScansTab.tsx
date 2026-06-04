@@ -613,15 +613,22 @@ export function QrScansTab() {
                                hDate.getUTCFullYear() === now.getUTCFullYear();
                       });
                       const segPayData = payStatusMap.get(n.baserow_row_id);
-                      const seguroPago = segPayData?.status === "pago";
                       
                       const hospLinks = segPayData?.links?.filter(l => 
                         l.produto === "Número Hospedado Conosco ( Auto-Hospedado )"
                       ) || [];
                       
+                      const insuranceLinks = segPayData?.links?.filter(l => 
+                        l.produto === "Seguro de Numeros Aquecidos"
+                      ) || [];
+                      
                       const hospedagemAtiva = hospLinks.some(l => l.isPaid);
                       const hospPayData = hospLinks.find(l => l.isPaid) || [...hospLinks].sort((a, b) => (b.data_renovacao || '').localeCompare(a.data_renovacao || ''))[0];
                       const temHospedagemLink = !!hospPayData;
+
+                      const seguroAtivo = insuranceLinks.some(l => l.isPaid);
+                      const seguroPayData = insuranceLinks.find(l => l.isPaid) || [...insuranceLinks].sort((a, b) => (b.data_renovacao || '').localeCompare(a.data_renovacao || ''))[0];
+                      const temSeguroLink = !!seguroPayData;
 
                       return (
                         <TableRow key={n.baserow_row_id}>
@@ -678,7 +685,7 @@ export function QrScansTab() {
                           <TableCell>
                             {!temSeguro ? (
                               <Badge variant="outline" className="opacity-50">Sem seguro</Badge>
-                            ) : (!seguroPago || !segPayData) ? (
+                            ) : !temSeguroLink ? (
                               <Badge variant="outline" className="opacity-70 bg-muted/30 border-dashed">
                                 ❌ Não vinculado
                               </Badge>
@@ -747,7 +754,7 @@ export function QrScansTab() {
                                   </Button>
                                 );
                               })()}
-                              {temSeguro && seguroPago && !usedInsuranceThisMonth && (
+                              {temSeguro && temSeguroLink && !usedInsuranceThisMonth && (
                                 <Button
                                   size="sm"
                                   variant="outline"
