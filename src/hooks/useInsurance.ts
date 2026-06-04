@@ -165,7 +165,7 @@ export function useInsurancePaymentStatusHybrid() {
       linksByRow.forEach((links, rowId) => {
         if (manualSet.has(rowId)) return;
         
-        const anyPaid = links.some(l => l.isPaid);
+        
         
         // Ordena para pegar o registro com a MAIOR data de renovação como representante
         // Isso garante que se o cliente renovou, pegamos a data mais futura (Ativa)
