@@ -166,6 +166,7 @@ const AdminCobranca = () => {
     canViewCobrancaRecibo,
     canViewCobrancaRelatorios,
     canViewCobrancaLogs,
+    hasPermission
   } = usePermissions();
   const { checkPaymentStatus, getPaymentStats, isLoading: isCheckingPayments } = usePaymentStatus();
   const [isLoading, setIsLoading] = useState(false);
@@ -1248,111 +1249,113 @@ const AdminCobranca = () => {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10">
-                    <Search className="w-4 h-4 mr-2" />
-                    Consultar Cliente
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <Search className="w-5 h-5 text-blue-400" />
-                      Consulta Rápida de Histórico
-                    </DialogTitle>
-                    <DialogDescription>
-                      Busque por nome, e-mail ou telefone para ver o que foi enviado para o cliente.
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <form onSubmit={handleSearchClientHistory} className="flex gap-2 mb-4">
-                    <Input 
-                      placeholder="Nome, e-mail ou telefone do cliente..." 
-                      value={clientSearchTerm}
-                      onChange={(e) => setClientSearchTerm(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button type="submit" disabled={isSearchingClient}>
-                      {isSearchingClient ? <Loader2 className="w-4 h-4 animate-spin" /> : "Buscar"}
+              {hasPermission('view_billing_history_quick') && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10">
+                      <Search className="w-4 h-4 mr-2" />
+                      Consultar Cliente
                     </Button>
-                  </form>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Search className="w-5 h-5 text-blue-400" />
+                        Consulta Rápida de Histórico
+                      </DialogTitle>
+                      <DialogDescription>
+                        Busque por nome, e-mail ou telefone para ver o que foi enviado para o cliente.
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <form onSubmit={handleSearchClientHistory} className="flex gap-2 mb-4">
+                      <Input 
+                        placeholder="Nome, e-mail ou telefone do cliente..." 
+                        value={clientSearchTerm}
+                        onChange={(e) => setClientSearchTerm(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button type="submit" disabled={isSearchingClient}>
+                        {isSearchingClient ? <Loader2 className="w-4 h-4 animate-spin" /> : "Buscar"}
+                      </Button>
+                    </form>
 
-                  <div className="flex-1 overflow-y-auto rounded-lg border">
-                    <Table>
-                      <TableHeader className="sticky top-0 bg-card">
-                        <TableRow>
-                          <TableHead>Data</TableHead>
-                          <TableHead>Produto</TableHead>
-                          <TableHead>Tipo</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="w-[40px]"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {clientSearchHistory.length === 0 ? (
+                    <div className="flex-1 overflow-y-auto rounded-lg border">
+                      <Table>
+                        <TableHeader className="sticky top-0 bg-card">
                           <TableRow>
-                            <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
-                              {clientSearchTerm ? "Nenhum histórico encontrado para este termo." : "Digite um termo e clique em buscar."}
-                            </TableCell>
+                            <TableHead>Data</TableHead>
+                            <TableHead>Produto</TableHead>
+                            <TableHead>Tipo</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="w-[40px]"></TableHead>
                           </TableRow>
-                        ) : (
-                          clientSearchHistory.map((log) => (
-                            <TableRow key={log.id}>
-                              <TableCell className="text-xs">
-                                {new Date(log.sent_at).toLocaleString('pt-BR', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </TableCell>
-                              <TableCell className="text-sm font-medium">
-                                {log.cliente_produto || '-'}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="text-[10px] h-5">
-                                  {getMessageTypeLabel(log.message_type)}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {getStatusBadge(log.status, log.resolution)}
-                              </TableCell>
-                              <TableCell>
-                                {log.cliente_observacoes && (
-                                  <Dialog>
-                                    <DialogTrigger asChild>
-                                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-primary">
-                                        <Search className="h-4 w-4" />
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="bg-card border-border">
-                                      <DialogHeader>
-                                        <DialogTitle className="flex items-center gap-2">
-                                          <Info className="h-5 w-5 text-primary" />
-                                          Observações do Cliente
-                                        </DialogTitle>
-                                        <DialogDescription>
-                                          {log.cliente_nome}
-                                        </DialogDescription>
-                                      </DialogHeader>
-                                      <div className="mt-4 p-4 rounded-lg bg-muted/50 border border-border">
-                                        <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                                          {log.cliente_observacoes}
-                                        </p>
-                                      </div>
-                                    </DialogContent>
-                                  </Dialog>
-                                )}
+                        </TableHeader>
+                        <TableBody>
+                          {clientSearchHistory.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                                {clientSearchTerm ? "Nenhum histórico encontrado para este termo." : "Digite um termo e clique em buscar."}
                               </TableCell>
                             </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                          ) : (
+                            clientSearchHistory.map((log) => (
+                              <TableRow key={log.id}>
+                                <TableCell className="text-xs">
+                                  {new Date(log.sent_at).toLocaleString('pt-BR', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </TableCell>
+                                <TableCell className="text-sm font-medium">
+                                  {log.cliente_produto || '-'}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className="text-[10px] h-5">
+                                    {getMessageTypeLabel(log.message_type)}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {getStatusBadge(log.status, log.resolution)}
+                                </TableCell>
+                                <TableCell>
+                                  {log.cliente_observacoes && (
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-primary">
+                                          <Search className="h-4 w-4" />
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent className="bg-card border-border">
+                                        <DialogHeader>
+                                          <DialogTitle className="flex items-center gap-2">
+                                            <Info className="h-5 w-5 text-primary" />
+                                            Observações do Cliente
+                                          </DialogTitle>
+                                          <DialogDescription>
+                                            {log.cliente_nome}
+                                          </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="mt-4 p-4 rounded-lg bg-muted/50 border border-border">
+                                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                                            {log.cliente_observacoes}
+                                          </p>
+                                        </div>
+                                      </DialogContent>
+                                    </Dialog>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
 
               <Dialog open={isManualDialogOpen} onOpenChange={setIsManualDialogOpen}>
                 <DialogTrigger asChild>
