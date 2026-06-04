@@ -1307,6 +1307,57 @@ export default function ConsultarCliente() {
           onOpenChange={() => setSocialClienteId(null)}
         />
 
+        {/* Quick Edit Confirmation Dialog */}
+        <AlertDialog open={showEditConfirm} onOpenChange={setShowEditConfirm}>
+          <AlertDialogContent className="bg-card border-border">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-foreground">Confirmar Alterações?</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-3">
+                <p className="text-muted-foreground">Você está alterando as informações de <strong>{editingCliente?.nome}</strong>. Confira o que mudou:</p>
+                <div className="bg-secondary/50 p-3 rounded-lg border border-border space-y-2 text-xs">
+                  {editingCliente?.email !== editEmail && (
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-bold text-update uppercase">E-mail:</span>
+                      <span className="text-muted-foreground line-through">{editingCliente?.email || '(vazio)'}</span>
+                      <span className="text-foreground">➜ {editEmail || '(vazio)'}</span>
+                    </div>
+                  )}
+                  {editingCliente?.numero !== editNumero && (
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-bold text-update uppercase">Telefone:</span>
+                      <span className="text-muted-foreground line-through">{editingCliente?.numero || '(vazio)'}</span>
+                      <span className="text-foreground">➜ {editNumero || '(vazio)'}</span>
+                    </div>
+                  )}
+                  {editingCliente?.produto !== editProduto && (
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-bold text-update uppercase">Produto:</span>
+                      <span className="text-muted-foreground line-through">{editingCliente?.produto || '(vazio)'}</span>
+                      <span className="text-foreground">➜ {editProduto || '(vazio)'}</span>
+                    </div>
+                  )}
+                  {(editingCliente?.observacao || '') !== editObservacao && (
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-bold text-update uppercase">Observações:</span>
+                      <span className="text-muted-foreground line-through truncate max-w-full block">{editingCliente?.observacao || '(vazio)'}</span>
+                      <span className="text-foreground truncate max-w-full block">➜ {editObservacao || '(vazio)'}</span>
+                    </div>
+                  )}
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setShowEditConfirm(false)}>Voltar</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={confirmSaveEdit}
+                className="bg-update text-update-foreground hover:bg-update/90"
+              >
+                Sim, Salvar Alterações
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         {/* Server / Tools Credentials */}
         <ClientServerCredentials
           clienteId={serverClienteId || ''}
