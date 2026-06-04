@@ -1014,7 +1014,7 @@ export function QrScansTab() {
                                                                 variant={link.isPaid ? "default" : "destructive"}
                                                                 className="text-[8px] h-4 px-1"
                                                               >
-                                                                {link.data_renovacao ? new Date(link.data_renovacao).toLocaleDateString('pt-BR') : "—"}
+                                                                {link.data_renovacao ? new Date(link.data_renovacao + "T12:00:00").toLocaleDateString('pt-BR') : "—"}
                                                               </Badge>
                                                             </TableCell>
                                                           </TableRow>
