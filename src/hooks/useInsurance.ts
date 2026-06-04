@@ -90,11 +90,11 @@ export function useInsurancePaymentStatusHybrid() {
         manualSet.set(row.baserow_row_id, row.status);
       });
 
-      // 1. Buscar TODOS os clientes que têm o produto de hospedagem ou seguro
+      // 1. Buscar TODOS os clientes que têm os produtos relevantes
       const { data: clientes, error: clientError } = await supabase
         .from("clientes")
         .select("id, nome, numero, produto, observacao, data_renovacao, plano")
-        .or('produto.eq."Seguro de Numeros Aquecidos",produto.eq."Número Hospedado Conosco ( Auto-Hospedado )"');
+        .or('produto.eq."Seguro de Numeros Aquecidos",produto.eq."Número Hospedado Conosco ( Auto-Hospedado )",produto.eq."Numeros Aquecidos Qualidade Premium"');
       
       if (clientError) throw clientError;
 
