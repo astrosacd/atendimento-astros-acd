@@ -135,7 +135,7 @@ export function useInsurancePaymentStatusHybrid() {
         const isIndividual = cliente.plano?.toLowerCase().includes('individual');
         const isAutoHosted = cliente.produto === 'Número Hospedado Conosco ( Auto-Hospedado )';
         
-        // Se for auto-hospedado, o plano deve ser Individual ou Mensal (conforme solicitado anteriormente)
+        // Se for auto-hospedado, o plano deve ser Individual ou Mensal
         if (isAutoHosted && !isMonthly && !isIndividual) return;
 
         const isClientPaid = cliente.data_renovacao >= today;
@@ -158,23 +158,22 @@ export function useInsurancePaymentStatusHybrid() {
         });
       });
 
-      // 4. Agregação Final: Um número é PAGO se houver pelo menos um vínculo com data_renovacao >= hoje
+      // 4. Agregação Final: UM NÚMERO É PAGO SE HOUVER QUALQUER VÍNCULO PAGO NO SISTEMA
       linksByRow.forEach((links, rowId) => {
         if (manualSet.has(rowId)) return;
         
-        // Priorizamos o status PAGO se houver múltiplos vínculos para o mesmo número
+        // Verifica se há QUALQUER link de hosp. ou seguro que esteja em dia
         const anyPaidLink = links.some(l => l.isPaid);
         
-        // Representante: escolhemos o link pago com a MAIOR data de renovação.
-        // Se todos estiverem vencidos, escolhemos o com a maior data de renovação.
-        const sortedLinks = [...links].sort((a, b) => {
-          // Prioridade 1: Estar pago
-          if (a.isPaid !== b.isPaid) return a.isPaid ? -1 : 1;
-          // Prioridade 2: Maior data de renovação
-          return (b.data_renovacao || '').localeCompare(a.data_renovacao || '');
-        });
+        // Encontra o link com a maior data de renovação (independente de estar pago ou não)
+        // para mostrar como referência
+        const sortedByDate = [...links].sort((a, b) => 
+          (b.data_renovacao || '').localeCompare(a.data_renovacao || '')
+        );
         
-        const representativeLink = sortedLinks[0];
+        // Mas para o representante visual, damos preferência para o que estiver pago
+        const representativeLink = links.find(l => l.isPaid) || sortedByDate[0];
+        
         const uniqueNames = Array.from(new Set(links.map(l => l.clientName)));
         
         statusMap.set(rowId, {
@@ -225,7 +224,7 @@ export function useInsurancePaymentStatusHybrid() {
 export interface InsuranceNumber {
   baserow_row_id: number;
   numero: string;
-  cliente_nome: string | null;
+  client_nome: string | null;
   observacoes: string | null;
   auto_hospedado: boolean;
 }
