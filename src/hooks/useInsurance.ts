@@ -149,8 +149,9 @@ export function useInsurancePaymentStatusHybrid() {
         const isMonthly = cliente.plano?.toLowerCase().includes('mensal');
         const isIndividual = cliente.plano?.toLowerCase().includes('individual');
         const isAutoHosted = cliente.produto === 'Número Hospedado Conosco ( Auto-Hospedado )';
+        const isSeguro = cliente.produto === 'Seguro de Numeros Aquecidos';
         
-        // Se for auto-hospedado, aceitamos mensal OU individual (que é o caso do Fernando)
+        // Se for auto-hospedado, aceitamos mensal OU individual
         if (isAutoHosted && !isMonthly && !isIndividual) return;
 
         const isClientPaid = cliente.data_renovacao >= today;
@@ -164,9 +165,6 @@ export function useInsurancePaymentStatusHybrid() {
           if (rowId !== undefined) {
             if (!linksByRow.has(rowId)) linksByRow.set(rowId, []);
             
-            // Log para debug se necessário
-            console.log(`Vinculando número ${num} ao cliente ${cliente.nome}. Pago: ${isClientPaid}, Vencimento: ${cliente.data_renovacao}`);
-            
             linksByRow.get(rowId)!.push({ 
               id: cliente.id, 
               clientName: cliente.nome, 
@@ -178,16 +176,22 @@ export function useInsurancePaymentStatusHybrid() {
         });
       });
 
-      // 6. Decidir status: Se houver QUALQUER vínculo pago, o número é PAGO.
-      // Se não houver nenhum pago mas houver vínculos, é VENCIDO.
+      // 6. Decidir status: Se houver QUALQUER vínculo pago para QUALQUER produto, o número é PAGO.
+      // Se houver vínculos mas TODOS estiverem vencidos, é VENCIDO.
       linksByRow.forEach((links, rowId) => {
         if (manualSet.has(rowId)) return;
         
-        // Priorizamos o status PAGO se houver múltiplos vínculos
+        // Filtramos os links por produto para ver se há discrepância dentro do mesmo número
+        const seguroLinks = links.filter(l => l.produto === 'Seguro de Numeros Aquecidos');
+        const hospLinks = links.filter(l => l.produto === 'Número Hospedado Conosco ( Auto-Hospedado )');
+
+        // Se houver QUALQUER vínculo pago (seja seguro ou hospedagem), consideramos ATIVA
         const anyPaid = links.some(l => l.isPaid);
         
-        // Pegamos o link mais relevante para mostrar a data (o pago, ou o primeiro se todos vencidos)
-        const representativeLink = links.find(l => l.isPaid) || links[0];
+        // Escolhemos o link pago para ser o representante. Se houver mais de um, priorizamos Hospedagem.
+        const representativeLink = links.find(l => l.isPaid && l.produto === 'Número Hospedado Conosco ( Auto-Hospedado )')
+          || links.find(l => l.isPaid)
+          || links[0];
         
         const uniqueNames = Array.from(new Set(links.map(l => l.clientName)));
         statusMap.set(rowId, {
