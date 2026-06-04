@@ -63,7 +63,7 @@ export function ProductSelector({ value, onChange, placeholder = "Selecione um p
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between bg-secondary border-border font-normal"
+          className="w-full justify-between bg-secondary border-border font-normal h-11"
         >
           {value
             ? products.find((product) => product.name === value)?.name || value
