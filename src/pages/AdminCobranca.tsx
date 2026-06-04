@@ -3460,6 +3460,9 @@ const AdminCobranca = () => {
                                   <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                                     {log.channel === 'email' ? log.cliente_email : log.cliente_numero}
                                   </TableCell>
+                                  <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+                                    {log.cliente_produto || '-'}
+                                  </TableCell>
                                   <TableCell>
                                     <Badge variant="outline" className="text-xs">
                                       {getMessageTypeLabel(log.message_type)}
