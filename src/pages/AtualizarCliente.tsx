@@ -607,6 +607,14 @@ export default function AtualizarCliente() {
                     setNewCountryCode(code);
                   }}
                 />
+                {isInternationalPhoneNumber(newNumero) && (
+                  <div className="flex items-center gap-1.5 mt-1 px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded-md">
+                    <Globe className="w-3 h-3 text-blue-500" />
+                    <span className="text-[10px] font-medium text-blue-500 uppercase tracking-tight">
+                      Número Internacional Detectado
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Classificação do Cadastro */}
