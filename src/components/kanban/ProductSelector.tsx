@@ -32,6 +32,7 @@ export function ProductSelector({ value, onChange, placeholder = "Selecione um p
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+        setLoading(true);
         let query = supabase
           .from('predefined_products')
           .select('id, name, category')
@@ -53,7 +54,7 @@ export function ProductSelector({ value, onChange, placeholder = "Selecione um p
     };
 
     fetchProducts();
-  }, []);
+  }, [category]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
