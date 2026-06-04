@@ -906,17 +906,19 @@ export default function CadastrarCliente() {
                   <DuplicateClientWarning matches={dupCheck.duplicates.email} compact />
                 </div>
 
-                <div className={clienteType === 'registro' ? 'space-y-2 col-span-2' : 'space-y-2'}>
-                  <div className="flex items-center gap-2">
-                    <Package className="w-4 h-4 text-muted-foreground" />
-                    <Label htmlFor="produto" className="text-foreground font-medium">Produto <span className="text-destructive">*</span></Label>
+                <div className={clienteType === 'registro' ? 'space-y-2 col-span-2' : 'space-y-2 flex flex-col justify-end'}>
+                  <div className="space-y-2 w-full">
+                    <div className="flex items-center gap-2">
+                      <Package className="w-4 h-4 text-muted-foreground" />
+                      <Label htmlFor="produto" className="text-foreground font-medium">Produto <span className="text-destructive">*</span></Label>
+                    </div>
+                    <ProductSelector 
+                      value={formData.produto} 
+                      onChange={(value) => setFormData({ ...formData, produto: value })} 
+                      placeholder="Selecione o produto..."
+                      category={clienteType === 'registro' ? 'registro' : 'mensal'}
+                    />
                   </div>
-                  <ProductSelector 
-                    value={formData.produto} 
-                    onChange={(value) => setFormData({ ...formData, produto: value })} 
-                    placeholder="Selecione o produto..."
-                    category={clienteType === 'registro' ? 'registro' : 'mensal'}
-                  />
                 </div>
 
                 {clienteType === 'mensal' && (
