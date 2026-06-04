@@ -723,7 +723,11 @@ const sendWhatsAppOfficial = async (
 ): Promise<{ success: boolean; error?: string }> => {
   try {
     const cleanNumber = numero.replace(/\D/g, '');
-    const formattedNumber = cleanNumber.startsWith('55') ? cleanNumber : `55${cleanNumber}`;
+    // Só prefixa 55 (Brasil) quando o número está em formato BR local (10 ou 11 dígitos).
+    // Números internacionais (12+ dígitos com DDI próprio) são enviados como estão.
+    const formattedNumber = (cleanNumber.length === 10 || cleanNumber.length === 11)
+      ? `55${cleanNumber}`
+      : cleanNumber;
 
     const response = await fetch(`https://graph.facebook.com/v21.0/${credentials.phone_number_id}/messages`, {
       method: 'POST',
