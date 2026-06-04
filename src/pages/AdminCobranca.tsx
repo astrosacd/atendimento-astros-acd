@@ -81,6 +81,8 @@ interface BillingLog {
   cliente_nome: string;
   cliente_email: string;
   cliente_numero: string;
+  cliente_produto?: string;
+  cliente_observacoes?: string;
   message_type: string;
   channel: string;
   status: string;
