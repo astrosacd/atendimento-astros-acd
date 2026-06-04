@@ -166,19 +166,22 @@ export function useInsurancePaymentStatusHybrid() {
         );
         const bestLink = links.find(l => l.isPaid) || sortedLinks[0];
         
-        statusMap.set(rowId, {
-          status: anyPaid ? 'pago' : 'vencido',
-          clientName: bestLink.clientName,
-          clientNames: Array.from(new Set(links.map(l => l.clientName))),
-          method: 'auto',
-          links: links.map(l => ({ 
-            id: l.id, 
-            nome: l.clientName, 
-            produto: l.produto, 
-            data_renovacao: l.data_renovacao, 
-            isPaid: l.isPaid 
-          })),
-        });
+        // SÓ adicionamos ao statusMap se houver links REAIS com clientes
+        if (links.length > 0) {
+          statusMap.set(rowId, {
+            status: anyPaid ? 'pago' : 'vencido',
+            clientName: bestLink.clientName,
+            clientNames: Array.from(new Set(links.map(l => l.clientName))),
+            method: 'auto',
+            links: links.map(l => ({ 
+              id: l.id, 
+              nome: l.clientName, 
+              produto: l.produto, 
+              data_renovacao: l.data_renovacao, 
+              isPaid: l.isPaid 
+            })),
+          });
+        }
       });
 
       // 5. Marcações manuais
