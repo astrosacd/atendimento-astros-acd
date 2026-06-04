@@ -191,14 +191,13 @@ export function useInsurancePaymentStatusHybrid() {
       });
       
       // 6. Números com "COM SEGURO" nas observações do cache
+      // Agora marcamos como "vencido" APENAS se não houver NENHUM vínculo automático ou manual
+      // Se não houver vínculos, o componente exibirá "Não vinculado"
       numbersCache?.forEach(c => {
         const obs = String((c.row_data as any)?.observacoes || (c.row_data as any)?.observacao || "").toLowerCase();
-        if (obs.includes("com seguro") && !statusMap.get(c.baserow_row_id)) {
-          statusMap.set(c.baserow_row_id, {
-            status: "vencido",
-            method: "auto",
-            links: [],
-          });
+        if (obs.includes("com seguro") && !statusMap.has(c.baserow_row_id)) {
+          // Mantemos no statusMap apenas se quisermos forçar um estado base, 
+          // mas sem links o UI já mostrará "Não vinculado"
         }
       });
 
