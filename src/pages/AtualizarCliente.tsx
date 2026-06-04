@@ -748,9 +748,9 @@ export default function AtualizarCliente() {
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-foreground">
-              {showUpgradeConfirm ? 'Ativar Cobrança Mensal?' : t('clients.confirmUpdate')}
+              {showUpgradeConfirm ? '⚠️ CONFIRMAR UPGRADE PARA MENSALIDADE' : t('clients.confirmUpdate')}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
+            <AlertDialogDescription className="text-muted-foreground font-medium">
               {showUpgradeConfirm 
                 ? `Você está transformando ${selectedCliente?.nome} em um cliente recorrente. A primeira mensalidade será cobrada em ${newDate ? formatDate(newDate) : ''}.`
                 : isClienteVitalicio 
