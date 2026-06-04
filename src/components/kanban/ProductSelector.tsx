@@ -63,12 +63,14 @@ export function ProductSelector({ value, onChange, placeholder = "Selecione um p
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between bg-secondary border-border font-normal h-11"
+          className="w-full justify-between bg-secondary border-border font-normal h-11 text-left px-3"
         >
-          {value
-            ? products.find((product) => product.name === value)?.name || value
-            : placeholder}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <span className="truncate mr-2">
+            {value
+              ? products.find((product) => product.name === value)?.name || value
+              : placeholder}
+          </span>
+          <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0 bg-card border-border shadow-xl z-[9999]" align="start">
