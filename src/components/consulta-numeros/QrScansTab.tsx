@@ -754,7 +754,7 @@ export function QrScansTab() {
                                   </Button>
                                 );
                               })()}
-                              {temSeguro && seguroPago && !usedInsuranceThisMonth && (
+                              {temSeguro && temSeguroLink && !usedInsuranceThisMonth && (
                                 <Button
                                   size="sm"
                                   variant="outline"
