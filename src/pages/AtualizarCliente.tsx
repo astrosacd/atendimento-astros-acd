@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat, DollarSign, Phone, Store, AlertCircle, Mail, ShieldCheck, Package, Eye, Calendar, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat, DollarSign, Phone, Store, AlertCircle, Mail, ShieldCheck, Package, Eye, Calendar, TrendingUp, Globe } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useTranslation } from 'react-i18next';
+import { isInternationalPhoneNumber } from '@/utils/phoneInternational';
 
 export default function AtualizarCliente() {
   const navigate = useNavigate();
@@ -606,6 +607,14 @@ export default function AtualizarCliente() {
                     setNewCountryCode(code);
                   }}
                 />
+                {isInternationalPhoneNumber(newNumero) && (
+                  <div className="flex items-center gap-1.5 mt-1 px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded-md">
+                    <Globe className="w-3 h-3 text-blue-500" />
+                    <span className="text-[10px] font-medium text-blue-500 uppercase tracking-tight">
+                      Número Internacional Detectado
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Classificação do Cadastro */}

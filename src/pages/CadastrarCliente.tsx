@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import { ArrowLeft, Check, X, UserPlus, FileText, Tag, Repeat, Calendar, Infinity, Upload, File, Trash2, Image, ShieldCheck, CreditCard } from 'lucide-react';
+import { ArrowLeft, Check, X, UserPlus, FileText, Tag, Repeat, Calendar, Infinity, Upload, File, Trash2, Image, ShieldCheck, CreditCard, Globe } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +26,7 @@ import { DuplicateClientWarning } from '@/components/DuplicateClientWarning';
 import { AlertTriangle, Package } from 'lucide-react';
 import { ProductSelector } from '@/components/kanban/ProductSelector';
 import { ClientLicensesManager } from "@/components/ClientLicensesManager";
+import { isInternationalPhoneNumber } from '@/utils/phoneInternational';
 const clienteSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   numero: z.string().min(10, 'Número deve ter pelo menos 10 dígitos'),
@@ -862,6 +863,14 @@ export default function CadastrarCliente() {
                     }}
                     required
                   />
+                  {isInternationalPhoneNumber(formData.numero) && (
+                    <div className="flex items-center gap-1.5 mt-1 px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded-md">
+                      <Globe className="w-3 h-3 text-blue-500" />
+                      <span className="text-[10px] font-medium text-blue-500 uppercase tracking-tight">
+                        Número Internacional Detectado
+                      </span>
+                    </div>
+                  )}
                   <DuplicateClientWarning matches={dupCheck.duplicates.numero} compact />
                 </div>
 
