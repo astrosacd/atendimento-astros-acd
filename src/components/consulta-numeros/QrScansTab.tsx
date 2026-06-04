@@ -670,7 +670,9 @@ export function QrScansTab() {
                                 </Tooltip>
                               </TooltipProvider>
                             ) : (
-                              <Badge variant="outline" className="opacity-50">Manual</Badge>
+                              <Badge variant="outline" className="opacity-70 bg-muted/30 border-dashed">
+                                ❌ Não vinculado
+                              </Badge>
                             )}
                           </TableCell>
                           <TableCell>
