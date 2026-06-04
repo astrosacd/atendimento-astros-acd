@@ -167,16 +167,18 @@ export function useInsurancePaymentStatusHybrid() {
         
         const anyPaid = links.some(l => l.isPaid);
         
-        // Ordena para pegar o registro com a maior data de renovação como representante
+        // Ordena para pegar o registro com a MAIOR data de renovação como representante
+        // Isso garante que se o cliente renovou, pegamos a data mais futura (Ativa)
         const sortedLinks = [...links].sort((a, b) => 
           (b.data_renovacao || '').localeCompare(a.data_renovacao || '')
         );
-        const bestLink = links.find(l => l.isPaid) || sortedLinks[0];
+        const bestLink = sortedLinks[0]; // O link com a data mais recente/futura
+        const isPaid = (bestLink.data_renovacao || '') >= today;
         
         // SÓ adicionamos ao statusMap se houver links REAIS com clientes
         if (links.length > 0) {
           statusMap.set(rowId, {
-            status: anyPaid ? 'pago' : 'vencido',
+            status: isPaid ? 'pago' : 'vencido',
             clientName: bestLink.clientName,
             clientNames: Array.from(new Set(links.map(l => l.clientName))),
             method: 'auto',
@@ -185,7 +187,7 @@ export function useInsurancePaymentStatusHybrid() {
               nome: l.clientName, 
               produto: l.produto, 
               data_renovacao: l.data_renovacao, 
-              isPaid: l.isPaid 
+              isPaid: (l.data_renovacao || '') >= today 
             })),
           });
         }
