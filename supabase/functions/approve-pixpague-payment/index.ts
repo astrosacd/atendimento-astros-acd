@@ -183,8 +183,43 @@ serve(async (req) => {
       }
     }
 
-    // 3) Enviar recibo ANTES de avançar data_renovacao, para que o cliente receba
-    //    EXATAMENTE a data de vencimento que foi cadastrada (sem o +1 ciclo).
+    // 3) Renovação: Calcular a nova data ANTES do recibo
+    let newRenewalDate: string | null = null;
+    if (cliente?.id && cliente?.cobranca_ativa !== false && cliente?.data_renovacao && cliente?.ciclo_cobranca) {
+      const { count: priorPaidCount } = await supabase
+        .from("client_payments")
+        .select("id", { count: "exact", head: true })
+        .eq("cliente_id", cliente.id)
+        .eq("status", "paid")
+        .neq("id", paymentId);
+
+      const isFirstPayment = (priorPaidCount ?? 0) === 0;
+
+      if (!isFirstPayment) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const currentVenc = new Date(`${cliente.data_renovacao}T00:00:00`);
+        const months = CYCLE_MONTHS[cliente.ciclo_cobranca] || 1;
+        
+        // Se a data atual de renovação já passou (atrasado), renova a partir de HOJE.
+        // Se estiver em dia ou antecipado, renova a partir da data que já existia.
+        const baseDate = currentVenc < today ? today : currentVenc;
+        
+        const renewalDate = new Date(baseDate);
+        renewalDate.setMonth(renewalDate.getMonth() + months);
+        newRenewalDate = renewalDate.toISOString().split("T")[0];
+
+        await supabase
+          .from("clientes")
+          .update({ data_renovacao: newRenewalDate })
+          .eq("id", cliente.id);
+
+        console.log(`[approve-pixpague] Renovação (cliente ${cliente.id}): ${cliente.data_renovacao} -> ${newRenewalDate}`);
+      }
+    }
+
+    // 4) Enviar recibo (agora com a data_renovacao já atualizada no banco se necessário)
     let receiptResult: any = null;
     let receiptError: string | null = null;
 
@@ -195,56 +230,11 @@ serve(async (req) => {
         });
         if (error) {
           receiptError = error.message ?? String(error);
-          console.error("Erro ao invocar send-receipt:", error);
         } else {
           receiptResult = data;
-          console.log("send-receipt result:", JSON.stringify(data));
         }
       } catch (e: any) {
         receiptError = e?.message ?? String(e);
-        console.error("Exceção ao enviar recibo:", e);
-      }
-    } else if (cliente?.cobranca_ativa === false) {
-      receiptResult = { skipped: true, reason: "Registro apenas (sem recibo)" };
-      console.log("Skipping receipt for registration-only client");
-    } else {
-      receiptError = "cliente_id ausente no pagamento";
-    }
-
-    // 4) Renovação: APÓS o envio do recibo.
-    //    Regra:
-    //    - PRIMEIRO pagamento do cliente (nenhum outro `paid` no histórico) → MANTÉM data_renovacao
-    //      (a data cadastrada JÁ é a próxima renovação).
-    //    - Demais pagamentos (antecipado / cobrança unitária) → avança +1 ciclo.
-    if (cliente?.id && cliente?.cobranca_ativa !== false && cliente?.data_renovacao && cliente?.ciclo_cobranca) {
-      const { count: priorPaidCount, error: countErr } = await supabase
-        .from("client_payments")
-        .select("id", { count: "exact", head: true })
-        .eq("cliente_id", cliente.id)
-        .eq("status", "paid")
-        .neq("id", paymentId);
-
-      if (countErr) {
-        console.error("[approve-pixpague] Erro ao contar pagamentos anteriores:", countErr);
-      }
-
-      const isFirstPayment = (priorPaidCount ?? 0) === 0;
-
-      if (isFirstPayment) {
-        console.log(`[approve-pixpague] Primeiro pagamento do cliente ${cliente.id} — data_renovacao mantida em ${cliente.data_renovacao}`);
-      } else {
-        const venc = new Date(`${cliente.data_renovacao}T00:00:00`);
-        const months = CYCLE_MONTHS[cliente.ciclo_cobranca] || 1;
-        const renewalDate = new Date(venc);
-        renewalDate.setMonth(renewalDate.getMonth() + months);
-        const newRenewalDate = renewalDate.toISOString().split("T")[0];
-
-        await supabase
-          .from("clientes")
-          .update({ data_renovacao: newRenewalDate })
-          .eq("id", cliente.id);
-
-        console.log(`[approve-pixpague] Renovação (cliente ${cliente.id}): ${cliente.data_renovacao} → ${newRenewalDate}`);
       }
     }
 
