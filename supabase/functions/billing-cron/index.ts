@@ -1247,6 +1247,8 @@ const handler = async (req: Request): Promise<Response> => {
             cliente_nome: cliente.nome,
             cliente_email: cliente.email,
             cliente_numero: cliente.numero,
+            cliente_produto: cliente.produto,
+            cliente_observacoes: (cliente as any).observacoes || '',
             message_type: messageType,
             channel: 'whatsapp',
             status: 'skipped',
