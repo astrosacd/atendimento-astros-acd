@@ -1235,7 +1235,7 @@ function NumeroActionsMenu({
   const [observacoes, setObservacoes] = useState(numero.observacoes || '');
   const [nomeCliente, setNomeCliente] = useState('');
   const [whatsappCliente, setWhatsappCliente] = useState('');
-  const [tipoSeguro, setTipoSeguro] = useState<'COM SEGURO' | 'SEM SEGURO'>('COM SEGURO');
+  const [tipoSeguro, setTipoSeguro] = useState<'COM SEGURO' | 'SEM SEGURO' | ''>('');
   const [confirmVendaOpen, setConfirmVendaOpen] = useState(false);
   const [isChangingToVendido, setIsChangingToVendido] = useState(false);
   
@@ -1304,6 +1304,11 @@ function NumeroActionsMenu({
     }
     if (!whatsappCliente.trim()) {
       toast.error('Informe o número de contato do cliente');
+      return;
+    }
+
+    if (!tipoSeguro) {
+      toast.error('Selecione o tipo de chip (com ou sem seguro)');
       return;
     }
 
@@ -1574,9 +1579,15 @@ function NumeroActionsMenu({
       <Dialog open={confirmVendaOpen} onOpenChange={setConfirmVendaOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5 text-primary" />
-              Confirmar Venda de Número
+            <DialogTitle className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5 text-primary" />
+                Confirmar Venda de Número
+              </div>
+              <div className="mt-2 p-3 rounded-lg bg-primary/10 border border-primary/20 text-center">
+                <p className="text-xs font-semibold text-primary uppercase tracking-widest">Número em Venda</p>
+                <p className="text-2xl font-bold font-mono text-primary">{numero.numero}</p>
+              </div>
             </DialogTitle>
             <DialogDescription>
               Para marcar como vendido, preencha as informações obrigatórias abaixo.
@@ -1602,10 +1613,10 @@ function NumeroActionsMenu({
               />
             </div>
             <div className="space-y-2">
-              <Label>Tipo de Chip</Label>
+              <Label>Tipo de Chip <span className="text-destructive">*</span></Label>
               <Select value={tipoSeguro} onValueChange={(v: any) => setTipoSeguro(v)}>
-                <SelectTrigger>
-                  <SelectValue />
+                <SelectTrigger className={!tipoSeguro ? "border-amber-500/50" : ""}>
+                  <SelectValue placeholder="Selecione o tipo de chip..." />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="COM SEGURO">CHIP PRO COM SEGURO</SelectItem>
