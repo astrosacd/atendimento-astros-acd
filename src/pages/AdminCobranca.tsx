@@ -1286,12 +1286,13 @@ const AdminCobranca = () => {
                           <TableHead>Produto</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead className="w-[40px]"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {clientSearchHistory.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                            <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
                               {clientSearchTerm ? "Nenhum histórico encontrado para este termo." : "Digite um termo e clique em buscar."}
                             </TableCell>
                           </TableRow>
@@ -1316,6 +1317,33 @@ const AdminCobranca = () => {
                               </TableCell>
                               <TableCell>
                                 {getStatusBadge(log.status, log.resolution)}
+                              </TableCell>
+                              <TableCell>
+                                {log.cliente_observacoes && (
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-primary">
+                                        <Search className="h-4 w-4" />
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="bg-card border-border">
+                                      <DialogHeader>
+                                        <DialogTitle className="flex items-center gap-2">
+                                          <Info className="h-5 w-5 text-primary" />
+                                          Observações do Cliente
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                          {log.cliente_nome}
+                                        </DialogDescription>
+                                      </DialogHeader>
+                                      <div className="mt-4 p-4 rounded-lg bg-muted/50 border border-border">
+                                        <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                                          {log.cliente_observacoes}
+                                        </p>
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                )}
                               </TableCell>
                             </TableRow>
                           ))
