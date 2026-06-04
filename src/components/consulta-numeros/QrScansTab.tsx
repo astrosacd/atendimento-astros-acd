@@ -664,7 +664,7 @@ export function QrScansTab() {
                                   <TooltipContent>
                                     <p className="text-xs">
                                       {hospedagemAtiva ? 'Hospedagem em dia' : 'Hospedagem com pagamento atrasado'}<br />
-                                      Vencimento: {hospPayData?.data_renovacao ? new Date(hospPayData.data_renovacao).toLocaleDateString('pt-BR') : 'Não informada'}
+                                      Vencimento: {hospPayData?.data_renovacao ? new Date(hospPayData.data_renovacao + "T12:00:00").toLocaleDateString('pt-BR') : 'Não informada'}
                                     </p>
                                   </TooltipContent>
                                 </Tooltip>
