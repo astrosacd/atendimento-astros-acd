@@ -718,8 +718,8 @@ export default function ConsultaNumeros() {
     if (type === 'externo') {
       // Para número externo, observações já vem preenchido
       initialValues['observacoes'] = 'Numero Externo';
-      // Para número externo, excluido_da_base vai com "EM ANÁLISE PELA META" por padrão
-      initialValues['excluido_da_base'] = 'EM ANÁLISE PELA META';
+      // Para número externo, excluido_da_base não vem pré-marcado
+      initialValues['excluido_da_base'] = '';
     }
     
     setNewValues(initialValues);
