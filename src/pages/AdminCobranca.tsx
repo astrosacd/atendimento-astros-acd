@@ -3425,10 +3425,12 @@ const AdminCobranca = () => {
                               <TableHead className="w-[160px]">Data/Hora</TableHead>
                               <TableHead>Cliente</TableHead>
                               <TableHead className="hidden md:table-cell">Contato</TableHead>
+                              <TableHead className="hidden lg:table-cell">Produto</TableHead>
                               <TableHead className="w-[80px]">Tipo</TableHead>
                               <TableHead className="w-[100px]">Canal</TableHead>
                               <TableHead className="w-[100px]">Status</TableHead>
                               <TableHead className="hidden lg:table-cell">Detalhes</TableHead>
+                              <TableHead className="w-[40px]"></TableHead>
                               <TableHead className="w-[100px]">Ações</TableHead>
                             </TableRow>
                           </TableHeader>
