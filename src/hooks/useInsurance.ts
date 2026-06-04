@@ -161,19 +161,18 @@ export function useInsurancePaymentStatusHybrid() {
         });
       });
 
-      // 4. Decidir status: Prioridade TOTAL para o status PAGO
-      // Se um número está em 10 lugares, mas em 1 deles está pago, ele é PAGO (Ativa)
+      // 4. Decidir status: Regra de prioridade pela data mais recente
+      // Se um número aparece em vários cadastros, o sistema assume que o contrato 
+      // com a maior data de renovação (mais futura) é o vínculo atual e válido.
       linksByRow.forEach((links, rowId) => {
         if (manualSet.has(rowId)) return;
         
-        
-        
-        // Ordena para pegar o registro com a MAIOR data de renovação como representante
-        // Isso garante que se o cliente renovou, pegamos a data mais futura (Ativa)
+        // Ordena para pegar o registro com a MAIOR data de renovação
         const sortedLinks = [...links].sort((a, b) => 
           (b.data_renovacao || '').localeCompare(a.data_renovacao || '')
         );
-        const bestLink = sortedLinks[0]; // O link com a data mais recente/futura
+        
+        const bestLink = sortedLinks[0]; // O link mais recente/futuro
         const isPaid = (bestLink.data_renovacao || '') >= today;
         
         // SÓ adicionamos ao statusMap se houver links REAIS com clientes
