@@ -86,7 +86,38 @@ export function useAgentRoomEvents() {
           dispatchEvent(agentId, statusForEvent(table, payload), msg, detail);
         }).subscribe();
     });
-    return () => { channels.forEach(c => supabase.removeChannel(c)); };
+
+    // Canal dedicado: espelha 100% das atividades do sistema (system_activities)
+    const activityChannel = supabase
+      .channel('sala-agentes-system-activities')
+      .on(
+        'postgres_changes' as any,
+        { event: 'INSERT', schema: 'public', table: 'system_activities' },
+        (payload: any) => {
+          const row = payload?.new || {};
+          const resourceType: string | undefined = row.resource_type;
+          const actionLabel: string = row.action || 'atividade';
+          const details: string | undefined = row.details || undefined;
+          const agentId = agentForActivity(resourceType, actionLabel);
+          if (!agentId || !VALID_AGENT_IDS.has(agentId)) return;
+          // Dedup: evita repetir o mesmo evento se o realtime entregar duplicado
+          const key = `${row.id || ''}-${resourceType}-${actionLabel}`;
+          if (seenEventKeys.current.has(key)) return;
+          seenEventKeys.current.add(key);
+          if (seenEventKeys.current.size > 200) {
+            seenEventKeys.current = new Set(Array.from(seenEventKeys.current).slice(-100));
+          }
+          const msg = actionLabel.length > 60 ? actionLabel.slice(0, 57) + '...' : actionLabel;
+          const detail = details || `${resourceType || 'sistema'} • ${actionLabel}`;
+          dispatchEvent(agentId, 'working', msg, detail);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channels.forEach(c => supabase.removeChannel(c));
+      supabase.removeChannel(activityChannel);
+    };
   }, [dispatchEvent]);
 
   useEffect(() => {

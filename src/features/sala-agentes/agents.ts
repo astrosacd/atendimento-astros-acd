@@ -134,22 +134,58 @@ export function agentForEvent(table: string, action?: string): string | null {
 export function agentForActivity(resourceType?: string | null, action?: string | null): string | null {
   if (!resourceType) return null;
   const r = resourceType.toLowerCase();
-  if (r.includes('proposal')) return 'propostas';
+  const a = (action || '').toLowerCase();
+
+  // Mapeamentos diretos pelos ActivityType de useSystemActivities
+  if (r === 'consulta') return 'consulta-numeros';
+  if (r === 'pagamento') return 'pagamentos';
+  if (r === 'venda') return 'gateway';
+  if (r === 'duvida') return 'central-ajuda';
+  if (r === 'cliente') {
+    if (a.includes('cria') || a.includes('cadastr') || a === 'create' || a === 'insert') return 'cadastrar';
+    if (a.includes('atualiz') || a.includes('edit') || a === 'update') return 'atualizar';
+    return 'consultar';
+  }
+  if (r === 'config') return 'permissoes';
+  if (r === 'lead_hunter') return 'lead-hunter';
+  if (r === 'numeros_aquecimento') return 'numeros-aquecimento';
+  if (r === 'proposta') return 'propostas';
+  if (r === 'tarefa') return 'tarefas';
+  if (r === 'webhook') return 'webhooks';
+  if (r === 'despesa') return 'despesas';
+  if (r === 'followup') return 'followups';
+  if (r === 'admin') return 'audit';
+  if (r === 'pipeline') return 'kanban';
+  if (r === 'contato') return 'consultar';
+  if (r === 'chamado') return 'chamados';
+
+  // Fallbacks por substring (cobre logs antigos / variantes)
+  if (r.includes('proposal') || r.includes('proposta')) return 'propostas';
   if (r.includes('payment') || r.includes('billing') || r.includes('cobranca')) return 'cobranca';
   if (r.includes('followup') || r.includes('follow_up')) return 'followups';
-  if (r.includes('agenda') || r.includes('event')) return 'agenda';
+  if (r.includes('agenda') || r.includes('event') || r.includes('calendar')) return 'agenda';
   if (r.includes('task') || r.includes('tarefa')) return 'tarefas';
   if (r.includes('lead')) return 'lead-hunter';
   if (r.includes('chamado') || r.includes('ticket')) return 'chamados';
   if (r.includes('numero') || r.includes('number')) return 'consulta-numeros';
+  if (r.includes('aquec')) return 'numeros-aquecimento';
   if (r.includes('webhook')) return 'webhooks';
-  if (r.includes('divulgador') || r.includes('group')) return 'divulgador';
+  if (r.includes('divulgador') || r.includes('group') || r.includes('grupo')) return 'divulgador';
+  if (r.includes('instagram') || r.includes('post')) return 'instagram';
+  if (r.includes('sms')) return 'consulta-numeros';
+  if (r.includes('ligac') || r.includes('call')) return 'cobranca';
+  if (r.includes('despesa') || r.includes('expense')) return 'despesas';
+  if (r.includes('gateway') || r.includes('checkout') || r.includes('order') || r.includes('venda')) return 'gateway';
+  if (r.includes('link') || r.includes('pagamento')) return 'link-pagamento';
   if (r.includes('client') || r.includes('cliente')) {
-    if (action === 'create' || action === 'INSERT') return 'cadastrar';
-    if (action === 'update' || action === 'UPDATE') return 'atualizar';
+    if (a === 'create' || a === 'insert' || a.includes('cria') || a.includes('cadastr')) return 'cadastrar';
+    if (a === 'update' || a.includes('atualiz') || a.includes('edit')) return 'atualizar';
     return 'consultar';
   }
-  if (r.includes('user')) return 'usuarios';
-  if (r.includes('ai') || r.includes('ia')) return 'ia';
-  return null;
+  if (r.includes('user') || r.includes('usuario') || r.includes('login') || r.includes('auth')) return 'usuarios';
+  if (r.includes('tag')) return 'tags';
+  if (r.includes('ai') || r.includes('ia') || r.includes('lyra')) return 'ia';
+  if (r.includes('audit') || r.includes('log')) return 'audit';
+  if (r.includes('config') || r.includes('setting') || r.includes('permiss')) return 'permissoes';
+  return 'ia'; // fallback: IA central acusa qualquer atividade não mapeada
 }
