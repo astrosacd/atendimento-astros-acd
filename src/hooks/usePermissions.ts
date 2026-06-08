@@ -77,6 +77,7 @@ export function usePermissions() {
   const canShareValidacaoSms = () => hasPermission('share_validacao_sms');
   const canManageConsultaNumerosReminders = () => hasPermission('manage_consulta_numeros_reminders');
   const canViewConsultaNumerosReminderLogs = () => hasPermission('view_consulta_numeros_reminder_logs');
+  const canViewQuickNumberSearch = () => hasPermission('view_quick_number_search');
 
   // Chamados permissions
   const canViewChamados = () => hasPermission('view_chamados');
@@ -296,6 +297,7 @@ export function usePermissions() {
     canShareValidacaoSms,
     canManageConsultaNumerosReminders,
     canViewConsultaNumerosReminderLogs,
+    canViewQuickNumberSearch,
     canViewChamados,
     canManageChamados,
     canManageChamadosConfig,
