@@ -1872,6 +1872,19 @@ export default function AdminDivulgador() {
                 <Button onClick={() => setIsMessageDialogOpen(true)}><Plus className="h-4 w-4 mr-2" />Nova Mensagem</Button>
               </div>
               <div className="flex items-center gap-2 ml-auto">
+                <Label className="text-sm text-muted-foreground">Status:</Label>
+                <Select value={messagesStatusFilter} onValueChange={setMessagesStatusFilter}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_all">Todos</SelectItem>
+                    <SelectItem value="failed">Com erro</SelectItem>
+                    <SelectItem value="pending">Pendente</SelectItem>
+                    <SelectItem value="sent">Enviado</SelectItem>
+                    <SelectItem value="resolved">Resolvido</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Label className="text-sm text-muted-foreground">Filtrar por grupo:</Label>
                 <Select value={messagesFilterGroup} onValueChange={setMessagesFilterGroup}>
                   <SelectTrigger className="w-[200px]">
@@ -1905,7 +1918,11 @@ export default function AdminDivulgador() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {messages.filter((msg: any) => messagesFilterGroup === '_all' || msg.group_id === messagesFilterGroup).map((msg: any) => (
+                        {messages.filter((msg: any) => {
+                          const matchesGroup = messagesFilterGroup === '_all' || msg.group_id === messagesFilterGroup;
+                          const matchesStatus = messagesStatusFilter === '_all' || msg.status === messagesStatusFilter;
+                          return matchesGroup && matchesStatus;
+                        }).map((msg: any) => (
                           <TableRow key={msg.id}>
                             <TableCell className="max-w-[200px]">
                               <div className="truncate" title={msg.content}>{msg.content}</div>
