@@ -43,6 +43,7 @@ import { AlertsCenter } from '@/components/dashboard/sections/AlertsCenter';
 import { AnaliseAvancadaSection } from '@/components/dashboard/sections/AnaliseAvancadaSection';
 import { useDashboardStats, formatCurrency, formatCurrencyUsd } from '@/hooks/useDashboardStats';
 import { BackupDialog } from '@/components/dashboard/BackupDialog';
+import { QuickNumberSearch } from '@/components/dashboard/QuickNumberSearch';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -297,6 +298,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <LigacoesAgendadasCard />
             {hasPermission('manage_system_health') && <SystemHealthCard />}
+            {hasPermission('view_consulta_numeros') && <QuickNumberSearch />}
           </div>
         </section>
 
