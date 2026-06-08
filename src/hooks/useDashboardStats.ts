@@ -151,7 +151,7 @@ export function formatCurrencyUsd(value: number) {
 export function useDashboardStats() {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
-  const { canManageTasks, canViewPaymentSecurity, hasPermission } = usePermissions();
+  const { canManageTasks, canViewPaymentSecurity, hasPermission, canViewDivulgador } = usePermissions();
   const { getTaskStats, getUrgentTasks } = useClientTasks();
 
   const [stats, setStats] = useState<DashboardStats>(INITIAL_STATS);
@@ -410,6 +410,9 @@ export function useDashboardStats() {
           pagamentosPendentes = pendingPayments || 0;
         }
 
+      }
+
+      if (canViewDivulgador()) {
         const { count: divErrors } = await supabase
           .from('divulgador_messages')
           .select('*', { count: 'exact', head: true })
@@ -488,6 +491,9 @@ export function useDashboardStats() {
         )
         .subscribe();
 
+    }
+
+    if (user && canViewDivulgador()) {
       divulgadorChannel = supabase
         .channel('dashboard-divulgador-errors')
         .on(
