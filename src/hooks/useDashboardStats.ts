@@ -52,6 +52,7 @@ export interface DashboardStats {
   pagamentosPendentes: number;
   offlineIntegrations: number;
   criticalQuotas: number;
+  divulgadorErrors: number;
 }
 
 export interface UrgentTasksState {
@@ -97,6 +98,7 @@ const INITIAL_STATS: DashboardStats = {
   pagamentosPendentes: 0,
   offlineIntegrations: 0,
   criticalQuotas: 0,
+  divulgadorErrors: 0,
 };
 
 function getClientesPorMes(clientes: any[]) {
@@ -285,6 +287,7 @@ export function useDashboardStats() {
 
       let offlineIntegrations = 0;
       let criticalQuotasCount = 0;
+      let divulgadorErrorsCount = 0;
 
       if (hasPermission('manage_system_health')) {
         const { data: statusData } = await supabase.from('integration_status').select('status');
@@ -406,6 +409,13 @@ export function useDashboardStats() {
             .eq('status', 'pending_approval');
           pagamentosPendentes = pendingPayments || 0;
         }
+
+        const { count: divErrors } = await supabase
+          .from('divulgador_messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'failed')
+          .is('resolution', null);
+        divulgadorErrorsCount = divErrors || 0;
       }
 
       if (canManageTasks()) {
@@ -457,6 +467,7 @@ export function useDashboardStats() {
         pagamentosPendentes,
         offlineIntegrations,
         criticalQuotas: criticalQuotasCount,
+        divulgadorErrors: divulgadorErrorsCount,
       });
     };
 
