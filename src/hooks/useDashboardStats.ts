@@ -474,6 +474,8 @@ export function useDashboardStats() {
     if (user) fetchStats();
 
     let billingChannel: ReturnType<typeof supabase.channel> | null = null;
+    let divulgadorChannel: ReturnType<typeof supabase.channel> | null = null;
+
     if (user && isAdmin) {
       billingChannel = supabase
         .channel('dashboard-billing-logs')
@@ -485,11 +487,23 @@ export function useDashboardStats() {
           }
         )
         .subscribe();
+
+      divulgadorChannel = supabase
+        .channel('dashboard-divulgador-errors')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'divulgador_messages' },
+          () => {
+            if (isMounted) fetchStats();
+          }
+        )
+        .subscribe();
     }
 
     return () => {
       isMounted = false;
       if (billingChannel) supabase.removeChannel(billingChannel);
+      if (divulgadorChannel) supabase.removeChannel(divulgadorChannel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isAdmin]);
