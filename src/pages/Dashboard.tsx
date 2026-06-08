@@ -15,7 +15,7 @@ import {
 import {
   Users, Settings, ChevronRight, TrendingUp,
   Webhook, DollarSign, Clock, AlertTriangle,
-  Bell, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle,
+  Bell, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle, Megaphone,
   ShieldCheck,
   Wallet, Phone, Headphones, ThumbsUp, User, Instagram
 } from 'lucide-react';
@@ -224,6 +224,18 @@ export default function Dashboard() {
           tone: 'warning' as const,
           icon: ThumbsUp,
           pulse: false,
+        }
+      : null,
+    isAdmin && stats.divulgadorErrors > 0
+      ? {
+          id: 'divulgador-errors',
+          title: 'Erros no Divulgador',
+          description: `${stats.divulgadorErrors} mensagem(ns) falharam no módulo Divulgador.`,
+          count: stats.divulgadorErrors,
+          onClick: () => navigate('/divulgador?tab=messages&filter=failed'),
+          tone: 'critical' as const,
+          icon: Megaphone,
+          pulse: true,
         }
       : null,
   ].filter((alert): alert is NonNullable<typeof alert> => Boolean(alert));

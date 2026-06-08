@@ -2017,9 +2017,31 @@ export default function AdminDivulgador() {
                                 >
                                   <Copy className="h-4 w-4" />
                                 </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="text-muted-foreground hover:text-emerald-500"
+                                  onClick={async () => {
+                                    const { error } = await supabase
+                                      .from('divulgador_messages')
+                                      .update({ resolution: 'resolved' })
+                                      .eq('id', msg.id);
+                                    
+                                    if (error) {
+                                      toast.error('Erro ao resolver: ' + error.message);
+                                    } else {
+                                      toast.success('Mensagem marcada como resolvida!');
+                                      queryClient.invalidateQueries({ queryKey: ['divulgador-messages'] });
+                                    }
+                                  }}
+                                  title="Marcar como Resolvido"
+                                >
+                                  <CheckCircle2 className="h-4 w-4" />
+                                </Button>
                                 <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMessageMutation.mutate(msg.id)}>
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
+
                               </div>
                             </TableCell>
                           </TableRow>

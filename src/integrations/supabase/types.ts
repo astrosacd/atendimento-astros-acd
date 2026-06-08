@@ -3352,6 +3352,7 @@ export type Database = {
           mention_all: boolean | null
           poll_options: string[] | null
           poll_selectable_count: number | null
+          resolution: string | null
           scheduled_at: string | null
           sent_at: string | null
           status: string | null
@@ -3369,6 +3370,7 @@ export type Database = {
           mention_all?: boolean | null
           poll_options?: string[] | null
           poll_selectable_count?: number | null
+          resolution?: string | null
           scheduled_at?: string | null
           sent_at?: string | null
           status?: string | null
@@ -3386,6 +3388,7 @@ export type Database = {
           mention_all?: boolean | null
           poll_options?: string[] | null
           poll_selectable_count?: number | null
+          resolution?: string | null
           scheduled_at?: string | null
           sent_at?: string | null
           status?: string | null
