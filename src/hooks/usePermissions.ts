@@ -459,6 +459,12 @@ export function usePermissions() {
     canViewGuiaInstagram,
     canViewInstagramReports,
     canManageSystemHealth,
+    canViewQuickNumberSearch,
+    canViewSeguros,
+    canManageSeguros,
+    canViewScans,
+    canManageScans,
+    canManageScansConfig,
     canManageAutoReplyInstagram,
     canManageSocialMediaReports,
   };
