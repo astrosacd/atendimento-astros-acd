@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/DashboardLayout';
@@ -55,9 +55,10 @@ import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 export default function AdminDivulgador() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState('instances');
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'instances');
   const [isCampaignDialogOpen, setIsCampaignDialogOpen] = useState(false);
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
@@ -71,6 +72,7 @@ export default function AdminDivulgador() {
   const [instanceToDelete, setInstanceToDelete] = useState<any>(null);
   const [editingInstance, setEditingInstance] = useState<any>(null);
   const [messagesFilterGroup, setMessagesFilterGroup] = useState<string>('_all');
+  const [messagesStatusFilter, setMessagesStatusFilter] = useState<string>(() => searchParams.get('filter') || '_all');
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [defaultParticipant, setDefaultParticipant] = useState('');
   const [isQuickMessageDialogOpen, setIsQuickMessageDialogOpen] = useState(false);
