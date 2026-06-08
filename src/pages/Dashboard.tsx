@@ -298,7 +298,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <LigacoesAgendadasCard />
             {hasPermission('manage_system_health') && <SystemHealthCard />}
-            {hasPermission('view_consulta_numeros') && <QuickNumberSearch />}
+            {hasPermission('view_quick_number_search') && <QuickNumberSearch />}
           </div>
         </section>
 
