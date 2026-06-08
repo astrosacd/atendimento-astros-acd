@@ -77,6 +77,16 @@ export function usePermissions() {
   const canShareValidacaoSms = () => hasPermission('share_validacao_sms');
   const canManageConsultaNumerosReminders = () => hasPermission('manage_consulta_numeros_reminders');
   const canViewConsultaNumerosReminderLogs = () => hasPermission('view_consulta_numeros_reminder_logs');
+  const canViewQuickNumberSearch = () => hasPermission('view_quick_number_search');
+
+  // Seguros permissions
+  const canViewSeguros = () => hasPermission('view_seguros');
+  const canManageSeguros = () => hasPermission('manage_seguros');
+
+  // Scans permissions
+  const canViewScans = () => hasPermission('view_scans');
+  const canManageScans = () => hasPermission('manage_scans');
+  const canManageScansConfig = () => hasPermission('manage_scans_config');
 
   // Chamados permissions
   const canViewChamados = () => hasPermission('view_chamados');
@@ -253,6 +263,11 @@ export function usePermissions() {
   const canViewGuiaInstagram = () => hasPermission('view_guia_instagram');
   const canManageSystemHealth = () => hasPermission('manage_system_health');
 
+  // Instagram extended permissions
+  const canManageAutoReplyInstagram = () => hasPermission('gerenciar_auto_resposta_instagram');
+  const canManageSocialMediaReports = () => hasPermission('manage_social_media_reports');
+  const canViewInstagramReports = () => hasPermission('view_instagram_reports');
+
   return {
     permissions,
     isLoading: queryLoading || (!!userRole && permissions.length === 0 && queryLoading),
@@ -296,6 +311,12 @@ export function usePermissions() {
     canShareValidacaoSms,
     canManageConsultaNumerosReminders,
     canViewConsultaNumerosReminderLogs,
+    canViewQuickNumberSearch,
+    canViewSeguros,
+    canManageSeguros,
+    canViewScans,
+    canManageScans,
+    canManageScansConfig,
     canViewChamados,
     canManageChamados,
     canManageChamadosConfig,
@@ -436,7 +457,9 @@ export function usePermissions() {
     canManageInstagramEspionage,
     canManageTemporaryAccess,
     canViewGuiaInstagram,
-    canViewInstagramReports: () => hasPermission('view_instagram_reports'),
+    canViewInstagramReports,
     canManageSystemHealth,
+    canManageAutoReplyInstagram,
+    canManageSocialMediaReports,
   };
 }
