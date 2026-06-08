@@ -117,7 +117,7 @@ serve(async (req) => {
       const { data } = await supabase
         .from("payment_links")
         .update(updatePayload)
-        .eq("external_reference", String(externalReference))
+        .or(`external_reference.eq.${String(externalReference)},preference_id.eq.${String(externalReference)}`)
         .select("id")
         .maybeSingle();
       if (data) updated = true;
