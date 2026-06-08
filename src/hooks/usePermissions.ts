@@ -457,10 +457,9 @@ export function usePermissions() {
     canManageInstagramEspionage,
     canManageTemporaryAccess,
     canViewGuiaInstagram,
-    canViewInstagramReports: () => hasPermission('view_instagram_reports'),
+    canViewInstagramReports,
     canManageSystemHealth,
     canManageAutoReplyInstagram,
     canManageSocialMediaReports,
-    canViewInstagramReports,
   };
 }
