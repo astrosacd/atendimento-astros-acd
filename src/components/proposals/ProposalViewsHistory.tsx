@@ -89,8 +89,9 @@ export function ProposalViewsHistory({ proposalId }: ProposalViewsHistoryProps) 
 
   // Group views by date
   const viewsByDate = views.reduce((acc, view) => {
+    // Usamos toLocaleDateString para garantir que a data seja interpretada no fuso local do navegador
     const dateObj = new Date(view.created_at);
-    const date = `${dateObj.getUTCFullYear()}-${String(dateObj.getUTCMonth() + 1).padStart(2, '0')}-${String(dateObj.getUTCDate()).padStart(2, '0')}`;
+    const date = format(dateObj, 'yyyy-MM-dd');
     if (!acc[date]) acc[date] = [];
     acc[date].push(view);
     return acc;
