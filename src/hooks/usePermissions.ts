@@ -263,6 +263,11 @@ export function usePermissions() {
   const canViewGuiaInstagram = () => hasPermission('view_guia_instagram');
   const canManageSystemHealth = () => hasPermission('manage_system_health');
 
+  // Instagram extended permissions
+  const canManageAutoReplyInstagram = () => hasPermission('gerenciar_auto_resposta_instagram');
+  const canManageSocialMediaReports = () => hasPermission('manage_social_media_reports');
+  const canViewInstagramReports = () => hasPermission('view_instagram_reports');
+
   return {
     permissions,
     isLoading: queryLoading || (!!userRole && permissions.length === 0 && queryLoading),
@@ -454,5 +459,8 @@ export function usePermissions() {
     canViewGuiaInstagram,
     canViewInstagramReports: () => hasPermission('view_instagram_reports'),
     canManageSystemHealth,
+    canManageAutoReplyInstagram,
+    canManageSocialMediaReports,
+    canViewInstagramReports,
   };
 }
