@@ -226,13 +226,13 @@ export default function Dashboard() {
           pulse: false,
         }
       : null,
-    isAdmin && stats.divulgadorErrors > 0
+    hasPermission('view_divulgador') && stats.divulgadorErrors > 0
       ? {
           id: 'divulgador-errors',
           title: 'Erros no Divulgador',
           description: `${stats.divulgadorErrors} mensagem(ns) falharam no módulo Divulgador.`,
           count: stats.divulgadorErrors,
-          onClick: () => navigate('/divulgador?tab=messages&filter=failed'),
+          onClick: () => navigate('/admin/divulgador?tab=messages&filter=failed'),
           tone: 'critical' as const,
           icon: Megaphone,
           pulse: true,
