@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/DashboardLayout';
@@ -55,9 +55,10 @@ import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 export default function AdminDivulgador() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState('instances');
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'instances');
   const [isCampaignDialogOpen, setIsCampaignDialogOpen] = useState(false);
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
@@ -71,6 +72,7 @@ export default function AdminDivulgador() {
   const [instanceToDelete, setInstanceToDelete] = useState<any>(null);
   const [editingInstance, setEditingInstance] = useState<any>(null);
   const [messagesFilterGroup, setMessagesFilterGroup] = useState<string>('_all');
+  const [messagesStatusFilter, setMessagesStatusFilter] = useState<string>(() => searchParams.get('filter') || '_all');
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [defaultParticipant, setDefaultParticipant] = useState('');
   const [isQuickMessageDialogOpen, setIsQuickMessageDialogOpen] = useState(false);
@@ -1870,6 +1872,19 @@ export default function AdminDivulgador() {
                 <Button onClick={() => setIsMessageDialogOpen(true)}><Plus className="h-4 w-4 mr-2" />Nova Mensagem</Button>
               </div>
               <div className="flex items-center gap-2 ml-auto">
+                <Label className="text-sm text-muted-foreground">Status:</Label>
+                <Select value={messagesStatusFilter} onValueChange={setMessagesStatusFilter}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_all">Todos</SelectItem>
+                    <SelectItem value="failed">Com erro</SelectItem>
+                    <SelectItem value="pending">Pendente</SelectItem>
+                    <SelectItem value="sent">Enviado</SelectItem>
+                    <SelectItem value="resolved">Resolvido</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Label className="text-sm text-muted-foreground">Filtrar por grupo:</Label>
                 <Select value={messagesFilterGroup} onValueChange={setMessagesFilterGroup}>
                   <SelectTrigger className="w-[200px]">
@@ -1903,7 +1918,11 @@ export default function AdminDivulgador() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {messages.filter((msg: any) => messagesFilterGroup === '_all' || msg.group_id === messagesFilterGroup).map((msg: any) => (
+                        {messages.filter((msg: any) => {
+                          const matchesGroup = messagesFilterGroup === '_all' || msg.group_id === messagesFilterGroup;
+                          const matchesStatus = messagesStatusFilter === '_all' || msg.status === messagesStatusFilter;
+                          return matchesGroup && matchesStatus;
+                        }).map((msg: any) => (
                           <TableRow key={msg.id}>
                             <TableCell className="max-w-[200px]">
                               <div className="truncate" title={msg.content}>{msg.content}</div>
@@ -1958,17 +1977,14 @@ export default function AdminDivulgador() {
                                 <Badge className="gap-1 bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
                                   <CheckCircle2 className="h-3 w-3" />Enviado
                                 </Badge>
+                              ) : msg.status === 'resolved' ? (
+                                <Badge variant="outline" className="gap-1 bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                                  <CheckCircle2 className="h-3 w-3" />Resolvido
+                                </Badge>
                               ) : msg.status === 'failed' ? (
-                                <div className="flex flex-col gap-1">
-                                  <Badge variant="destructive" className="gap-1">
-                                    <XCircle className="h-3 w-3" />Falhou
-                                  </Badge>
-                                  {msg.resolution === 'resolved' && (
-                                    <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
-                                      Resolvido
-                                    </Badge>
-                                  )}
-                                </div>
+                                <Badge variant="destructive" className="gap-1">
+                                  <XCircle className="h-3 w-3" />Falhou
+                                </Badge>
                               ) : msg.status === 'sending' ? (
                                 <Badge className="gap-1 bg-blue-500/20 text-blue-400 border-blue-500/30">
                                   <Loader2 className="h-3 w-3 animate-spin" />Enviando
@@ -2032,7 +2048,7 @@ export default function AdminDivulgador() {
                                     onClick={async () => {
                                       const { error } = await supabase
                                         .from('divulgador_messages')
-                                        .update({ resolution: 'resolved' })
+                                        .update({ status: 'resolved', resolution: 'resolved' })
                                         .eq('id', msg.id);
                                       
                                       if (error) {

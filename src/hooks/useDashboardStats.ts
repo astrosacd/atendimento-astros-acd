@@ -151,8 +151,9 @@ export function formatCurrencyUsd(value: number) {
 export function useDashboardStats() {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
-  const { canManageTasks, canViewPaymentSecurity, hasPermission } = usePermissions();
+  const { permissions, canManageTasks, canViewPaymentSecurity, hasPermission, canViewDivulgador } = usePermissions();
   const { getTaskStats, getUrgentTasks } = useClientTasks();
+  const permissionsKey = permissions.join('|');
 
   const [stats, setStats] = useState<DashboardStats>(INITIAL_STATS);
   const [urgentTasks, setUrgentTasks] = useState<UrgentTasksState>({ overdue: [], dueSoon: [] });
@@ -410,6 +411,9 @@ export function useDashboardStats() {
           pagamentosPendentes = pendingPayments || 0;
         }
 
+      }
+
+      if (canViewDivulgador()) {
         const { count: divErrors } = await supabase
           .from('divulgador_messages')
           .select('*', { count: 'exact', head: true })
@@ -488,6 +492,9 @@ export function useDashboardStats() {
         )
         .subscribe();
 
+    }
+
+    if (user && canViewDivulgador()) {
       divulgadorChannel = supabase
         .channel('dashboard-divulgador-errors')
         .on(
@@ -506,7 +513,7 @@ export function useDashboardStats() {
       if (divulgadorChannel) supabase.removeChannel(divulgadorChannel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, isAdmin]);
+  }, [user, isAdmin, permissionsKey]);
 
   // ============ Tarefas urgentes + toasts ============
   useEffect(() => {
