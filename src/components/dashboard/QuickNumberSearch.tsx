@@ -120,7 +120,7 @@ export function QuickNumberSearch() {
                 </div>
                 {info ? (
                   <Badge 
-                    variant={info.status === 'pago' ? 'success' : 'destructive'}
+                    variant={info.status === 'pago' ? 'default' : 'destructive'}
                     className="w-full justify-center text-[10px] py-0"
                   >
                     {info.status === 'pago' ? 'Ativo' : 'Vencido'}
@@ -137,7 +137,7 @@ export function QuickNumberSearch() {
                 </div>
                 {numberData.auto_hospedado ? (
                   <Badge 
-                    variant={info?.status === 'pago' ? 'success' : 'destructive'}
+                    variant={info?.status === 'pago' ? 'default' : 'destructive'}
                     className="w-full justify-center text-[10px] py-0"
                   >
                     {info?.status === 'pago' ? 'Ativo' : 'Vencido'}
