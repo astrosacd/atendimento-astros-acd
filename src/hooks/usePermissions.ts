@@ -79,6 +79,15 @@ export function usePermissions() {
   const canViewConsultaNumerosReminderLogs = () => hasPermission('view_consulta_numeros_reminder_logs');
   const canViewQuickNumberSearch = () => hasPermission('view_quick_number_search');
 
+  // Seguros permissions
+  const canViewSeguros = () => hasPermission('view_seguros');
+  const canManageSeguros = () => hasPermission('manage_seguros');
+
+  // Scans permissions
+  const canViewScans = () => hasPermission('view_scans');
+  const canManageScans = () => hasPermission('manage_scans');
+  const canManageScansConfig = () => hasPermission('manage_scans_config');
+
   // Chamados permissions
   const canViewChamados = () => hasPermission('view_chamados');
   const canManageChamados = () => hasPermission('manage_chamados');
@@ -298,6 +307,11 @@ export function usePermissions() {
     canManageConsultaNumerosReminders,
     canViewConsultaNumerosReminderLogs,
     canViewQuickNumberSearch,
+    canViewSeguros,
+    canManageSeguros,
+    canViewScans,
+    canManageScans,
+    canManageScansConfig,
     canViewChamados,
     canManageChamados,
     canManageChamadosConfig,
