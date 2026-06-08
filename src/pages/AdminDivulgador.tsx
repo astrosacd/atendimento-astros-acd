@@ -1959,9 +1959,16 @@ export default function AdminDivulgador() {
                                   <CheckCircle2 className="h-3 w-3" />Enviado
                                 </Badge>
                               ) : msg.status === 'failed' ? (
-                                <Badge variant="destructive" className="gap-1">
-                                  <XCircle className="h-3 w-3" />Falhou
-                                </Badge>
+                                <div className="flex flex-col gap-1">
+                                  <Badge variant="destructive" className="gap-1">
+                                    <XCircle className="h-3 w-3" />Falhou
+                                  </Badge>
+                                  {msg.resolution === 'resolved' && (
+                                    <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                                      Resolvido
+                                    </Badge>
+                                  )}
+                                </div>
                               ) : msg.status === 'sending' ? (
                                 <Badge className="gap-1 bg-blue-500/20 text-blue-400 border-blue-500/30">
                                   <Loader2 className="h-3 w-3 animate-spin" />Enviando
@@ -2017,27 +2024,29 @@ export default function AdminDivulgador() {
                                 >
                                   <Copy className="h-4 w-4" />
                                 </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="text-muted-foreground hover:text-emerald-500"
-                                  onClick={async () => {
-                                    const { error } = await supabase
-                                      .from('divulgador_messages')
-                                      .update({ resolution: 'resolved' })
-                                      .eq('id', msg.id);
-                                    
-                                    if (error) {
-                                      toast.error('Erro ao resolver: ' + error.message);
-                                    } else {
-                                      toast.success('Mensagem marcada como resolvida!');
-                                      queryClient.invalidateQueries({ queryKey: ['divulgador-messages'] });
-                                    }
-                                  }}
-                                  title="Marcar como Resolvido"
-                                >
-                                  <CheckCircle2 className="h-4 w-4" />
-                                </Button>
+                                {msg.status === 'failed' && msg.resolution !== 'resolved' && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="text-muted-foreground hover:text-emerald-500"
+                                    onClick={async () => {
+                                      const { error } = await supabase
+                                        .from('divulgador_messages')
+                                        .update({ resolution: 'resolved' })
+                                        .eq('id', msg.id);
+                                      
+                                      if (error) {
+                                        toast.error('Erro ao resolver: ' + error.message);
+                                      } else {
+                                        toast.success('Mensagem marcada como resolvida!');
+                                        queryClient.invalidateQueries({ queryKey: ['divulgador-messages'] });
+                                      }
+                                    }}
+                                    title="Marcar como Resolvido"
+                                  >
+                                    <CheckCircle2 className="h-4 w-4" />
+                                  </Button>
+                                )}
                                 <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMessageMutation.mutate(msg.id)}>
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
