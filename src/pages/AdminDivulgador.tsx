@@ -1977,17 +1977,14 @@ export default function AdminDivulgador() {
                                 <Badge className="gap-1 bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
                                   <CheckCircle2 className="h-3 w-3" />Enviado
                                 </Badge>
+                              ) : msg.status === 'resolved' ? (
+                                <Badge variant="outline" className="gap-1 bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                                  <CheckCircle2 className="h-3 w-3" />Resolvido
+                                </Badge>
                               ) : msg.status === 'failed' ? (
-                                <div className="flex flex-col gap-1">
-                                  <Badge variant="destructive" className="gap-1">
-                                    <XCircle className="h-3 w-3" />Falhou
-                                  </Badge>
-                                  {msg.resolution === 'resolved' && (
-                                    <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
-                                      Resolvido
-                                    </Badge>
-                                  )}
-                                </div>
+                                <Badge variant="destructive" className="gap-1">
+                                  <XCircle className="h-3 w-3" />Falhou
+                                </Badge>
                               ) : msg.status === 'sending' ? (
                                 <Badge className="gap-1 bg-blue-500/20 text-blue-400 border-blue-500/30">
                                   <Loader2 className="h-3 w-3 animate-spin" />Enviando
@@ -2051,7 +2048,7 @@ export default function AdminDivulgador() {
                                     onClick={async () => {
                                       const { error } = await supabase
                                         .from('divulgador_messages')
-                                        .update({ resolution: 'resolved' })
+                                        .update({ status: 'resolved', resolution: 'resolved' })
                                         .eq('id', msg.id);
                                       
                                       if (error) {
