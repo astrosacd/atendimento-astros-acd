@@ -180,23 +180,30 @@ export function useInsurancePaymentStatusHybrid() {
         
         const bestLink = sortedLinks[0]; // O link mais recente/futuro
         
-        // REGRA CRUCIAL: Se o registro mais recente do cliente X não contém esse número,
-        // mas um registro antigo do mesmo cliente X contém, o sistema estava mostrando "Vencido".
-        // Vamos buscar se para esse CLIENTE existe um registro mais novo que NÃO inclui este número.
-        const clientLatestRenewals = new Map<string, string>();
+        // REGRA: Se o cliente tem um contrato MAIS NOVO PARA O MESMO PRODUTO que NÃO
+        // inclui este número, então o número foi removido do contrato atual e o vínculo
+        // antigo deve ser ignorado (evita "Vencido" eterno em números abandonados).
+        //
+        // IMPORTANTE: A chave precisa ser (cliente + produto). Agrupar só por cliente
+        // fazia com que renovar UM produto (ex.: Hospedagem) zerasse os vínculos do
+        // OUTRO produto (Seguro) do mesmo cliente — bug que aparecia logo após pagamento.
+        const clientProductLatestRenewals = new Map<string, string>();
         clientes?.forEach(c => {
-          const currentMax = clientLatestRenewals.get(c.nome) || '';
+          const key = `${c.nome}||${c.produto}`;
+          const currentMax = clientProductLatestRenewals.get(key) || '';
           if ((c.data_renovacao || '') > currentMax) {
-            clientLatestRenewals.set(c.nome, c.data_renovacao || '');
+            clientProductLatestRenewals.set(key, c.data_renovacao || '');
           }
         });
 
-        // Se o bestLink for de um cliente que já tem um contrato mais novo (data_renovacao maior),
-        // então este número foi "abandonado" ou removido do contrato atual.
-        const latestDateForThisClient = clientLatestRenewals.get(bestLink.clientName);
-        if (latestDateForThisClient && (bestLink.data_renovacao || '') < latestDateForThisClient) {
-          // O número pertence a um contrato antigo e o cliente já renovou com outros números.
-          // Portanto, este vínculo não deve ser considerado para gerar status de "Vencido".
+        const bestKey = `${bestLink.clientName}||${bestLink.produto}`;
+        const latestDateForThisClientProduct = clientProductLatestRenewals.get(bestKey);
+        if (
+          latestDateForThisClientProduct &&
+          (bestLink.data_renovacao || '') < latestDateForThisClientProduct
+        ) {
+          // Existe outro contrato do MESMO cliente e MESMO produto, mais novo, que não
+          // referencia este número — número foi abandonado nessa renovação específica.
           return;
         }
 
