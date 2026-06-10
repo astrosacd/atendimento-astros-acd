@@ -163,7 +163,19 @@ export function useInsurancePaymentStatusHybrid() {
         });
       });
 
-      // 4. Decidir status: Regra de prioridade pelo contrato mais recente GLOBALMENTE
+      const normalizeProductKey = (clientName: string | null | undefined, produto: string | null | undefined) =>
+        `${String(clientName ?? '').trim().toLowerCase()}||${String(produto ?? '').trim().toLowerCase()}`;
+
+      const clientProductLatestRenewals = new Map<string, string>();
+      clientes?.forEach(c => {
+        const key = normalizeProductKey(c.nome, c.produto);
+        const currentMax = clientProductLatestRenewals.get(key) || '';
+        if ((c.data_renovacao || '') > currentMax) {
+          clientProductLatestRenewals.set(key, c.data_renovacao || '');
+        }
+      });
+
+      // 4. Decidir status: Regra de prioridade pelo contrato mais recente por CLIENTE + PRODUTO
       // Primeiro, identificamos qual é o registro mais recente para CADA NÚMERO
       // e ignoramos registros antigos se houver um mais novo para aquele mesmo número.
       // Além disso, se o número NÃO estiver no registro mais recente do CLIENTE (Fernando),
@@ -180,27 +192,21 @@ export function useInsurancePaymentStatusHybrid() {
         
         const bestLink = sortedLinks[0]; // O link mais recente/futuro
         
-        // REGRA CRUCIAL: Se o registro mais recente do cliente X não contém esse número,
-        // mas um registro antigo do mesmo cliente X contém, o sistema estava mostrando "Vencido".
-        // Vamos buscar se para esse CLIENTE existe um registro mais novo que NÃO inclui este número.
-        const clientLatestRenewals = new Map<string, string>();
-        clientes?.forEach(c => {
-          const currentMax = clientLatestRenewals.get(c.nome) || '';
-          if ((c.data_renovacao || '') > currentMax) {
-            clientLatestRenewals.set(c.nome, c.data_renovacao || '');
-          }
-        });
+        // REGRA CRUCIAL: contrato novo de Hospedagem não pode invalidar Seguro do mesmo cliente,
+        // e contrato novo de Seguro não pode derrubar outros seguros que ainda têm dias válidos.
+        const latestDateForThisClientProduct = clientProductLatestRenewals.get(
+          normalizeProductKey(bestLink.clientName, bestLink.produto)
+        );
+        const bestLinkDate = bestLink.data_renovacao || '';
+        const bestLinkStillValid = bestLinkDate >= today;
 
-        // Se o bestLink for de um cliente que já tem um contrato mais novo (data_renovacao maior),
-        // então este número foi "abandonado" ou removido do contrato atual.
-        const latestDateForThisClient = clientLatestRenewals.get(bestLink.clientName);
-        if (latestDateForThisClient && (bestLink.data_renovacao || '') < latestDateForThisClient) {
-          // O número pertence a um contrato antigo e o cliente já renovou com outros números.
-          // Portanto, este vínculo não deve ser considerado para gerar status de "Vencido".
+        if (latestDateForThisClientProduct && bestLinkDate < latestDateForThisClientProduct && !bestLinkStillValid) {
+          // O número pertence a um contrato antigo já vencido e há contrato mais novo do mesmo produto.
+          // Nesse caso, não gera "Vencido" e fica como não vinculado.
           return;
         }
 
-        const isPaid = (bestLink.data_renovacao || '') >= today;
+        const isPaid = bestLinkStillValid;
         
         if (links.length > 0) {
           statusMap.set(rowId, {
