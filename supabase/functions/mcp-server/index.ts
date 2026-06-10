@@ -176,11 +176,31 @@ async function buildServer(ctx: { keyHint: string; ip: string | null }): Promise
               result = { table, count };
               resultSummary = { count };
             } else if (operations.includes("select") || operations.includes("read")) {
-              const limit = Math.min(Math.max(Number(args?.limit ?? 50), 1), 1000);
-              const { data, error } = await supabase.from(table).select("*").limit(limit);
+              const limit = Math.min(Math.max(Number(args?.limit ?? 500), 1), 2000);
+              let q = supabase.from(table).select("*", { count: "exact" });
+
+              const filter = isJsonObject(args?.filter) ? args!.filter as Record<string, unknown> : null;
+              if (filter) {
+                for (const [k, v] of Object.entries(filter)) {
+                  q = q.eq(k, v as any);
+                }
+              }
+              const orderBy = typeof args?.order_by === "string" ? args!.order_by as string : null;
+              if (orderBy) q = q.order(orderBy, { ascending: !args?.order_desc });
+
+              const { data, count, error } = await q.limit(limit);
               if (error) throw error;
-              result = data;
-              resultSummary = { rows: Array.isArray(data) ? data.length : 0, limit };
+              const rows = Array.isArray(data) ? data.length : 0;
+              const total = count ?? rows;
+              result = {
+                table,
+                total_count: total,
+                returned: rows,
+                truncated: total > rows,
+                limit,
+                rows: data,
+              };
+              resultSummary = { rows, total_count: total, truncated: total > rows };
             } else {
               throw new Error(`Operação "${op}" não permitida para a tool "${t.name}".`);
             }
