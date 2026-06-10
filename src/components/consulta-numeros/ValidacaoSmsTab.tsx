@@ -254,7 +254,7 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
 
       const textToCopy = `📋 Veja a análise dos números solicitados:\n${link}`;
       await copyToClipboard(textToCopy);
-      toast({ title: '🔗 Link copiado!', description: 'Válido por 5 minutos' });
+      toast({ title: '🔗 Link copiado!', description: 'Válido por 10 minutos' });
     } catch (err: any) {
       toast({ title: 'Erro ao gerar link', description: err.message, variant: 'destructive' });
     } finally {
