@@ -397,22 +397,62 @@ const AdminMCP = () => {
                   <TableHead>Ferramenta</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Tipo</TableHead>
+                  <TableHead>Acesso</TableHead>
                   <TableHead className="text-right">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tools.length === 0 ? (
                     <TableRow>
-                        <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                             Nenhuma ferramenta configurada. Clique em "Sincronizar Tabelas" para começar.
                         </TableCell>
                     </TableRow>
-                ) : tools.map((tool) => (
-                  <TableRow key={tool.id}>
-                    <TableCell className="font-medium">{tool.name}</TableCell>
+                ) : tools.map((tool) => {
+                  const access = getToolAccessKind(tool);
+                  const isWrite = access === "write";
+                  const isWriteActive = isWrite && tool.enabled;
+                  return (
+                  <TableRow
+                    key={tool.id}
+                    className={isWriteActive ? "bg-destructive/5 hover:bg-destructive/10" : undefined}
+                  >
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {isWriteActive && (
+                          <AlertTriangle className="h-4 w-4 text-destructive" aria-label="Escrita ativa" />
+                        )}
+                        {tool.name}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{tool.description}</TableCell>
                     <TableCell>
                         <Badge variant="secondary">{tool.tool_type}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {access === "read" && (
+                        <Badge
+                          variant="outline"
+                          className="border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-1"
+                        >
+                          <Lock className="h-3 w-3" />
+                          Leitura
+                        </Badge>
+                      )}
+                      {access === "write" && (
+                        <Badge
+                          variant="outline"
+                          className="border-destructive/50 bg-destructive/10 text-destructive gap-1"
+                        >
+                          <AlertTriangle className="h-3 w-3" />
+                          Escrita
+                        </Badge>
+                      )}
+                      {access === "unknown" && (
+                        <Badge variant="outline" className="text-muted-foreground gap-1">
+                          Indefinido
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end items-center gap-2">
@@ -427,7 +467,8 @@ const AdminMCP = () => {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>
