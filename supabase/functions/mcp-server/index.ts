@@ -19,6 +19,49 @@ function admin() {
   return createClient(SUPABASE_URL, SERVICE_KEY);
 }
 
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function defaultInputSchema(toolType: string) {
+  if (toolType === "sql_query") {
+    return {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Consulta SQL a executar" },
+      },
+      required: ["query"],
+      additionalProperties: false,
+    };
+  }
+
+  return {
+    type: "object",
+    properties: {
+      limit: {
+        type: "number",
+        description: "Quantidade máxima de registros retornados (máximo 200)",
+        minimum: 1,
+        maximum: 200,
+        default: 50,
+      },
+    },
+    required: [],
+    additionalProperties: false,
+  };
+}
+
+function normalizeInputSchema(schema: unknown, toolType: string) {
+  if (!isJsonObject(schema) || schema.type !== "object" || !isJsonObject(schema.properties)) {
+    return defaultInputSchema(toolType);
+  }
+
+  return {
+    ...schema,
+    required: Array.isArray(schema.required) ? schema.required : [],
+  };
+}
+
 // ---------- Auth + config gate ----------
 async function authorize(req: Request): Promise<Response | null> {
   const apiKey = req.headers.get("x-api-key");
@@ -69,10 +112,9 @@ async function buildServer(): Promise<McpServer> {
 
   for (const t of tools ?? []) {
     const cfg = t.configuration ?? {};
-    const inputSchema = cfg.inputSchema ?? { type: "object", properties: {}, required: [] };
+    const inputSchema = normalizeInputSchema(cfg.inputSchema, t.tool_type);
 
-    server.tool({
-      name: t.name,
+    server.tool(t.name, {
       description: t.description ?? `Tool ${t.name}`,
       inputSchema,
       handler: async (args: Record<string, unknown>) => {
@@ -143,7 +185,8 @@ app.all("/*", async (c) => {
   try {
     const server = await buildServer();
     const transport = new StreamableHttpTransport();
-    const response = await transport.handleRequest(req, server);
+    const handler = transport.bind(server);
+    const response = await handler(req);
 
     // Merge CORS headers no response final
     const merged = new Headers(response.headers);
