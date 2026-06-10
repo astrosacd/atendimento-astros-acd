@@ -158,8 +158,24 @@ serve(async (req) => {
     const mpData = await mpRes.json();
     const mpStatus = mpData?.status; // approved | pending | rejected | cancelled | in_process
     const externalRef = mpData?.external_reference;
+    let preferenceId = mpData?.preference_id;
     const metadataClienteId = mpData?.metadata?.cliente_id;
     const mpAmount = toNumber(mpData?.transaction_amount);
+    const merchantOrderId = mpData?.merchant_order_id || mpData?.order?.id;
+
+    if (!preferenceId && merchantOrderId) {
+      try {
+        const orderRes = await fetch(`https://api.mercadopago.com/merchant_orders/${merchantOrderId}`, {
+          headers: { Authorization: `Bearer ${mpToken}` },
+        });
+        if (orderRes.ok) {
+          const orderData = await orderRes.json();
+          preferenceId = orderData?.preference_id || preferenceId;
+        }
+      } catch (e) {
+        console.warn(`[mp-webhook] Falha ao buscar merchant_order ${merchantOrderId}:`, e);
+      }
+    }
     console.log(`[mp-webhook] MP payment ${mpPaymentId} status=${mpStatus} ext_ref=${externalRef}`);
 
     // Acha o client_payments: 1º por payment_id exato; 2º por preference_id (external_reference);
@@ -170,11 +186,12 @@ serve(async (req) => {
       .eq("payment_id", String(mpPaymentId))
       .maybeSingle();
 
-    if (!payment && externalRef) {
+    const gatewayReference = externalRef || preferenceId;
+    if (!payment && gatewayReference) {
       const { data: byRef } = await supabase
         .from("client_payments")
         .select("*, cliente:clientes(id, data_renovacao, ciclo_cobranca, cobranca_ativa)")
-        .eq("preference_id", String(externalRef))
+        .eq("preference_id", String(gatewayReference))
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -204,7 +221,7 @@ serve(async (req) => {
         await supabase.from("billing_webhook_logs").insert({
           provider: "mercadopago", event_type: String(eventType || "payment"), external_id: String(mpPaymentId),
           http_status: 200, result: "unmatched", message: `Pagamento recebido, mas sem vínculo em client_payments`,
-          payload: { mpStatus, externalRef, metadataClienteId, mpAmount },
+          payload: { mpStatus, externalRef, preferenceId, metadataClienteId, mpAmount },
         });
       } catch { /* ignore */ }
       return new Response(JSON.stringify({ ok: true, matched: false }), {
