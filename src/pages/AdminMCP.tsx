@@ -133,6 +133,31 @@ const AdminMCP = () => {
     }
   };
 
+  const handleBulkToggleTools = async (enable: boolean) => {
+    setIsRefreshing(true);
+    try {
+      const { error } = await supabase
+        .from('mcp_tools')
+        .update({ enabled: enable });
+
+      if (error) throw error;
+
+      setTools(prev => prev.map(tool => ({ ...tool, enabled: enable })));
+
+      toast({
+        title: enable ? "Todas as ferramentas habilitadas" : "Todas as ferramentas desabilitadas",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao atualizar ferramentas",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const rotateApiKey = async () => {
     setIsRotateDialogOpen(false);
     setIsRefreshing(true);
@@ -322,10 +347,18 @@ const AdminMCP = () => {
                 Habilite ou desabilite o que o OpenClaw pode acessar.
               </CardDescription>
             </div>
-            <Button onClick={() => setIsSyncDialogOpen(true)} disabled={isRefreshing}>
-                <Database className="h-4 w-4 mr-2" />
-                Sincronizar Tabelas
-            </Button>
+            <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => handleBulkToggleTools(true)} disabled={isRefreshing}>
+                    Habilitar Todas
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleBulkToggleTools(false)} disabled={isRefreshing}>
+                    Desabilitar Todas
+                </Button>
+                <Button onClick={() => setIsSyncDialogOpen(true)} disabled={isRefreshing}>
+                    <Database className="h-4 w-4 mr-2" />
+                    Sincronizar Tabelas
+                </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <Table>
