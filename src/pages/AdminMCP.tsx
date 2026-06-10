@@ -27,8 +27,25 @@ import { useNavigate } from "react-router-dom";
 import { usePermissions } from "@/hooks/usePermissions";
 import { 
   ArrowLeft, RefreshCw, Copy, Check, Eye, EyeOff, Loader2,
-  Database, Shield, Settings, Server
+  Database, Shield, Settings, Server, Lock, AlertTriangle
 } from "lucide-react";
+
+type AccessKind = "read" | "write" | "unknown";
+
+const getToolAccessKind = (tool: { name: string; configuration: any }): AccessKind => {
+  const ops: string[] = Array.isArray(tool.configuration?.operations)
+    ? tool.configuration.operations.map((o: string) => String(o).toLowerCase())
+    : [];
+  if (ops.length > 0) {
+    const writeOps = ["insert", "update", "delete", "upsert", "truncate"];
+    if (ops.some((o) => writeOps.includes(o))) return "write";
+    if (ops.every((o) => ["select", "read"].includes(o))) return "read";
+  }
+  const n = tool.name.toLowerCase();
+  if (/^(read_|list_|get_|query_|fetch_|search_|count_)/.test(n)) return "read";
+  if (/^(manage_|create_|update_|delete_|insert_|upsert_|modify_|set_|write_|remove_|sync_|reset_|rotate_)/.test(n)) return "write";
+  return "unknown";
+};
 import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 interface McpTool {
