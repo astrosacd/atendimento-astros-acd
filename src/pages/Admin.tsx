@@ -187,6 +187,7 @@ const Admin = () => {
               if (module.key === 'manageUsers') return hasPermission('manage_users');
               if (module.key === 'systemPermissions') return hasPermission('manage_permissions');
               if (module.key === 'systemHealth') return hasPermission('manage_system_health');
+              if (module.key === 'mcp') return hasPermission('view_mcp_config');
               return true;
             })
             .map((module) => (

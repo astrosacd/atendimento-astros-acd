@@ -172,7 +172,7 @@ function AppRoutes() {
       
       {/* AI Intelligence Route */}
       <Route path="/admin/ia" element={<ProtectedRoute permission="view_sales_forecast"><AdminIA /></ProtectedRoute>} />
-      <Route path="/admin/mcp" element={<ProtectedRoute permission="manage_settings"><AdminMCP /></ProtectedRoute>} />
+      <Route path="/admin/mcp" element={<ProtectedRoute permission="view_mcp_config"><AdminMCP /></ProtectedRoute>} />
       <Route path="/admin/saude" element={<ProtectedRoute permission="manage_system_health"><AdminHealthDashboard /></ProtectedRoute>} />
       
       {/* Tarefas Route */}
