@@ -234,7 +234,7 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
         .filter(r => selectedNumbers.has(r.numero))
         .map(r => ({ numero: r.numero, status: r.status, motivo: r.motivo || null }));
 
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
 
       const { data, error } = await (supabase as any)
         .from('sms_validation_result_shares')
