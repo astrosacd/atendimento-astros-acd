@@ -81,6 +81,10 @@ export function CobrancaConfigTab() {
       horario_inicio: cfg.horario_inicio,
       horario_fim: cfg.horario_fim,
       apenas_cobranca_ativa: cfg.apenas_cobranca_ativa,
+      fallback_audio_enabled: !!cfg.fallback_audio_enabled,
+      fallback_audio_template: cfg.fallback_audio_template ?? "",
+      fallback_audio_send_text: !!cfg.fallback_audio_send_text,
+      fallback_max_per_day: Math.max(1, Number(cfg.fallback_max_per_day ?? 1)),
     };
     const q = cfg.id
       ? await supabase.from("cobranca_ligacao_config").update(payload).eq("id", cfg.id)
