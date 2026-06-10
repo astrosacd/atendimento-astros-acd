@@ -18,6 +18,7 @@ import {
   UserPlus,
   Package,
   Activity,
+  Server,
 } from 'lucide-react';
 
 const Admin = () => {
@@ -90,6 +91,14 @@ const Admin = () => {
       icon: Activity,
       path: '/admin/saude',
       color: 'from-emerald-500/20 to-emerald-600/10',
+    },
+    {
+      key: 'mcp',
+      title: t('admin.modules.mcp.title'),
+      description: t('admin.modules.mcp.description'),
+      icon: Server,
+      path: '/admin/mcp',
+      color: 'from-orange-500/20 to-orange-600/10',
     },
   ];
 
