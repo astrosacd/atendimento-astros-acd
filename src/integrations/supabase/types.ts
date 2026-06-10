@@ -2407,6 +2407,10 @@ export type Database = {
           delay_minutes: number
           dias_disparo: number[]
           enabled: boolean
+          fallback_audio_enabled: boolean
+          fallback_audio_send_text: boolean
+          fallback_audio_template: string
+          fallback_max_per_day: number
           horario_fim: string
           horario_inicio: string
           id: string
@@ -2419,6 +2423,10 @@ export type Database = {
           delay_minutes?: number
           dias_disparo?: number[]
           enabled?: boolean
+          fallback_audio_enabled?: boolean
+          fallback_audio_send_text?: boolean
+          fallback_audio_template?: string
+          fallback_max_per_day?: number
           horario_fim?: string
           horario_inicio?: string
           id?: string
@@ -2431,6 +2439,10 @@ export type Database = {
           delay_minutes?: number
           dias_disparo?: number[]
           enabled?: boolean
+          fallback_audio_enabled?: boolean
+          fallback_audio_send_text?: boolean
+          fallback_audio_template?: string
+          fallback_max_per_day?: number
           horario_fim?: string
           horario_inicio?: string
           id?: string
@@ -5379,6 +5391,8 @@ export type Database = {
           duration_seconds: number | null
           ended_at: string | null
           error_message: string | null
+          fallback_audio_error: string | null
+          fallback_audio_sent_at: string | null
           id: string
           numero_destino: string
           numero_origem: string | null
@@ -5403,6 +5417,8 @@ export type Database = {
           duration_seconds?: number | null
           ended_at?: string | null
           error_message?: string | null
+          fallback_audio_error?: string | null
+          fallback_audio_sent_at?: string | null
           id?: string
           numero_destino: string
           numero_origem?: string | null
@@ -5427,6 +5443,8 @@ export type Database = {
           duration_seconds?: number | null
           ended_at?: string | null
           error_message?: string | null
+          fallback_audio_error?: string | null
+          fallback_audio_sent_at?: string | null
           id?: string
           numero_destino?: string
           numero_origem?: string | null
