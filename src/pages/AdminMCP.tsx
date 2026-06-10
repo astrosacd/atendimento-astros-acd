@@ -24,6 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { usePermissions } from "@/hooks/usePermissions";
 import { 
   ArrowLeft, RefreshCw, Copy, Check, Eye, EyeOff, Loader2,
   Database, Shield, Settings, Server
@@ -42,6 +43,9 @@ interface McpTool {
 const AdminMCP = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canManageConfig = hasPermission('manage_mcp_config');
+  const canManageTools = hasPermission('manage_mcp_tools');
   const [tools, setTools] = useState<McpTool[]>([]);
   const [apiKey, setApiKey] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
