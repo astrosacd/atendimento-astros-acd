@@ -221,6 +221,10 @@
       "configurationGuide": {
         "title": "Guía de Configuración",
         "description": "Aprenda a configurar todos los módulos del sistema"
+      },
+      "mcp": {
+        "title": "Configuración MCP (OpenClaw)",
+        "description": "Administrar herramientas y acceso para el agente OpenClaw"
       }
     }
   },
