@@ -138,7 +138,8 @@ const AdminMCP = () => {
     try {
       const { error } = await supabase
         .from('mcp_tools')
-        .update({ enabled: enable });
+        .update({ enabled: enable })
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Dummy condition to allow bulk update
 
       if (error) throw error;
 
