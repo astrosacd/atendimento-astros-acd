@@ -27,8 +27,25 @@ import { useNavigate } from "react-router-dom";
 import { usePermissions } from "@/hooks/usePermissions";
 import { 
   ArrowLeft, RefreshCw, Copy, Check, Eye, EyeOff, Loader2,
-  Database, Shield, Settings, Server
+  Database, Shield, Settings, Server, Lock, AlertTriangle
 } from "lucide-react";
+
+type AccessKind = "read" | "write" | "unknown";
+
+const getToolAccessKind = (tool: { name: string; configuration: any }): AccessKind => {
+  const ops: string[] = Array.isArray(tool.configuration?.operations)
+    ? tool.configuration.operations.map((o: string) => String(o).toLowerCase())
+    : [];
+  if (ops.length > 0) {
+    const writeOps = ["insert", "update", "delete", "upsert", "truncate"];
+    if (ops.some((o) => writeOps.includes(o))) return "write";
+    if (ops.every((o) => ["select", "read"].includes(o))) return "read";
+  }
+  const n = tool.name.toLowerCase();
+  if (/^(read_|list_|get_|query_|fetch_|search_|count_)/.test(n)) return "read";
+  if (/^(manage_|create_|update_|delete_|insert_|upsert_|modify_|set_|write_|remove_|sync_|reset_|rotate_)/.test(n)) return "write";
+  return "unknown";
+};
 import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 interface McpTool {
@@ -374,28 +391,105 @@ const AdminMCP = () => {
             </div>
           </CardHeader>
           <CardContent>
+            {(() => {
+              const writeActiveCount = tools.filter(
+                (t) => t.enabled && getToolAccessKind(t) === "write"
+              ).length;
+              return (
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div className="flex flex-wrap items-center gap-3 text-muted-foreground">
+                    <span className="inline-flex items-center gap-1">
+                      <Badge
+                        variant="outline"
+                        className="border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-1"
+                      >
+                        <Lock className="h-3 w-3" /> Leitura
+                      </Badge>
+                      somente consulta, não altera dados
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <Badge
+                        variant="outline"
+                        className="border-destructive/50 bg-destructive/10 text-destructive gap-1"
+                      >
+                        <AlertTriangle className="h-3 w-3" /> Escrita
+                      </Badge>
+                      pode criar, alterar ou apagar dados
+                    </span>
+                  </div>
+                  {writeActiveCount > 0 && (
+                    <div className="inline-flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-destructive">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      <span className="font-medium">
+                        {writeActiveCount} ferramenta(s) de escrita ativa(s)
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Ferramenta</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Tipo</TableHead>
+                  <TableHead>Acesso</TableHead>
                   <TableHead className="text-right">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tools.length === 0 ? (
                     <TableRow>
-                        <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                             Nenhuma ferramenta configurada. Clique em "Sincronizar Tabelas" para começar.
                         </TableCell>
                     </TableRow>
-                ) : tools.map((tool) => (
-                  <TableRow key={tool.id}>
-                    <TableCell className="font-medium">{tool.name}</TableCell>
+                ) : tools.map((tool) => {
+                  const access = getToolAccessKind(tool);
+                  const isWrite = access === "write";
+                  const isWriteActive = isWrite && tool.enabled;
+                  return (
+                  <TableRow
+                    key={tool.id}
+                    className={isWriteActive ? "bg-destructive/5 hover:bg-destructive/10" : undefined}
+                  >
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {isWriteActive && (
+                          <AlertTriangle className="h-4 w-4 text-destructive" aria-label="Escrita ativa" />
+                        )}
+                        {tool.name}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{tool.description}</TableCell>
                     <TableCell>
                         <Badge variant="secondary">{tool.tool_type}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {access === "read" && (
+                        <Badge
+                          variant="outline"
+                          className="border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-1"
+                        >
+                          <Lock className="h-3 w-3" />
+                          Leitura
+                        </Badge>
+                      )}
+                      {access === "write" && (
+                        <Badge
+                          variant="outline"
+                          className="border-destructive/50 bg-destructive/10 text-destructive gap-1"
+                        >
+                          <AlertTriangle className="h-3 w-3" />
+                          Escrita
+                        </Badge>
+                      )}
+                      {access === "unknown" && (
+                        <Badge variant="outline" className="text-muted-foreground gap-1">
+                          Indefinido
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end items-center gap-2">
@@ -410,7 +504,8 @@ const AdminMCP = () => {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>
