@@ -48,8 +48,25 @@ function defaultInputSchema(toolType: string) {
   return {
     type: "object",
     properties: {
-      operation: { type: "string", enum: ["select", "count"], default: "select" },
-      limit: { type: "number", minimum: 1, maximum: 1000, default: 50 },
+      operation: {
+        type: "string",
+        enum: ["select", "count"],
+        default: "select",
+        description: "Use 'count' para saber o TOTAL exato de registros. Use 'select' para listar linhas (sempre vem com total_count também).",
+      },
+      limit: {
+        type: "number",
+        minimum: 1,
+        maximum: 2000,
+        default: 500,
+        description: "Máximo de linhas retornadas. Padrão 500. Suba até 2000 se precisar varrer a tabela inteira.",
+      },
+      filter: {
+        type: "object",
+        description: "Filtros simples coluna=valor. Ex: {\"cobranca_ativa\": true}. Aplica .eq() em cada par.",
+      },
+      order_by: { type: "string", description: "Coluna para ordenar (ex: 'data_renovacao')." },
+      order_desc: { type: "boolean", description: "true para ordem decrescente.", default: false },
     },
     required: [],
     additionalProperties: false,
