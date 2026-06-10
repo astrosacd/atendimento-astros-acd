@@ -23,6 +23,28 @@ const CYCLE_MONTHS: Record<string, number> = {
   mensal: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12,
 };
 
+const normalizeMercadoPagoToken = (value?: string | null) =>
+  String(value || "").replace(/^Bearer\s+/i, "").trim();
+
+const toNumber = (value: unknown) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+async function getMercadoPagoToken(supabase: any) {
+  const { data } = await supabase
+    .from("billing_config")
+    .select("config_value")
+    .eq("config_key", "mp_access_token")
+    .maybeSingle();
+
+  const dbToken = normalizeMercadoPagoToken(data?.config_value);
+  if (dbToken) return { token: dbToken, source: "billing_config" };
+
+  const envToken = normalizeMercadoPagoToken(Deno.env.get("MERCADOPAGO_ACCESS_TOKEN"));
+  return { token: envToken, source: envToken ? "secret" : null };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -31,7 +53,8 @@ serve(async (req) => {
   // que houver chamada real/simulada vinda do Mercado Pago/n8n registrada.
   if (req.headers.get("x-webhook-test") === "ping") {
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const tokenOk = !!Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
+    const { token: mpToken, source: mpTokenSource } = await getMercadoPagoToken(sb);
+    const tokenOk = !!mpToken;
     const { data: lastRealHit } = await sb
       .from("billing_webhook_logs")
       .select("id, created_at, result")
@@ -43,7 +66,7 @@ serve(async (req) => {
       .maybeSingle();
     const ready = tokenOk && !!lastRealHit;
     const msg = !tokenOk
-      ? "Endpoint acessível, mas falta MERCADOPAGO_ACCESS_TOKEN nos Secrets."
+      ? "Endpoint acessível, mas falta Access Token do Mercado Pago na guia Pagamentos."
       : !lastRealHit
         ? "Endpoint acessível e token salvo, mas ainda NÃO existe chamada real/simulada do Mercado Pago registrada. Configure no painel do MP ou espelhe pelo n8n e envie uma simulação para validar de verdade."
         : `Mercado Pago já bateu neste endpoint em ${new Date(lastRealHit.created_at).toLocaleString("pt-BR")}.`;
@@ -56,7 +79,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         ok: ready, test: true, provider: "mercadopago", url_reachable: true,
-        access_token_configured: tokenOk, provider_delivery_confirmed: !!lastRealHit,
+        access_token_configured: tokenOk, access_token_source: mpTokenSource, provider_delivery_confirmed: !!lastRealHit,
         last_real_hit_at: lastRealHit?.created_at || null, message: msg, timestamp: new Date().toISOString(),
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -69,9 +92,9 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const mpToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
+    const { token: mpToken } = await getMercadoPagoToken(supabase);
     if (!mpToken) {
-      console.error("[mp-webhook] MERCADOPAGO_ACCESS_TOKEN ausente");
+      console.error("[mp-webhook] Access Token do Mercado Pago ausente");
       return new Response(JSON.stringify({ ok: false }), { status: 200, headers: corsHeaders });
     }
 
@@ -135,24 +158,61 @@ serve(async (req) => {
     const mpData = await mpRes.json();
     const mpStatus = mpData?.status; // approved | pending | rejected | cancelled | in_process
     const externalRef = mpData?.external_reference;
+    let preferenceId = mpData?.preference_id;
+    const metadataClienteId = mpData?.metadata?.cliente_id;
+    const mpAmount = toNumber(mpData?.transaction_amount);
+    const merchantOrderId = mpData?.merchant_order_id || mpData?.order?.id;
+
+    if (!preferenceId && merchantOrderId) {
+      try {
+        const orderRes = await fetch(`https://api.mercadopago.com/merchant_orders/${merchantOrderId}`, {
+          headers: { Authorization: `Bearer ${mpToken}` },
+        });
+        if (orderRes.ok) {
+          const orderData = await orderRes.json();
+          preferenceId = orderData?.preference_id || preferenceId;
+        }
+      } catch (e) {
+        console.warn(`[mp-webhook] Falha ao buscar merchant_order ${merchantOrderId}:`, e);
+      }
+    }
     console.log(`[mp-webhook] MP payment ${mpPaymentId} status=${mpStatus} ext_ref=${externalRef}`);
 
-    // Acha o client_payments: 1º por payment_id exato; 2º por preference_id (external_reference)
+    // Acha o client_payments: 1º por payment_id exato; 2º por preference_id (external_reference);
+    // 3º por metadata.cliente_id + valor, porque alguns pagamentos do MP não retornam preference_id/external_reference.
     let { data: payment } = await supabase
       .from("client_payments")
       .select("*, cliente:clientes(id, data_renovacao, ciclo_cobranca, cobranca_ativa)")
       .eq("payment_id", String(mpPaymentId))
       .maybeSingle();
 
-    if (!payment && externalRef) {
+    const gatewayReference = externalRef || preferenceId;
+    if (!payment && gatewayReference) {
       const { data: byRef } = await supabase
         .from("client_payments")
         .select("*, cliente:clientes(id, data_renovacao, ciclo_cobranca, cobranca_ativa)")
-        .eq("preference_id", String(externalRef))
+        .eq("preference_id", String(gatewayReference))
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       payment = byRef ?? null;
+    }
+
+    if (!payment && metadataClienteId) {
+      let fallbackQuery = supabase
+        .from("client_payments")
+        .select("*, cliente:clientes(id, data_renovacao, ciclo_cobranca, cobranca_ativa)")
+        .eq("cliente_id", String(metadataClienteId))
+        .eq("payment_type", "link_cartao")
+        .in("status", ["pending", "pending_approval", "rejected", "cancelled"])
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      const { data: candidates } = await fallbackQuery;
+      const list = candidates || [];
+      payment = (mpAmount !== null
+        ? list.find((candidate: any) => Math.abs(Number(candidate.amount) - mpAmount) <= 0.05)
+        : list[0]) ?? list[0] ?? null;
     }
 
     if (!payment) {
@@ -161,7 +221,7 @@ serve(async (req) => {
         await supabase.from("billing_webhook_logs").insert({
           provider: "mercadopago", event_type: String(eventType || "payment"), external_id: String(mpPaymentId),
           http_status: 200, result: "unmatched", message: `Pagamento recebido, mas sem vínculo em client_payments`,
-          payload: { mpStatus, externalRef },
+          payload: { mpStatus, externalRef, preferenceId, metadataClienteId, mpAmount },
         });
       } catch { /* ignore */ }
       return new Response(JSON.stringify({ ok: true, matched: false }), {
