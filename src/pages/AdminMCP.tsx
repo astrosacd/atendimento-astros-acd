@@ -277,7 +277,8 @@ const AdminMCP = () => {
                 <span className="text-xs font-medium">Status Global:</span>
                 <Switch 
                     checked={mcpEnabled} 
-                    onCheckedChange={handleToggleMcp} 
+                    onCheckedChange={handleToggleMcp}
+                    disabled={!canManageConfig}
                 />
                 <Badge variant={mcpEnabled ? "default" : "secondary"}>
                     {mcpEnabled ? "Habilitado" : "Desabilitado"}
@@ -316,24 +317,31 @@ const AdminMCP = () => {
               </div>
               <div className="space-y-2">
                 <Label>Chave de API (x-api-key)</Label>
-                <div className="flex gap-2">
-                  <Input 
-                    readOnly 
-                    type={showApiKey ? "text" : "password"} 
-                    value={apiKey} 
-                    className="font-mono text-xs bg-muted" 
-                  />
-                  <Button variant="outline" size="icon" onClick={() => setShowApiKey(!showApiKey)}>
-                    {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                  <Button variant="outline" size="icon" onClick={() => copyToClipboard(apiKey, 'key')}>
-                    {copiedKey === 'key' ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
+                {canManageConfig ? (
+                  <div className="flex gap-2">
+                    <Input 
+                      readOnly 
+                      type={showApiKey ? "text" : "password"} 
+                      value={apiKey} 
+                      className="font-mono text-xs bg-muted" 
+                    />
+                    <Button variant="outline" size="icon" onClick={() => setShowApiKey(!showApiKey)}>
+                      {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={() => copyToClipboard(apiKey, 'key')}>
+                      {copiedKey === 'key' ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 bg-muted/50 border border-dashed rounded-md px-3 py-2 text-xs text-muted-foreground">
+                    <Shield className="h-3.5 w-3.5" />
+                    Sem permissão para visualizar a chave. Requer "Gerenciar Servidor MCP".
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex justify-end gap-2">
-                <Button variant="secondary" size="sm" onClick={() => setIsRotateDialogOpen(true)} disabled={isRefreshing}>
+                <Button variant="secondary" size="sm" onClick={() => setIsRotateDialogOpen(true)} disabled={isRefreshing || !canManageConfig}>
                     Rotacionar Chave
                 </Button>
             </div>
