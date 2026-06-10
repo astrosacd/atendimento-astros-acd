@@ -26,13 +26,11 @@ const MP_WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/client-payment-mp-webhook`;
 const STRIPE_WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/client-payment-stripe-webhook`;
 const LOG_PAGE_SIZE = 100;
 
-// Snippet pronto pro nó HTTP Request do n8n espelhar o evento do MP
-const N8N_MP_CURL = `curl -X POST '${MP_WEBHOOK_URL}' \\
-  -H 'Content-Type: application/json' \\
-  -d '{
-    "type": "payment",
-    "data": { "id": "{{ $(\\'Obter detalhes pagamento\\').item.json.id }}" }
-  }'`;
+// Snippet compatível com o importador de cURL do n8n. Depois de importar,
+// substitua o ID fixo pelo campo dinâmico do nó anterior.
+const N8N_MP_CURL = `curl --request POST "${MP_WEBHOOK_URL}" \\
+  --header "Content-Type: application/json" \\
+  --data-raw "{\"type\":\"payment\",\"data\":{\"id\":\"123456789\"}}"`;
 
 type TestResult = { ok: boolean; message: string; raw?: any } | null;
 
@@ -311,8 +309,8 @@ export function BillingWebhooksManager() {
               <p>
                 O Mercado Pago aceita <strong>apenas 1 webhook por aplicação</strong>. Se ele já aponta para o seu n8n
                 (Link de Pagamento), <strong>NÃO troque a URL</strong>. Em vez disso, faça o n8n "espelhar" o evento
-                também para este endpoint. Copie o cURL abaixo e cole num nó <strong>HTTP Request</strong> em paralelo
-                ao nó que chama <code>payment-link-webhook</code>:
+                também para este endpoint. Copie o cURL abaixo, importe no nó <strong>HTTP Request</strong> e depois troque
+                o ID <code>123456789</code> pelo campo dinâmico do pagamento:
               </p>
               <div className="relative">
                 <pre className="mt-1 bg-background border rounded p-2 overflow-x-auto pr-10 text-[11px] leading-relaxed">{N8N_MP_CURL}</pre>
@@ -326,7 +324,7 @@ export function BillingWebhooksManager() {
               </div>
               <p>
                 No n8n, configure o nó assim: <strong>Method</strong> POST · <strong>URL</strong> <code className="break-all">{MP_WEBHOOK_URL}</code> ·
-                <strong> Body</strong> JSON com <code>{`{ "type": "payment", "data": { "id": "{{ $('Obter detalhes pagamento').item.json.id }} " } }`}</code>.
+                <strong> Body</strong> JSON com <code>{`{ "type": "payment", "data": { "id": "{{ $('Obter detalhes pagamento').item.json.id }}" } }`}</code>.
               </p>
               <p>
                 Este endpoint busca o pagamento na API do MP por conta própria (anti-spoof), então funciona igual recebendo
