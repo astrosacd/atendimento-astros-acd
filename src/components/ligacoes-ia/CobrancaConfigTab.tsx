@@ -173,6 +173,65 @@ export function CobrancaConfigTab() {
         <Label>Somente clientes mensais (com cobrança ativa)</Label>
       </div>
 
+      {/* Fallback de áudio no WhatsApp (Wavoip) */}
+      <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-2">
+            <MessageSquare className="h-5 w-5 text-primary mt-0.5" />
+            <div>
+              <Label className="text-base">Fallback no WhatsApp (Wavoip)</Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Se o cliente <strong>não atender</strong> ou <strong>desligar antes do áudio</strong>, o mesmo MP3 do roteiro é enviado como áudio (PTT) no WhatsApp dele. Não afeta o Twilio.
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={!!cfg.fallback_audio_enabled}
+            onCheckedChange={(v) => setCfg({ ...cfg, fallback_audio_enabled: v })}
+          />
+        </div>
+
+        {cfg.fallback_audio_enabled && (
+          <div className="space-y-3 pl-7">
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={!!cfg.fallback_audio_send_text}
+                onCheckedChange={(v) => setCfg({ ...cfg, fallback_audio_send_text: v })}
+              />
+              <Label className="text-sm">Enviar texto antes do áudio</Label>
+            </div>
+
+            {cfg.fallback_audio_send_text && (
+              <div>
+                <Label className="text-sm">Template da mensagem</Label>
+                <Textarea
+                  rows={3}
+                  value={cfg.fallback_audio_template ?? ""}
+                  onChange={(e) => setCfg({ ...cfg, fallback_audio_template: e.target.value })}
+                  placeholder="Oi {nome}, tentei te ligar..."
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Variáveis: <code>{"{nome}"}</code> <code>{"{nome_completo}"}</code> <code>{"{valor}"}</code> <code>{"{vencimento}"}</code> <code>{"{produto}"}</code>
+                </p>
+              </div>
+            )}
+
+            <div className="max-w-[220px]">
+              <Label className="text-sm">Limite por cliente por dia</Label>
+              <Input
+                type="number" min={1} max={10}
+                value={cfg.fallback_max_per_day ?? 1}
+                onChange={(e) => setCfg({ ...cfg, fallback_max_per_day: Number(e.target.value) })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Evita repetir áudio se houver várias tentativas no mesmo dia.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+
       <div className="flex gap-2">
         <Button onClick={save} disabled={saving}>
           {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
