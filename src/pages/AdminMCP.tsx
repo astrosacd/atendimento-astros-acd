@@ -24,6 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { usePermissions } from "@/hooks/usePermissions";
 import { 
   ArrowLeft, RefreshCw, Copy, Check, Eye, EyeOff, Loader2,
   Database, Shield, Settings, Server
@@ -42,6 +43,9 @@ interface McpTool {
 const AdminMCP = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canManageConfig = hasPermission('manage_mcp_config');
+  const canManageTools = hasPermission('manage_mcp_tools');
   const [tools, setTools] = useState<McpTool[]>([]);
   const [apiKey, setApiKey] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
@@ -273,7 +277,8 @@ const AdminMCP = () => {
                 <span className="text-xs font-medium">Status Global:</span>
                 <Switch 
                     checked={mcpEnabled} 
-                    onCheckedChange={handleToggleMcp} 
+                    onCheckedChange={handleToggleMcp}
+                    disabled={!canManageConfig}
                 />
                 <Badge variant={mcpEnabled ? "default" : "secondary"}>
                     {mcpEnabled ? "Habilitado" : "Desabilitado"}
@@ -312,24 +317,31 @@ const AdminMCP = () => {
               </div>
               <div className="space-y-2">
                 <Label>Chave de API (x-api-key)</Label>
-                <div className="flex gap-2">
-                  <Input 
-                    readOnly 
-                    type={showApiKey ? "text" : "password"} 
-                    value={apiKey} 
-                    className="font-mono text-xs bg-muted" 
-                  />
-                  <Button variant="outline" size="icon" onClick={() => setShowApiKey(!showApiKey)}>
-                    {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                  <Button variant="outline" size="icon" onClick={() => copyToClipboard(apiKey, 'key')}>
-                    {copiedKey === 'key' ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
+                {canManageConfig ? (
+                  <div className="flex gap-2">
+                    <Input 
+                      readOnly 
+                      type={showApiKey ? "text" : "password"} 
+                      value={apiKey} 
+                      className="font-mono text-xs bg-muted" 
+                    />
+                    <Button variant="outline" size="icon" onClick={() => setShowApiKey(!showApiKey)}>
+                      {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={() => copyToClipboard(apiKey, 'key')}>
+                      {copiedKey === 'key' ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 bg-muted/50 border border-dashed rounded-md px-3 py-2 text-xs text-muted-foreground">
+                    <Shield className="h-3.5 w-3.5" />
+                    Sem permissão para visualizar a chave. Requer "Gerenciar Servidor MCP".
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex justify-end gap-2">
-                <Button variant="secondary" size="sm" onClick={() => setIsRotateDialogOpen(true)} disabled={isRefreshing}>
+                <Button variant="secondary" size="sm" onClick={() => setIsRotateDialogOpen(true)} disabled={isRefreshing || !canManageConfig}>
                     Rotacionar Chave
                 </Button>
             </div>
@@ -349,13 +361,13 @@ const AdminMCP = () => {
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => handleBulkToggleTools(true)} disabled={isRefreshing}>
+                <Button variant="outline" size="sm" onClick={() => handleBulkToggleTools(true)} disabled={isRefreshing || !canManageTools}>
                     Habilitar Todas
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => handleBulkToggleTools(false)} disabled={isRefreshing}>
+                <Button variant="outline" size="sm" onClick={() => handleBulkToggleTools(false)} disabled={isRefreshing || !canManageTools}>
                     Desabilitar Todas
                 </Button>
-                <Button onClick={() => setIsSyncDialogOpen(true)} disabled={isRefreshing}>
+                <Button onClick={() => setIsSyncDialogOpen(true)} disabled={isRefreshing || !canManageTools}>
                     <Database className="h-4 w-4 mr-2" />
                     Sincronizar Tabelas
                 </Button>
@@ -389,7 +401,8 @@ const AdminMCP = () => {
                       <div className="flex justify-end items-center gap-2">
                         <Switch 
                           checked={tool.enabled} 
-                          onCheckedChange={() => handleToggleTool(tool.id, tool.enabled)} 
+                          onCheckedChange={() => handleToggleTool(tool.id, tool.enabled)}
+                          disabled={!canManageTools}
                         />
                         <Badge variant={tool.enabled ? "default" : "secondary"}>
                           {tool.enabled ? "Ativo" : "Inativo"}
