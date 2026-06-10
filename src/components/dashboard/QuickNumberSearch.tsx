@@ -40,12 +40,34 @@ export function QuickNumberSearch() {
     setAppliedSearch(searchTerm.trim());
   };
 
+  const getNumeroTipo = (row: any): 'IN' | 'EX' => {
+    const rowData = row?.row_data || {};
+    const obs = rowData?.observacoes ?? rowData?.observacao ?? '';
+    if (typeof obs !== 'string') return 'EX';
+    
+    const obsLower = obs.toLowerCase();
+    
+    if (
+      obsLower.includes('sim não aprovisionado') ||
+      obsLower.includes('sim nao aprovisionado') ||
+      obs.includes('✅ COM SEGURO') ||
+      obsLower.includes('com seguro') ||
+      obs.includes('🚫 SEM SEGURO') ||
+      obsLower.includes('sem seguro')
+    ) {
+      return 'IN';
+    }
+    
+    return 'EX';
+  };
+
   const getInsuranceInfo = () => {
     if (!numberData || !insuranceStatus) return null;
     return insuranceStatus.get(numberData.baserow_row_id);
   };
 
   const info = getInsuranceInfo();
+  const tipo = numberData ? getNumeroTipo(numberData) : 'EX';
 
   return (
     <Card className="bg-card border-border overflow-hidden group">
@@ -83,7 +105,15 @@ export function QuickNumberSearch() {
             <div className="flex items-center justify-between p-2 rounded-md bg-muted/30 border border-border/50">
               <div className="space-y-0.5">
                 <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Número</p>
-                <p className="text-sm font-mono font-bold">{(numberData.row_data as any)?.numero || '-'}</p>
+                <div className="flex items-center gap-2">
+                  <Badge 
+                    variant={tipo === 'IN' ? 'default' : 'secondary'}
+                    className={`text-[10px] px-1 py-0 h-4 min-w-[24px] justify-center ${tipo === 'IN' ? 'bg-blue-500 hover:bg-blue-600' : ''}`}
+                  >
+                    {tipo}
+                  </Badge>
+                  <p className="text-sm font-mono font-bold">{(numberData.row_data as any)?.numero || '-'}</p>
+                </div>
               </div>
               <TooltipProvider>
                 <Tooltip>
