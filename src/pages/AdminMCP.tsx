@@ -108,8 +108,7 @@ const AdminMCP = () => {
   };
 
   const rotateApiKey = async () => {
-    if (!confirm("Isso invalidará a chave atual do OpenClaw. Deseja continuar?")) return;
-    
+    setIsRotateDialogOpen(false);
     setIsRefreshing(true);
     try {
       const newKey = Array.from(crypto.getRandomValues(new Uint8Array(32)))
@@ -146,12 +145,10 @@ const AdminMCP = () => {
   };
 
   const syncTablesAsTools = async () => {
-    if (!confirm("Deseja listar as principais tabelas do sistema como ferramentas?")) return;
-    
+    setIsSyncDialogOpen(false);
     setIsRefreshing(true);
     try {
-        // Query available tables (simplified for now)
-        const tables = ['clientes', 'billing_logs', 'profiles', 'audit_logs', 'chat_messages'];
+        const tables = ['clientes', 'billing_logs', 'profiles', 'audit_logs', 'chat_messages', 'sms_agendados', 'chamados', 'proposals'];
         
         for (const table of tables) {
             await supabase.from('mcp_tools').upsert({
@@ -249,7 +246,7 @@ const AdminMCP = () => {
               </div>
             </div>
             <div className="flex justify-end gap-2">
-                <Button variant="secondary" size="sm" onClick={rotateApiKey} disabled={isRefreshing}>
+                <Button variant="secondary" size="sm" onClick={() => setIsRotateDialogOpen(true)} disabled={isRefreshing}>
                     Rotacionar Chave
                 </Button>
             </div>
@@ -268,7 +265,7 @@ const AdminMCP = () => {
                 Habilite ou desabilite o que o OpenClaw pode acessar.
               </CardDescription>
             </div>
-            <Button onClick={syncTablesAsTools} disabled={isRefreshing}>
+            <Button onClick={() => setIsSyncDialogOpen(true)} disabled={isRefreshing}>
                 <Database className="h-4 w-4 mr-2" />
                 Sincronizar Tabelas
             </Button>
