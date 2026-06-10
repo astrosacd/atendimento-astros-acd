@@ -48,8 +48,25 @@ function defaultInputSchema(toolType: string) {
   return {
     type: "object",
     properties: {
-      operation: { type: "string", enum: ["select", "count"], default: "select" },
-      limit: { type: "number", minimum: 1, maximum: 1000, default: 50 },
+      operation: {
+        type: "string",
+        enum: ["select", "count"],
+        default: "select",
+        description: "Use 'count' para saber o TOTAL exato de registros. Use 'select' para listar linhas (sempre vem com total_count também).",
+      },
+      limit: {
+        type: "number",
+        minimum: 1,
+        maximum: 2000,
+        default: 500,
+        description: "Máximo de linhas retornadas. Padrão 500. Suba até 2000 se precisar varrer a tabela inteira.",
+      },
+      filter: {
+        type: "object",
+        description: "Filtros simples coluna=valor. Ex: {\"cobranca_ativa\": true}. Aplica .eq() em cada par.",
+      },
+      order_by: { type: "string", description: "Coluna para ordenar (ex: 'data_renovacao')." },
+      order_desc: { type: "boolean", description: "true para ordem decrescente.", default: false },
     },
     required: [],
     additionalProperties: false,
@@ -159,11 +176,31 @@ async function buildServer(ctx: { keyHint: string; ip: string | null }): Promise
               result = { table, count };
               resultSummary = { count };
             } else if (operations.includes("select") || operations.includes("read")) {
-              const limit = Math.min(Math.max(Number(args?.limit ?? 50), 1), 1000);
-              const { data, error } = await supabase.from(table).select("*").limit(limit);
+              const limit = Math.min(Math.max(Number(args?.limit ?? 500), 1), 2000);
+              let q = supabase.from(table).select("*", { count: "exact" });
+
+              const filter = isJsonObject(args?.filter) ? args!.filter as Record<string, unknown> : null;
+              if (filter) {
+                for (const [k, v] of Object.entries(filter)) {
+                  q = q.eq(k, v as any);
+                }
+              }
+              const orderBy = typeof args?.order_by === "string" ? args!.order_by as string : null;
+              if (orderBy) q = q.order(orderBy, { ascending: !args?.order_desc });
+
+              const { data, count, error } = await q.limit(limit);
               if (error) throw error;
-              result = data;
-              resultSummary = { rows: Array.isArray(data) ? data.length : 0, limit };
+              const rows = Array.isArray(data) ? data.length : 0;
+              const total = count ?? rows;
+              result = {
+                table,
+                total_count: total,
+                returned: rows,
+                truncated: total > rows,
+                limit,
+                rows: data,
+              };
+              resultSummary = { rows, total_count: total, truncated: total > rows };
             } else {
               throw new Error(`Operação "${op}" não permitida para a tool "${t.name}".`);
             }
