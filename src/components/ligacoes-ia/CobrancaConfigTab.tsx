@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Save, RefreshCw, History, CheckCircle2, XCircle, Clock, Hand } from "lucide-react";
+import { Loader2, Save, RefreshCw, History, CheckCircle2, XCircle, Clock, Hand, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -49,7 +50,14 @@ export function CobrancaConfigTab() {
       supabase.from("cobranca_ligacao_config").select("*").limit(1).maybeSingle(),
       supabase.from("ligacoes_ia_roteiros").select("id, nome, categoria").eq("ativo", true).order("nome"),
     ]);
-    setCfg(c.data ?? { enabled: false, delay_minutes: 5, dias_disparo: [5], horario_inicio: "09:00", horario_fim: "18:00", apenas_cobranca_ativa: false });
+    setCfg(c.data ?? {
+      enabled: false, delay_minutes: 5, dias_disparo: [5],
+      horario_inicio: "09:00", horario_fim: "18:00", apenas_cobranca_ativa: false,
+      fallback_audio_enabled: false,
+      fallback_audio_template: "Oi {nome}, tentei te ligar e não consegui falar contigo. Ouve esse áudio rapidinho 👇",
+      fallback_audio_send_text: true,
+      fallback_max_per_day: 1,
+    });
     setRoteiros(r.data ?? []);
     await loadLogs();
     setLoading(false);
@@ -73,6 +81,10 @@ export function CobrancaConfigTab() {
       horario_inicio: cfg.horario_inicio,
       horario_fim: cfg.horario_fim,
       apenas_cobranca_ativa: cfg.apenas_cobranca_ativa,
+      fallback_audio_enabled: !!cfg.fallback_audio_enabled,
+      fallback_audio_template: cfg.fallback_audio_template ?? "",
+      fallback_audio_send_text: !!cfg.fallback_audio_send_text,
+      fallback_max_per_day: Math.max(1, Number(cfg.fallback_max_per_day ?? 1)),
     };
     const q = cfg.id
       ? await supabase.from("cobranca_ligacao_config").update(payload).eq("id", cfg.id)
@@ -160,6 +172,65 @@ export function CobrancaConfigTab() {
         <Switch checked={!!cfg.apenas_cobranca_ativa} onCheckedChange={(v) => setCfg({ ...cfg, apenas_cobranca_ativa: v })} />
         <Label>Somente clientes mensais (com cobrança ativa)</Label>
       </div>
+
+      {/* Fallback de áudio no WhatsApp (Wavoip) */}
+      <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-2">
+            <MessageSquare className="h-5 w-5 text-primary mt-0.5" />
+            <div>
+              <Label className="text-base">Fallback no WhatsApp (Wavoip)</Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Se o cliente <strong>não atender</strong> ou <strong>desligar antes do áudio</strong>, o mesmo MP3 do roteiro é enviado como áudio (PTT) no WhatsApp dele. Não afeta o Twilio.
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={!!cfg.fallback_audio_enabled}
+            onCheckedChange={(v) => setCfg({ ...cfg, fallback_audio_enabled: v })}
+          />
+        </div>
+
+        {cfg.fallback_audio_enabled && (
+          <div className="space-y-3 pl-7">
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={!!cfg.fallback_audio_send_text}
+                onCheckedChange={(v) => setCfg({ ...cfg, fallback_audio_send_text: v })}
+              />
+              <Label className="text-sm">Enviar texto antes do áudio</Label>
+            </div>
+
+            {cfg.fallback_audio_send_text && (
+              <div>
+                <Label className="text-sm">Template da mensagem</Label>
+                <Textarea
+                  rows={3}
+                  value={cfg.fallback_audio_template ?? ""}
+                  onChange={(e) => setCfg({ ...cfg, fallback_audio_template: e.target.value })}
+                  placeholder="Oi {nome}, tentei te ligar..."
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Variáveis: <code>{"{nome}"}</code> <code>{"{nome_completo}"}</code> <code>{"{valor}"}</code> <code>{"{vencimento}"}</code> <code>{"{produto}"}</code>
+                </p>
+              </div>
+            )}
+
+            <div className="max-w-[220px]">
+              <Label className="text-sm">Limite por cliente por dia</Label>
+              <Input
+                type="number" min={1} max={10}
+                value={cfg.fallback_max_per_day ?? 1}
+                onChange={(e) => setCfg({ ...cfg, fallback_max_per_day: Number(e.target.value) })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Evita repetir áudio se houver várias tentativas no mesmo dia.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
 
       <div className="flex gap-2">
         <Button onClick={save} disabled={saving}>
