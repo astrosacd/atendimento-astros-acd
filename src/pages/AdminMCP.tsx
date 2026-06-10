@@ -361,13 +361,13 @@ const AdminMCP = () => {
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => handleBulkToggleTools(true)} disabled={isRefreshing}>
+                <Button variant="outline" size="sm" onClick={() => handleBulkToggleTools(true)} disabled={isRefreshing || !canManageTools}>
                     Habilitar Todas
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => handleBulkToggleTools(false)} disabled={isRefreshing}>
+                <Button variant="outline" size="sm" onClick={() => handleBulkToggleTools(false)} disabled={isRefreshing || !canManageTools}>
                     Desabilitar Todas
                 </Button>
-                <Button onClick={() => setIsSyncDialogOpen(true)} disabled={isRefreshing}>
+                <Button onClick={() => setIsSyncDialogOpen(true)} disabled={isRefreshing || !canManageTools}>
                     <Database className="h-4 w-4 mr-2" />
                     Sincronizar Tabelas
                 </Button>
@@ -401,7 +401,8 @@ const AdminMCP = () => {
                       <div className="flex justify-end items-center gap-2">
                         <Switch 
                           checked={tool.enabled} 
-                          onCheckedChange={() => handleToggleTool(tool.id, tool.enabled)} 
+                          onCheckedChange={() => handleToggleTool(tool.id, tool.enabled)}
+                          disabled={!canManageTools}
                         />
                         <Badge variant={tool.enabled ? "default" : "secondary"}>
                           {tool.enabled ? "Ativo" : "Inativo"}
