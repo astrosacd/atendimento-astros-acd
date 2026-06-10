@@ -17,14 +17,30 @@ serve(async (req) => {
 
   const apiKey = req.headers.get('x-api-key');
   
-  // Verify API Key from mcp_config
-  const { data: config, error: configError } = await supabase
+  // Verify if MCP is enabled and check API Key
+  const { data: configs, error: configError } = await supabase
     .from('mcp_config')
-    .select('config_value')
-    .eq('config_key', 'mcp_api_key')
-    .single();
+    .select('config_key, config_value')
+    .in('config_key', ['mcp_api_key', 'mcp_enabled']);
 
-  if (configError || !config || apiKey !== config.config_value) {
+  if (configError || !configs) {
+    return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const mcpEnabled = configs.find(c => c.config_key === 'mcp_enabled')?.config_value === 'true';
+  const validApiKey = configs.find(c => c.config_key === 'mcp_api_key')?.config_value;
+
+  if (!mcpEnabled) {
+    return new Response(JSON.stringify({ error: 'MCP Server is disabled' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (apiKey !== validApiKey) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
