@@ -148,9 +148,28 @@ const AdminMCP = () => {
     setIsSyncDialogOpen(false);
     setIsRefreshing(true);
     try {
-        const tables = ['clientes', 'billing_logs', 'profiles', 'audit_logs', 'chat_messages', 'sms_agendados', 'chamados', 'proposals'];
+        // Obter todas as tabelas públicas do banco de dados
+        const { data: tablesData, error: tablesError } = await supabase.rpc('get_public_tables');
         
-        for (const table of tables) {
+        let tables: string[] = [];
+        
+        if (tablesError) {
+          console.error("Erro ao buscar tabelas via RPC:", tablesError);
+          // Fallback para as tabelas principais se o RPC não existir
+          tables = [
+            'clientes', 'billing_logs', 'profiles', 'audit_logs', 'chat_messages', 
+            'sms_agendados', 'chamados', 'proposals', 'client_tasks', 'despesas',
+            'lead_hunter_leads', 'gateway_orders', 'ligacoes_agendadas', 'api_keys',
+            'automation_logs', 'client_payments', 'client_pipeline', 'client_history'
+          ];
+        } else {
+          tables = tablesData.map((t: any) => t.table_name);
+        }
+        
+        // Filtrar tabelas internas ou irrelevantes para o MCP se necessário
+        const filteredTables = tables.filter(t => !['mcp_config', 'mcp_tools', 'spatial_ref_sys'].includes(t));
+
+        for (const table of filteredTables) {
             await supabase.from('mcp_tools').upsert({
                 name: `read_${table}`,
                 description: `Acesso de leitura para a tabela ${table}`,
@@ -161,7 +180,7 @@ const AdminMCP = () => {
         }
         
         fetchData();
-        toast({ title: "Tabelas sincronizadas como ferramentas!" });
+        toast({ title: `${filteredTables.length} tabelas sincronizadas como ferramentas!` });
     } catch (error: any) {
         toast({
             title: "Erro ao sincronizar tabelas",
