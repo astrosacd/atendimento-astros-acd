@@ -729,7 +729,11 @@ export default function ConsultarCliente() {
                               </Badge>
                             )}
                             {/* Status de aprovação de pagamento (Segurança de Pagamento) */}
-                            <ClientPaymentApprovalBadge clienteId={cliente.id} />
+                             <ClientPaymentApprovalBadge 
+                               clienteId={cliente.id} 
+                               dataRenovacao={cliente.data_renovacao} 
+                               cobrancaAtiva={cliente.cobranca_ativa} 
+                             />
                             {/* Score de IA - calcula automaticamente se não houver, clique para recalcular */}
                             {!isNonClientType(cliente) && cliente.cobranca_ativa !== false && (
                               <ClientScoreBadge clienteId={cliente.id} size="sm" />
