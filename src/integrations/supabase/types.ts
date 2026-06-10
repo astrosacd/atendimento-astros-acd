@@ -5551,6 +5551,51 @@ export type Database = {
         }
         Relationships: []
       }
+      mcp_audit_log: {
+        Row: {
+          caller_api_key_hint: string | null
+          caller_ip: string | null
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          method: string | null
+          payload: Json | null
+          result_summary: Json | null
+          success: boolean
+          tool_name: string | null
+          tool_type: string | null
+        }
+        Insert: {
+          caller_api_key_hint?: string | null
+          caller_ip?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          method?: string | null
+          payload?: Json | null
+          result_summary?: Json | null
+          success?: boolean
+          tool_name?: string | null
+          tool_type?: string | null
+        }
+        Update: {
+          caller_api_key_hint?: string | null
+          caller_ip?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          method?: string | null
+          payload?: Json | null
+          result_summary?: Json | null
+          success?: boolean
+          tool_name?: string | null
+          tool_type?: string | null
+        }
+        Relationships: []
+      }
       mcp_config: {
         Row: {
           config_key: string
