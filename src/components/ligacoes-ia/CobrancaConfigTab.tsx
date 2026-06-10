@@ -50,7 +50,14 @@ export function CobrancaConfigTab() {
       supabase.from("cobranca_ligacao_config").select("*").limit(1).maybeSingle(),
       supabase.from("ligacoes_ia_roteiros").select("id, nome, categoria").eq("ativo", true).order("nome"),
     ]);
-    setCfg(c.data ?? { enabled: false, delay_minutes: 5, dias_disparo: [5], horario_inicio: "09:00", horario_fim: "18:00", apenas_cobranca_ativa: false });
+    setCfg(c.data ?? {
+      enabled: false, delay_minutes: 5, dias_disparo: [5],
+      horario_inicio: "09:00", horario_fim: "18:00", apenas_cobranca_ativa: false,
+      fallback_audio_enabled: false,
+      fallback_audio_template: "Oi {nome}, tentei te ligar e não consegui falar contigo. Ouve esse áudio rapidinho 👇",
+      fallback_audio_send_text: true,
+      fallback_max_per_day: 1,
+    });
     setRoteiros(r.data ?? []);
     await loadLogs();
     setLoading(false);
