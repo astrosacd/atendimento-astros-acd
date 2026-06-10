@@ -6,6 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -40,6 +48,8 @@ const AdminMCP = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false);
+  const [isRotateDialogOpen, setIsRotateDialogOpen] = useState(false);
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
   const mcpUrl = `${supabaseUrl}/functions/v1/mcp-server`;
@@ -98,8 +108,7 @@ const AdminMCP = () => {
   };
 
   const rotateApiKey = async () => {
-    if (!confirm("Isso invalidará a chave atual do OpenClaw. Deseja continuar?")) return;
-    
+    setIsRotateDialogOpen(false);
     setIsRefreshing(true);
     try {
       const newKey = Array.from(crypto.getRandomValues(new Uint8Array(32)))
@@ -136,12 +145,10 @@ const AdminMCP = () => {
   };
 
   const syncTablesAsTools = async () => {
-    if (!confirm("Deseja listar as principais tabelas do sistema como ferramentas?")) return;
-    
+    setIsSyncDialogOpen(false);
     setIsRefreshing(true);
     try {
-        // Query available tables (simplified for now)
-        const tables = ['clientes', 'billing_logs', 'profiles', 'audit_logs', 'chat_messages'];
+        const tables = ['clientes', 'billing_logs', 'profiles', 'audit_logs', 'chat_messages', 'sms_agendados', 'chamados', 'proposals'];
         
         for (const table of tables) {
             await supabase.from('mcp_tools').upsert({
@@ -239,7 +246,7 @@ const AdminMCP = () => {
               </div>
             </div>
             <div className="flex justify-end gap-2">
-                <Button variant="secondary" size="sm" onClick={rotateApiKey} disabled={isRefreshing}>
+                <Button variant="secondary" size="sm" onClick={() => setIsRotateDialogOpen(true)} disabled={isRefreshing}>
                     Rotacionar Chave
                 </Button>
             </div>
@@ -258,7 +265,7 @@ const AdminMCP = () => {
                 Habilite ou desabilite o que o OpenClaw pode acessar.
               </CardDescription>
             </div>
-            <Button onClick={syncTablesAsTools} disabled={isRefreshing}>
+            <Button onClick={() => setIsSyncDialogOpen(true)} disabled={isRefreshing}>
                 <Database className="h-4 w-4 mr-2" />
                 Sincronizar Tabelas
             </Button>
@@ -304,6 +311,39 @@ const AdminMCP = () => {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Sync Confirmation Dialog */}
+        <Dialog open={isSyncDialogOpen} onOpenChange={setIsSyncDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Sincronizar Tabelas</DialogTitle>
+              <DialogDescription>
+                Deseja listar as principais tabelas do sistema como ferramentas para o OpenClaw? 
+                Isso adicionará novas opções na lista abaixo (inicialmente desativadas).
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsSyncDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={syncTablesAsTools}>Confirmar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Rotate Key Confirmation Dialog */}
+        <Dialog open={isRotateDialogOpen} onOpenChange={setIsRotateDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Rotacionar Chave de API</DialogTitle>
+              <DialogDescription>
+                Tem certeza que deseja gerar uma nova chave? A conexão atual do OpenClaw será interrompida até que você atualize a chave lá.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsRotateDialogOpen(false)}>Cancelar</Button>
+              <Button variant="destructive" onClick={rotateApiKey}>Rotacionar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
