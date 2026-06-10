@@ -50,6 +50,7 @@ const AdminMCP = () => {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false);
   const [isRotateDialogOpen, setIsRotateDialogOpen] = useState(false);
+  const [mcpEnabled, setMcpEnabled] = useState(true);
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
   const mcpUrl = `${supabaseUrl}/functions/v1/mcp-server`;
@@ -63,14 +64,18 @@ const AdminMCP = () => {
     try {
       const [toolsRes, configRes] = await Promise.all([
         supabase.from('mcp_tools').select('*').order('name'),
-        supabase.from('mcp_config').select('*').eq('config_key', 'mcp_api_key').single()
+        supabase.from('mcp_config').select('*').in('config_key', ['mcp_api_key', 'mcp_enabled'])
       ]);
 
       if (toolsRes.error) throw toolsRes.error;
       if (configRes.error) throw configRes.error;
 
       setTools(toolsRes.data || []);
-      setApiKey(configRes.data?.config_value || "");
+      const keyConfig = configRes.data?.find(c => c.config_key === 'mcp_api_key');
+      const enabledConfig = configRes.data?.find(c => c.config_key === 'mcp_enabled');
+      
+      setApiKey(keyConfig?.config_value || "");
+      setMcpEnabled(enabledConfig?.config_value === 'true');
     } catch (error: any) {
       toast({
         title: "Erro ao carregar configurações",
@@ -101,6 +106,27 @@ const AdminMCP = () => {
     } catch (error: any) {
       toast({
         title: "Erro ao atualizar ferramenta",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleMcp = async (enabled: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('mcp_config')
+        .update({ config_value: enabled ? 'true' : 'false' })
+        .eq('config_key', 'mcp_enabled');
+
+      if (error) throw error;
+      setMcpEnabled(enabled);
+      toast({
+        title: enabled ? "Servidor MCP habilitado" : "Servidor MCP desabilitado",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao atualizar status",
         description: error.message,
         variant: "destructive",
       });
@@ -216,10 +242,22 @@ const AdminMCP = () => {
               <p className="text-sm text-muted-foreground">Gerencie o acesso do agente de IA ao seu sistema</p>
             </div>
           </div>
-          <Button variant="outline" onClick={fetchData} disabled={isRefreshing}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-lg border">
+                <span className="text-xs font-medium">Status Global:</span>
+                <Switch 
+                    checked={mcpEnabled} 
+                    onCheckedChange={handleToggleMcp} 
+                />
+                <Badge variant={mcpEnabled ? "default" : "secondary"}>
+                    {mcpEnabled ? "Habilitado" : "Desabilitado"}
+                </Badge>
+            </div>
+            <Button variant="outline" onClick={fetchData} disabled={isRefreshing}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Atualizar
+            </Button>
+          </div>
         </div>
       </header>
 
