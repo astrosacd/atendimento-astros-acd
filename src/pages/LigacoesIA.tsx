@@ -80,6 +80,60 @@ const CATEGORY_LABEL: Record<string, string> = {
   generated: "Gerada",
 };
 
+function ElevenLabsCreditsBadge() {
+  const [data, setData] = useState<{ used: number; limit: number; remaining: number; pct: number; tier?: string | null; next_reset_unix?: number | null } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("ligacoes-ia-credits", { body: {} });
+      if (error) throw error;
+      if ((data as any)?.error) { setError((data as any).error); setData(null); }
+      else setData(data as any);
+    } catch (e: any) {
+      setError(e?.message ?? "Erro ao consultar saldo");
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { load(); }, []);
+
+  const fmt = (n: number) => n.toLocaleString("pt-BR");
+  const resetDate = data?.next_reset_unix ? new Date(data.next_reset_unix * 1000) : null;
+  const lowBalance = data && data.limit > 0 && data.pct >= 80;
+
+  return (
+    <div className={`flex items-center justify-between gap-3 rounded-lg border p-3 text-sm ${
+      error ? "border-destructive/40 bg-destructive/10"
+      : lowBalance ? "border-amber-500/40 bg-amber-500/10"
+      : "border-border bg-card"
+    }`}>
+      <div className="flex items-center gap-2 min-w-0">
+        <Sparkles className={`h-4 w-4 ${lowBalance ? "text-amber-500" : "text-fuchsia-400"}`} />
+        {loading && !data ? (
+          <span className="text-muted-foreground">Consultando saldo ElevenLabs...</span>
+        ) : error ? (
+          <span className="text-destructive truncate" title={error}>Saldo ElevenLabs indisponível: {error}</span>
+        ) : data ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="font-medium">Saldo ElevenLabs:</span>
+            <span><strong>{fmt(data.remaining)}</strong> caracteres restantes</span>
+            <span className="text-muted-foreground">({fmt(data.used)} / {fmt(data.limit)} • {data.pct}% usado)</span>
+            {data.tier && <Badge variant="outline" className="text-xs">{data.tier}</Badge>}
+            {resetDate && <span className="text-xs text-muted-foreground">Renova {format(resetDate, "dd/MM/yyyy", { locale: ptBR })}</span>}
+          </div>
+        ) : null}
+      </div>
+      <Button variant="ghost" size="sm" onClick={load} disabled={loading} className="shrink-0">
+        <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+      </Button>
+    </div>
+  );
+}
+
 export default function LigacoesIA() {
   const [configStatus, setConfigStatus] = useState<{ 
     wavoip: boolean; 
@@ -175,6 +229,8 @@ export default function LigacoesIA() {
             <span>Configuração completa — pronto para fazer ligações.</span>
           </div>
         )}
+
+        {configStatus?.eleven && <ElevenLabsCreditsBadge />}
 
         <Tabs value={activeTab} onValueChange={(v) => {
           setActiveTab(v);
