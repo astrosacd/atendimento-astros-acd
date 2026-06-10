@@ -1,22 +1,25 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 
 interface Props {
   clienteId: string;
+  dataRenovacao?: string;
+  cobrancaAtiva?: boolean;
 }
 
-type PaymentStatus = 'pending_approval' | 'paid' | 'rejected' | null;
+type PaymentStatus = 'pending_approval' | 'paid' | 'rejected' | 'overdue' | null;
 
 /**
  * Mostra um badge sobre o último pagamento do cliente que passou pelo
  * fluxo de Segurança de Pagamento (PixPague):
- *  - pending_approval -> "Aguardando aprovação"
+ *  - overdue (calculado)           -> "Pagamento atrasado" (se vencido e mensalidade ativa)
+ *  - pending_approval              -> "Aguardando aprovação"
  *  - paid (com approved_by)        -> "Pagamento aprovado"
  *  - rejected                      -> "Pagamento reprovado"
  */
-export function ClientPaymentApprovalBadge({ clienteId }: Props) {
+export function ClientPaymentApprovalBadge({ clienteId, dataRenovacao, cobrancaAtiva }: Props) {
   const [status, setStatus] = useState<PaymentStatus>(null);
   const [loading, setLoading] = useState(true);
 
@@ -24,6 +27,19 @@ export function ClientPaymentApprovalBadge({ clienteId }: Props) {
     let mounted = true;
     (async () => {
       try {
+        // Se temos data de renovação e cobrança ativa, verificamos se está vencido primeiro
+        if (dataRenovacao && cobrancaAtiva !== false) {
+          const today = new Date();
+          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+          const renovacaoStr = String(dataRenovacao).slice(0, 10);
+          
+          if (renovacaoStr < todayStr) {
+            setStatus('overdue');
+            setLoading(false);
+            return;
+          }
+        }
+
         const { data } = await supabase
           .from('client_payments')
           .select('status, approved_by, ocr_status')
@@ -54,9 +70,22 @@ export function ClientPaymentApprovalBadge({ clienteId }: Props) {
     return () => {
       mounted = false;
     };
-  }, [clienteId]);
+  }, [clienteId, dataRenovacao, cobrancaAtiva]);
 
   if (loading || !status) return null;
+
+  if (status === 'overdue') {
+    return (
+      <Badge
+        variant="outline"
+        className="bg-red-500/10 text-red-500 border-red-500/30 text-[10px] gap-1"
+        title="Este cliente está com a mensalidade atrasada"
+      >
+        <AlertTriangle className="h-3 w-3" />
+        Pagamento atrasado
+      </Badge>
+    );
+  }
 
   if (status === 'pending_approval') {
     return (
