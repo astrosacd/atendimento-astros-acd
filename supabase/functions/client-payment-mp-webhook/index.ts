@@ -26,6 +26,11 @@ const CYCLE_MONTHS: Record<string, number> = {
 const normalizeMercadoPagoToken = (value?: string | null) =>
   String(value || "").replace(/^Bearer\s+/i, "").trim();
 
+const toNumber = (value: unknown) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 async function getMercadoPagoToken(supabase: any) {
   const { data } = await supabase
     .from("billing_config")
@@ -153,9 +158,12 @@ serve(async (req) => {
     const mpData = await mpRes.json();
     const mpStatus = mpData?.status; // approved | pending | rejected | cancelled | in_process
     const externalRef = mpData?.external_reference;
+    const metadataClienteId = mpData?.metadata?.cliente_id;
+    const mpAmount = toNumber(mpData?.transaction_amount);
     console.log(`[mp-webhook] MP payment ${mpPaymentId} status=${mpStatus} ext_ref=${externalRef}`);
 
-    // Acha o client_payments: 1º por payment_id exato; 2º por preference_id (external_reference)
+    // Acha o client_payments: 1º por payment_id exato; 2º por preference_id (external_reference);
+    // 3º por metadata.cliente_id + valor, porque alguns pagamentos do MP não retornam preference_id/external_reference.
     let { data: payment } = await supabase
       .from("client_payments")
       .select("*, cliente:clientes(id, data_renovacao, ciclo_cobranca, cobranca_ativa)")
@@ -173,13 +181,30 @@ serve(async (req) => {
       payment = byRef ?? null;
     }
 
+    if (!payment && metadataClienteId) {
+      let fallbackQuery = supabase
+        .from("client_payments")
+        .select("*, cliente:clientes(id, data_renovacao, ciclo_cobranca, cobranca_ativa)")
+        .eq("cliente_id", String(metadataClienteId))
+        .eq("payment_type", "link_cartao")
+        .in("status", ["pending", "pending_approval", "rejected", "cancelled"])
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      const { data: candidates } = await fallbackQuery;
+      const list = candidates || [];
+      payment = (mpAmount !== null
+        ? list.find((candidate: any) => Math.abs(Number(candidate.amount) - mpAmount) <= 0.05)
+        : list[0]) ?? list[0] ?? null;
+    }
+
     if (!payment) {
       console.warn(`[mp-webhook] Sem client_payments para mpId=${mpPaymentId} ext_ref=${externalRef}`);
       try {
         await supabase.from("billing_webhook_logs").insert({
           provider: "mercadopago", event_type: String(eventType || "payment"), external_id: String(mpPaymentId),
           http_status: 200, result: "unmatched", message: `Pagamento recebido, mas sem vínculo em client_payments`,
-          payload: { mpStatus, externalRef },
+          payload: { mpStatus, externalRef, metadataClienteId, mpAmount },
         });
       } catch { /* ignore */ }
       return new Response(JSON.stringify({ ok: true, matched: false }), {
