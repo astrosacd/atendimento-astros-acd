@@ -1,157 +1,163 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// MCP Server — Streamable HTTP transport spec-compliant (mcp-lite)
+// Compatible with Claude Desktop, MCP Inspector, OpenClaw, e qualquer cliente MCP moderno.
+import { Hono } from "npm:hono@4";
+import { McpServer, StreamableHttpTransport } from "npm:mcp-lite@^0.10.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
+const corsHeaders: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-api-key, mcp-session-id, mcp-protocol-version",
+  "Access-Control-Expose-Headers": "mcp-session-id",
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
 };
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+function admin() {
+  return createClient(SUPABASE_URL, SERVICE_KEY);
+}
 
-  const apiKey = req.headers.get('x-api-key');
-  
-  // Verify if MCP is enabled and check API Key
-  const { data: configs, error: configError } = await supabase
-    .from('mcp_config')
-    .select('config_key, config_value')
-    .in('config_key', ['mcp_api_key', 'mcp_enabled']);
+// ---------- Auth + config gate ----------
+async function authorize(req: Request): Promise<Response | null> {
+  const apiKey = req.headers.get("x-api-key");
+  const supabase = admin();
 
-  if (configError || !configs) {
-    return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+  const { data: configs, error } = await supabase
+    .from("mcp_config")
+    .select("config_key, config_value")
+    .in("config_key", ["mcp_api_key", "mcp_enabled"]);
+
+  if (error || !configs) {
+    return new Response(JSON.stringify({ error: "Internal Server Error" }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  const mcpEnabled = configs.find(c => c.config_key === 'mcp_enabled')?.config_value === 'true';
-  const validApiKey = configs.find(c => c.config_key === 'mcp_api_key')?.config_value;
+  const enabled = configs.find((c) => c.config_key === "mcp_enabled")?.config_value === "true";
+  const validKey = configs.find((c) => c.config_key === "mcp_api_key")?.config_value;
 
-  if (!mcpEnabled) {
-    return new Response(JSON.stringify({ error: 'MCP Server is disabled' }), {
+  if (!enabled) {
+    return new Response(JSON.stringify({ error: "MCP Server is disabled" }), {
       status: 403,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  if (!apiKey || apiKey !== validKey) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  return null;
+}
+
+// ---------- Build a fresh MCP server with tools from DB ----------
+async function buildServer(): Promise<McpServer> {
+  const supabase = admin();
+  const server = new McpServer({
+    name: "atendimento-astros-mcp",
+    version: "2.0.0",
+  });
+
+  const { data: tools } = await supabase
+    .from("mcp_tools")
+    .select("*")
+    .eq("enabled", true);
+
+  for (const t of tools ?? []) {
+    const cfg = t.configuration ?? {};
+    const inputSchema = cfg.inputSchema ?? { type: "object", properties: {}, required: [] };
+
+    server.tool({
+      name: t.name,
+      description: t.description ?? `Tool ${t.name}`,
+      inputSchema,
+      handler: async (args: Record<string, unknown>) => {
+        try {
+          let result: unknown;
+
+          if (t.tool_type === "table_access") {
+            const table = cfg.table as string;
+            const operations: string[] = cfg.operations ?? [];
+
+            if (operations.includes("select") || operations.includes("read")) {
+              const limit = Math.min(Number(args?.limit ?? 50), 200);
+              const { data, error } = await supabase.from(table).select("*").limit(limit);
+              if (error) throw error;
+              result = data;
+            } else {
+              throw new Error(`Operação não suportada via MCP para a tool "${t.name}". Apenas leitura é permitida automaticamente.`);
+            }
+          } else if (t.tool_type === "sql_query") {
+            const query = String(args?.query ?? "");
+            if (!query) throw new Error("Parâmetro 'query' obrigatório");
+            const { data, error } = await supabase.rpc("execute_sql", { sql_query: query });
+            if (error) throw error;
+            result = data;
+          } else {
+            throw new Error(`tool_type desconhecido: ${t.tool_type}`);
+          }
+
+          return {
+            content: [
+              { type: "text", text: JSON.stringify(result, null, 2) },
+            ],
+          };
+        } catch (err) {
+          return {
+            isError: true,
+            content: [
+              { type: "text", text: `Erro: ${(err as Error).message}` },
+            ],
+          };
+        }
+      },
     });
   }
 
-  if (apiKey !== validApiKey) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+  return server;
+}
+
+// ---------- Hono app ----------
+const app = new Hono();
+
+app.options("/*", (c) => {
+  return new Response(null, { status: 204, headers: corsHeaders });
+});
+
+app.all("/*", async (c) => {
+  const req = c.req.raw;
+
+  // Preflight já tratado acima; ainda assim garante CORS:
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
+
+  // Auth + enabled gate
+  const denied = await authorize(req);
+  if (denied) return denied;
 
   try {
-    const body = await req.json();
-    const { method, params, id } = body;
+    const server = await buildServer();
+    const transport = new StreamableHttpTransport();
+    const response = await transport.handleRequest(req, server);
 
-    // MCP Methods
-    if (method === 'notifications/initialized') {
-        return new Response(JSON.stringify({ jsonrpc: '2.0', id, result: {} }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-    }
-
-    if (method === 'tools/list') {
-      const { data: tools, error: toolsError } = await supabase
-        .from('mcp_tools')
-        .select('*')
-        .eq('enabled', true);
-
-      if (toolsError) throw toolsError;
-
-      const mcpTools = tools.map(t => ({
-        name: t.name,
-        description: t.description,
-        inputSchema: {
-          type: 'object',
-          properties: t.configuration?.inputSchema?.properties || {},
-          required: t.configuration?.inputSchema?.required || [],
-        }
-      }));
-
-      return new Response(JSON.stringify({
-        jsonrpc: '2.0',
-        id,
-        result: { tools: mcpTools }
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    if (method === 'tools/call') {
-      const { name, arguments: args } = params;
-      
-      const { data: tool, error: toolError } = await supabase
-        .from('mcp_tools')
-        .select('*')
-        .eq('name', name)
-        .eq('enabled', true)
-        .single();
-
-      if (toolError || !tool) {
-        return new Response(JSON.stringify({
-          jsonrpc: '2.0',
-          id,
-          error: { code: -32601, message: 'Tool not found or disabled' }
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      let result;
-      if (tool.tool_type === 'table_access') {
-        const { table, operations } = tool.configuration;
-        // Basic implementation for select only for now
-        if (operations.includes('select')) {
-           const { data, error } = await supabase.from(table).select('*').limit(50);
-           if (error) throw error;
-           result = data;
-        } else {
-            throw new Error('Operation not supported for this tool');
-        }
-      } else if (tool.tool_type === 'sql_query') {
-          // Dangerous, only if the user explicitly enables a SQL tool
-          const { query } = args;
-          const { data, error } = await supabase.rpc('execute_sql', { sql_query: query });
-          if (error) throw error;
-          result = data;
-      }
-
-      return new Response(JSON.stringify({
-        jsonrpc: '2.0',
-        id,
-        result: {
-          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
-        }
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    return new Response(JSON.stringify({
-      jsonrpc: '2.0',
-      id,
-      error: { code: -32601, message: 'Method not found' }
-    }), {
-      status: 404,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Merge CORS headers no response final
+    const merged = new Headers(response.headers);
+    for (const [k, v] of Object.entries(corsHeaders)) merged.set(k, v);
+    return new Response(response.body, {
+      status: response.status,
+      headers: merged,
     });
-
-  } catch (error) {
-    return new Response(JSON.stringify({
-      jsonrpc: '2.0',
-      id: body?.id,
-      error: { code: -32603, message: error.message }
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: (err as Error).message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 });
+
+Deno.serve(app.fetch);
