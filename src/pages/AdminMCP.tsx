@@ -391,6 +391,43 @@ const AdminMCP = () => {
             </div>
           </CardHeader>
           <CardContent>
+            {(() => {
+              const writeActiveCount = tools.filter(
+                (t) => t.enabled && getToolAccessKind(t) === "write"
+              ).length;
+              return (
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div className="flex flex-wrap items-center gap-3 text-muted-foreground">
+                    <span className="inline-flex items-center gap-1">
+                      <Badge
+                        variant="outline"
+                        className="border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-1"
+                      >
+                        <Lock className="h-3 w-3" /> Leitura
+                      </Badge>
+                      somente consulta, não altera dados
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <Badge
+                        variant="outline"
+                        className="border-destructive/50 bg-destructive/10 text-destructive gap-1"
+                      >
+                        <AlertTriangle className="h-3 w-3" /> Escrita
+                      </Badge>
+                      pode criar, alterar ou apagar dados
+                    </span>
+                  </div>
+                  {writeActiveCount > 0 && (
+                    <div className="inline-flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-destructive">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      <span className="font-medium">
+                        {writeActiveCount} ferramenta(s) de escrita ativa(s)
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
             <Table>
               <TableHeader>
                 <TableRow>
