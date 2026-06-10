@@ -163,7 +163,19 @@ export function useInsurancePaymentStatusHybrid() {
         });
       });
 
-      // 4. Decidir status: Regra de prioridade pelo contrato mais recente GLOBALMENTE
+      const normalizeProductKey = (clientName: string | null | undefined, produto: string | null | undefined) =>
+        `${String(clientName ?? '').trim().toLowerCase()}||${String(produto ?? '').trim().toLowerCase()}`;
+
+      const clientProductLatestRenewals = new Map<string, string>();
+      clientes?.forEach(c => {
+        const key = normalizeProductKey(c.nome, c.produto);
+        const currentMax = clientProductLatestRenewals.get(key) || '';
+        if ((c.data_renovacao || '') > currentMax) {
+          clientProductLatestRenewals.set(key, c.data_renovacao || '');
+        }
+      });
+
+      // 4. Decidir status: Regra de prioridade pelo contrato mais recente por CLIENTE + PRODUTO
       // Primeiro, identificamos qual é o registro mais recente para CADA NÚMERO
       // e ignoramos registros antigos se houver um mais novo para aquele mesmo número.
       // Além disso, se o número NÃO estiver no registro mais recente do CLIENTE (Fernando),
@@ -180,34 +192,21 @@ export function useInsurancePaymentStatusHybrid() {
         
         const bestLink = sortedLinks[0]; // O link mais recente/futuro
         
-        // REGRA: Se o cliente tem um contrato MAIS NOVO PARA O MESMO PRODUTO que NÃO
-        // inclui este número, então o número foi removido do contrato atual e o vínculo
-        // antigo deve ser ignorado (evita "Vencido" eterno em números abandonados).
-        //
-        // IMPORTANTE: A chave precisa ser (cliente + produto). Agrupar só por cliente
-        // fazia com que renovar UM produto (ex.: Hospedagem) zerasse os vínculos do
-        // OUTRO produto (Seguro) do mesmo cliente — bug que aparecia logo após pagamento.
-        const clientProductLatestRenewals = new Map<string, string>();
-        clientes?.forEach(c => {
-          const key = `${c.nome}||${c.produto}`;
-          const currentMax = clientProductLatestRenewals.get(key) || '';
-          if ((c.data_renovacao || '') > currentMax) {
-            clientProductLatestRenewals.set(key, c.data_renovacao || '');
-          }
-        });
+        // REGRA CRUCIAL: contrato novo de Hospedagem não pode invalidar Seguro do mesmo cliente,
+        // e contrato novo de Seguro não pode derrubar outros seguros que ainda têm dias válidos.
+        const latestDateForThisClientProduct = clientProductLatestRenewals.get(
+          normalizeProductKey(bestLink.clientName, bestLink.produto)
+        );
+        const bestLinkDate = bestLink.data_renovacao || '';
+        const bestLinkStillValid = bestLinkDate >= today;
 
-        const bestKey = `${bestLink.clientName}||${bestLink.produto}`;
-        const latestDateForThisClientProduct = clientProductLatestRenewals.get(bestKey);
-        if (
-          latestDateForThisClientProduct &&
-          (bestLink.data_renovacao || '') < latestDateForThisClientProduct
-        ) {
-          // Existe outro contrato do MESMO cliente e MESMO produto, mais novo, que não
-          // referencia este número — número foi abandonado nessa renovação específica.
+        if (latestDateForThisClientProduct && bestLinkDate < latestDateForThisClientProduct && !bestLinkStillValid) {
+          // O número pertence a um contrato antigo já vencido e há contrato mais novo do mesmo produto.
+          // Nesse caso, não gera "Vencido" e fica como não vinculado.
           return;
         }
 
-        const isPaid = (bestLink.data_renovacao || '') >= today;
+        const isPaid = bestLinkStillValid;
         
         if (links.length > 0) {
           statusMap.set(rowId, {
