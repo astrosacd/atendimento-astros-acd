@@ -1543,7 +1543,8 @@ export default function ConsultaNumeros() {
                                     ? maskValue(rawValue?.toString(), field.name)
                                     : rawValue;
 
-                                const isObservacoes = field.name.toLowerCase() === 'observacoes';
+                                 const isObservacoes = field.name.toLowerCase() === 'observacoes';
+                                 const isNumero = field.name.toLowerCase() === 'numero';
                                 const asText = (displayValue?.toString() || '').trim();
                                 const showTooltip =
                                   isObservacoes &&
@@ -1558,28 +1559,45 @@ export default function ConsultaNumeros() {
                                     onCopy={(e) => isMaskedField && !canViewUnmasked && e.preventDefault()}
                                     onCut={(e) => isMaskedField && !canViewUnmasked && e.preventDefault()}
                                     onContextMenu={(e) => isMaskedField && !canViewUnmasked && e.preventDefault()}
-                                  >
-                                    {field.type === 'single_select' ? (
-                                      <Badge variant="secondary">{displayValue || '-'}</Badge>
-                                    ) : field.type === 'boolean' ? (
-                                      rawValue ? 'Sim' : 'Não'
-                                    ) : field.type === 'date' ? (
-                                      formatBaserowDate(rawValue, field.name)
-                                    ) : showTooltip ? (
-                                      <TooltipProvider>
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <span className="cursor-help">{asText}</span>
-                                          </TooltipTrigger>
-                                          <TooltipContent className="z-50 max-w-[420px] whitespace-pre-wrap">
-                                            {asText}
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TooltipProvider>
-                                    ) : (
-                                      formatBaserowDate(displayValue || rawValue, field.name)
-                                    )}
-                                  </TableCell>
+                                   >
+                                     <div className="flex items-center gap-2">
+                                       {isNumero && (
+                                         (() => {
+                                           const tipo = getNumeroTipo(row);
+                                           return (
+                                             <Badge 
+                                               variant={tipo === 'IN' ? 'default' : 'secondary'}
+                                               className={`text-[10px] px-1 py-0 h-4 min-w-[24px] justify-center shrink-0 ${tipo === 'IN' ? 'bg-blue-500 hover:bg-blue-600' : ''}`}
+                                             >
+                                               {tipo}
+                                             </Badge>
+                                           );
+                                         })()
+                                       )}
+                                       <div className={isNumero ? 'font-mono' : 'truncate'}>
+                                         {field.type === 'single_select' ? (
+                                           <Badge variant="secondary">{displayValue || '-'}</Badge>
+                                         ) : field.type === 'boolean' ? (
+                                           rawValue ? 'Sim' : 'Não'
+                                         ) : field.type === 'date' ? (
+                                           formatBaserowDate(rawValue, field.name)
+                                         ) : showTooltip ? (
+                                           <TooltipProvider>
+                                             <Tooltip>
+                                               <TooltipTrigger asChild>
+                                                 <span className="cursor-help">{asText}</span>
+                                               </TooltipTrigger>
+                                               <TooltipContent className="z-50 max-w-[420px] whitespace-pre-wrap">
+                                                 {asText}
+                                               </TooltipContent>
+                                             </Tooltip>
+                                           </TooltipProvider>
+                                         ) : (
+                                           formatBaserowDate(displayValue || rawValue, field.name)
+                                         )}
+                                       </div>
+                                     </div>
+                                   </TableCell>
                                 );
                               })}
 
