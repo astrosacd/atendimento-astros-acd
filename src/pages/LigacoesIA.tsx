@@ -176,6 +176,8 @@ export default function LigacoesIA() {
           </div>
         )}
 
+        {configStatus?.eleven && <ElevenLabsCreditsBadge />}
+
         <Tabs value={activeTab} onValueChange={(v) => {
           setActiveTab(v);
           const next = new URLSearchParams(searchParams);
