@@ -185,7 +185,8 @@ app.all("/*", async (c) => {
   try {
     const server = await buildServer();
     const transport = new StreamableHttpTransport();
-    const response = await transport.handleRequest(req, server);
+    const handler = transport.bind(server);
+    const response = await handler(req);
 
     // Merge CORS headers no response final
     const merged = new Headers(response.headers);
