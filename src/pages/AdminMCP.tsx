@@ -6,6 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -40,6 +48,8 @@ const AdminMCP = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false);
+  const [isRotateDialogOpen, setIsRotateDialogOpen] = useState(false);
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
   const mcpUrl = `${supabaseUrl}/functions/v1/mcp-server`;
@@ -304,6 +314,39 @@ const AdminMCP = () => {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Sync Confirmation Dialog */}
+        <Dialog open={isSyncDialogOpen} onOpenChange={setIsSyncDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Sincronizar Tabelas</DialogTitle>
+              <DialogDescription>
+                Deseja listar as principais tabelas do sistema como ferramentas para o OpenClaw? 
+                Isso adicionará novas opções na lista abaixo (inicialmente desativadas).
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsSyncDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={syncTablesAsTools}>Confirmar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Rotate Key Confirmation Dialog */}
+        <Dialog open={isRotateDialogOpen} onOpenChange={setIsRotateDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Rotacionar Chave de API</DialogTitle>
+              <DialogDescription>
+                Tem certeza que deseja gerar uma nova chave? A conexão atual do OpenClaw será interrompida até que você atualize a chave lá.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsRotateDialogOpen(false)}>Cancelar</Button>
+              <Button variant="destructive" onClick={rotateApiKey}>Rotacionar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
