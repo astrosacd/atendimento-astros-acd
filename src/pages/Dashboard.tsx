@@ -63,6 +63,7 @@ export default function Dashboard() {
   const [isBackupDialogOpen, setIsBackupDialogOpen] = useState(false);
 
   const { stats, urgentTasks } = useDashboardStats();
+  const elevenLabs = useElevenLabsCredits(isAdmin);
 
 
   useEffect(() => {
