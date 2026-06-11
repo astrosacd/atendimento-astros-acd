@@ -327,6 +327,14 @@ export default function Dashboard() {
             <LigacoesAgendadasCard />
             {hasPermission('manage_system_health') && <SystemHealthCard />}
             {hasPermission('view_quick_number_search') && <QuickNumberSearch />}
+            {isAdmin && (
+              <ElevenLabsCreditsCard
+                data={elevenLabs.data}
+                loading={elevenLabs.loading}
+                error={elevenLabs.error}
+                onRefresh={elevenLabs.refresh}
+              />
+            )}
           </div>
         </section>
 
