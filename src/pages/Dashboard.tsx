@@ -44,6 +44,9 @@ import { AnaliseAvancadaSection } from '@/components/dashboard/sections/AnaliseA
 import { useDashboardStats, formatCurrency, formatCurrencyUsd } from '@/hooks/useDashboardStats';
 import { BackupDialog } from '@/components/dashboard/BackupDialog';
 import { QuickNumberSearch } from '@/components/dashboard/QuickNumberSearch';
+import { ElevenLabsCreditsCard } from '@/components/dashboard/ElevenLabsCreditsCard';
+import { useElevenLabsCredits } from '@/hooks/useElevenLabsCredits';
+import { Mic } from 'lucide-react';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -60,6 +63,7 @@ export default function Dashboard() {
   const [isBackupDialogOpen, setIsBackupDialogOpen] = useState(false);
 
   const { stats, urgentTasks } = useDashboardStats();
+  const elevenLabs = useElevenLabsCredits(isAdmin);
 
 
   useEffect(() => {
@@ -238,6 +242,18 @@ export default function Dashboard() {
           pulse: true,
         }
       : null,
+    isAdmin && elevenLabs.data && elevenLabs.data.pct >= 90
+      ? {
+          id: 'elevenlabs-credits',
+          title: 'ElevenLabs com saldo crítico',
+          description: `${elevenLabs.data.pct}% dos caracteres usados — restam ${new Intl.NumberFormat('pt-BR').format(elevenLabs.data.remaining)}. Recarregue antes de novas ligações.`,
+          count: elevenLabs.data.pct,
+          onClick: () => navigate('/ligacoes-ia'),
+          tone: 'critical' as const,
+          icon: Mic,
+          pulse: true,
+        }
+      : null,
   ].filter((alert): alert is NonNullable<typeof alert> => Boolean(alert));
 
   const followupStats = {
@@ -311,6 +327,14 @@ export default function Dashboard() {
             <LigacoesAgendadasCard />
             {hasPermission('manage_system_health') && <SystemHealthCard />}
             {hasPermission('view_quick_number_search') && <QuickNumberSearch />}
+            {isAdmin && (
+              <ElevenLabsCreditsCard
+                data={elevenLabs.data}
+                loading={elevenLabs.loading}
+                error={elevenLabs.error}
+                onRefresh={elevenLabs.refresh}
+              />
+            )}
           </div>
         </section>
 
