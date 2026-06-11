@@ -44,6 +44,9 @@ import { AnaliseAvancadaSection } from '@/components/dashboard/sections/AnaliseA
 import { useDashboardStats, formatCurrency, formatCurrencyUsd } from '@/hooks/useDashboardStats';
 import { BackupDialog } from '@/components/dashboard/BackupDialog';
 import { QuickNumberSearch } from '@/components/dashboard/QuickNumberSearch';
+import { ElevenLabsCreditsCard } from '@/components/dashboard/ElevenLabsCreditsCard';
+import { useElevenLabsCredits } from '@/hooks/useElevenLabsCredits';
+import { Mic } from 'lucide-react';
 
 export default function Dashboard() {
   const navigate = useNavigate();
