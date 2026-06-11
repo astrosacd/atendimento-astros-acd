@@ -242,6 +242,18 @@ export default function Dashboard() {
           pulse: true,
         }
       : null,
+    isAdmin && elevenLabs.data && elevenLabs.data.pct >= 90
+      ? {
+          id: 'elevenlabs-credits',
+          title: 'ElevenLabs com saldo crítico',
+          description: `${elevenLabs.data.pct}% dos caracteres usados — restam ${new Intl.NumberFormat('pt-BR').format(elevenLabs.data.remaining)}. Recarregue antes de novas ligações.`,
+          count: elevenLabs.data.pct,
+          onClick: () => navigate('/ligacoes-ia'),
+          tone: 'critical' as const,
+          icon: Mic,
+          pulse: true,
+        }
+      : null,
   ].filter((alert): alert is NonNullable<typeof alert> => Boolean(alert));
 
   const followupStats = {
