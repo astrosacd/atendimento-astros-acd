@@ -65,6 +65,7 @@ export function CapacityBanner({ numeros, modelosList, statusList, extraOcupados
         livres: Math.max(0, modelo.capacidade_whatsapp - ocupados),
         normal,
         business,
+        autoHospedados: extra?.total ?? 0,
       };
     });
 
