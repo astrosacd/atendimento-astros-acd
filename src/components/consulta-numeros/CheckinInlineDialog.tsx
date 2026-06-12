@@ -151,14 +151,22 @@ export function CheckinInlineDialog({
               placeholder="Selecione um modelo disponível"
               searchPlaceholder="Buscar modelo…"
               emptyMessage="Nenhum modelo encontrado"
-              options={modelosComVagas.map((o) => ({
-                value: o.modelo.id,
-                label: `${o.modelo.nome} · ${o.ocupados}/${o.capacidade}${o.livres > 0 ? ` · falta ${o.livres}` : ""}`,
-              }))}
+              options={[
+                { value: "__externo__", label: "📦 Sem modelo (aparelho externo)" },
+                ...modelosComVagas.map((o) => ({
+                  value: o.modelo.id,
+                  label: `${o.modelo.nome} · ${o.ocupados}/${o.capacidade}${o.livres > 0 ? ` · falta ${o.livres}` : ""}`,
+                })),
+              ]}
             />
-            {modelosComVagas.length === 0 && (
+            {isExterno && (
               <p className="text-[10px] text-muted-foreground mt-1">
-                Nenhum modelo com vaga disponível
+                Use para números em aparelhos de terceiros (não cadastrados no sistema).
+              </p>
+            )}
+            {modelosComVagas.length === 0 && !isExterno && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Nenhum modelo com vaga disponível — selecione "Sem modelo" se for aparelho externo.
               </p>
             )}
           </div>
