@@ -108,12 +108,74 @@ export function QuickNumberSearch() {
           </Button>
         </form>
 
+        <div>
+          <SearchableSelect
+            value={modeloFilter}
+            onValueChange={(v) => setModeloFilter(v)}
+            placeholder="Ou filtre por modelo…"
+            searchPlaceholder="Buscar modelo…"
+            emptyMessage="Sem modelos"
+            options={[
+              { value: '__externo__', label: '📦 Aparelho externo' },
+              ...modelosList.map((m) => ({ value: m.id, label: m.nome })),
+            ]}
+          />
+        </div>
+
+        {modeloFilter && (() => {
+          const numerosDoModelo: { numero: string; cliente: string | null; data: string }[] = [];
+          for (const [numero, ck] of latestCheckinByNumero.entries()) {
+            const match = modeloFilter === '__externo__' ? ck.modelo_id == null : ck.modelo_id === modeloFilter;
+            if (match) numerosDoModelo.push({ numero, cliente: ck.cliente_nome, data: ck.data_checkin });
+          }
+          numerosDoModelo.sort((a, b) => b.data.localeCompare(a.data));
+          const modeloNome = modeloFilter === '__externo__' ? '📦 Aparelho externo' : (modelosList.find((m) => m.id === modeloFilter)?.nome ?? '');
+          return (
+            <div className="rounded-md border border-border/50 bg-muted/20 p-2 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                  {modeloNome} · {numerosDoModelo.length} número{numerosDoModelo.length === 1 ? '' : 's'}
+                </p>
+                <button
+                  onClick={() => setModeloFilter('')}
+                  className="text-[10px] text-muted-foreground hover:text-foreground"
+                >
+                  limpar
+                </button>
+              </div>
+              {numerosDoModelo.length === 0 ? (
+                <p className="text-xs italic text-muted-foreground py-1">Nenhum número com check-in nesse modelo.</p>
+              ) : (
+                <div className="max-h-48 overflow-y-auto space-y-1">
+                  {numerosDoModelo.map((n) => (
+                    <button
+                      key={n.numero}
+                      onClick={() => {
+                        setSearchTerm(n.numero);
+                        setAppliedSearch(n.numero);
+                      }}
+                      className="w-full flex items-center justify-between gap-2 px-2 py-1 rounded text-left hover:bg-accent hover:text-accent-foreground transition-colors"
+                    >
+                      <span className="text-xs font-mono font-medium truncate">{n.numero}</span>
+                      <span className="text-[10px] text-muted-foreground truncate max-w-[55%]" title={n.cliente ?? ''}>
+                        {n.cliente ?? '—'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {appliedSearch && !isLoading && !numberData && (
           <div className="flex items-center gap-2 text-sm text-amber-500 bg-amber-500/10 p-2 rounded-md border border-amber-500/20">
             <AlertCircle className="h-4 w-4 shrink-0" />
             Número não encontrado na base.
           </div>
         )}
+
+
 
         {numberData && (
           <div className="space-y-3 animate-in fade-in slide-in-from-top-1">
