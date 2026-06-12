@@ -279,6 +279,7 @@ serve(async (req) => {
         Deno.env.get('LOVABLE_API_KEY') || null,
         cfg.openai_api_key || null,
         cfg.groq_api_key || null,
+        supabaseAdmin,
       );
     }
 
