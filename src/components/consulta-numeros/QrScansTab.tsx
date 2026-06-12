@@ -738,17 +738,28 @@ export function QrScansTab() {
                                 <div className="flex flex-col gap-1 items-start">
                                   {lastCk ? (
                                     <>
-                                      <Badge
-                                        variant={
-                                          lastCk.status_conexao === "conectado"
-                                            ? "default"
-                                            : "destructive"
-                                        }
-                                        className="text-[10px] py-0 px-1.5 gap-1 inline-flex items-center w-fit max-w-full whitespace-nowrap leading-tight"
-                                      >
-                                        <span>{lastCk.status_conexao === "conectado" ? "🟢" : "🔴"}</span>
-                                        <span className="truncate">{modeloNome ?? "—"}</span>
-                                      </Badge>
+                                      {(lastCk as any).modelo_id == null ? (
+                                        <Badge
+                                          variant="outline"
+                                          className="text-[10px] py-0 px-1.5 gap-1 inline-flex items-center w-fit max-w-full whitespace-nowrap leading-tight bg-muted text-muted-foreground border-muted-foreground/30"
+                                          title="Aparelho externo (não cadastrado no sistema)"
+                                        >
+                                          <span>📦</span>
+                                          <span className="truncate">Aparelho externo</span>
+                                        </Badge>
+                                      ) : (
+                                        <Badge
+                                          variant={
+                                            lastCk.status_conexao === "conectado"
+                                              ? "default"
+                                              : "destructive"
+                                          }
+                                          className="text-[10px] py-0 px-1.5 gap-1 inline-flex items-center w-fit max-w-full whitespace-nowrap leading-tight"
+                                        >
+                                          <span>{lastCk.status_conexao === "conectado" ? "🟢" : "🔴"}</span>
+                                          <span className="truncate">{modeloNome ?? "—"}</span>
+                                        </Badge>
+                                      )}
                                       <div className="flex items-center gap-1">
                                         <span
                                           className={`text-[10px] ${isToday ? "text-emerald-500" : "text-muted-foreground"}`}
