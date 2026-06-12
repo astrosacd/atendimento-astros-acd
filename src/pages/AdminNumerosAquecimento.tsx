@@ -889,10 +889,8 @@ export default function AdminNumerosAquecimento() {
             <RestoreNumbersTab statusList={statusList} modelosList={modelosList} />
           </TabsContent>
 
-          {/* Orphans Tab */}
-          <TabsContent value="orphans" className="space-y-4">
-            <OrphanNumbersTab statusList={statusList} modelosList={modelosList} />
-          </TabsContent>
+
+
 
 
           {/* Webhooks Tab */}
