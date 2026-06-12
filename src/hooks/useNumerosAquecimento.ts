@@ -36,6 +36,7 @@ export interface NumeroModelo {
   marca: string | null;
   descricao: string | null;
   capacidade_whatsapp: number;
+  aparece_no_checkin: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -492,7 +493,7 @@ export function useCreateModelo() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { nome: string; marca?: string; descricao?: string; capacidade_whatsapp?: number }) => {
+    mutationFn: async (data: { nome: string; marca?: string; descricao?: string; capacidade_whatsapp?: number; aparece_no_checkin?: boolean }) => {
       const { data: modelo, error } = await supabase
         .from('numeros_aquecimento_modelos')
         .insert(data)
