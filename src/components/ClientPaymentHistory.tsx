@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { usePermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/integrations/supabase/client';
+import { openComprovante } from '@/utils/comprovanteUrl';
 import { 
   CreditCard, 
   CheckCircle, 
@@ -472,15 +473,14 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
                                         </p>
                                       )}
                                       {payment.comprovante_url && (
-                                        <a 
-                                          href={payment.comprovante_url} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
+                                        <button
+                                          type="button"
+                                          onClick={() => openComprovante(payment.comprovante_url)}
                                           className="text-xs text-blue-400 hover:underline flex items-center gap-1 mt-0.5"
                                         >
                                           <FileText className="w-3 h-3" />
                                           Ver Comprovante
-                                        </a>
+                                        </button>
                                       )}
                                       {payment.paid_at && (
                                         <p className="text-xs text-emerald-400">
