@@ -759,17 +759,6 @@ export function QrScansTab() {
                                       ⚠️ Sem modelo vinculado
                                     </Badge>
                                   )}
-                                      <span
-                                        className={`text-[10px] ${isToday ? "text-emerald-500" : "text-muted-foreground"}`}
-                                      >
-                                        {isToday ? "✓ hoje" : new Date(lastCk.data_checkin + "T12:00:00").toLocaleDateString("pt-BR")}
-                                      </span>
-                                    </>
-                                  ) : (
-                                    <Badge variant="outline" className="text-[10px] h-5 border-dashed text-amber-600">
-                                      ⚠️ Sem aparelho vinculado
-                                    </Badge>
-                                  )}
                                   <Button
                                     size="sm"
                                     variant={lastCk ? "outline" : "default"}
