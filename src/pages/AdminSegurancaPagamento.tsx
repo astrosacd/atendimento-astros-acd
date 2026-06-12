@@ -1081,7 +1081,7 @@ export default function AdminSegurancaPagamento() {
             </Button>
             <Button
               variant={approvalDialog.action === 'approve' ? 'default' : 'destructive'}
-              onClick={() => approvalDialog.payment && performApproval(approvalDialog.payment.id, approvalDialog.action, approvalDialog.reason)}
+              onClick={() => approvalDialog.payment && performApproval(approvalDialog.payment.id, approvalDialog.action, approvalDialog.reason, approvalDialog.renewalMode)}
               disabled={
                 approvingId === approvalDialog.payment?.id ||
                 (approvalDialog.action === 'approve' && approvalDialog.reason.trim().length < 5)
