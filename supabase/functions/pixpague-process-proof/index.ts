@@ -20,23 +20,38 @@ interface OcrResult {
   raw?: string;
 }
 
-async function resolveFetchableProofUrl(
+async function fetchProofBytes(
   proofUrl: string,
   supabaseAdmin: ReturnType<typeof createClient>,
-): Promise<string> {
-  // Bucket payment-proofs é privado (workspace policy bloqueia público).
-  // URLs antigas estão salvas como /public/payment-proofs/...; geramos signed URL.
+): Promise<{ bytes: Uint8Array; mime: string } | { error: string }> {
+  // Extrai o path do storage (suporta /public/ e /sign/) e baixa via SDK (bypassa RLS/bucket privado).
   const m = proofUrl.match(/\/storage\/v1\/object\/(?:public|sign)\/payment-proofs\/([^?]+)/);
-  if (!m) return proofUrl;
-  const path = decodeURIComponent(m[1]);
-  const { data, error } = await supabaseAdmin.storage
-    .from('payment-proofs')
-    .createSignedUrl(path, 60 * 10);
-  if (error || !data?.signedUrl) {
-    console.error('[OCR] signed url error:', error);
-    return proofUrl;
+  if (m) {
+    const path = decodeURIComponent(m[1]);
+    console.log('[OCR] Downloading via storage SDK. path:', path);
+    const { data, error } = await supabaseAdmin.storage.from('payment-proofs').download(path);
+    if (!error && data) {
+      const buf = await data.arrayBuffer();
+      return { bytes: new Uint8Array(buf), mime: data.type || 'image/jpeg' };
+    }
+    console.error('[OCR] storage.download error:', error);
+    // Fallback: signed URL
+    const signed = await supabaseAdmin.storage.from('payment-proofs').createSignedUrl(path, 600);
+    if (signed.data?.signedUrl) {
+      const r = await fetch(signed.data.signedUrl);
+      if (r.ok) {
+        const buf = await r.arrayBuffer();
+        return { bytes: new Uint8Array(buf), mime: r.headers.get('content-type') || 'image/jpeg' };
+      }
+      return { error: `signed url fetch ${r.status}` };
+    }
+    return { error: error?.message || 'storage download failed' };
   }
-  return data.signedUrl;
+  // URL externa
+  const r = await fetch(proofUrl);
+  if (!r.ok) return { error: `fetch ${r.status}` };
+  const buf = await r.arrayBuffer();
+  return { bytes: new Uint8Array(buf), mime: r.headers.get('content-type') || 'image/jpeg' };
 }
 
 async function runOcr(
@@ -50,23 +65,20 @@ async function runOcr(
 ): Promise<OcrResult> {
   try {
     console.log('[OCR] Starting OCR. Provider:', provider, 'Model:', model);
-    const fetchUrl = await resolveFetchableProofUrl(proofUrl, supabaseAdmin);
-    const imageResponse = await fetch(fetchUrl);
-    if (!imageResponse.ok) {
-      console.error('[OCR] Failed to fetch proof image:', imageResponse.status, 'url:', fetchUrl);
-      return { amount: null, transactionId: null, status: 'error', raw: `Failed to fetch proof (${imageResponse.status})` };
+    const fetched = await fetchProofBytes(proofUrl, supabaseAdmin);
+    if ('error' in fetched) {
+      console.error('[OCR] Failed to fetch proof:', fetched.error, 'url:', proofUrl);
+      return { amount: null, transactionId: null, status: 'error', raw: `Failed to fetch proof (${fetched.error})` };
     }
-    const blob = await imageResponse.blob();
-    const buf = await blob.arrayBuffer();
-    const bytes = new Uint8Array(buf);
+    const { bytes, mime } = fetched;
     let binary = '';
     const chunkSize = 8192;
     for (let i = 0; i < bytes.length; i += chunkSize) {
       binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)));
     }
     const base64 = btoa(binary);
-    const mime = blob.type || 'image/jpeg';
     console.log('[OCR] Image fetched. size:', bytes.length, 'mime:', mime);
+
 
     const prompt = `Você é um especialista em comprovantes de PIX brasileiros. PRIMEIRO determine se a imagem É REALMENTE um comprovante de pagamento PIX (deve conter elementos típicos como: valor pago, data, nome do banco, ID da transação, beneficiário, etc).
 

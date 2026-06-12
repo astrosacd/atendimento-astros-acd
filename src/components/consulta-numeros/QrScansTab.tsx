@@ -615,7 +615,7 @@ export function QrScansTab() {
                       <TableHead>Pagos no mês</TableHead>
                       <TableHead>Hospedagem</TableHead>
                       <TableHead>Seguro</TableHead>
-                      <TableHead>Check-in</TableHead>
+                      <TableHead>Check-in / Aparelho</TableHead>
                       <TableHead>Observação</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
@@ -751,6 +751,11 @@ export function QrScansTab() {
                                         {lastCk.status_conexao === "conectado" ? "🟢" : "🔴"}
                                         {apLinked?.apelido ?? "—"} · {lastCk.tipo_slot}
                                       </Badge>
+                                      {apLinked?.modelo?.nome && (
+                                        <span className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
+                                          📱 {apLinked.modelo.nome}
+                                        </span>
+                                      )}
                                       <span
                                         className={`text-[10px] ${isToday ? "text-emerald-500" : "text-muted-foreground"}`}
                                       >
@@ -758,11 +763,13 @@ export function QrScansTab() {
                                       </span>
                                     </>
                                   ) : (
-                                    <span className="text-muted-foreground">Sem check-in</span>
+                                    <Badge variant="outline" className="text-[10px] h-5 border-dashed text-amber-600">
+                                      ⚠️ Sem aparelho vinculado
+                                    </Badge>
                                   )}
                                   <Button
                                     size="sm"
-                                    variant="outline"
+                                    variant={lastCk ? "outline" : "default"}
                                     className="h-6 px-2 text-[10px]"
                                     onClick={() => {
                                       setCheckinTarget({
@@ -776,9 +783,10 @@ export function QrScansTab() {
                                     }}
                                   >
                                     <CalendarCheck className="h-3 w-3 mr-1" />
-                                    Foi checado agora
+                                    {lastCk ? "Foi checado agora" : "Vincular aparelho"}
                                   </Button>
                                 </div>
+
                               );
                             })()}
                           </TableCell>
