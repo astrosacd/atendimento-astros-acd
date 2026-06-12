@@ -63,6 +63,7 @@ import {
   Shield,
   ShieldCheck,
   ShieldAlert,
+  CalendarCheck,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -79,6 +80,9 @@ import {
   useSearchNumbers,
 } from "@/hooks/useQrScan";
 import { useInsuranceHistory, useRegisterInsuranceUsage, useInsuranceNumbers, useInsurancePaymentStatus, useSetInsurancePaymentStatus, useInsurancePaymentStatusHybrid } from "@/hooks/useInsurance";
+import { getViewableComprovanteUrl } from "@/utils/comprovanteUrl";
+import { CheckinDiarioTab } from "./CheckinDiarioTab";
+import { ComprovantePreview } from "./ComprovantePreview";
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   link_mp: "🔗 Link Mercado Pago",
@@ -547,6 +551,9 @@ export function QrScansTab() {
           <TabsTrigger value="seguros">
             <Shield className="h-4 w-4 mr-2" /> Seguros
           </TabsTrigger>
+          <TabsTrigger value="checkin">
+            <CalendarCheck className="h-4 w-4 mr-2" /> Check-in Diário
+          </TabsTrigger>
           {isAdmin && (
             <TabsTrigger value="config">
               <Settings className="h-4 w-4 mr-2" /> Configurações
@@ -865,7 +872,10 @@ export function QrScansTab() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => setViewReceiptUrl(s.payment_comprovante_url!)}
+                              onClick={async () => {
+                                const u = await getViewableComprovanteUrl(s.payment_comprovante_url!);
+                                if (u) setViewReceiptUrl(u);
+                              }}
                               title="Ver comprovante enviado pelo cliente"
                             >
                               <ImageIcon className="h-4 w-4 mr-1" /> Ver comprovante
@@ -1162,6 +1172,10 @@ export function QrScansTab() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="checkin" className="space-y-4">
+          <CheckinDiarioTab />
         </TabsContent>
 
         <TabsContent value="historico" className="space-y-4">
@@ -1754,23 +1768,7 @@ export function QrScansTab() {
             {scanToConfirm?.payment_comprovante_url && (
               <div className="space-y-2">
                 <Label>Comprovante enviado pelo operador</Label>
-                <div className="border rounded-md overflow-hidden bg-muted">
-                  <img
-                    src={scanToConfirm.payment_comprovante_url}
-                    alt="Comprovante do cliente"
-                    className="w-full max-h-64 object-contain"
-                  />
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  asChild
-                  className="w-full"
-                >
-                  <a href={scanToConfirm.payment_comprovante_url} target="_blank" rel="noreferrer">
-                    Abrir comprovante em nova aba
-                  </a>
-                </Button>
+                <ComprovantePreview url={scanToConfirm.payment_comprovante_url} />
               </div>
             )}
             <div className="space-y-2">

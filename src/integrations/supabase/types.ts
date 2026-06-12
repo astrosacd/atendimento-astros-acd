@@ -7380,6 +7380,65 @@ export type Database = {
           },
         ]
       }
+      qr_scan_checkins_diarios: {
+        Row: {
+          aparelho_id: string | null
+          baserow_row_id: number | null
+          cliente_nome: string | null
+          created_at: string
+          created_by: string | null
+          data_checkin: string
+          id: string
+          modelo_snapshot: string | null
+          numero: string
+          observacao: string | null
+          status_conexao: string
+          status_geral: string | null
+          tipo_slot: string
+          updated_at: string
+        }
+        Insert: {
+          aparelho_id?: string | null
+          baserow_row_id?: number | null
+          cliente_nome?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_checkin?: string
+          id?: string
+          modelo_snapshot?: string | null
+          numero: string
+          observacao?: string | null
+          status_conexao?: string
+          status_geral?: string | null
+          tipo_slot: string
+          updated_at?: string
+        }
+        Update: {
+          aparelho_id?: string | null
+          baserow_row_id?: number | null
+          cliente_nome?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_checkin?: string
+          id?: string
+          modelo_snapshot?: string | null
+          numero?: string
+          observacao?: string | null
+          status_conexao?: string
+          status_geral?: string | null
+          tipo_slot?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_scan_checkins_diarios_aparelho_id_fkey"
+            columns: ["aparelho_id"]
+            isOneToOne: false
+            referencedRelation: "numeros_aquecimento_aparelhos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       qr_scan_config: {
         Row: {
           ativo: boolean
