@@ -7,6 +7,8 @@ interface Props {
   numeros: NumeroAquecimento[];
   modelosList: NumeroModelo[];
   statusList?: NumeroStatus[];
+  /** Slots adicionais ocupados por modelo (ex.: check-ins ativos de auto-hospedados). */
+  extraOcupadosByModelo?: Map<string, { total: number; normal: number; business: number; clone: number }>;
 }
 
 interface ModeloOcupacao {
