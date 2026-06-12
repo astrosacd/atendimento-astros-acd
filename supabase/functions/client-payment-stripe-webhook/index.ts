@@ -102,6 +102,23 @@ async function applyPaidPayment(
       .neq("id", payment.id)
       .select("id");
     console.log(`[stripe-webhook] Auto-canceladas: ${cancelled?.length ?? 0}`);
+
+    // Cancela ligações IA e SMS agendados pendentes
+    const { data: cancLig } = await supabase
+      .from("ligacoes_agendadas")
+      .update({ status: "cancelada", erro: "Cancelada automaticamente: pagamento confirmado (Stripe)", updated_at: new Date().toISOString() })
+      .eq("cliente_id", cliente.id)
+      .eq("status", "pendente")
+      .select("id");
+    console.log(`[stripe-webhook] Ligações IA canceladas: ${cancLig?.length ?? 0}`);
+
+    const { data: cancSms } = await supabase
+      .from("sms_agendados")
+      .update({ status: "cancelado", updated_at: new Date().toISOString() })
+      .eq("cliente_id", cliente.id)
+      .eq("status", "pendente")
+      .select("id");
+    console.log(`[stripe-webhook] SMS cancelados: ${cancSms?.length ?? 0}`);
   }
 
   // 4) recibo
