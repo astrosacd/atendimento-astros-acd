@@ -180,6 +180,18 @@ export function QrScansTab() {
   const [insuranceTarget, setInsuranceTarget] = useState<any>(null);
   const [insuranceObs, setInsuranceObs] = useState("");
 
+  // Check-in inline dialog
+  const [checkinDialogOpen, setCheckinDialogOpen] = useState(false);
+  const [checkinTarget, setCheckinTarget] = useState<{
+    numero: string;
+    baserowRowId: number | null;
+    clienteNome: string | null;
+    defaultAparelhoId: string | null;
+    defaultTipoSlot?: "normal" | "business" | "clone";
+  } | null>(null);
+  const latestCheckinByNumero = useLatestCheckinByNumero();
+  const { data: aparelhosList = [] } = useAparelhos();
+
   // Search states for tabs
   const [numerosSearch, setNumerosSearch] = useState("");
   const [pendentesSearch, setPendentesSearch] = useState("");
