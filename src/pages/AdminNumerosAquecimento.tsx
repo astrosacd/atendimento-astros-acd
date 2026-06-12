@@ -62,6 +62,7 @@ import {
 } from '@/hooks/useNumerosAquecimento';
 import { AlertConfigCard } from '@/components/numeros-aquecimento/AlertConfigCard';
 import { RestoreNumbersTab } from '@/components/numeros-aquecimento/RestoreNumbersTab';
+import { OrphanNumbersTab } from '@/components/numeros-aquecimento/OrphanNumbersTab';
 import { NumeroAnaliseInline } from '@/components/numeros-aquecimento/NumeroAnaliseInline';
 import { CapacityBanner } from '@/components/numeros-aquecimento/CapacityBanner';
 import { useActiveCheckinsByModelo } from '@/hooks/useCheckinDiario';
