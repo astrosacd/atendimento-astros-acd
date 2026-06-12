@@ -80,8 +80,8 @@ import {
 } from "@/hooks/useQrScan";
 import { useInsuranceHistory, useRegisterInsuranceUsage, useInsuranceNumbers, useInsurancePaymentStatus, useSetInsurancePaymentStatus, useInsurancePaymentStatusHybrid } from "@/hooks/useInsurance";
 import { getViewableComprovanteUrl } from "@/utils/comprovanteUrl";
-import { useSignedComprovanteUrl } from "@/hooks/useSignedComprovanteUrl";
 import { CheckinDiarioTab } from "./CheckinDiarioTab";
+import { ComprovantePreview } from "./ComprovantePreview";
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   link_mp: "🔗 Link Mercado Pago",
@@ -1760,23 +1760,7 @@ export function QrScansTab() {
             {scanToConfirm?.payment_comprovante_url && (
               <div className="space-y-2">
                 <Label>Comprovante enviado pelo operador</Label>
-                <div className="border rounded-md overflow-hidden bg-muted">
-                  <img
-                    src={scanToConfirm.payment_comprovante_url}
-                    alt="Comprovante do cliente"
-                    className="w-full max-h-64 object-contain"
-                  />
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  asChild
-                  className="w-full"
-                >
-                  <a href={scanToConfirm.payment_comprovante_url} target="_blank" rel="noreferrer">
-                    Abrir comprovante em nova aba
-                  </a>
-                </Button>
+                <ComprovantePreview url={scanToConfirm.payment_comprovante_url} />
               </div>
             )}
             <div className="space-y-2">
