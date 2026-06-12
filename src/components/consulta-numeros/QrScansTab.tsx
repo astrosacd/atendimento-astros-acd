@@ -725,6 +725,60 @@ export function QrScansTab() {
                               </div>
                             )}
                           </TableCell>
+                          <TableCell className="text-xs">
+                            {(() => {
+                              const numero = String(rd.numero ?? "");
+                              const lastCk = numero ? latestCheckinByNumero.get(numero) : null;
+                              const apLinked = lastCk?.aparelho_id
+                                ? aparelhosList.find((a) => a.id === lastCk.aparelho_id)
+                                : null;
+                              const isToday = lastCk?.data_checkin === todayBrt;
+                              return (
+                                <div className="flex flex-col gap-1 items-start">
+                                  {lastCk ? (
+                                    <>
+                                      <Badge
+                                        variant={
+                                          lastCk.status_conexao === "conectado"
+                                            ? "default"
+                                            : "destructive"
+                                        }
+                                        className="text-[10px] h-5 gap-1"
+                                      >
+                                        {lastCk.status_conexao === "conectado" ? "🟢" : "🔴"}
+                                        {apLinked?.apelido ?? "—"} · {lastCk.tipo_slot}
+                                      </Badge>
+                                      <span
+                                        className={`text-[10px] ${isToday ? "text-emerald-500" : "text-muted-foreground"}`}
+                                      >
+                                        {isToday ? "✓ hoje" : new Date(lastCk.data_checkin + "T12:00:00").toLocaleDateString("pt-BR")}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span className="text-muted-foreground">Sem check-in</span>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 px-2 text-[10px]"
+                                    onClick={() => {
+                                      setCheckinTarget({
+                                        numero,
+                                        baserowRowId: n.baserow_row_id,
+                                        clienteNome: rd.nome ?? rd.cliente ?? null,
+                                        defaultAparelhoId: lastCk?.aparelho_id ?? null,
+                                        defaultTipoSlot: lastCk?.tipo_slot,
+                                      });
+                                      setCheckinDialogOpen(true);
+                                    }}
+                                  >
+                                    <CalendarCheck className="h-3 w-3 mr-1" />
+                                    Foi checado agora
+                                  </Button>
+                                </div>
+                              );
+                            })()}
+                          </TableCell>
                           <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
                             {n.auto_hospedado_observacao ?? "—"}
                           </TableCell>
