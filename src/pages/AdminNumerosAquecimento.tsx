@@ -1940,6 +1940,7 @@ function EditModeloDialog({ modelo, onUpdate }: { modelo: NumeroModelo; onUpdate
   const [marca, setMarca] = useState(modelo.marca || '');
   const [descricao, setDescricao] = useState(modelo.descricao || '');
   const [capacidade, setCapacidade] = useState(modelo.capacidade_whatsapp || 3);
+  const [apareceCheckin, setApareceCheckin] = useState(modelo.aparece_no_checkin !== false);
 
   const handleSubmit = () => {
     if (capacidade < 1 || capacidade > 20) {
@@ -1951,6 +1952,7 @@ function EditModeloDialog({ modelo, onUpdate }: { modelo: NumeroModelo; onUpdate
       marca: marca || null,
       descricao: descricao || null,
       capacidade_whatsapp: capacidade,
+      aparece_no_checkin: apareceCheckin,
     });
     setOpen(false);
   };
@@ -1991,6 +1993,15 @@ function EditModeloDialog({ modelo, onUpdate }: { modelo: NumeroModelo; onUpdate
           <div>
             <Label>Descrição</Label>
             <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label>Aparece no check-in</Label>
+              <p className="text-xs text-muted-foreground">
+                Se ativo, este modelo aparece na lista de seleção do QR Scan
+              </p>
+            </div>
+            <Switch checked={apareceCheckin} onCheckedChange={setApareceCheckin} />
           </div>
         </div>
         <DialogFooter>
