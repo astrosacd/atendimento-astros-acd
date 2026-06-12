@@ -187,6 +187,27 @@ serve(async (req) => {
       }
     }
 
+    // 2.5) Cancela ligações IA e SMS agendados pendentes (cliente já pagou)
+    if (cliente?.id) {
+      const { data: cancLig, error: errLig } = await supabase
+        .from("ligacoes_agendadas")
+        .update({ status: "cancelada", erro: "Cancelada automaticamente: pagamento aprovado", updated_at: new Date().toISOString() })
+        .eq("cliente_id", cliente.id)
+        .eq("status", "pendente")
+        .select("id");
+      if (errLig) console.error("[approve-pixpague] Erro cancelando ligações:", errLig);
+      else console.log(`[approve-pixpague] Ligações IA canceladas: ${cancLig?.length ?? 0}`);
+
+      const { data: cancSms, error: errSms } = await supabase
+        .from("sms_agendados")
+        .update({ status: "cancelado", updated_at: new Date().toISOString() })
+        .eq("cliente_id", cliente.id)
+        .eq("status", "pendente")
+        .select("id");
+      if (errSms) console.error("[approve-pixpague] Erro cancelando SMS:", errSms);
+      else console.log(`[approve-pixpague] SMS cancelados: ${cancSms?.length ?? 0}`);
+    }
+
     // 3) Renovação: Calcular a nova data ANTES do recibo
     let newRenewalDate: string | null = null;
     if (cliente?.id && cliente?.cobranca_ativa !== false && cliente?.data_renovacao && cliente?.ciclo_cobranca) {
