@@ -23,7 +23,7 @@ export interface Checkin {
   created_at: string;
 }
 
-const ACTIVE_WINDOW_DAYS = 7;
+const DEFAULT_ACTIVE_WINDOW_DAYS = 7;
 
 export function useCheckins(filter?: { since?: string; numero?: string }) {
   return useQuery({
