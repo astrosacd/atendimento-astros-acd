@@ -757,9 +757,10 @@ export default function AdminNumerosAquecimento() {
                     <div className="space-y-2 pr-2">
                       {modelosList.map((modelo) => {
                         const count = numeros.filter(n => n.modelo_id === modelo.id).length;
+                        const apareceCheckin = modelo.aparece_no_checkin !== false;
                         return (
                           <div key={modelo.id} className="flex items-center justify-between p-2 border rounded-lg">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-medium">{modelo.nome}</span>
                               {modelo.marca && (
                                 <span className="text-sm text-muted-foreground">({modelo.marca})</span>
@@ -767,9 +768,21 @@ export default function AdminNumerosAquecimento() {
                               <Badge variant="outline" className="text-xs">
                                 {count} número{count !== 1 ? 's' : ''}
                               </Badge>
+                              {!apareceCheckin && (
+                                <Badge variant="secondary" className="text-[10px]">
+                                  Oculto no check-in
+                                </Badge>
+                              )}
                             </div>
                             {canManageModelos && (
                               <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 mr-1" title="Aparece na lista do check-in (QR Scan)">
+                                  <Switch
+                                    checked={apareceCheckin}
+                                    onCheckedChange={(v) => updateModelo.mutate({ id: modelo.id, data: { aparece_no_checkin: v } })}
+                                  />
+                                  <span className="text-[10px] text-muted-foreground hidden md:inline">Check-in</span>
+                                </div>
                                 <EditModeloDialog 
                                   modelo={modelo} 
                                   onUpdate={(data) => updateModelo.mutate({ id: modelo.id, data })} 
