@@ -207,6 +207,7 @@ export function QrScansTab() {
         valor_excedente: Number(config.valor_excedente),
         payment_provider_default: config.payment_provider_default,
         ativo: config.ativo,
+        checkin_ativo_dias: config.checkin_ativo_dias ?? 7,
       });
     }
   }, [config]);
@@ -218,7 +219,8 @@ export function QrScansTab() {
       configDraft.qtd_por_dia !== (config.qtd_por_dia ?? 2) ||
       Number(configDraft.valor_excedente) !== Number(config.valor_excedente) ||
       configDraft.payment_provider_default !== config.payment_provider_default ||
-      configDraft.ativo !== config.ativo);
+      configDraft.ativo !== config.ativo ||
+      configDraft.checkin_ativo_dias !== (config.checkin_ativo_dias ?? 7));
 
   const filteredAutoHosp = autoHosp.filter((n) => {
     const rd = n.row_data || {};
