@@ -1411,6 +1411,27 @@ export function QrScansTab() {
                         </Select>
                       </div>
                     </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Janela ativa do Check-in (dias)</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={90}
+                          value={configDraft.checkin_ativo_dias}
+                          onChange={(e) =>
+                            setConfigDraft({
+                              ...configDraft,
+                              checkin_ativo_dias: Math.max(1, Number(e.target.value) || 1),
+                            })
+                          }
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Por quantos dias um check-in <strong>"conectado"</strong> é considerado ativo
+                          e ocupa um slot no Status de Números. Padrão: <strong>7 dias</strong>.
+                        </p>
+                      </div>
+                    </div>
                     <div className="flex items-center gap-2">
                       <Switch
                         checked={configDraft.ativo}
