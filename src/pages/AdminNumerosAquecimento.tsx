@@ -325,13 +325,17 @@ export default function AdminNumerosAquecimento() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-7 h-auto">
             <TabsTrigger value="numeros">{t('numberStatus.numbers')}</TabsTrigger>
             <TabsTrigger value="config" disabled={!canManageStatus && !canManageModelos}>{t('numberStatus.config')}</TabsTrigger>
             <TabsTrigger value="history" disabled={!canViewHistory}>{t('numberStatus.history')}</TabsTrigger>
             <TabsTrigger value="restore" disabled={!canRestoreNumbers}>
               <RotateCcw className="h-4 w-4 mr-1" />
               Restaurar
+            </TabsTrigger>
+            <TabsTrigger value="orphans" disabled={!canDelete && !canRestoreNumbers}>
+              <AlertCircle className="h-4 w-4 mr-1" />
+              Órfãos
             </TabsTrigger>
             <TabsTrigger value="webhooks" disabled={!canManageWebhooks}>{t('numberStatus.webhooks')}</TabsTrigger>
             <TabsTrigger value="api" disabled={!canManageApi}>{t('numberStatus.apiRest')}</TabsTrigger>
