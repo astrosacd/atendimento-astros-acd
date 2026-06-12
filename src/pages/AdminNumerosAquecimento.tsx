@@ -62,6 +62,7 @@ import {
 } from '@/hooks/useNumerosAquecimento';
 import { AlertConfigCard } from '@/components/numeros-aquecimento/AlertConfigCard';
 import { RestoreNumbersTab } from '@/components/numeros-aquecimento/RestoreNumbersTab';
+import { OrphanNumbersTab } from '@/components/numeros-aquecimento/OrphanNumbersTab';
 import { NumeroAnaliseInline } from '@/components/numeros-aquecimento/NumeroAnaliseInline';
 import { CapacityBanner } from '@/components/numeros-aquecimento/CapacityBanner';
 import { useActiveCheckinsByModelo } from '@/hooks/useCheckinDiario';
@@ -324,13 +325,17 @@ export default function AdminNumerosAquecimento() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-7 h-auto">
             <TabsTrigger value="numeros">{t('numberStatus.numbers')}</TabsTrigger>
             <TabsTrigger value="config" disabled={!canManageStatus && !canManageModelos}>{t('numberStatus.config')}</TabsTrigger>
             <TabsTrigger value="history" disabled={!canViewHistory}>{t('numberStatus.history')}</TabsTrigger>
             <TabsTrigger value="restore" disabled={!canRestoreNumbers}>
               <RotateCcw className="h-4 w-4 mr-1" />
               Restaurar
+            </TabsTrigger>
+            <TabsTrigger value="orphans" disabled={!canDelete && !canRestoreNumbers}>
+              <AlertCircle className="h-4 w-4 mr-1" />
+              Órfãos
             </TabsTrigger>
             <TabsTrigger value="webhooks" disabled={!canManageWebhooks}>{t('numberStatus.webhooks')}</TabsTrigger>
             <TabsTrigger value="api" disabled={!canManageApi}>{t('numberStatus.apiRest')}</TabsTrigger>
@@ -887,6 +892,12 @@ export default function AdminNumerosAquecimento() {
           <TabsContent value="restore" className="space-y-4">
             <RestoreNumbersTab statusList={statusList} modelosList={modelosList} />
           </TabsContent>
+
+          {/* Orphans Tab */}
+          <TabsContent value="orphans" className="space-y-4">
+            <OrphanNumbersTab statusList={statusList} modelosList={modelosList} />
+          </TabsContent>
+
 
           {/* Webhooks Tab */}
           <TabsContent value="webhooks" className="space-y-4">
