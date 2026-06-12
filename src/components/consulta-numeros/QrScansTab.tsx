@@ -79,6 +79,9 @@ import {
   useSearchNumbers,
 } from "@/hooks/useQrScan";
 import { useInsuranceHistory, useRegisterInsuranceUsage, useInsuranceNumbers, useInsurancePaymentStatus, useSetInsurancePaymentStatus, useInsurancePaymentStatusHybrid } from "@/hooks/useInsurance";
+import { getViewableComprovanteUrl } from "@/utils/comprovanteUrl";
+import { useSignedComprovanteUrl } from "@/hooks/useSignedComprovanteUrl";
+import { CheckinDiarioTab } from "./CheckinDiarioTab";
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   link_mp: "🔗 Link Mercado Pago",
@@ -865,7 +868,10 @@ export function QrScansTab() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => setViewReceiptUrl(s.payment_comprovante_url!)}
+                              onClick={async () => {
+                                const u = await getViewableComprovanteUrl(s.payment_comprovante_url!);
+                                if (u) setViewReceiptUrl(u);
+                              }}
                               title="Ver comprovante enviado pelo cliente"
                             >
                               <ImageIcon className="h-4 w-4 mr-1" /> Ver comprovante
