@@ -86,6 +86,9 @@ import { CheckinInlineDialog } from "./CheckinInlineDialog";
 import { CheckinHistoryPopover } from "./CheckinHistoryPopover";
 import { useLatestCheckinByNumero } from "@/hooks/useCheckinDiario";
 import { useAparelhos } from "@/hooks/useAparelhos";
+import { useNumerosModelos } from "@/hooks/useNumerosAquecimento";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   link_mp: "🔗 Link Mercado Pago",
