@@ -88,11 +88,13 @@ export function useCreateCheckin() {
  */
 export function useActiveCheckinsByModelo() {
   const { data: aparelhos = [] } = useAparelhos();
+  const { data: config } = useQrScanConfig();
+  const windowDays = config?.checkin_ativo_dias ?? DEFAULT_ACTIVE_WINDOW_DAYS;
   const since = useMemo(() => {
     const d = new Date();
-    d.setDate(d.getDate() - ACTIVE_WINDOW_DAYS);
+    d.setDate(d.getDate() - windowDays);
     return d.toISOString().slice(0, 10);
-  }, []);
+  }, [windowDays]);
   const { data: checkins = [] } = useCheckins({ since });
 
   return useMemo(() => {
