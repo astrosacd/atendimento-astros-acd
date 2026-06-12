@@ -105,7 +105,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'Chat': <MessageSquare className="h-4 w-4" />,
   'Vendas': <BarChart3 className="h-4 w-4" />,
   'Conexões': <Globe className="h-4 w-4" />,
-  'Sala dos Agentes': <Eye className="h-4 w-4" />,
+  
   'Instagram': <Instagram className="h-4 w-4" />,
   'Segurança de Pagamento': <Shield className="h-4 w-4" />,
   'Seguros': <Shield className="h-4 w-4 text-emerald-500" />,
@@ -353,7 +353,7 @@ export default function AdminPermissoes() {
     'Chat': 'Chat',
     'Vendas': 'Vendas',
     'Conexões': 'Conexões',
-    'Sala dos Agentes': 'Sala dos Agentes',
+    
     'Instagram': 'Instagram',
     'Segurança de Pagamento': 'Segurança de Pagamento',
     'Agenda Histórico': 'Agenda Histórico',

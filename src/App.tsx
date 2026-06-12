@@ -119,7 +119,7 @@ function AppRoutes() {
           : <Navigate to="/auth" replace />
       } />
       <Route path="/dashboard" element={<ProtectedRoute permission="view_dashboard"><Dashboard /></ProtectedRoute>} />
-      <Route path="/sala-agentes" element={<ProtectedRoute permission="view_sala_agentes"><SalaAgentes /></ProtectedRoute>} />
+      
       
       {/* Client Management - permission-based */}
       <Route path="/cadastrar" element={<ProtectedRoute permission="create_clients"><CadastrarCliente /></ProtectedRoute>} />
@@ -224,7 +224,7 @@ function AppRoutes() {
       <Route path="/resultado-sms/:token" element={<ResultadoSmsPublico />} />
       <Route path="/public/pipeline/:token" element={<SharedKanban />} />
       <Route path="/access/:token" element={<TemporaryAccessHandler />} />
-      <Route path="/public/sala-agentes" element={<SalaAgentesPublica />} />
+      
       <Route path="/r/social/:token" element={<SocialReportPublico />} />
       <Route path="/instagram/privacidade" element={<InstagramPrivacidade />} />
       <Route path="/instagram/termos" element={<InstagramTermos />} />
