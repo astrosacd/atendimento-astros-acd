@@ -2,6 +2,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { NumerosAquecimentoCard } from './NumerosAquecimentoCard';
 import { CapacityBanner } from '@/components/numeros-aquecimento/CapacityBanner';
 import { useNumerosAquecimento, useNumerosModelos, useNumerosStatus } from '@/hooks/useNumerosAquecimento';
+import { useActiveCheckinsByModelo } from '@/hooks/useCheckinDiario';
 
 export function NumerosAquecimentoSection() {
   const { hasPermission } = usePermissions();
@@ -10,6 +11,7 @@ export function NumerosAquecimentoSection() {
   const { data: numeros = [], isLoading: loadingNumeros } = useNumerosAquecimento();
   const { data: modelosList = [], isLoading: loadingModelos } = useNumerosModelos();
   const { data: statusList = [], isLoading: loadingStatus } = useNumerosStatus();
+  const checkinExtraByModelo = useActiveCheckinsByModelo();
 
   if (!canView) {
     return null;
@@ -25,7 +27,7 @@ export function NumerosAquecimentoSection() {
       </h3>
       <div className="grid grid-cols-1 gap-4 mb-6">
         {!isLoading && (
-          <CapacityBanner numeros={numeros} modelosList={modelosList} statusList={statusList} />
+          <CapacityBanner numeros={numeros} modelosList={modelosList} statusList={statusList} extraOcupadosByModelo={checkinExtraByModelo} />
         )}
         <NumerosAquecimentoCard />
       </div>

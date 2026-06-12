@@ -64,6 +64,7 @@ import { AlertConfigCard } from '@/components/numeros-aquecimento/AlertConfigCar
 import { RestoreNumbersTab } from '@/components/numeros-aquecimento/RestoreNumbersTab';
 import { NumeroAnaliseInline } from '@/components/numeros-aquecimento/NumeroAnaliseInline';
 import { CapacityBanner } from '@/components/numeros-aquecimento/CapacityBanner';
+import { useActiveCheckinsByModelo } from '@/hooks/useCheckinDiario';
 import { toast } from 'sonner';
 import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
@@ -118,6 +119,7 @@ export default function AdminNumerosAquecimento() {
   const { data: numerosTotais = [], isLoading: loadingTotais } = useNumerosAquecimento();
   const { data: statusList = [], isLoading: loadingStatus } = useNumerosStatus();
   const { data: modelosList = [], isLoading: loadingModelos } = useNumerosModelos();
+  const checkinExtraByModelo = useActiveCheckinsByModelo();
   const { data: history = [] } = useNumeroHistory();
   const { data: webhooks = [] } = useNumerosWebhooks();
   const { data: apiKeys = [] } = useNumerosApiKeys();
@@ -338,7 +340,7 @@ export default function AdminNumerosAquecimento() {
           <TabsContent value="numeros" className="space-y-4">
             {/* Capacity Banner */}
             {!(loadingTotais || loadingModelos || loadingStatus) && (
-              <CapacityBanner numeros={numerosTotais} modelosList={modelosList} statusList={statusList} />
+              <CapacityBanner numeros={numerosTotais} modelosList={modelosList} statusList={statusList} extraOcupadosByModelo={checkinExtraByModelo} />
             )}
             {/* Sub-tabs for Em Estoque / Vendidos */}
             <div className="flex items-center gap-2 border-b pb-2">

@@ -81,8 +81,10 @@ import {
 } from "@/hooks/useQrScan";
 import { useInsuranceHistory, useRegisterInsuranceUsage, useInsuranceNumbers, useInsurancePaymentStatus, useSetInsurancePaymentStatus, useInsurancePaymentStatusHybrid } from "@/hooks/useInsurance";
 import { getViewableComprovanteUrl } from "@/utils/comprovanteUrl";
-import { CheckinDiarioTab } from "./CheckinDiarioTab";
 import { ComprovantePreview } from "./ComprovantePreview";
+import { CheckinInlineDialog } from "./CheckinInlineDialog";
+import { useLatestCheckinByNumero } from "@/hooks/useCheckinDiario";
+import { useAparelhos } from "@/hooks/useAparelhos";
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   link_mp: "🔗 Link Mercado Pago",
@@ -177,6 +179,18 @@ export function QrScansTab() {
   const [insuranceDialogOpen, setInsuranceDialogOpen] = useState(false);
   const [insuranceTarget, setInsuranceTarget] = useState<any>(null);
   const [insuranceObs, setInsuranceObs] = useState("");
+
+  // Check-in inline dialog
+  const [checkinDialogOpen, setCheckinDialogOpen] = useState(false);
+  const [checkinTarget, setCheckinTarget] = useState<{
+    numero: string;
+    baserowRowId: number | null;
+    clienteNome: string | null;
+    defaultAparelhoId: string | null;
+    defaultTipoSlot?: "normal" | "business" | "clone";
+  } | null>(null);
+  const latestCheckinByNumero = useLatestCheckinByNumero();
+  const { data: aparelhosList = [] } = useAparelhos();
 
   // Search states for tabs
   const [numerosSearch, setNumerosSearch] = useState("");
@@ -551,9 +565,6 @@ export function QrScansTab() {
           <TabsTrigger value="seguros">
             <Shield className="h-4 w-4 mr-2" /> Seguros
           </TabsTrigger>
-          <TabsTrigger value="checkin">
-            <CalendarCheck className="h-4 w-4 mr-2" /> Check-in Diário
-          </TabsTrigger>
           {isAdmin && (
             <TabsTrigger value="config">
               <Settings className="h-4 w-4 mr-2" /> Configurações
@@ -601,6 +612,7 @@ export function QrScansTab() {
                       <TableHead>Pagos no mês</TableHead>
                       <TableHead>Hospedagem</TableHead>
                       <TableHead>Seguro</TableHead>
+                      <TableHead>Check-in</TableHead>
                       <TableHead>Observação</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
@@ -712,6 +724,60 @@ export function QrScansTab() {
                                 </div>
                               </div>
                             )}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {(() => {
+                              const numero = String(rd.numero ?? "");
+                              const lastCk = numero ? latestCheckinByNumero.get(numero) : null;
+                              const apLinked = lastCk?.aparelho_id
+                                ? aparelhosList.find((a) => a.id === lastCk.aparelho_id)
+                                : null;
+                              const isToday = lastCk?.data_checkin === todayBrt;
+                              return (
+                                <div className="flex flex-col gap-1 items-start">
+                                  {lastCk ? (
+                                    <>
+                                      <Badge
+                                        variant={
+                                          lastCk.status_conexao === "conectado"
+                                            ? "default"
+                                            : "destructive"
+                                        }
+                                        className="text-[10px] h-5 gap-1"
+                                      >
+                                        {lastCk.status_conexao === "conectado" ? "🟢" : "🔴"}
+                                        {apLinked?.apelido ?? "—"} · {lastCk.tipo_slot}
+                                      </Badge>
+                                      <span
+                                        className={`text-[10px] ${isToday ? "text-emerald-500" : "text-muted-foreground"}`}
+                                      >
+                                        {isToday ? "✓ hoje" : new Date(lastCk.data_checkin + "T12:00:00").toLocaleDateString("pt-BR")}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span className="text-muted-foreground">Sem check-in</span>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 px-2 text-[10px]"
+                                    onClick={() => {
+                                      setCheckinTarget({
+                                        numero,
+                                        baserowRowId: n.baserow_row_id,
+                                        clienteNome: rd.nome ?? rd.cliente ?? null,
+                                        defaultAparelhoId: lastCk?.aparelho_id ?? null,
+                                        defaultTipoSlot: lastCk?.tipo_slot,
+                                      });
+                                      setCheckinDialogOpen(true);
+                                    }}
+                                  >
+                                    <CalendarCheck className="h-3 w-3 mr-1" />
+                                    Foi checado agora
+                                  </Button>
+                                </div>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
                             {n.auto_hospedado_observacao ?? "—"}
@@ -1174,9 +1240,6 @@ export function QrScansTab() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="checkin" className="space-y-4">
-          <CheckinDiarioTab />
-        </TabsContent>
 
         <TabsContent value="historico" className="space-y-4">
           <Card>
@@ -1948,6 +2011,20 @@ export function QrScansTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {checkinTarget && (
+        <CheckinInlineDialog
+          open={checkinDialogOpen}
+          onOpenChange={(v) => {
+            setCheckinDialogOpen(v);
+            if (!v) setCheckinTarget(null);
+          }}
+          numero={checkinTarget.numero}
+          baserowRowId={checkinTarget.baserowRowId}
+          clienteNome={checkinTarget.clienteNome}
+          defaultAparelhoId={checkinTarget.defaultAparelhoId}
+          defaultTipoSlot={checkinTarget.defaultTipoSlot}
+        />
+      )}
     </div>
   );
 }

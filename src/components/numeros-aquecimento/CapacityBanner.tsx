@@ -7,6 +7,8 @@ interface Props {
   numeros: NumeroAquecimento[];
   modelosList: NumeroModelo[];
   statusList?: NumeroStatus[];
+  /** Slots adicionais ocupados por modelo (ex.: check-ins ativos de auto-hospedados). */
+  extraOcupadosByModelo?: Map<string, { total: number; normal: number; business: number; clone: number }>;
 }
 
 interface ModeloOcupacao {
@@ -36,7 +38,7 @@ function sugerirTipo(o: ModeloOcupacao): string {
   return 'normal ou business';
 }
 
-export function CapacityBanner({ numeros, modelosList, statusList }: Props) {
+export function CapacityBanner({ numeros, modelosList, statusList, extraOcupadosByModelo }: Props) {
   if (modelosList.length === 0) return null;
 
   // Excluir números com status "Vendido" — capacidade é só do estoque
@@ -50,9 +52,10 @@ export function CapacityBanner({ numeros, modelosList, statusList }: Props) {
     .filter((m) => m.capacidade_whatsapp > 0)
     .map((modelo) => {
       const doModelo = numerosEstoque.filter((n) => n.modelo_id === modelo.id);
-      const normal = doModelo.filter((n) => n.tipo_whatsapp === 'normal').length;
-      const business = doModelo.filter((n) => n.tipo_whatsapp === 'business').length;
-      const ocupados = doModelo.length;
+      const extra = extraOcupadosByModelo?.get(modelo.id);
+      const normal = doModelo.filter((n) => n.tipo_whatsapp === 'normal').length + (extra?.normal ?? 0);
+      const business = doModelo.filter((n) => n.tipo_whatsapp === 'business').length + (extra?.business ?? 0);
+      const ocupados = doModelo.length + (extra?.total ?? 0);
       return {
         modelo,
         ocupados,

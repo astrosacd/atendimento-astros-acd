@@ -20,6 +20,25 @@ interface OcrResult {
   raw?: string;
 }
 
+async function resolveFetchableProofUrl(
+  proofUrl: string,
+  supabaseAdmin: ReturnType<typeof createClient>,
+): Promise<string> {
+  // Bucket payment-proofs é privado (workspace policy bloqueia público).
+  // URLs antigas estão salvas como /public/payment-proofs/...; geramos signed URL.
+  const m = proofUrl.match(/\/storage\/v1\/object\/(?:public|sign)\/payment-proofs\/([^?]+)/);
+  if (!m) return proofUrl;
+  const path = decodeURIComponent(m[1]);
+  const { data, error } = await supabaseAdmin.storage
+    .from('payment-proofs')
+    .createSignedUrl(path, 60 * 10);
+  if (error || !data?.signedUrl) {
+    console.error('[OCR] signed url error:', error);
+    return proofUrl;
+  }
+  return data.signedUrl;
+}
+
 async function runOcr(
   proofUrl: string,
   provider: string,
@@ -27,13 +46,15 @@ async function runOcr(
   lovableKey: string | null,
   openaiKey: string | null,
   groqKey: string | null,
+  supabaseAdmin: ReturnType<typeof createClient>,
 ): Promise<OcrResult> {
   try {
     console.log('[OCR] Starting OCR. Provider:', provider, 'Model:', model);
-    const imageResponse = await fetch(proofUrl);
+    const fetchUrl = await resolveFetchableProofUrl(proofUrl, supabaseAdmin);
+    const imageResponse = await fetch(fetchUrl);
     if (!imageResponse.ok) {
-      console.error('[OCR] Failed to fetch proof image:', imageResponse.status);
-      return { amount: null, transactionId: null, status: 'error', raw: 'Failed to fetch proof' };
+      console.error('[OCR] Failed to fetch proof image:', imageResponse.status, 'url:', fetchUrl);
+      return { amount: null, transactionId: null, status: 'error', raw: `Failed to fetch proof (${imageResponse.status})` };
     }
     const blob = await imageResponse.blob();
     const buf = await blob.arrayBuffer();
@@ -258,6 +279,7 @@ serve(async (req) => {
         Deno.env.get('LOVABLE_API_KEY') || null,
         cfg.openai_api_key || null,
         cfg.groq_api_key || null,
+        supabaseAdmin,
       );
     }
 
