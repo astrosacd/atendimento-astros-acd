@@ -115,10 +115,20 @@ export function QuickNumberSearch() {
             placeholder="Ou filtre por modelo…"
             searchPlaceholder="Buscar modelo…"
             emptyMessage="Sem modelos"
-            options={[
-              { value: '__externo__', label: '📦 Aparelho externo' },
-              ...modelosList.map((m) => ({ value: m.id, label: m.nome })),
-            ]}
+            options={(() => {
+              const modeloIdsComNumeros = new Set<string>();
+              let temExterno = false;
+              for (const ck of latestCheckinByNumero.values()) {
+                if (ck.modelo_id == null) temExterno = true;
+                else modeloIdsComNumeros.add(ck.modelo_id);
+              }
+              const opts: { value: string; label: string }[] = [];
+              if (temExterno) opts.push({ value: '__externo__', label: '📦 Aparelho externo' });
+              for (const m of modelosList) {
+                if (modeloIdsComNumeros.has(m.id)) opts.push({ value: m.id, label: m.nome });
+              }
+              return opts;
+            })()}
           />
         </div>
 
