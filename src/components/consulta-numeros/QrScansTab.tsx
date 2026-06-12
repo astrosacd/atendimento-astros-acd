@@ -1173,9 +1173,6 @@ export function QrScansTab() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="checkin" className="space-y-4">
-          <CheckinDiarioTab />
-        </TabsContent>
 
         <TabsContent value="historico" className="space-y-4">
           <Card>
