@@ -195,6 +195,8 @@ export function QrScansTab() {
   } | null>(null);
   const latestCheckinByNumero = useLatestCheckinByNumero();
   const { data: aparelhosList = [] } = useAparelhos();
+  const { data: modelosList = [] } = useNumerosModelos();
+
 
   // Search states for tabs
   const [numerosSearch, setNumerosSearch] = useState("");
