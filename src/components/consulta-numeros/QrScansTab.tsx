@@ -63,6 +63,7 @@ import {
   Shield,
   ShieldCheck,
   ShieldAlert,
+  CalendarCheck,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -549,6 +550,9 @@ export function QrScansTab() {
           </TabsTrigger>
           <TabsTrigger value="seguros">
             <Shield className="h-4 w-4 mr-2" /> Seguros
+          </TabsTrigger>
+          <TabsTrigger value="checkin">
+            <CalendarCheck className="h-4 w-4 mr-2" /> Check-in Diário
           </TabsTrigger>
           {isAdmin && (
             <TabsTrigger value="config">
