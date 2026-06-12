@@ -1437,6 +1437,7 @@ export function QrScansTab() {
                             valor_excedente: Number(config.valor_excedente),
                             payment_provider_default: config.payment_provider_default,
                             ativo: config.ativo,
+                            checkin_ativo_dias: config.checkin_ativo_dias ?? 7,
                           })
                         }
                       >
