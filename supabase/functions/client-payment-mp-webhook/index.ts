@@ -286,6 +286,23 @@ serve(async (req) => {
         .neq("id", payment.id)
         .select("id");
       console.log(`[mp-webhook] Auto-canceladas: ${cancelled?.length ?? 0}`);
+
+      // Cancela ligações IA e SMS agendados pendentes
+      const { data: cancLig } = await supabase
+        .from("ligacoes_agendadas")
+        .update({ status: "cancelada", erro: "Cancelada automaticamente: pagamento confirmado (Mercado Pago)", updated_at: new Date().toISOString() })
+        .eq("cliente_id", cliente.id)
+        .eq("status", "pendente")
+        .select("id");
+      console.log(`[mp-webhook] Ligações IA canceladas: ${cancLig?.length ?? 0}`);
+
+      const { data: cancSms } = await supabase
+        .from("sms_agendados")
+        .update({ status: "cancelado", updated_at: new Date().toISOString() })
+        .eq("cliente_id", cliente.id)
+        .eq("status", "pendente")
+        .select("id");
+      console.log(`[mp-webhook] SMS cancelados: ${cancSms?.length ?? 0}`);
     }
 
     // 4) Envia recibo
