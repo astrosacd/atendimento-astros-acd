@@ -2,16 +2,21 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Shield, Smartphone, ExternalLink, Loader2, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
+import { Search, Shield, Smartphone, ExternalLink, Loader2, AlertCircle, CheckCircle2, XCircle, CalendarCheck } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useInsurancePaymentStatusHybrid } from '@/hooks/useInsurance';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { CheckinInlineDialog } from '@/components/consulta-numeros/CheckinInlineDialog';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export function QuickNumberSearch() {
   const [searchTerm, setSearchTerm] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
+  const [checkinOpen, setCheckinOpen] = useState(false);
+  const { hasPermission } = usePermissions();
+  const canCheckin = hasPermission('view_consulta_numeros');
 
   const { data: insuranceStatus } = useInsurancePaymentStatusHybrid();
 
