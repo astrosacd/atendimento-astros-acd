@@ -766,6 +766,16 @@ export default function AdminSegurancaPagamento() {
                                     Ver Comprovante
                                   </DropdownMenuItem>
                                 )}
+                                {payment.comprovante_url && (payment.ocr_status === 'error' || payment.ocr_status === 'invalid' || !payment.ocr_status) && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleReprocessOcr(payment)}
+                                    disabled={reprocessingId === payment.id}
+                                    className="text-primary focus:text-primary focus:bg-primary/10"
+                                  >
+                                    <RefreshCw className={`h-4 w-4 mr-2 ${reprocessingId === payment.id ? 'animate-spin' : ''}`} />
+                                    {reprocessingId === payment.id ? 'Reprocessando...' : 'Reprocessar OCR'}
+                                  </DropdownMenuItem>
+                                )}
                                 {payment.cliente?.cobranca_ativa === true &&
                                   payments.filter(p => p.cliente_id === payment.cliente_id && p.status === 'paid' && p.id !== payment.id).length > 0 && (
                                   <DropdownMenuItem>
