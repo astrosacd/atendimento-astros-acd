@@ -1848,6 +1848,7 @@ function CreateModeloDialog({ onCreate }: { onCreate: (data: any) => void }) {
   const [marca, setMarca] = useState('');
   const [descricao, setDescricao] = useState('');
   const [capacidade, setCapacidade] = useState(3);
+  const [apareceCheckin, setApareceCheckin] = useState(true);
 
   const handleSubmit = () => {
     if (!nome) {
@@ -1863,12 +1864,14 @@ function CreateModeloDialog({ onCreate }: { onCreate: (data: any) => void }) {
       marca: marca || undefined,
       descricao: descricao || undefined,
       capacidade_whatsapp: capacidade,
+      aparece_no_checkin: apareceCheckin,
     });
     setOpen(false);
     setNome('');
     setMarca('');
     setDescricao('');
     setCapacidade(3);
+    setApareceCheckin(true);
   };
 
   return (
@@ -1911,6 +1914,15 @@ function CreateModeloDialog({ onCreate }: { onCreate: (data: any) => void }) {
           <div>
             <Label>Descrição</Label>
             <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label>Aparece no check-in</Label>
+              <p className="text-xs text-muted-foreground">
+                Se ativo, este modelo aparece na lista de seleção do QR Scan
+              </p>
+            </div>
+            <Switch checked={apareceCheckin} onCheckedChange={setApareceCheckin} />
           </div>
         </div>
         <DialogFooter>
