@@ -10,6 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CheckinInlineDialog } from '@/components/consulta-numeros/CheckinInlineDialog';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useLatestCheckinByNumero } from '@/hooks/useCheckinDiario';
+
+
 
 export function QuickNumberSearch() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,6 +22,8 @@ export function QuickNumberSearch() {
   const canCheckin = hasPermission('view_consulta_numeros');
 
   const { data: insuranceStatus } = useInsurancePaymentStatusHybrid();
+  const latestCheckinByNumero = useLatestCheckinByNumero();
+
 
   const { data: numberData, isLoading } = useQuery({
     queryKey: ['quick-number-search', appliedSearch],
@@ -190,6 +195,37 @@ export function QuickNumberSearch() {
               </div>
             )}
 
+            {(() => {
+              const numeroStr = (numberData.row_data as any)?.numero || '';
+              const lastCk = latestCheckinByNumero.get(numeroStr);
+              if (!lastCk) {
+                return (
+                  <div className="p-2 rounded-md bg-muted/30 border border-border/50">
+                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase font-bold">
+                      <Smartphone className="h-3 w-3 text-amber-500" />
+                      Modelo atual
+                    </div>
+                    <p className="text-xs italic text-muted-foreground mt-0.5">Sem check-in registrado</p>
+                  </div>
+                );
+              }
+              const isExterno = lastCk.modelo_id == null;
+              return (
+                <div className={`p-2 rounded-md border ${isExterno ? 'bg-muted/30 border-muted-foreground/30' : 'bg-emerald-500/5 border-emerald-500/30'}`}>
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase font-bold">
+                    <Smartphone className={`h-3 w-3 ${isExterno ? 'text-muted-foreground' : 'text-emerald-500'}`} />
+                    Modelo atual {isExterno ? '(externo)' : ''}
+                  </div>
+                  <p className="text-xs font-medium mt-0.5 truncate" title={lastCk.modelo_snapshot ?? ''}>
+                    {isExterno ? '📦 Aparelho externo' : (lastCk.modelo_snapshot ?? '—')}
+                  </p>
+                  <p className="text-[9px] text-muted-foreground mt-0.5">
+                    Último check-in: {new Date(lastCk.data_checkin).toLocaleDateString('pt-BR')} · {lastCk.status_conexao}
+                  </p>
+                </div>
+              );
+            })()}
+
             {canCheckin && (
               <Button
                 size="sm"
@@ -205,16 +241,21 @@ export function QuickNumberSearch() {
         )}
       </CardContent>
 
-      {numberData && (
-        <CheckinInlineDialog
-          open={checkinOpen}
-          onOpenChange={setCheckinOpen}
-          numero={(numberData.row_data as any)?.numero || ''}
-          baserowRowId={numberData.baserow_row_id}
-          clienteNome={(numberData.row_data as any)?.nome ?? (numberData.row_data as any)?.cliente ?? info?.clientName ?? null}
-          defaultModeloId={null}
-        />
-      )}
+      {numberData && (() => {
+        const numeroStr = (numberData.row_data as any)?.numero || '';
+        const lastCk = latestCheckinByNumero.get(numeroStr);
+        return (
+          <CheckinInlineDialog
+            open={checkinOpen}
+            onOpenChange={setCheckinOpen}
+            numero={numeroStr}
+            baserowRowId={numberData.baserow_row_id}
+            clienteNome={(numberData.row_data as any)?.nome ?? (numberData.row_data as any)?.cliente ?? info?.clientName ?? null}
+            defaultModeloId={lastCk?.modelo_id ?? null}
+          />
+        );
+      })()}
+
     </Card>
   );
 }

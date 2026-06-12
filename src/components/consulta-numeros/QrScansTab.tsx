@@ -86,6 +86,9 @@ import { CheckinInlineDialog } from "./CheckinInlineDialog";
 import { CheckinHistoryPopover } from "./CheckinHistoryPopover";
 import { useLatestCheckinByNumero } from "@/hooks/useCheckinDiario";
 import { useAparelhos } from "@/hooks/useAparelhos";
+import { useNumerosModelos } from "@/hooks/useNumerosAquecimento";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   link_mp: "🔗 Link Mercado Pago",
@@ -192,12 +195,16 @@ export function QrScansTab() {
   } | null>(null);
   const latestCheckinByNumero = useLatestCheckinByNumero();
   const { data: aparelhosList = [] } = useAparelhos();
+  const { data: modelosList = [] } = useNumerosModelos();
+
 
   // Search states for tabs
   const [numerosSearch, setNumerosSearch] = useState("");
+  const [numerosModeloFilter, setNumerosModeloFilter] = useState<string>("__all__");
   const [pendentesSearch, setPendentesSearch] = useState("");
   const [historySearch, setHistorySearch] = useState("");
   const [insuranceSearch, setInsuranceSearch] = useState("");
+
 
   useEffect(() => {
     if (config) {
@@ -225,12 +232,18 @@ export function QrScansTab() {
   const filteredAutoHosp = autoHosp.filter((n) => {
     const rd = n.row_data || {};
     const search = numerosSearch.toLowerCase();
-    return (
+    const matchesSearch =
       (rd.numero?.toLowerCase() || "").includes(search) ||
       (rd.nome?.toLowerCase() || "").includes(search) ||
-      (rd.cliente?.toLowerCase() || "").includes(search)
-    );
+      (rd.cliente?.toLowerCase() || "").includes(search);
+    if (!matchesSearch) return false;
+    if (numerosModeloFilter === "__all__") return true;
+    const lastCk = latestCheckinByNumero.get(rd.numero || "");
+    if (numerosModeloFilter === "__sem__") return !lastCk;
+    if (numerosModeloFilter === "__externo__") return !!lastCk && lastCk.modelo_id == null;
+    return !!lastCk && lastCk.modelo_id === numerosModeloFilter;
   });
+
 
   const filteredPendentes = history
     .filter((h) => h.payment_status === "pendente")
@@ -585,15 +598,33 @@ export function QrScansTab() {
                     Clique em "Registrar escaneamento" para contabilizar um QR.
                   </CardDescription>
                 </div>
-                <div className="relative w-64">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por número ou nome..."
-                    value={numerosSearch}
-                    onChange={(e) => setNumerosSearch(e.target.value)}
-                    className="pl-8"
-                  />
+                <div className="flex items-center gap-2">
+                  <div className="w-56">
+                    <SearchableSelect
+                      value={numerosModeloFilter}
+                      onValueChange={(v) => setNumerosModeloFilter(v || "__all__")}
+                      placeholder="Filtrar por modelo"
+                      searchPlaceholder="Buscar modelo…"
+                      emptyMessage="Sem modelos"
+                      options={[
+                        { value: "__all__", label: "Todos os modelos" },
+                        { value: "__externo__", label: "📦 Aparelho externo" },
+                        { value: "__sem__", label: "⚠️ Sem check-in" },
+                        ...modelosList.map((m) => ({ value: m.id, label: m.nome })),
+                      ]}
+                    />
+                  </div>
+                  <div className="relative w-64">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por número ou nome..."
+                      value={numerosSearch}
+                      onChange={(e) => setNumerosSearch(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
                 </div>
+
               </div>
             </CardHeader>
             <CardContent>
