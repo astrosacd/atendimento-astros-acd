@@ -189,9 +189,32 @@ export function QuickNumberSearch() {
                 <p className="text-xs font-medium truncate" title={info.clientName}>{info.clientName}</p>
               </div>
             )}
+
+            {canCheckin && (
+              <Button
+                size="sm"
+                variant="default"
+                className="w-full h-9"
+                onClick={() => setCheckinOpen(true)}
+              >
+                <CalendarCheck className="h-4 w-4 mr-1.5" />
+                Foi checado agora (check-in)
+              </Button>
+            )}
           </div>
         )}
       </CardContent>
+
+      {numberData && (
+        <CheckinInlineDialog
+          open={checkinOpen}
+          onOpenChange={setCheckinOpen}
+          numero={(numberData.row_data as any)?.numero || ''}
+          baserowRowId={numberData.baserow_row_id}
+          clienteNome={(numberData.row_data as any)?.nome ?? (numberData.row_data as any)?.cliente ?? info?.clientName ?? null}
+          defaultModeloId={null}
+        />
+      )}
     </Card>
   );
 }
