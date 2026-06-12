@@ -553,9 +553,6 @@ export function QrScansTab() {
           <TabsTrigger value="seguros">
             <Shield className="h-4 w-4 mr-2" /> Seguros
           </TabsTrigger>
-          <TabsTrigger value="checkin">
-            <CalendarCheck className="h-4 w-4 mr-2" /> Check-in Diário
-          </TabsTrigger>
           {isAdmin && (
             <TabsTrigger value="config">
               <Settings className="h-4 w-4 mr-2" /> Configurações
