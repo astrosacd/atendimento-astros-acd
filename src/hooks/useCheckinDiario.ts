@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAparelhos } from "@/hooks/useAparelhos";
 import { useMemo } from "react";
+import { useQrScanConfig } from "@/hooks/useQrScan";
 
 export type TipoSlot = "normal" | "business" | "clone";
 export type StatusConexao = "conectado" | "desconectado";
