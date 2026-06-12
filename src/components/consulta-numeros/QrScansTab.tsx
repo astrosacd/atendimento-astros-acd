@@ -81,8 +81,10 @@ import {
 } from "@/hooks/useQrScan";
 import { useInsuranceHistory, useRegisterInsuranceUsage, useInsuranceNumbers, useInsurancePaymentStatus, useSetInsurancePaymentStatus, useInsurancePaymentStatusHybrid } from "@/hooks/useInsurance";
 import { getViewableComprovanteUrl } from "@/utils/comprovanteUrl";
-import { CheckinDiarioTab } from "./CheckinDiarioTab";
 import { ComprovantePreview } from "./ComprovantePreview";
+import { CheckinInlineDialog } from "./CheckinInlineDialog";
+import { useLatestCheckinByNumero } from "@/hooks/useCheckinDiario";
+import { useAparelhos } from "@/hooks/useAparelhos";
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   link_mp: "🔗 Link Mercado Pago",
