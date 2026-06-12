@@ -1071,6 +1071,43 @@ export default function AdminSegurancaPagamento() {
             </p>
           </div>
 
+          {/* Escolha da base de renovação — só para aprovação */}
+          {approvalDialog.action === 'approve' && approvalDialog.payment?.cliente?.data_renovacao && approvalDialog.payment?.cliente?.ciclo_cobranca && (
+            <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
+              <Label className="text-sm">Base da próxima renovação</Label>
+              <div className="space-y-1.5">
+                <label className="flex items-start gap-2 cursor-pointer text-sm">
+                  <input
+                    type="radio"
+                    name="renewalMode-suspicious"
+                    value="anchor"
+                    checked={approvalDialog.renewalMode === 'anchor'}
+                    onChange={() => setApprovalDialog(prev => ({ ...prev, renewalMode: 'anchor' }))}
+                    className="mt-0.5"
+                  />
+                  <span>
+                    <strong>Manter data do banco</strong> (recomendado) → próxima renovação em{' '}
+                    <span className="font-mono">{calcRenewalPreview(approvalDialog.payment, 'anchor')}</span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2 cursor-pointer text-sm">
+                  <input
+                    type="radio"
+                    name="renewalMode-suspicious"
+                    value="from_today"
+                    checked={approvalDialog.renewalMode === 'from_today'}
+                    onChange={() => setApprovalDialog(prev => ({ ...prev, renewalMode: 'from_today' }))}
+                    className="mt-0.5"
+                  />
+                  <span>
+                    <strong>Contar a partir de hoje</strong> (use se o serviço foi pausado) → próxima renovação em{' '}
+                    <span className="font-mono">{calcRenewalPreview(approvalDialog.payment, 'from_today')}</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
             <Button
               variant="outline"
