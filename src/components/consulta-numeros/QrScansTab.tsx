@@ -686,8 +686,24 @@ export function QrScansTab() {
                       return (
                         <TableRow key={n.baserow_row_id}>
                           <TableCell className="font-mono">
-                            {rd.numero ?? "—"}
+                            <div className="flex flex-col gap-0.5">
+                              <span>{rd.numero ?? "—"}</span>
+                              {n.baserow_row_id != null && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard?.writeText(String(n.baserow_row_id));
+                                    toast({ title: `Linha #${n.baserow_row_id} copiada` });
+                                  }}
+                                  title="Clique para copiar a linha"
+                                  className="self-start text-[10px] font-sans font-medium text-muted-foreground bg-muted/50 hover:bg-muted px-1.5 py-0.5 rounded border border-border/50 transition-colors"
+                                >
+                                  linha #{n.baserow_row_id}
+                                </button>
+                              )}
+                            </div>
                           </TableCell>
+
                           <TableCell>{rd.nome ?? rd.cliente ?? "—"}</TableCell>
                           <TableCell>
                             <Badge
