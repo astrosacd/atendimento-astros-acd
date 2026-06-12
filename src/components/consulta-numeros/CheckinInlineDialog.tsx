@@ -97,10 +97,15 @@ export function CheckinInlineDialog({
   }, [modelos, numeros, statusList, ocupadosByModelo, defaultModeloId]);
 
   const selectedModelo = modelos.find((m) => m.id === modeloId);
+  const isExterno = modeloId === "__externo__";
 
   const handleSave = async () => {
-    if (!modeloId || !selectedModelo) {
+    if (!modeloId) {
       toast({ title: "Selecione o modelo do aparelho", variant: "destructive" });
+      return;
+    }
+    if (!isExterno && !selectedModelo) {
+      toast({ title: "Modelo inválido", variant: "destructive" });
       return;
     }
     try {
@@ -109,9 +114,9 @@ export function CheckinInlineDialog({
         baserow_row_id: baserowRowId,
         cliente_nome: clienteNome,
         aparelho_id: null,
-        modelo_id: modeloId,
-        modelo_snapshot: selectedModelo.nome,
-        tipo_slot: deriveTipoSlot(selectedModelo.nome),
+        modelo_id: isExterno ? null : modeloId,
+        modelo_snapshot: isExterno ? "Aparelho externo" : selectedModelo!.nome,
+        tipo_slot: isExterno ? "normal" : deriveTipoSlot(selectedModelo!.nome),
         status_conexao: statusConexao,
         observacao: observacao.trim() || null,
       });
@@ -146,14 +151,22 @@ export function CheckinInlineDialog({
               placeholder="Selecione um modelo disponível"
               searchPlaceholder="Buscar modelo…"
               emptyMessage="Nenhum modelo encontrado"
-              options={modelosComVagas.map((o) => ({
-                value: o.modelo.id,
-                label: `${o.modelo.nome} · ${o.ocupados}/${o.capacidade}${o.livres > 0 ? ` · falta ${o.livres}` : ""}`,
-              }))}
+              options={[
+                { value: "__externo__", label: "📦 Sem modelo (aparelho externo)" },
+                ...modelosComVagas.map((o) => ({
+                  value: o.modelo.id,
+                  label: `${o.modelo.nome} · ${o.ocupados}/${o.capacidade}${o.livres > 0 ? ` · falta ${o.livres}` : ""}`,
+                })),
+              ]}
             />
-            {modelosComVagas.length === 0 && (
+            {isExterno && (
               <p className="text-[10px] text-muted-foreground mt-1">
-                Nenhum modelo com vaga disponível
+                Use para números em aparelhos de terceiros (não cadastrados no sistema).
+              </p>
+            )}
+            {modelosComVagas.length === 0 && !isExterno && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Nenhum modelo com vaga disponível — selecione "Sem modelo" se for aparelho externo.
               </p>
             )}
           </div>
