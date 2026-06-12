@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { openComprovante } from '@/utils/comprovanteUrl';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -545,7 +546,7 @@ export default function AdminSegurancaPagamento() {
                                       </DropdownMenuItem>
                                     )}
                                     {payment.comprovante_url && (
-                                      <DropdownMenuItem onClick={() => window.open(payment.comprovante_url, '_blank')}>
+                                      <DropdownMenuItem onClick={() => openComprovante(payment.comprovante_url)}>
                                         <ExternalLink className="h-4 w-4 mr-2" />
                                         Ver Comprovante
                                       </DropdownMenuItem>
@@ -713,7 +714,7 @@ export default function AdminSegurancaPagamento() {
                                   </DropdownMenuItem>
                                 )}
                                 {payment.comprovante_url && (
-                                  <DropdownMenuItem onClick={() => window.open(payment.comprovante_url, '_blank')}>
+                                  <DropdownMenuItem onClick={() => openComprovante(payment.comprovante_url)}>
                                     <ExternalLink className="h-4 w-4 mr-2" />
                                     Ver Comprovante
                                   </DropdownMenuItem>
@@ -1117,7 +1118,7 @@ export default function AdminSegurancaPagamento() {
                       variant="outline" 
                       size="sm"
                       className="w-full flex items-center justify-center gap-2"
-                      onClick={() => window.open(reasonDialog.payment.comprovante_url, '_blank')}
+                      onClick={() => openComprovante(reasonDialog.payment.comprovante_url)}
                     >
                       <ExternalLink className="h-4 w-4" />
                       Visualizar Comprovante Anexado
