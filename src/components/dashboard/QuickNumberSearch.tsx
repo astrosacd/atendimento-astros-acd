@@ -20,11 +20,14 @@ export function QuickNumberSearch() {
   const [searchTerm, setSearchTerm] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [checkinOpen, setCheckinOpen] = useState(false);
+  const [modeloFilter, setModeloFilter] = useState<string>('');
   const { hasPermission } = usePermissions();
   const canCheckin = hasPermission('view_consulta_numeros');
 
   const { data: insuranceStatus } = useInsurancePaymentStatusHybrid();
   const latestCheckinByNumero = useLatestCheckinByNumero();
+  const { data: modelosList = [] } = useNumerosModelos();
+
 
 
   const { data: numberData, isLoading } = useQuery({
