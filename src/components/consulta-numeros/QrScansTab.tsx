@@ -2011,6 +2011,20 @@ export function QrScansTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {checkinTarget && (
+        <CheckinInlineDialog
+          open={checkinDialogOpen}
+          onOpenChange={(v) => {
+            setCheckinDialogOpen(v);
+            if (!v) setCheckinTarget(null);
+          }}
+          numero={checkinTarget.numero}
+          baserowRowId={checkinTarget.baserowRowId}
+          clienteNome={checkinTarget.clienteNome}
+          defaultAparelhoId={checkinTarget.defaultAparelhoId}
+          defaultTipoSlot={checkinTarget.defaultTipoSlot}
+        />
+      )}
     </div>
   );
 }
