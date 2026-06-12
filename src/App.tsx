@@ -74,7 +74,7 @@ import LinkPagamentoPublico from "./pages/public/LinkPagamentoPublico";
 import ValidacaoSmsPublica from "./pages/public/ValidacaoSmsPublica";
 import ResultadoSmsPublico from "./pages/public/ResultadoSmsPublico";
 import SharedKanban from "./pages/public/SharedKanban";
-import SalaAgentesPublica from "./pages/public/SalaAgentesPublica";
+
 import TemporaryAccessHandler from "./pages/public/TemporaryAccessHandler";
 import SocialReportPublico from "./pages/public/SocialReportPublico";
 import InstagramPrivacidade from "./pages/public/InstagramPrivacidade";
