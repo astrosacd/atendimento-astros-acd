@@ -140,34 +140,22 @@ export function CheckinInlineDialog({
         <div className="space-y-3 py-2">
           <div>
             <Label>Modelo do aparelho *</Label>
-            <Select value={modeloId} onValueChange={setModeloId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um modelo disponível" />
-              </SelectTrigger>
-              <SelectContent>
-                {modelosComVagas.length === 0 && (
-                  <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                    Nenhum modelo com vaga disponível
-                  </div>
-                )}
-                {modelosComVagas.map((o) => (
-                  <SelectItem key={o.modelo.id} value={o.modelo.id}>
-                    <span className="inline-flex items-center gap-1">
-                      <Smartphone className="h-3 w-3" />
-                      {o.modelo.nome}
-                      <Badge variant="secondary" className="ml-1 text-[10px]">
-                        {o.ocupados}/{o.capacidade}
-                      </Badge>
-                      {o.livres > 0 && (
-                        <span className="text-[10px] text-amber-600 ml-1">
-                          falta {o.livres}
-                        </span>
-                      )}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={modeloId}
+              onValueChange={setModeloId}
+              placeholder="Selecione um modelo disponível"
+              searchPlaceholder="Buscar modelo…"
+              emptyMessage="Nenhum modelo encontrado"
+              options={modelosComVagas.map((o) => ({
+                value: o.modelo.id,
+                label: `${o.modelo.nome} · ${o.ocupados}/${o.capacidade}${o.livres > 0 ? ` · falta ${o.livres}` : ""}`,
+              }))}
+            />
+            {modelosComVagas.length === 0 && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Nenhum modelo com vaga disponível
+              </p>
+            )}
           </div>
           <div>
             <Label>Status conexão *</Label>
