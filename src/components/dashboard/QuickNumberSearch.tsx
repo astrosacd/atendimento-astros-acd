@@ -306,6 +306,11 @@ export function QuickNumberSearch() {
                   <p className="text-[9px] text-muted-foreground mt-0.5">
                     Último check-in: {new Date(lastCk.data_checkin).toLocaleDateString('pt-BR')} · {lastCk.status_conexao}
                   </p>
+                  {lastCk.observacao && lastCk.observacao.trim() && (
+                    <p className="text-[10px] italic text-amber-500 mt-1 whitespace-pre-wrap break-words border-l-2 border-amber-500/40 pl-1.5">
+                      "{lastCk.observacao.trim()}"
+                    </p>
+                  )}
                 </div>
               );
             })()}
