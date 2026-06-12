@@ -731,9 +731,7 @@ export function QrScansTab() {
                             {(() => {
                               const numero = String(rd.numero ?? "");
                               const lastCk = numero ? latestCheckinByNumero.get(numero) : null;
-                              const apLinked = lastCk?.aparelho_id
-                                ? aparelhosList.find((a) => a.id === lastCk.aparelho_id)
-                                : null;
+                              const modeloNome = lastCk?.modelo_snapshot ?? null;
                               const isToday = lastCk?.data_checkin === todayBrt;
                               return (
                                 <div className="flex flex-col gap-1 items-start">
@@ -748,13 +746,19 @@ export function QrScansTab() {
                                         className="text-[10px] h-5 gap-1"
                                       >
                                         {lastCk.status_conexao === "conectado" ? "🟢" : "🔴"}
-                                        {apLinked?.apelido ?? "—"} · {lastCk.tipo_slot}
+                                        {modeloNome ?? "—"}
                                       </Badge>
-                                      {apLinked?.modelo?.nome && (
-                                        <span className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
-                                          📱 {apLinked.modelo.nome}
-                                        </span>
-                                      )}
+                                      <span
+                                        className={`text-[10px] ${isToday ? "text-emerald-500" : "text-muted-foreground"}`}
+                                      >
+                                        {isToday ? "✓ hoje" : new Date(lastCk.data_checkin + "T12:00:00").toLocaleDateString("pt-BR")}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <Badge variant="outline" className="text-[10px] h-5 border-dashed text-amber-600">
+                                      ⚠️ Sem modelo vinculado
+                                    </Badge>
+                                  )}
                                       <span
                                         className={`text-[10px] ${isToday ? "text-emerald-500" : "text-muted-foreground"}`}
                                       >
