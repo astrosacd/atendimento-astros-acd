@@ -2,6 +2,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { NumerosAquecimentoCard } from './NumerosAquecimentoCard';
 import { CapacityBanner } from '@/components/numeros-aquecimento/CapacityBanner';
 import { useNumerosAquecimento, useNumerosModelos, useNumerosStatus } from '@/hooks/useNumerosAquecimento';
+import { useActiveCheckinsByModelo } from '@/hooks/useCheckinDiario';
 
 export function NumerosAquecimentoSection() {
   const { hasPermission } = usePermissions();
