@@ -74,14 +74,14 @@ import LinkPagamentoPublico from "./pages/public/LinkPagamentoPublico";
 import ValidacaoSmsPublica from "./pages/public/ValidacaoSmsPublica";
 import ResultadoSmsPublico from "./pages/public/ResultadoSmsPublico";
 import SharedKanban from "./pages/public/SharedKanban";
-import SalaAgentesPublica from "./pages/public/SalaAgentesPublica";
+
 import TemporaryAccessHandler from "./pages/public/TemporaryAccessHandler";
 import SocialReportPublico from "./pages/public/SocialReportPublico";
 import InstagramPrivacidade from "./pages/public/InstagramPrivacidade";
 import InstagramTermos from "./pages/public/InstagramTermos";
 import NotFound from "./pages/NotFound";
 import Perfil from "./pages/Perfil";
-import SalaAgentes from "./pages/SalaAgentes";
+
 import InstagramCreate from "./pages/InstagramCreate";
 import InstagramHistory from "./pages/InstagramHistory";
 import InstagramSettings from "./pages/InstagramSettings";
@@ -119,7 +119,7 @@ function AppRoutes() {
           : <Navigate to="/auth" replace />
       } />
       <Route path="/dashboard" element={<ProtectedRoute permission="view_dashboard"><Dashboard /></ProtectedRoute>} />
-      <Route path="/sala-agentes" element={<ProtectedRoute permission="view_sala_agentes"><SalaAgentes /></ProtectedRoute>} />
+      
       
       {/* Client Management - permission-based */}
       <Route path="/cadastrar" element={<ProtectedRoute permission="create_clients"><CadastrarCliente /></ProtectedRoute>} />
@@ -224,7 +224,7 @@ function AppRoutes() {
       <Route path="/resultado-sms/:token" element={<ResultadoSmsPublico />} />
       <Route path="/public/pipeline/:token" element={<SharedKanban />} />
       <Route path="/access/:token" element={<TemporaryAccessHandler />} />
-      <Route path="/public/sala-agentes" element={<SalaAgentesPublica />} />
+      
       <Route path="/r/social/:token" element={<SocialReportPublico />} />
       <Route path="/instagram/privacidade" element={<InstagramPrivacidade />} />
       <Route path="/instagram/termos" element={<InstagramTermos />} />
