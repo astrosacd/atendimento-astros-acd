@@ -612,6 +612,7 @@ export function QrScansTab() {
                       <TableHead>Pagos no mês</TableHead>
                       <TableHead>Hospedagem</TableHead>
                       <TableHead>Seguro</TableHead>
+                      <TableHead>Check-in</TableHead>
                       <TableHead>Observação</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
