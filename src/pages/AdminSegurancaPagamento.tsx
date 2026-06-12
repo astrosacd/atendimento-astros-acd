@@ -1074,7 +1074,7 @@ export default function AdminSegurancaPagamento() {
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
             <Button
               variant="outline"
-              onClick={() => setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '' })}
+              onClick={() => setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '', renewalMode: 'anchor' })}
               disabled={approvingId === approvalDialog.payment?.id}
             >
               Cancelar
