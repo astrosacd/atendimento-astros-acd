@@ -10,6 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CheckinInlineDialog } from '@/components/consulta-numeros/CheckinInlineDialog';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useLatestCheckinByNumero } from '@/hooks/useCheckinDiario';
+import { Smartphone as SmartphoneIcon } from 'lucide-react';
+
 
 export function QuickNumberSearch() {
   const [searchTerm, setSearchTerm] = useState('');
