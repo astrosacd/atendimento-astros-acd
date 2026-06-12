@@ -187,8 +187,7 @@ export function QrScansTab() {
     numero: string;
     baserowRowId: number | null;
     clienteNome: string | null;
-    defaultAparelhoId: string | null;
-    defaultTipoSlot?: "normal" | "business" | "clone";
+    defaultModeloId: string | null;
   } | null>(null);
   const latestCheckinByNumero = useLatestCheckinByNumero();
   const { data: aparelhosList = [] } = useAparelhos();
@@ -732,9 +731,7 @@ export function QrScansTab() {
                             {(() => {
                               const numero = String(rd.numero ?? "");
                               const lastCk = numero ? latestCheckinByNumero.get(numero) : null;
-                              const apLinked = lastCk?.aparelho_id
-                                ? aparelhosList.find((a) => a.id === lastCk.aparelho_id)
-                                : null;
+                              const modeloNome = lastCk?.modelo_snapshot ?? null;
                               const isToday = lastCk?.data_checkin === todayBrt;
                               return (
                                 <div className="flex flex-col gap-1 items-start">
@@ -749,13 +746,8 @@ export function QrScansTab() {
                                         className="text-[10px] h-5 gap-1"
                                       >
                                         {lastCk.status_conexao === "conectado" ? "🟢" : "🔴"}
-                                        {apLinked?.apelido ?? "—"} · {lastCk.tipo_slot}
+                                        {modeloNome ?? "—"}
                                       </Badge>
-                                      {apLinked?.modelo?.nome && (
-                                        <span className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
-                                          📱 {apLinked.modelo.nome}
-                                        </span>
-                                      )}
                                       <span
                                         className={`text-[10px] ${isToday ? "text-emerald-500" : "text-muted-foreground"}`}
                                       >
@@ -764,7 +756,7 @@ export function QrScansTab() {
                                     </>
                                   ) : (
                                     <Badge variant="outline" className="text-[10px] h-5 border-dashed text-amber-600">
-                                      ⚠️ Sem aparelho vinculado
+                                      ⚠️ Sem modelo vinculado
                                     </Badge>
                                   )}
                                   <Button
@@ -776,8 +768,7 @@ export function QrScansTab() {
                                         numero,
                                         baserowRowId: n.baserow_row_id,
                                         clienteNome: rd.nome ?? rd.cliente ?? null,
-                                        defaultAparelhoId: lastCk?.aparelho_id ?? null,
-                                        defaultTipoSlot: lastCk?.tipo_slot,
+                                        defaultModeloId: (lastCk as any)?.modelo_id ?? null,
                                       });
                                       setCheckinDialogOpen(true);
                                     }}
@@ -2054,8 +2045,7 @@ export function QrScansTab() {
           numero={checkinTarget.numero}
           baserowRowId={checkinTarget.baserowRowId}
           clienteNome={checkinTarget.clienteNome}
-          defaultAparelhoId={checkinTarget.defaultAparelhoId}
-          defaultTipoSlot={checkinTarget.defaultTipoSlot}
+          defaultModeloId={checkinTarget.defaultModeloId}
         />
       )}
     </div>

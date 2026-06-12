@@ -7389,6 +7389,7 @@ export type Database = {
           created_by: string | null
           data_checkin: string
           id: string
+          modelo_id: string | null
           modelo_snapshot: string | null
           numero: string
           observacao: string | null
@@ -7405,6 +7406,7 @@ export type Database = {
           created_by?: string | null
           data_checkin?: string
           id?: string
+          modelo_id?: string | null
           modelo_snapshot?: string | null
           numero: string
           observacao?: string | null
@@ -7421,6 +7423,7 @@ export type Database = {
           created_by?: string | null
           data_checkin?: string
           id?: string
+          modelo_id?: string | null
           modelo_snapshot?: string | null
           numero?: string
           observacao?: string | null
@@ -7435,6 +7438,13 @@ export type Database = {
             columns: ["aparelho_id"]
             isOneToOne: false
             referencedRelation: "numeros_aquecimento_aparelhos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qr_scan_checkins_diarios_modelo_id_fkey"
+            columns: ["modelo_id"]
+            isOneToOne: false
+            referencedRelation: "numeros_aquecimento_modelos"
             referencedColumns: ["id"]
           },
         ]
