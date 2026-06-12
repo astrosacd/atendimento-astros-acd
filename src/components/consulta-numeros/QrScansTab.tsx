@@ -83,6 +83,7 @@ import { useInsuranceHistory, useRegisterInsuranceUsage, useInsuranceNumbers, us
 import { getViewableComprovanteUrl } from "@/utils/comprovanteUrl";
 import { ComprovantePreview } from "./ComprovantePreview";
 import { CheckinInlineDialog } from "./CheckinInlineDialog";
+import { CheckinHistoryPopover } from "./CheckinHistoryPopover";
 import { useLatestCheckinByNumero } from "@/hooks/useCheckinDiario";
 import { useAparelhos } from "@/hooks/useAparelhos";
 
