@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +19,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { useAparelhos } from "@/hooks/useAparelhos";
+import {
+  useNumerosAquecimento,
+  useNumerosModelos,
+  useNumerosStatus,
+} from "@/hooks/useNumerosAquecimento";
 import {
   useCreateCheckin,
   useActiveCheckinsByModelo,
@@ -34,9 +38,15 @@ interface Props {
   numero: string;
   baserowRowId: number | null;
   clienteNome: string | null;
-  /** Aparelho já vinculado (último check-in conectado), se houver. */
-  defaultAparelhoId?: string | null;
-  defaultTipoSlot?: TipoSlot;
+  /** Modelo já vinculado (último check-in conectado), se houver. */
+  defaultModeloId?: string | null;
+}
+
+function deriveTipoSlot(nome: string): TipoSlot {
+  const n = nome.toLowerCase();
+  if (/\bbusiness\b/.test(n)) return "business";
+  if (/\bclone\b/.test(n)) return "clone";
+  return "normal";
 }
 
 export function CheckinInlineDialog({
@@ -45,32 +55,51 @@ export function CheckinInlineDialog({
   numero,
   baserowRowId,
   clienteNome,
-  defaultAparelhoId,
-  defaultTipoSlot,
+  defaultModeloId,
 }: Props) {
-  const { data: aparelhos = [] } = useAparelhos();
+  const { data: modelos = [] } = useNumerosModelos();
+  const { data: numeros = [] } = useNumerosAquecimento();
+  const { data: statusList = [] } = useNumerosStatus();
   const ocupadosByModelo = useActiveCheckinsByModelo();
   const createMut = useCreateCheckin();
 
-  const [aparelhoId, setAparelhoId] = useState<string>(defaultAparelhoId ?? "");
-  const [tipoSlot, setTipoSlot] = useState<TipoSlot>(defaultTipoSlot ?? "normal");
+  const [modeloId, setModeloId] = useState<string>(defaultModeloId ?? "");
   const [statusConexao, setStatusConexao] = useState<StatusConexao>("conectado");
   const [observacao, setObservacao] = useState("");
 
   useEffect(() => {
     if (open) {
-      setAparelhoId(defaultAparelhoId ?? "");
-      setTipoSlot(defaultTipoSlot ?? "normal");
+      setModeloId(defaultModeloId ?? "");
       setStatusConexao("conectado");
       setObservacao("");
     }
-  }, [open, defaultAparelhoId, defaultTipoSlot]);
+  }, [open, defaultModeloId]);
 
-  const selectedAparelho = aparelhos.find((a) => a.id === aparelhoId);
+  // Calcula vagas por modelo (mesma lógica do CapacityBanner)
+  const modelosComVagas = useMemo(() => {
+    const vendidoId = statusList.find((s) => s.nome === "Vendido")?.id;
+    const estoque = vendidoId
+      ? numeros.filter((n) => n.status_id !== vendidoId)
+      : numeros;
+
+    return modelos
+      .filter((m) => m.capacidade_whatsapp > 0)
+      .map((m) => {
+        const doModelo = estoque.filter((n) => n.modelo_id === m.id).length;
+        const extra = ocupadosByModelo.get(m.id)?.total ?? 0;
+        const ocupados = doModelo + extra;
+        const livres = Math.max(0, m.capacidade_whatsapp - ocupados);
+        return { modelo: m, ocupados, capacidade: m.capacidade_whatsapp, livres };
+      })
+      .filter((o) => o.livres > 0 || o.modelo.id === defaultModeloId)
+      .sort((a, b) => a.modelo.nome.localeCompare(b.modelo.nome));
+  }, [modelos, numeros, statusList, ocupadosByModelo, defaultModeloId]);
+
+  const selectedModelo = modelos.find((m) => m.id === modeloId);
 
   const handleSave = async () => {
-    if (!aparelhoId) {
-      toast({ title: "Selecione o aparelho", variant: "destructive" });
+    if (!modeloId || !selectedModelo) {
+      toast({ title: "Selecione o modelo do aparelho", variant: "destructive" });
       return;
     }
     try {
@@ -78,11 +107,10 @@ export function CheckinInlineDialog({
         numero,
         baserow_row_id: baserowRowId,
         cliente_nome: clienteNome,
-        aparelho_id: aparelhoId,
-        modelo_snapshot: selectedAparelho
-          ? `${selectedAparelho.modelo?.nome ?? ""} (${selectedAparelho.apelido})`.trim()
-          : null,
-        tipo_slot: tipoSlot,
+        aparelho_id: null,
+        modelo_id: modeloId,
+        modelo_snapshot: selectedModelo.nome,
+        tipo_slot: deriveTipoSlot(selectedModelo.nome),
         status_conexao: statusConexao,
         observacao: observacao.trim() || null,
       });
@@ -110,61 +138,50 @@ export function CheckinInlineDialog({
         </DialogHeader>
         <div className="space-y-3 py-2">
           <div>
-            <Label>Aparelho (modelo físico) *</Label>
-            <Select value={aparelhoId} onValueChange={setAparelhoId}>
+            <Label>Modelo do aparelho *</Label>
+            <Select value={modeloId} onValueChange={setModeloId}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione um aparelho" />
+                <SelectValue placeholder="Selecione um modelo disponível" />
               </SelectTrigger>
               <SelectContent>
-                {aparelhos.map((a) => {
-                  const ocup = a.modelo_id
-                    ? ocupadosByModelo.get(a.modelo_id)?.total ?? 0
-                    : 0;
-                  return (
-                    <SelectItem key={a.id} value={a.id}>
-                      <span className="inline-flex items-center gap-1">
-                        <Smartphone className="h-3 w-3" />
-                        {a.apelido}
-                        {a.modelo?.nome ? ` — ${a.modelo.nome}` : ""}
-                        <Badge variant="secondary" className="ml-1 text-[10px]">
-                          {ocup}/{a.capacidade_total}
-                        </Badge>
-                      </span>
-                    </SelectItem>
-                  );
-                })}
+                {modelosComVagas.length === 0 && (
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                    Nenhum modelo com vaga disponível
+                  </div>
+                )}
+                {modelosComVagas.map((o) => (
+                  <SelectItem key={o.modelo.id} value={o.modelo.id}>
+                    <span className="inline-flex items-center gap-1">
+                      <Smartphone className="h-3 w-3" />
+                      {o.modelo.nome}
+                      <Badge variant="secondary" className="ml-1 text-[10px]">
+                        {o.ocupados}/{o.capacidade}
+                      </Badge>
+                      {o.livres > 0 && (
+                        <span className="text-[10px] text-amber-600 ml-1">
+                          falta {o.livres}
+                        </span>
+                      )}
+                    </span>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Tipo de slot *</Label>
-              <Select value={tipoSlot} onValueChange={(v) => setTipoSlot(v as TipoSlot)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="business">Business</SelectItem>
-                  <SelectItem value="clone">Clone</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Status conexão *</Label>
-              <Select
-                value={statusConexao}
-                onValueChange={(v) => setStatusConexao(v as StatusConexao)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="conectado">Conectado</SelectItem>
-                  <SelectItem value="desconectado">Desconectado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Label>Status conexão *</Label>
+            <Select
+              value={statusConexao}
+              onValueChange={(v) => setStatusConexao(v as StatusConexao)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="conectado">Conectado</SelectItem>
+                <SelectItem value="desconectado">Desconectado</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label>Observação</Label>

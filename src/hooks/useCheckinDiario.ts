@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAparelhos } from "@/hooks/useAparelhos";
 import { useMemo } from "react";
 import { useQrScanConfig } from "@/hooks/useQrScan";
 
@@ -14,6 +13,7 @@ export interface Checkin {
   baserow_row_id: number | null;
   cliente_nome: string | null;
   aparelho_id: string | null;
+  modelo_id: string | null;
   modelo_snapshot: string | null;
   tipo_slot: TipoSlot;
   status_conexao: StatusConexao;
@@ -63,7 +63,8 @@ export function useCreateCheckin() {
       numero: string;
       baserow_row_id?: number | null;
       cliente_nome?: string | null;
-      aparelho_id: string | null;
+      aparelho_id?: string | null;
+      modelo_id: string | null;
       modelo_snapshot: string | null;
       tipo_slot: TipoSlot;
       status_conexao: StatusConexao;
@@ -82,12 +83,11 @@ export function useCreateCheckin() {
 }
 
 /**
- * Calcula slots ocupados por MODELO de aparelho a partir dos check-ins ativos
- * (últimos 7 dias, status_conexao = conectado, último por numero+aparelho).
+ * Calcula slots ocupados por MODELO a partir dos check-ins ativos
+ * (janela configurável em dias, status_conexao = conectado, último por numero+modelo).
  * Usado para descontar slots no CapacityBanner.
  */
 export function useActiveCheckinsByModelo() {
-  const { data: aparelhos = [] } = useAparelhos();
   const { data: config } = useQrScanConfig();
   const windowDays = config?.checkin_ativo_dias ?? DEFAULT_ACTIVE_WINDOW_DAYS;
   const since = useMemo(() => {
@@ -98,25 +98,19 @@ export function useActiveCheckinsByModelo() {
   const { data: checkins = [] } = useCheckins({ since });
 
   return useMemo(() => {
-    const aparelhoToModelo = new Map<string, string | null>();
-    aparelhos.forEach((a) => aparelhoToModelo.set(a.id, a.modelo_id));
-
-    // Pega o check-in mais recente por (numero+aparelho)
     const seen = new Set<string>();
     const ocupados = new Map<string, { total: number; normal: number; business: number; clone: number }>();
 
     for (const c of checkins) {
-      if (!c.aparelho_id || c.status_conexao !== "conectado") continue;
-      const key = `${c.aparelho_id}|${c.numero}`;
+      if (!c.modelo_id || c.status_conexao !== "conectado") continue;
+      const key = `${c.modelo_id}|${c.numero}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      const modeloId = aparelhoToModelo.get(c.aparelho_id);
-      if (!modeloId) continue;
-      const cur = ocupados.get(modeloId) ?? { total: 0, normal: 0, business: 0, clone: 0 };
+      const cur = ocupados.get(c.modelo_id) ?? { total: 0, normal: 0, business: 0, clone: 0 };
       cur.total += 1;
       cur[c.tipo_slot] += 1;
-      ocupados.set(modeloId, cur);
+      ocupados.set(c.modelo_id, cur);
     }
     return ocupados;
-  }, [aparelhos, checkins]);
+  }, [checkins]);
 }
