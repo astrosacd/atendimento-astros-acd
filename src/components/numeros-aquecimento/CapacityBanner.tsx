@@ -19,6 +19,7 @@ interface ModeloOcupacao {
   livres: number;
   normal: number;
   business: number;
+  autoHospedados: number;
 }
 
 function getTipoEspecificadoNoModelo(nome: string): 'normal' | 'business' | null {
