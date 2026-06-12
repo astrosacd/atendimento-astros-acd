@@ -743,19 +743,22 @@ export function QrScansTab() {
                                             ? "default"
                                             : "destructive"
                                         }
-                                        className="text-[10px] h-5 gap-1"
+                                        className="text-[10px] py-0 px-1.5 gap-1 inline-flex items-center w-fit max-w-full whitespace-nowrap leading-tight"
                                       >
-                                        {lastCk.status_conexao === "conectado" ? "🟢" : "🔴"}
-                                        {modeloNome ?? "—"}
+                                        <span>{lastCk.status_conexao === "conectado" ? "🟢" : "🔴"}</span>
+                                        <span className="truncate">{modeloNome ?? "—"}</span>
                                       </Badge>
-                                      <span
-                                        className={`text-[10px] ${isToday ? "text-emerald-500" : "text-muted-foreground"}`}
-                                      >
-                                        {isToday ? "✓ hoje" : new Date(lastCk.data_checkin + "T12:00:00").toLocaleDateString("pt-BR")}
-                                      </span>
+                                      <div className="flex items-center gap-1">
+                                        <span
+                                          className={`text-[10px] ${isToday ? "text-emerald-500" : "text-muted-foreground"}`}
+                                        >
+                                          {isToday ? "✓ hoje" : new Date(lastCk.data_checkin + "T12:00:00").toLocaleDateString("pt-BR")}
+                                        </span>
+                                        <CheckinHistoryPopover numero={numero} />
+                                      </div>
                                     </>
                                   ) : (
-                                    <Badge variant="outline" className="text-[10px] h-5 border-dashed text-amber-600">
+                                    <Badge variant="outline" className="text-[10px] h-5 border-dashed text-amber-600 whitespace-nowrap">
                                       ⚠️ Sem modelo vinculado
                                     </Badge>
                                   )}
