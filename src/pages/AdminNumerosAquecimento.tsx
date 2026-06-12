@@ -64,6 +64,7 @@ import { AlertConfigCard } from '@/components/numeros-aquecimento/AlertConfigCar
 import { RestoreNumbersTab } from '@/components/numeros-aquecimento/RestoreNumbersTab';
 import { NumeroAnaliseInline } from '@/components/numeros-aquecimento/NumeroAnaliseInline';
 import { CapacityBanner } from '@/components/numeros-aquecimento/CapacityBanner';
+import { useActiveCheckinsByModelo } from '@/hooks/useCheckinDiario';
 import { toast } from 'sonner';
 import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
