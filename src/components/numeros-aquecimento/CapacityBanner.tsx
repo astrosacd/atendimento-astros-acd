@@ -153,16 +153,6 @@ export function CapacityBanner({ numeros, modelosList, statusList, extraOcupados
             </div>
           </TooltipProvider>
         )}
-        {false && (
-          <div />
-        )}
-            {comVagas.length > 12 && (
-              <span className="text-xs text-muted-foreground self-center">
-                +{comVagas.length - 12} {comVagas.length - 12 === 1 ? 'outro' : 'outros'}
-              </span>
-            )}
-          </div>
-        )}
 
         {semTipo > 0 && (
           <div className="mt-2 text-xs text-muted-foreground bg-background/50 border border-dashed rounded-md px-2.5 py-1.5">
