@@ -271,20 +271,6 @@ export function QuickNumberSearch() {
               </div>
             </div>
 
-            {(() => {
-              const rd: any = numberData.row_data || {};
-              const obs = (rd.observacoes ?? rd.observacao ?? '').toString().trim();
-              if (!obs) return null;
-              return (
-                <div className="p-2 rounded-md bg-amber-500/5 border border-amber-500/30">
-                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase font-bold">
-                    <AlertCircle className="h-3 w-3 text-amber-500" />
-                    Observação
-                  </div>
-                  <p className="text-xs mt-0.5 whitespace-pre-wrap break-words">{obs}</p>
-                </div>
-              );
-            })()}
 
             {info?.clientName && (
               <div className="p-2 rounded-md bg-primary/5 border border-primary/20">
@@ -320,6 +306,11 @@ export function QuickNumberSearch() {
                   <p className="text-[9px] text-muted-foreground mt-0.5">
                     Último check-in: {new Date(lastCk.data_checkin).toLocaleDateString('pt-BR')} · {lastCk.status_conexao}
                   </p>
+                  {lastCk.observacao && lastCk.observacao.trim() && (
+                    <p className="text-[10px] italic text-amber-500 mt-1 whitespace-pre-wrap break-words border-l-2 border-amber-500/40 pl-1.5">
+                      "{lastCk.observacao.trim()}"
+                    </p>
+                  )}
                 </div>
               );
             })()}
