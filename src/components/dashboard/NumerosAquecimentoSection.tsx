@@ -11,6 +11,7 @@ export function NumerosAquecimentoSection() {
   const { data: numeros = [], isLoading: loadingNumeros } = useNumerosAquecimento();
   const { data: modelosList = [], isLoading: loadingModelos } = useNumerosModelos();
   const { data: statusList = [], isLoading: loadingStatus } = useNumerosStatus();
+  const checkinExtraByModelo = useActiveCheckinsByModelo();
 
   if (!canView) {
     return null;
