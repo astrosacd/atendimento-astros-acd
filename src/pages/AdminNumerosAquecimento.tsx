@@ -333,10 +333,6 @@ export default function AdminNumerosAquecimento() {
               <RotateCcw className="h-4 w-4 mr-1" />
               Restaurar
             </TabsTrigger>
-            <TabsTrigger value="orphans" disabled={!canDelete && !canRestoreNumbers}>
-              <AlertCircle className="h-4 w-4 mr-1" />
-              Órfãos
-            </TabsTrigger>
             <TabsTrigger value="webhooks" disabled={!canManageWebhooks}>{t('numberStatus.webhooks')}</TabsTrigger>
             <TabsTrigger value="api" disabled={!canManageApi}>{t('numberStatus.apiRest')}</TabsTrigger>
           </TabsList>
