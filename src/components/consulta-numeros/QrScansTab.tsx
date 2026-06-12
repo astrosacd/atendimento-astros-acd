@@ -158,6 +158,7 @@ export function QrScansTab() {
     valor_excedente: number;
     payment_provider_default: "mercadopago" | "stripe";
     ativo: boolean;
+    checkin_ativo_dias: number;
   } | null>(null);
 
   // Payment confirmation dialog
@@ -206,6 +207,7 @@ export function QrScansTab() {
         valor_excedente: Number(config.valor_excedente),
         payment_provider_default: config.payment_provider_default,
         ativo: config.ativo,
+        checkin_ativo_dias: config.checkin_ativo_dias ?? 7,
       });
     }
   }, [config]);
@@ -217,7 +219,8 @@ export function QrScansTab() {
       configDraft.qtd_por_dia !== (config.qtd_por_dia ?? 2) ||
       Number(configDraft.valor_excedente) !== Number(config.valor_excedente) ||
       configDraft.payment_provider_default !== config.payment_provider_default ||
-      configDraft.ativo !== config.ativo);
+      configDraft.ativo !== config.ativo ||
+      configDraft.checkin_ativo_dias !== (config.checkin_ativo_dias ?? 7));
 
   const filteredAutoHosp = autoHosp.filter((n) => {
     const rd = n.row_data || {};
@@ -1408,6 +1411,27 @@ export function QrScansTab() {
                         </Select>
                       </div>
                     </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Janela ativa do Check-in (dias)</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={90}
+                          value={configDraft.checkin_ativo_dias}
+                          onChange={(e) =>
+                            setConfigDraft({
+                              ...configDraft,
+                              checkin_ativo_dias: Math.max(1, Number(e.target.value) || 1),
+                            })
+                          }
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Por quantos dias um check-in <strong>"conectado"</strong> é considerado ativo
+                          e ocupa um slot no Status de Números. Padrão: <strong>7 dias</strong>.
+                        </p>
+                      </div>
+                    </div>
                     <div className="flex items-center gap-2">
                       <Switch
                         checked={configDraft.ativo}
@@ -1434,6 +1458,7 @@ export function QrScansTab() {
                             valor_excedente: Number(config.valor_excedente),
                             payment_provider_default: config.payment_provider_default,
                             ativo: config.ativo,
+                            checkin_ativo_dias: config.checkin_ativo_dias ?? 7,
                           })
                         }
                       >

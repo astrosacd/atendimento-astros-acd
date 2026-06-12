@@ -9,6 +9,7 @@ export interface QrScanConfig {
   valor_excedente: number;
   payment_provider_default: "mercadopago" | "stripe";
   ativo: boolean;
+  checkin_ativo_dias: number;
 }
 
 export interface QrScanHistoryRow {

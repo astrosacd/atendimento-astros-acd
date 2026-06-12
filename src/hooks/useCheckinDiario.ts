@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAparelhos } from "@/hooks/useAparelhos";
 import { useMemo } from "react";
+import { useQrScanConfig } from "@/hooks/useQrScan";
 
 export type TipoSlot = "normal" | "business" | "clone";
 export type StatusConexao = "conectado" | "desconectado";
@@ -22,7 +23,7 @@ export interface Checkin {
   created_at: string;
 }
 
-const ACTIVE_WINDOW_DAYS = 7;
+const DEFAULT_ACTIVE_WINDOW_DAYS = 7;
 
 export function useCheckins(filter?: { since?: string; numero?: string }) {
   return useQuery({
@@ -87,11 +88,13 @@ export function useCreateCheckin() {
  */
 export function useActiveCheckinsByModelo() {
   const { data: aparelhos = [] } = useAparelhos();
+  const { data: config } = useQrScanConfig();
+  const windowDays = config?.checkin_ativo_dias ?? DEFAULT_ACTIVE_WINDOW_DAYS;
   const since = useMemo(() => {
     const d = new Date();
-    d.setDate(d.getDate() - ACTIVE_WINDOW_DAYS);
+    d.setDate(d.getDate() - windowDays);
     return d.toISOString().slice(0, 10);
-  }, []);
+  }, [windowDays]);
   const { data: checkins = [] } = useCheckins({ since });
 
   return useMemo(() => {

@@ -1,6 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Smartphone, CheckCircle2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { NumeroAquecimento, NumeroModelo, NumeroStatus } from '@/hooks/useNumerosAquecimento';
 
 interface Props {
@@ -18,6 +19,7 @@ interface ModeloOcupacao {
   livres: number;
   normal: number;
   business: number;
+  autoHospedados: number;
 }
 
 function getTipoEspecificadoNoModelo(nome: string): 'normal' | 'business' | null {
@@ -63,6 +65,7 @@ export function CapacityBanner({ numeros, modelosList, statusList, extraOcupados
         livres: Math.max(0, modelo.capacidade_whatsapp - ocupados),
         normal,
         business,
+        autoHospedados: extra?.total ?? 0,
       };
     });
 
@@ -100,32 +103,55 @@ export function CapacityBanner({ numeros, modelosList, statusList, extraOcupados
         </div>
 
         {comVagas.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {comVagas.slice(0, 12).map((o) => {
-              const sugestao = sugerirTipo(o);
-              return (
-                <div
-                  key={o.modelo.id}
-                  className="flex items-center gap-2 bg-background border rounded-md px-2.5 py-1.5 text-xs"
-                >
-                  <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="font-medium">{o.modelo.nome}</span>
-                  <Badge variant="secondary" className="h-5 text-[10px]">
-                    {o.ocupados}/{o.capacidade}
-                  </Badge>
-                  <span className="text-muted-foreground">·</span>
-                  <span className="text-amber-700 dark:text-amber-400 font-medium">
-                    falta {o.livres}{sugestao && ` (${sugestao})`}
-                  </span>
-                </div>
-              );
-            })}
-            {comVagas.length > 12 && (
-              <span className="text-xs text-muted-foreground self-center">
-                +{comVagas.length - 12} {comVagas.length - 12 === 1 ? 'outro' : 'outros'}
-              </span>
-            )}
-          </div>
+          <TooltipProvider delayDuration={150}>
+            <div className="flex flex-wrap gap-2">
+              {comVagas.slice(0, 12).map((o) => {
+                const sugestao = sugerirTipo(o);
+                const estoque = Math.max(0, o.ocupados - o.autoHospedados);
+                return (
+                  <div
+                    key={o.modelo.id}
+                    className="flex items-center gap-2 bg-background border rounded-md px-2.5 py-1.5 text-xs"
+                  >
+                    <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="font-medium">{o.modelo.nome}</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="secondary" className="h-5 text-[10px] cursor-help">
+                          {o.ocupados}/{o.capacidade}
+                          {o.autoHospedados > 0 && (
+                            <span className="ml-1 text-blue-600 dark:text-blue-400">
+                              ({o.autoHospedados}↻)
+                            </span>
+                          )}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs">
+                        <div className="space-y-0.5">
+                          <div><strong>{o.ocupados}</strong> de <strong>{o.capacidade}</strong> slots ocupados</div>
+                          <div className="text-muted-foreground">
+                            • {estoque} {estoque === 1 ? 'do estoque' : 'do estoque'}
+                          </div>
+                          <div className="text-muted-foreground">
+                            • {o.autoHospedados} {o.autoHospedados === 1 ? 'auto-hospedado (check-in)' : 'auto-hospedados (check-in)'}
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                    <span className="text-muted-foreground">·</span>
+                    <span className="text-amber-700 dark:text-amber-400 font-medium">
+                      falta {o.livres}{sugestao && ` (${sugestao})`}
+                    </span>
+                  </div>
+                );
+              })}
+              {comVagas.length > 12 && (
+                <span className="text-xs text-muted-foreground self-center">
+                  +{comVagas.length - 12} {comVagas.length - 12 === 1 ? 'outro' : 'outros'}
+                </span>
+              )}
+            </div>
+          </TooltipProvider>
         )}
 
         {semTipo > 0 && (

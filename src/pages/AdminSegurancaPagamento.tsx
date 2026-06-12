@@ -56,6 +56,43 @@ export default function AdminSegurancaPagamento() {
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [reprocessingId, setReprocessingId] = useState<string | null>(null);
+
+  const handleReprocessOcr = async (payment: any) => {
+    if (!payment.comprovante_url) {
+      toast({
+        title: 'Sem comprovante',
+        description: 'Este pagamento não possui imagem para reprocessar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setReprocessingId(payment.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('pixpague-trigger-processing', {
+        body: {
+          paymentId: payment.id,
+          proofUrl: payment.comprovante_url,
+          declaredAmount: payment.amount,
+        },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).message || (data as any).error);
+      toast({
+        title: '🔁 OCR reprocessado',
+        description: 'A IA reanalisou o comprovante. Atualize a lista para ver o novo status.',
+      });
+      await fetchPayments();
+    } catch (e: any) {
+      toast({
+        title: 'Erro ao reprocessar',
+        description: e?.message || 'Falha desconhecida',
+        variant: 'destructive',
+      });
+    } finally {
+      setReprocessingId(null);
+    }
+  };
 
   const fetchPayments = async () => {
     setIsLoading(true);
@@ -551,6 +588,16 @@ export default function AdminSegurancaPagamento() {
                                         Ver Comprovante
                                       </DropdownMenuItem>
                                     )}
+                                    {payment.comprovante_url && (payment.ocr_status === 'error' || payment.ocr_status === 'invalid' || !payment.ocr_status) && (
+                                      <DropdownMenuItem
+                                        onClick={() => handleReprocessOcr(payment)}
+                                        disabled={reprocessingId === payment.id}
+                                        className="text-primary focus:text-primary focus:bg-primary/10"
+                                      >
+                                        <RefreshCw className={`h-4 w-4 mr-2 ${reprocessingId === payment.id ? 'animate-spin' : ''}`} />
+                                        {reprocessingId === payment.id ? 'Reprocessando...' : 'Reprocessar OCR'}
+                                      </DropdownMenuItem>
+                                    )}
                                     {/* Notificar Cliente: somente em renovações de clientes mensais. */}
                                     {payment.cliente?.cobranca_ativa === true &&
                                       payments.filter(p => p.cliente_id === payment.cliente_id && p.status === 'paid' && p.id !== payment.id).length > 0 && (
@@ -717,6 +764,16 @@ export default function AdminSegurancaPagamento() {
                                   <DropdownMenuItem onClick={() => openComprovante(payment.comprovante_url)}>
                                     <ExternalLink className="h-4 w-4 mr-2" />
                                     Ver Comprovante
+                                  </DropdownMenuItem>
+                                )}
+                                {payment.comprovante_url && (payment.ocr_status === 'error' || payment.ocr_status === 'invalid' || !payment.ocr_status) && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleReprocessOcr(payment)}
+                                    disabled={reprocessingId === payment.id}
+                                    className="text-primary focus:text-primary focus:bg-primary/10"
+                                  >
+                                    <RefreshCw className={`h-4 w-4 mr-2 ${reprocessingId === payment.id ? 'animate-spin' : ''}`} />
+                                    {reprocessingId === payment.id ? 'Reprocessando...' : 'Reprocessar OCR'}
                                   </DropdownMenuItem>
                                 )}
                                 {payment.cliente?.cobranca_ativa === true &&

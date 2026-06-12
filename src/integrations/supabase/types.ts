@@ -7442,6 +7442,7 @@ export type Database = {
       qr_scan_config: {
         Row: {
           ativo: boolean
+          checkin_ativo_dias: number
           created_at: string
           id: string
           payment_provider_default: string
@@ -7452,6 +7453,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          checkin_ativo_dias?: number
           created_at?: string
           id?: string
           payment_provider_default?: string
@@ -7462,6 +7464,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          checkin_ativo_dias?: number
           created_at?: string
           id?: string
           payment_provider_default?: string

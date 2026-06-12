@@ -1,0 +1,1 @@
+ALTER TABLE public.qr_scan_config ADD COLUMN IF NOT EXISTS checkin_ativo_dias integer NOT NULL DEFAULT 7;
