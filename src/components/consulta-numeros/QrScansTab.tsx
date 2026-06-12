@@ -232,12 +232,18 @@ export function QrScansTab() {
   const filteredAutoHosp = autoHosp.filter((n) => {
     const rd = n.row_data || {};
     const search = numerosSearch.toLowerCase();
-    return (
+    const matchesSearch =
       (rd.numero?.toLowerCase() || "").includes(search) ||
       (rd.nome?.toLowerCase() || "").includes(search) ||
-      (rd.cliente?.toLowerCase() || "").includes(search)
-    );
+      (rd.cliente?.toLowerCase() || "").includes(search);
+    if (!matchesSearch) return false;
+    if (numerosModeloFilter === "__all__") return true;
+    const lastCk = latestCheckinByNumero.get(rd.numero || "");
+    if (numerosModeloFilter === "__sem__") return !lastCk;
+    if (numerosModeloFilter === "__externo__") return !!lastCk && lastCk.modelo_id == null;
+    return !!lastCk && lastCk.modelo_id === numerosModeloFilter;
   });
+
 
   const filteredPendentes = history
     .filter((h) => h.payment_status === "pendente")
