@@ -22,6 +22,8 @@ export function QuickNumberSearch() {
   const canCheckin = hasPermission('view_consulta_numeros');
 
   const { data: insuranceStatus } = useInsurancePaymentStatusHybrid();
+  const latestCheckinByNumero = useLatestCheckinByNumero();
+
 
   const { data: numberData, isLoading } = useQuery({
     queryKey: ['quick-number-search', appliedSearch],
