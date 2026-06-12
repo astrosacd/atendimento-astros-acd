@@ -206,9 +206,10 @@ serve(async (req) => {
         const currentVenc = new Date(`${cliente.data_renovacao}T00:00:00`);
         const months = CYCLE_MONTHS[cliente.ciclo_cobranca] || 1;
         
-        // Se a data atual de renovação já passou (atrasado), renova a partir de HOJE.
-        // Se estiver em dia ou antecipado, renova a partir da data que já existia.
-        const baseDate = currentVenc < today ? today : currentVenc;
+        // Regra padrão (anchor): mantém a âncora do cliente (data_renovacao + N meses),
+        // independente de pagamento atrasado/antecipado. Isso preserva MRR/churn.
+        // Quando operador escolhe "from_today", conta a partir de hoje (serviço pausado).
+        const baseDate = effectiveRenewalMode === "from_today" ? today : currentVenc;
         
         const renewalDate = new Date(baseDate);
         renewalDate.setMonth(renewalDate.getMonth() + months);
