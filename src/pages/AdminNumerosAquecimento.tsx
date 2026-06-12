@@ -62,7 +62,7 @@ import {
 } from '@/hooks/useNumerosAquecimento';
 import { AlertConfigCard } from '@/components/numeros-aquecimento/AlertConfigCard';
 import { RestoreNumbersTab } from '@/components/numeros-aquecimento/RestoreNumbersTab';
-import { OrphanNumbersTab } from '@/components/numeros-aquecimento/OrphanNumbersTab';
+
 import { NumeroAnaliseInline } from '@/components/numeros-aquecimento/NumeroAnaliseInline';
 import { CapacityBanner } from '@/components/numeros-aquecimento/CapacityBanner';
 import { useActiveCheckinsByModelo } from '@/hooks/useCheckinDiario';
@@ -332,10 +332,6 @@ export default function AdminNumerosAquecimento() {
             <TabsTrigger value="restore" disabled={!canRestoreNumbers}>
               <RotateCcw className="h-4 w-4 mr-1" />
               Restaurar
-            </TabsTrigger>
-            <TabsTrigger value="orphans" disabled={!canDelete && !canRestoreNumbers}>
-              <AlertCircle className="h-4 w-4 mr-1" />
-              Órfãos
             </TabsTrigger>
             <TabsTrigger value="webhooks" disabled={!canManageWebhooks}>{t('numberStatus.webhooks')}</TabsTrigger>
             <TabsTrigger value="api" disabled={!canManageApi}>{t('numberStatus.apiRest')}</TabsTrigger>
@@ -893,10 +889,8 @@ export default function AdminNumerosAquecimento() {
             <RestoreNumbersTab statusList={statusList} modelosList={modelosList} />
           </TabsContent>
 
-          {/* Orphans Tab */}
-          <TabsContent value="orphans" className="space-y-4">
-            <OrphanNumbersTab statusList={statusList} modelosList={modelosList} />
-          </TabsContent>
+
+
 
 
           {/* Webhooks Tab */}
