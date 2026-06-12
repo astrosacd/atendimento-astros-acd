@@ -81,7 +81,7 @@ import InstagramPrivacidade from "./pages/public/InstagramPrivacidade";
 import InstagramTermos from "./pages/public/InstagramTermos";
 import NotFound from "./pages/NotFound";
 import Perfil from "./pages/Perfil";
-import SalaAgentes from "./pages/SalaAgentes";
+
 import InstagramCreate from "./pages/InstagramCreate";
 import InstagramHistory from "./pages/InstagramHistory";
 import InstagramSettings from "./pages/InstagramSettings";
