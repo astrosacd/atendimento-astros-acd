@@ -757,9 +757,10 @@ export default function AdminNumerosAquecimento() {
                     <div className="space-y-2 pr-2">
                       {modelosList.map((modelo) => {
                         const count = numeros.filter(n => n.modelo_id === modelo.id).length;
+                        const apareceCheckin = modelo.aparece_no_checkin !== false;
                         return (
                           <div key={modelo.id} className="flex items-center justify-between p-2 border rounded-lg">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-medium">{modelo.nome}</span>
                               {modelo.marca && (
                                 <span className="text-sm text-muted-foreground">({modelo.marca})</span>
@@ -767,9 +768,21 @@ export default function AdminNumerosAquecimento() {
                               <Badge variant="outline" className="text-xs">
                                 {count} número{count !== 1 ? 's' : ''}
                               </Badge>
+                              {!apareceCheckin && (
+                                <Badge variant="secondary" className="text-[10px]">
+                                  Oculto no check-in
+                                </Badge>
+                              )}
                             </div>
                             {canManageModelos && (
                               <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 mr-1" title="Aparece na lista do check-in (QR Scan)">
+                                  <Switch
+                                    checked={apareceCheckin}
+                                    onCheckedChange={(v) => updateModelo.mutate({ id: modelo.id, data: { aparece_no_checkin: v } })}
+                                  />
+                                  <span className="text-[10px] text-muted-foreground hidden md:inline">Check-in</span>
+                                </div>
                                 <EditModeloDialog 
                                   modelo={modelo} 
                                   onUpdate={(data) => updateModelo.mutate({ id: modelo.id, data })} 
@@ -1835,6 +1848,7 @@ function CreateModeloDialog({ onCreate }: { onCreate: (data: any) => void }) {
   const [marca, setMarca] = useState('');
   const [descricao, setDescricao] = useState('');
   const [capacidade, setCapacidade] = useState(3);
+  const [apareceCheckin, setApareceCheckin] = useState(true);
 
   const handleSubmit = () => {
     if (!nome) {
@@ -1850,12 +1864,14 @@ function CreateModeloDialog({ onCreate }: { onCreate: (data: any) => void }) {
       marca: marca || undefined,
       descricao: descricao || undefined,
       capacidade_whatsapp: capacidade,
+      aparece_no_checkin: apareceCheckin,
     });
     setOpen(false);
     setNome('');
     setMarca('');
     setDescricao('');
     setCapacidade(3);
+    setApareceCheckin(true);
   };
 
   return (
@@ -1899,6 +1915,15 @@ function CreateModeloDialog({ onCreate }: { onCreate: (data: any) => void }) {
             <Label>Descrição</Label>
             <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} />
           </div>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label>Aparece no check-in</Label>
+              <p className="text-xs text-muted-foreground">
+                Se ativo, este modelo aparece na lista de seleção do QR Scan
+              </p>
+            </div>
+            <Switch checked={apareceCheckin} onCheckedChange={setApareceCheckin} />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -1915,6 +1940,7 @@ function EditModeloDialog({ modelo, onUpdate }: { modelo: NumeroModelo; onUpdate
   const [marca, setMarca] = useState(modelo.marca || '');
   const [descricao, setDescricao] = useState(modelo.descricao || '');
   const [capacidade, setCapacidade] = useState(modelo.capacidade_whatsapp || 3);
+  const [apareceCheckin, setApareceCheckin] = useState(modelo.aparece_no_checkin !== false);
 
   const handleSubmit = () => {
     if (capacidade < 1 || capacidade > 20) {
@@ -1926,6 +1952,7 @@ function EditModeloDialog({ modelo, onUpdate }: { modelo: NumeroModelo; onUpdate
       marca: marca || null,
       descricao: descricao || null,
       capacidade_whatsapp: capacidade,
+      aparece_no_checkin: apareceCheckin,
     });
     setOpen(false);
   };
@@ -1966,6 +1993,15 @@ function EditModeloDialog({ modelo, onUpdate }: { modelo: NumeroModelo; onUpdate
           <div>
             <Label>Descrição</Label>
             <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label>Aparece no check-in</Label>
+              <p className="text-xs text-muted-foreground">
+                Se ativo, este modelo aparece na lista de seleção do QR Scan
+              </p>
+            </div>
+            <Switch checked={apareceCheckin} onCheckedChange={setApareceCheckin} />
           </div>
         </div>
         <DialogFooter>

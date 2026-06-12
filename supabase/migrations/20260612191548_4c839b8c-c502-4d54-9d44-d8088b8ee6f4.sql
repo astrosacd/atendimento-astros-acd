@@ -1,0 +1,1 @@
+ALTER TABLE public.numeros_aquecimento_modelos ADD COLUMN IF NOT EXISTS aparece_no_checkin boolean NOT NULL DEFAULT true;

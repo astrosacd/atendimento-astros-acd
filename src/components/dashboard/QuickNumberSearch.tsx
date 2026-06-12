@@ -2,16 +2,21 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Shield, Smartphone, ExternalLink, Loader2, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
+import { Search, Shield, Smartphone, ExternalLink, Loader2, AlertCircle, CheckCircle2, XCircle, CalendarCheck } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useInsurancePaymentStatusHybrid } from '@/hooks/useInsurance';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { CheckinInlineDialog } from '@/components/consulta-numeros/CheckinInlineDialog';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export function QuickNumberSearch() {
   const [searchTerm, setSearchTerm] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
+  const [checkinOpen, setCheckinOpen] = useState(false);
+  const { hasPermission } = usePermissions();
+  const canCheckin = hasPermission('view_consulta_numeros');
 
   const { data: insuranceStatus } = useInsurancePaymentStatusHybrid();
 
@@ -184,9 +189,32 @@ export function QuickNumberSearch() {
                 <p className="text-xs font-medium truncate" title={info.clientName}>{info.clientName}</p>
               </div>
             )}
+
+            {canCheckin && (
+              <Button
+                size="sm"
+                variant="default"
+                className="w-full h-9"
+                onClick={() => setCheckinOpen(true)}
+              >
+                <CalendarCheck className="h-4 w-4 mr-1.5" />
+                Foi checado agora (check-in)
+              </Button>
+            )}
           </div>
         )}
       </CardContent>
+
+      {numberData && (
+        <CheckinInlineDialog
+          open={checkinOpen}
+          onOpenChange={setCheckinOpen}
+          numero={(numberData.row_data as any)?.numero || ''}
+          baserowRowId={numberData.baserow_row_id}
+          clienteNome={(numberData.row_data as any)?.nome ?? (numberData.row_data as any)?.cliente ?? info?.clientName ?? null}
+          defaultModeloId={null}
+        />
+      )}
     </Card>
   );
 }

@@ -5957,6 +5957,7 @@ export type Database = {
       }
       numeros_aquecimento_modelos: {
         Row: {
+          aparece_no_checkin: boolean
           capacidade_whatsapp: number
           created_at: string
           descricao: string | null
@@ -5966,6 +5967,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aparece_no_checkin?: boolean
           capacidade_whatsapp?: number
           created_at?: string
           descricao?: string | null
@@ -5975,6 +5977,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aparece_no_checkin?: boolean
           capacidade_whatsapp?: number
           created_at?: string
           descricao?: string | null

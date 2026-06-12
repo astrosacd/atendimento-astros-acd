@@ -85,6 +85,7 @@ export function CheckinInlineDialog({
 
     return modelos
       .filter((m) => m.capacidade_whatsapp > 0)
+      .filter((m) => m.aparece_no_checkin !== false || m.id === defaultModeloId)
       .map((m) => {
         const doModelo = estoque.filter((n) => n.modelo_id === m.id).length;
         const extra = ocupadosByModelo.get(m.id)?.total ?? 0;
