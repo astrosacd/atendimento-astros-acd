@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { CheckinInlineDialog } from '@/components/consulta-numeros/CheckinInlineDialog';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useLatestCheckinByNumero } from '@/hooks/useCheckinDiario';
-import { Smartphone as SmartphoneIcon } from 'lucide-react';
+
 
 
 export function QuickNumberSearch() {
