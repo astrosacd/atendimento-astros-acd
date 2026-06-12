@@ -191,6 +191,22 @@ export function QuickNumberSearch() {
                   </Badge>
                   <p className="text-sm font-mono font-bold">{(numberData.row_data as any)?.numero || '-'}</p>
                 </div>
+                {numberData.baserow_row_id != null && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(String(numberData.baserow_row_id));
+                        const { toast } = await import('@/hooks/use-toast');
+                        toast({ title: `Linha #${numberData.baserow_row_id} copiada` });
+                      } catch {}
+                    }}
+                    className="inline-flex items-center gap-1 px-1.5 py-0 rounded bg-muted text-[10px] font-mono text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                    title="Copiar linha do Baserow"
+                  >
+                    linha #{numberData.baserow_row_id}
+                  </button>
+                )}
               </div>
               <TooltipProvider>
                 <Tooltip>
