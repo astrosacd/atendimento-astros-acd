@@ -26,7 +26,11 @@ serve(async (req) => {
   try {
     const rawBody = await req.text();
     console.log("Request body:", rawBody);
-    const { paymentId, action, approvalReason, rejectionReason } = JSON.parse(rawBody);
+    const { paymentId, action, approvalReason, rejectionReason, renewalMode } = JSON.parse(rawBody);
+    // renewalMode: "anchor" (default) mantém a data âncora do cliente (data_renovacao + ciclo),
+    //              "from_today" recalcula a partir de hoje (use quando o serviço foi pausado).
+    const effectiveRenewalMode: "anchor" | "from_today" =
+      renewalMode === "from_today" ? "from_today" : "anchor";
     if (!paymentId || !action) {
       return new Response(JSON.stringify({ error: "paymentId and action required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -202,9 +206,10 @@ serve(async (req) => {
         const currentVenc = new Date(`${cliente.data_renovacao}T00:00:00`);
         const months = CYCLE_MONTHS[cliente.ciclo_cobranca] || 1;
         
-        // Se a data atual de renovação já passou (atrasado), renova a partir de HOJE.
-        // Se estiver em dia ou antecipado, renova a partir da data que já existia.
-        const baseDate = currentVenc < today ? today : currentVenc;
+        // Regra padrão (anchor): mantém a âncora do cliente (data_renovacao + N meses),
+        // independente de pagamento atrasado/antecipado. Isso preserva MRR/churn.
+        // Quando operador escolhe "from_today", conta a partir de hoje (serviço pausado).
+        const baseDate = effectiveRenewalMode === "from_today" ? today : currentVenc;
         
         const renewalDate = new Date(baseDate);
         renewalDate.setMonth(renewalDate.getMonth() + months);

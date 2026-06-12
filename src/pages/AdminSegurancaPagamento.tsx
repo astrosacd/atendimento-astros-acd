@@ -99,7 +99,7 @@ export default function AdminSegurancaPagamento() {
     try {
       const { data, error } = await supabase
         .from('client_payments')
-        .select('*, cliente:clientes(nome, email, numero, cobranca_ativa)')
+        .select('*, cliente:clientes(nome, email, numero, cobranca_ativa, data_renovacao, ciclo_cobranca)')
         .or('status.eq.pending_approval,status.eq.rejected,payment_type.eq.pix_manual,payment_type.eq.link_pagamento,payment_type.eq.outros_manual,pix_transaction_id.not.is.null')
         .order('created_at', { ascending: false });
 
@@ -124,7 +124,14 @@ export default function AdminSegurancaPagamento() {
     payment: any | null;
     action: 'approve' | 'reject';
     reason: string;
-  }>({ open: false, payment: null, action: 'approve', reason: '' });
+    renewalMode: 'anchor' | 'from_today';
+  }>({ open: false, payment: null, action: 'approve', reason: '', renewalMode: 'anchor' });
+
+  // Dialog para escolher base de renovação (aprovação não-suspeita)
+  const [renewalChoiceDialog, setRenewalChoiceDialog] = useState<{
+    open: boolean;
+    payment: any | null;
+  }>({ open: false, payment: null });
 
   // Dialog para visualizar motivo da rejeição/aprovação manual
   const [reasonDialog, setReasonDialog] = useState<{ open: boolean; payment: any | null }>({
@@ -134,10 +141,26 @@ export default function AdminSegurancaPagamento() {
 
   const SUSPICIOUS = new Set(['duplicate', 'mismatch', 'divergent', 'invalid']);
 
+  const CYCLE_MONTHS_UI: Record<string, number> = {
+    mensal: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12,
+  };
+
+  const calcRenewalPreview = (payment: any, mode: 'anchor' | 'from_today'): string | null => {
+    const c = payment?.cliente;
+    if (!c?.data_renovacao || !c?.ciclo_cobranca) return null;
+    const months = CYCLE_MONTHS_UI[c.ciclo_cobranca] || 1;
+    const base = mode === 'from_today'
+      ? new Date(new Date().setHours(0, 0, 0, 0))
+      : new Date(`${c.data_renovacao}T00:00:00`);
+    base.setMonth(base.getMonth() + months);
+    return base.toLocaleDateString('pt-BR');
+  };
+
   const performApproval = async (
     paymentId: string,
     action: 'approve' | 'reject',
-    reason?: string
+    reason?: string,
+    renewalMode: 'anchor' | 'from_today' = 'anchor'
   ) => {
     setApprovingId(paymentId);
     try {
@@ -147,6 +170,7 @@ export default function AdminSegurancaPagamento() {
           action,
           approvalReason: action === 'approve' ? reason : undefined,
           rejectionReason: action === 'reject' ? reason : undefined,
+          renewalMode: action === 'approve' ? renewalMode : undefined,
         },
       });
       if (error) throw error;
@@ -165,7 +189,8 @@ export default function AdminSegurancaPagamento() {
         description: receiptMsg,
         variant: action === 'approve' && !receiptInfo?.sent ? 'destructive' : 'default',
       });
-      setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '' });
+      setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '', renewalMode: 'anchor' });
+      setRenewalChoiceDialog({ open: false, payment: null });
       await fetchPayments();
     } catch (e: any) {
       toast({
@@ -180,9 +205,14 @@ export default function AdminSegurancaPagamento() {
 
   const handleApproval = async (payment: any, action: 'approve' | 'reject') => {
     const isSuspicious = SUSPICIOUS.has(payment.ocr_status);
-    // Para casos suspeitos (aprovação) OU rejeição → sempre pedir motivo via Dialog
+    // Suspeitos OU rejeição → sempre pedem motivo via Dialog
     if (isSuspicious || action === 'reject') {
-      setApprovalDialog({ open: true, payment, action, reason: '' });
+      setApprovalDialog({ open: true, payment, action, reason: '', renewalMode: 'anchor' });
+      return;
+    }
+    // Aprovação normal → perguntar base de renovação se houver data âncora
+    if (payment?.cliente?.data_renovacao && payment?.cliente?.ciclo_cobranca) {
+      setRenewalChoiceDialog({ open: true, payment });
       return;
     }
     await performApproval(payment.id, action);
@@ -942,7 +972,7 @@ export default function AdminSegurancaPagamento() {
       <Dialog
         open={approvalDialog.open}
         onOpenChange={(open) => {
-          if (!open) setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '' });
+          if (!open) setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '', renewalMode: 'anchor' });
         }}
       >
         <DialogContent className="max-w-md">
@@ -1041,17 +1071,54 @@ export default function AdminSegurancaPagamento() {
             </p>
           </div>
 
+          {/* Escolha da base de renovação — só para aprovação */}
+          {approvalDialog.action === 'approve' && approvalDialog.payment?.cliente?.data_renovacao && approvalDialog.payment?.cliente?.ciclo_cobranca && (
+            <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
+              <Label className="text-sm">Base da próxima renovação</Label>
+              <div className="space-y-1.5">
+                <label className="flex items-start gap-2 cursor-pointer text-sm">
+                  <input
+                    type="radio"
+                    name="renewalMode-suspicious"
+                    value="anchor"
+                    checked={approvalDialog.renewalMode === 'anchor'}
+                    onChange={() => setApprovalDialog(prev => ({ ...prev, renewalMode: 'anchor' }))}
+                    className="mt-0.5"
+                  />
+                  <span>
+                    <strong>Manter data do banco</strong> (recomendado) → próxima renovação em{' '}
+                    <span className="font-mono">{calcRenewalPreview(approvalDialog.payment, 'anchor')}</span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2 cursor-pointer text-sm">
+                  <input
+                    type="radio"
+                    name="renewalMode-suspicious"
+                    value="from_today"
+                    checked={approvalDialog.renewalMode === 'from_today'}
+                    onChange={() => setApprovalDialog(prev => ({ ...prev, renewalMode: 'from_today' }))}
+                    className="mt-0.5"
+                  />
+                  <span>
+                    <strong>Contar a partir de hoje</strong> (use se o serviço foi pausado) → próxima renovação em{' '}
+                    <span className="font-mono">{calcRenewalPreview(approvalDialog.payment, 'from_today')}</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
             <Button
               variant="outline"
-              onClick={() => setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '' })}
+              onClick={() => setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '', renewalMode: 'anchor' })}
               disabled={approvingId === approvalDialog.payment?.id}
             >
               Cancelar
             </Button>
             <Button
               variant={approvalDialog.action === 'approve' ? 'default' : 'destructive'}
-              onClick={() => approvalDialog.payment && performApproval(approvalDialog.payment.id, approvalDialog.action, approvalDialog.reason)}
+              onClick={() => approvalDialog.payment && performApproval(approvalDialog.payment.id, approvalDialog.action, approvalDialog.reason, approvalDialog.renewalMode)}
               disabled={
                 approvingId === approvalDialog.payment?.id ||
                 (approvalDialog.action === 'approve' && approvalDialog.reason.trim().length < 5)
@@ -1073,6 +1140,82 @@ export default function AdminSegurancaPagamento() {
                   Confirmar rejeição
                 </>
               )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: escolher base de renovação (aprovação não-suspeita) */}
+      <Dialog
+        open={renewalChoiceDialog.open}
+        onOpenChange={(open) => { if (!open) setRenewalChoiceDialog({ open: false, payment: null }); }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+              Confirmar aprovação
+            </DialogTitle>
+            <DialogDescription>
+              Como deve ser calculada a próxima renovação deste cliente?
+            </DialogDescription>
+          </DialogHeader>
+
+          {renewalChoiceDialog.payment && (
+            <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Cliente:</span>
+                <span className="font-medium">{renewalChoiceDialog.payment.cliente?.nome || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Data de renovação atual:</span>
+                <span className="font-mono">
+                  {renewalChoiceDialog.payment.cliente?.data_renovacao
+                    ? new Date(`${renewalChoiceDialog.payment.cliente.data_renovacao}T00:00:00`).toLocaleDateString('pt-BR')
+                    : '—'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Ciclo:</span>
+                <span className="capitalize">{renewalChoiceDialog.payment.cliente?.ciclo_cobranca || '—'}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Button
+              variant="default"
+              className="w-full justify-start h-auto py-3"
+              onClick={() => renewalChoiceDialog.payment && performApproval(renewalChoiceDialog.payment.id, 'approve', undefined, 'anchor')}
+              disabled={approvingId === renewalChoiceDialog.payment?.id}
+            >
+              <div className="text-left">
+                <div className="font-semibold">Manter data do banco (recomendado)</div>
+                <div className="text-xs opacity-90">
+                  Próxima renovação: <span className="font-mono">{calcRenewalPreview(renewalChoiceDialog.payment, 'anchor')}</span>
+                </div>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start h-auto py-3"
+              onClick={() => renewalChoiceDialog.payment && performApproval(renewalChoiceDialog.payment.id, 'approve', undefined, 'from_today')}
+              disabled={approvingId === renewalChoiceDialog.payment?.id}
+            >
+              <div className="text-left">
+                <div className="font-semibold">Contar a partir de hoje</div>
+                <div className="text-xs text-muted-foreground">
+                  Use se o serviço foi pausado · Próxima: <span className="font-mono">{calcRenewalPreview(renewalChoiceDialog.payment, 'from_today')}</span>
+                </div>
+              </div>
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => setRenewalChoiceDialog({ open: false, payment: null })}
+              disabled={approvingId === renewalChoiceDialog.payment?.id}
+            >
+              Cancelar
             </Button>
           </div>
         </DialogContent>
