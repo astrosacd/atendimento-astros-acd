@@ -598,15 +598,33 @@ export function QrScansTab() {
                     Clique em "Registrar escaneamento" para contabilizar um QR.
                   </CardDescription>
                 </div>
-                <div className="relative w-64">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por número ou nome..."
-                    value={numerosSearch}
-                    onChange={(e) => setNumerosSearch(e.target.value)}
-                    className="pl-8"
-                  />
+                <div className="flex items-center gap-2">
+                  <div className="w-56">
+                    <SearchableSelect
+                      value={numerosModeloFilter}
+                      onValueChange={(v) => setNumerosModeloFilter(v || "__all__")}
+                      placeholder="Filtrar por modelo"
+                      searchPlaceholder="Buscar modelo…"
+                      emptyMessage="Sem modelos"
+                      options={[
+                        { value: "__all__", label: "Todos os modelos" },
+                        { value: "__externo__", label: "📦 Aparelho externo" },
+                        { value: "__sem__", label: "⚠️ Sem check-in" },
+                        ...modelosList.map((m) => ({ value: m.id, label: m.nome })),
+                      ]}
+                    />
+                  </div>
+                  <div className="relative w-64">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por número ou nome..."
+                      value={numerosSearch}
+                      onChange={(e) => setNumerosSearch(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
                 </div>
+
               </div>
             </CardHeader>
             <CardContent>
