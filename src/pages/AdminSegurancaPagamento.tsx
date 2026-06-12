@@ -124,7 +124,14 @@ export default function AdminSegurancaPagamento() {
     payment: any | null;
     action: 'approve' | 'reject';
     reason: string;
-  }>({ open: false, payment: null, action: 'approve', reason: '' });
+    renewalMode: 'anchor' | 'from_today';
+  }>({ open: false, payment: null, action: 'approve', reason: '', renewalMode: 'anchor' });
+
+  // Dialog para escolher base de renovação (aprovação não-suspeita)
+  const [renewalChoiceDialog, setRenewalChoiceDialog] = useState<{
+    open: boolean;
+    payment: any | null;
+  }>({ open: false, payment: null });
 
   // Dialog para visualizar motivo da rejeição/aprovação manual
   const [reasonDialog, setReasonDialog] = useState<{ open: boolean; payment: any | null }>({
@@ -134,10 +141,26 @@ export default function AdminSegurancaPagamento() {
 
   const SUSPICIOUS = new Set(['duplicate', 'mismatch', 'divergent', 'invalid']);
 
+  const CYCLE_MONTHS_UI: Record<string, number> = {
+    mensal: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12,
+  };
+
+  const calcRenewalPreview = (payment: any, mode: 'anchor' | 'from_today'): string | null => {
+    const c = payment?.cliente;
+    if (!c?.data_renovacao || !c?.ciclo_cobranca) return null;
+    const months = CYCLE_MONTHS_UI[c.ciclo_cobranca] || 1;
+    const base = mode === 'from_today'
+      ? new Date(new Date().setHours(0, 0, 0, 0))
+      : new Date(`${c.data_renovacao}T00:00:00`);
+    base.setMonth(base.getMonth() + months);
+    return base.toLocaleDateString('pt-BR');
+  };
+
   const performApproval = async (
     paymentId: string,
     action: 'approve' | 'reject',
-    reason?: string
+    reason?: string,
+    renewalMode: 'anchor' | 'from_today' = 'anchor'
   ) => {
     setApprovingId(paymentId);
     try {
@@ -147,6 +170,7 @@ export default function AdminSegurancaPagamento() {
           action,
           approvalReason: action === 'approve' ? reason : undefined,
           rejectionReason: action === 'reject' ? reason : undefined,
+          renewalMode: action === 'approve' ? renewalMode : undefined,
         },
       });
       if (error) throw error;
@@ -165,7 +189,8 @@ export default function AdminSegurancaPagamento() {
         description: receiptMsg,
         variant: action === 'approve' && !receiptInfo?.sent ? 'destructive' : 'default',
       });
-      setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '' });
+      setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '', renewalMode: 'anchor' });
+      setRenewalChoiceDialog({ open: false, payment: null });
       await fetchPayments();
     } catch (e: any) {
       toast({
@@ -180,9 +205,14 @@ export default function AdminSegurancaPagamento() {
 
   const handleApproval = async (payment: any, action: 'approve' | 'reject') => {
     const isSuspicious = SUSPICIOUS.has(payment.ocr_status);
-    // Para casos suspeitos (aprovação) OU rejeição → sempre pedir motivo via Dialog
+    // Suspeitos OU rejeição → sempre pedem motivo via Dialog
     if (isSuspicious || action === 'reject') {
-      setApprovalDialog({ open: true, payment, action, reason: '' });
+      setApprovalDialog({ open: true, payment, action, reason: '', renewalMode: 'anchor' });
+      return;
+    }
+    // Aprovação normal → perguntar base de renovação se houver data âncora
+    if (payment?.cliente?.data_renovacao && payment?.cliente?.ciclo_cobranca) {
+      setRenewalChoiceDialog({ open: true, payment });
       return;
     }
     await performApproval(payment.id, action);
