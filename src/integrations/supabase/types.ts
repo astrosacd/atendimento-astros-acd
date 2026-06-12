@@ -9393,6 +9393,10 @@ export type Database = {
         Returns: boolean
       }
       has_ligacoes_temp_perm: { Args: { p_perm: string }; Returns: boolean }
+      has_permission: {
+        Args: { _permission_key: string; _user_id: string }
+        Returns: boolean
+      }
       has_role:
         | {
             Args: {
