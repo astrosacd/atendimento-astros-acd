@@ -119,6 +119,7 @@ export default function AdminNumerosAquecimento() {
   const { data: numerosTotais = [], isLoading: loadingTotais } = useNumerosAquecimento();
   const { data: statusList = [], isLoading: loadingStatus } = useNumerosStatus();
   const { data: modelosList = [], isLoading: loadingModelos } = useNumerosModelos();
+  const checkinExtraByModelo = useActiveCheckinsByModelo();
   const { data: history = [] } = useNumeroHistory();
   const { data: webhooks = [] } = useNumerosWebhooks();
   const { data: apiKeys = [] } = useNumerosApiKeys();
