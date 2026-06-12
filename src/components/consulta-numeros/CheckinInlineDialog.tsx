@@ -97,10 +97,15 @@ export function CheckinInlineDialog({
   }, [modelos, numeros, statusList, ocupadosByModelo, defaultModeloId]);
 
   const selectedModelo = modelos.find((m) => m.id === modeloId);
+  const isExterno = modeloId === "__externo__";
 
   const handleSave = async () => {
-    if (!modeloId || !selectedModelo) {
+    if (!modeloId) {
       toast({ title: "Selecione o modelo do aparelho", variant: "destructive" });
+      return;
+    }
+    if (!isExterno && !selectedModelo) {
+      toast({ title: "Modelo inválido", variant: "destructive" });
       return;
     }
     try {
@@ -109,9 +114,9 @@ export function CheckinInlineDialog({
         baserow_row_id: baserowRowId,
         cliente_nome: clienteNome,
         aparelho_id: null,
-        modelo_id: modeloId,
-        modelo_snapshot: selectedModelo.nome,
-        tipo_slot: deriveTipoSlot(selectedModelo.nome),
+        modelo_id: isExterno ? null : modeloId,
+        modelo_snapshot: isExterno ? "Aparelho externo" : selectedModelo!.nome,
+        tipo_slot: isExterno ? "normal" : deriveTipoSlot(selectedModelo!.nome),
         status_conexao: statusConexao,
         observacao: observacao.trim() || null,
       });
