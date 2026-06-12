@@ -20,6 +20,7 @@ export interface Checkin {
   status_geral: string | null;
   data_checkin: string;
   observacao: string | null;
+  created_by: string | null;
   created_at: string;
 }
 
