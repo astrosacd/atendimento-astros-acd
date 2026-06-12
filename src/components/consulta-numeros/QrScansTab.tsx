@@ -187,8 +187,7 @@ export function QrScansTab() {
     numero: string;
     baserowRowId: number | null;
     clienteNome: string | null;
-    defaultAparelhoId: string | null;
-    defaultTipoSlot?: "normal" | "business" | "clone";
+    defaultModeloId: string | null;
   } | null>(null);
   const latestCheckinByNumero = useLatestCheckinByNumero();
   const { data: aparelhosList = [] } = useAparelhos();
@@ -776,8 +775,7 @@ export function QrScansTab() {
                                         numero,
                                         baserowRowId: n.baserow_row_id,
                                         clienteNome: rd.nome ?? rd.cliente ?? null,
-                                        defaultAparelhoId: lastCk?.aparelho_id ?? null,
-                                        defaultTipoSlot: lastCk?.tipo_slot,
+                                        defaultModeloId: (lastCk as any)?.modelo_id ?? null,
                                       });
                                       setCheckinDialogOpen(true);
                                     }}
@@ -2054,8 +2052,7 @@ export function QrScansTab() {
           numero={checkinTarget.numero}
           baserowRowId={checkinTarget.baserowRowId}
           clienteNome={checkinTarget.clienteNome}
-          defaultAparelhoId={checkinTarget.defaultAparelhoId}
-          defaultTipoSlot={checkinTarget.defaultTipoSlot}
+          defaultModeloId={checkinTarget.defaultModeloId}
         />
       )}
     </div>
