@@ -56,6 +56,43 @@ export default function AdminSegurancaPagamento() {
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [reprocessingId, setReprocessingId] = useState<string | null>(null);
+
+  const handleReprocessOcr = async (payment: any) => {
+    if (!payment.comprovante_url) {
+      toast({
+        title: 'Sem comprovante',
+        description: 'Este pagamento não possui imagem para reprocessar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setReprocessingId(payment.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('pixpague-trigger-processing', {
+        body: {
+          paymentId: payment.id,
+          proofUrl: payment.comprovante_url,
+          declaredAmount: payment.amount,
+        },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).message || (data as any).error);
+      toast({
+        title: '🔁 OCR reprocessado',
+        description: 'A IA reanalisou o comprovante. Atualize a lista para ver o novo status.',
+      });
+      await fetchPayments();
+    } catch (e: any) {
+      toast({
+        title: 'Erro ao reprocessar',
+        description: e?.message || 'Falha desconhecida',
+        variant: 'destructive',
+      });
+    } finally {
+      setReprocessingId(null);
+    }
+  };
 
   const fetchPayments = async () => {
     setIsLoading(true);
