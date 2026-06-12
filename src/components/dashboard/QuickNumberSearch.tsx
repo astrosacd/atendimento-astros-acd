@@ -11,6 +11,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { CheckinInlineDialog } from '@/components/consulta-numeros/CheckinInlineDialog';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useLatestCheckinByNumero } from '@/hooks/useCheckinDiario';
+import { useNumerosModelos } from '@/hooks/useNumerosAquecimento';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 
 
