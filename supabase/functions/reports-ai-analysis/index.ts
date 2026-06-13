@@ -33,8 +33,26 @@ serve(async (req) => {
     const aiModel = model || "google/gemini-3-flash-preview";
     const promptToUse = customPrompt || DEFAULT_PROMPT;
 
+    // Contexto fixo de negócio que SEMPRE deve ser enviado para a IA
+    // independente de prompt customizado, para evitar interpretações erradas.
+    const BUSINESS_CONTEXT = `
+============================================================
+📌 CONTEXTO DE NEGÓCIO (LEIA ANTES DE ANALISAR)
+============================================================
+SOBRE O CAMPO "plano":
+- "Individual" NÃO é um tier de preço (não é Starter/Pro/Enterprise).
+- "Individual" significa que o cliente NÃO possui plano de revendedor.
+- Cliente "Individual" = compra ferramentas/produtos avulsos, cada um com seu preço próprio.
+- Plano "Revendedor" = cliente que adquire um pacote de ferramentas para revender.
+- Por isso é NORMAL e ESPERADO que clientes "Individual" tenham preços muito diferentes (de R$19 a R$450+): cada um adquiriu produtos/ferramentas distintos.
+- NÃO sugira "padronizar tiers", "renomear Individual para Starter/Pro/Enterprise" nem trate a variação de preço dentro de "Individual" como problema de organização. Isso reflete a realidade do negócio.
+- Se for analisar segmentação de receita, use PRODUTO + VALOR, não o campo "plano".
+============================================================
+`;
+
     // Build metrics message with at-risk clients
-    let metricsMessage = `Dados do negócio para análise:\n\n${JSON.stringify(metricsData, null, 2)}`;
+    let metricsMessage = `${BUSINESS_CONTEXT}\n\nDados do negócio para análise:\n\n${JSON.stringify(metricsData, null, 2)}`;
+
 
     // ============================================================
     // PRÉ-PROCESSAMENTO: Agrupar cadastros que pertencem ao mesmo cliente
@@ -159,7 +177,9 @@ ${JSON.stringify(consolidatedGroups, null, 2)}
           .filter((c: any) => c.moeda === "USD")
           .reduce((acc: number, c: any) => acc + c.valor / (CICLO_MESES[c.ciclo_cobranca] || 1), 0);
 
-        metricsMessage = `Dados do negócio para análise:
+        metricsMessage = `${BUSINESS_CONTEXT}
+
+Dados do negócio para análise:
 
 MRR BRL: R$ ${mrrBRL.toFixed(2)}
 MRR USD: $ ${mrrUSD.toFixed(2)}

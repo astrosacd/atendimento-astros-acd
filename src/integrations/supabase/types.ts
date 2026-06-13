@@ -9160,6 +9160,117 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_renewals_report_config: {
+        Row: {
+          created_at: string
+          day_of_week: number | null
+          email_recipients: string[] | null
+          gmail_app_password: string | null
+          gmail_sender_name: string | null
+          gmail_user: string | null
+          id: string
+          include_payments: boolean | null
+          include_renewals: boolean | null
+          is_active: boolean | null
+          last_sent_at: string | null
+          notify_email: boolean | null
+          notify_whatsapp: boolean | null
+          schedule_hour: number | null
+          schedule_minute: number | null
+          send_when_empty: boolean | null
+          updated_at: string
+          whatsapp_instance_id: string | null
+          whatsapp_recipients: string[] | null
+        }
+        Insert: {
+          created_at?: string
+          day_of_week?: number | null
+          email_recipients?: string[] | null
+          gmail_app_password?: string | null
+          gmail_sender_name?: string | null
+          gmail_user?: string | null
+          id?: string
+          include_payments?: boolean | null
+          include_renewals?: boolean | null
+          is_active?: boolean | null
+          last_sent_at?: string | null
+          notify_email?: boolean | null
+          notify_whatsapp?: boolean | null
+          schedule_hour?: number | null
+          schedule_minute?: number | null
+          send_when_empty?: boolean | null
+          updated_at?: string
+          whatsapp_instance_id?: string | null
+          whatsapp_recipients?: string[] | null
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number | null
+          email_recipients?: string[] | null
+          gmail_app_password?: string | null
+          gmail_sender_name?: string | null
+          gmail_user?: string | null
+          id?: string
+          include_payments?: boolean | null
+          include_renewals?: boolean | null
+          is_active?: boolean | null
+          last_sent_at?: string | null
+          notify_email?: boolean | null
+          notify_whatsapp?: boolean | null
+          schedule_hour?: number | null
+          schedule_minute?: number | null
+          send_when_empty?: boolean | null
+          updated_at?: string
+          whatsapp_instance_id?: string | null
+          whatsapp_recipients?: string[] | null
+        }
+        Relationships: []
+      }
+      weekly_renewals_report_logs: {
+        Row: {
+          channel: string
+          created_at: string
+          error_message: string | null
+          id: string
+          is_test: boolean | null
+          payload_snapshot: Json | null
+          recipient: string
+          status: string
+          total_amount_brl: number | null
+          total_amount_usd: number | null
+          total_payments: number | null
+          total_renewals: number | null
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          is_test?: boolean | null
+          payload_snapshot?: Json | null
+          recipient: string
+          status: string
+          total_amount_brl?: number | null
+          total_amount_usd?: number | null
+          total_payments?: number | null
+          total_renewals?: number | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          is_test?: boolean | null
+          payload_snapshot?: Json | null
+          recipient?: string
+          status?: string
+          total_amount_brl?: number | null
+          total_amount_usd?: number | null
+          total_payments?: number | null
+          total_renewals?: number | null
+        }
+        Relationships: []
+      }
       whatsapp_group_config: {
         Row: {
           config_key: string
@@ -9279,6 +9390,7 @@ export type Database = {
       disable_consulta_numeros_reminder_cron: { Args: never; Returns: boolean }
       disable_divulgador_cron: { Args: never; Returns: boolean }
       disable_reports_analysis_cron: { Args: never; Returns: boolean }
+      disable_weekly_renewals_report_cron: { Args: never; Returns: boolean }
       execute_auto_remarketing: { Args: never; Returns: undefined }
       execute_billing_cron: { Args: never; Returns: undefined }
       execute_calendar_notify: { Args: never; Returns: undefined }
@@ -9294,6 +9406,7 @@ export type Database = {
       execute_process_automations: { Args: never; Returns: undefined }
       execute_reports_analysis_cron: { Args: never; Returns: undefined }
       execute_scheduled_proposal_sends: { Args: never; Returns: undefined }
+      execute_weekly_renewals_report: { Args: never; Returns: undefined }
       get_auth_access_code: { Args: never; Returns: string }
       get_automations_cron_schedule: {
         Args: never
@@ -9391,6 +9504,13 @@ export type Database = {
         Returns: Json
       }
       get_user_id_by_email: { Args: { p_email: string }; Returns: string }
+      get_weekly_renewals_report_cron_schedule: {
+        Args: never
+        Returns: {
+          job_name: string
+          schedule: string
+        }[]
+      }
       has_custom_role: {
         Args: { role_name: string; user_uuid: string }
         Returns: boolean
@@ -9523,6 +9643,10 @@ export type Database = {
       }
       update_reports_analysis_cron: {
         Args: { p_frequency: string }
+        Returns: boolean
+      }
+      update_weekly_renewals_report_cron: {
+        Args: { p_day_of_week: number; p_hour: number; p_minute: number }
         Returns: boolean
       }
       validate_instagram_invite_token: {

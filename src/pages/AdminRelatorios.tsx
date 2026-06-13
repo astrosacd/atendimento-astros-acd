@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { TrendingUp, TrendingDown, Users, DollarSign, UserMinus, Target, Calendar, Info, ShoppingBag, Bot, Calculator, PiggyBank, Briefcase } from 'lucide-react';
 import { ReportsAIAnalysis } from '@/components/reports/ReportsAIAnalysis';
+import { WeeklyRenewalsReportConfig } from '@/components/reports/WeeklyRenewalsReportConfig';
 import { format, subMonths, startOfMonth, endOfMonth, differenceInMonths, parseISO, getMonth, getYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -722,6 +723,10 @@ export default function AdminRelatorios() {
               <Bot className="h-3.5 w-3.5" />
               Análise IA
             </TabsTrigger>
+            <TabsTrigger value="semanal" className="flex items-center gap-1 flex-shrink-0 text-xs sm:text-sm">
+              <Calendar className="h-3.5 w-3.5" />
+              Relatório Semanal
+            </TabsTrigger>
           </TabsList>
 
           {/* Tab Inteligência de Negócio (BI) */}
@@ -1355,6 +1360,10 @@ export default function AdminRelatorios() {
                   })),
               }}
             />
+          </TabsContent>
+
+          <TabsContent value="semanal" className="space-y-4">
+            <WeeklyRenewalsReportConfig />
           </TabsContent>
         </Tabs>
       </div>
