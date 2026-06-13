@@ -1361,6 +1361,10 @@ export default function AdminRelatorios() {
               }}
             />
           </TabsContent>
+
+          <TabsContent value="semanal" className="space-y-4">
+            <WeeklyRenewalsReportConfig />
+          </TabsContent>
         </Tabs>
       </div>
 
