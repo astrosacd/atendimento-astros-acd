@@ -722,6 +722,10 @@ export default function AdminRelatorios() {
               <Bot className="h-3.5 w-3.5" />
               Análise IA
             </TabsTrigger>
+            <TabsTrigger value="semanal" className="flex items-center gap-1 flex-shrink-0 text-xs sm:text-sm">
+              <Calendar className="h-3.5 w-3.5" />
+              Relatório Semanal
+            </TabsTrigger>
           </TabsList>
 
           {/* Tab Inteligência de Negócio (BI) */}
