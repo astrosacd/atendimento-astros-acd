@@ -177,7 +177,9 @@ ${JSON.stringify(consolidatedGroups, null, 2)}
           .filter((c: any) => c.moeda === "USD")
           .reduce((acc: number, c: any) => acc + c.valor / (CICLO_MESES[c.ciclo_cobranca] || 1), 0);
 
-        metricsMessage = `Dados do negócio para análise:
+        metricsMessage = `${BUSINESS_CONTEXT}
+
+Dados do negócio para análise:
 
 MRR BRL: R$ ${mrrBRL.toFixed(2)}
 MRR USD: $ ${mrrUSD.toFixed(2)}
