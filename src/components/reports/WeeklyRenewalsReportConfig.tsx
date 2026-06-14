@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Send, Save, X, Plus, History } from "lucide-react";
+import { Loader2, Send, Save, X, Plus, History, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -86,9 +86,12 @@ export function WeeklyRenewalsReportConfig() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
   const [newWhats, setNewWhats] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [preview, setPreview] = useState<string>("");
+  const [previewHtml, setPreviewHtml] = useState<string>("");
+  const [previewCounts, setPreviewCounts] = useState<{ renewals: number; payments: number; churnRisk: number } | null>(null);
 
   useEffect(() => {
     loadAll();
@@ -207,6 +210,28 @@ export function WeeklyRenewalsReportConfig() {
       toast.error("Erro no teste: " + e.message);
     } finally {
       setTesting(false);
+    }
+  }
+
+  async function handlePreview() {
+    setPreviewing(true);
+    setPreview("");
+    setPreviewHtml("");
+    setPreviewCounts(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("weekly-renewals-report", {
+        body: { preview_only: true },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setPreview(data?.preview || "");
+      setPreviewHtml(data?.html || "");
+      setPreviewCounts(data?.counts || null);
+      toast.success("Pré-visualização gerada (nenhum envio realizado).");
+    } catch (e: any) {
+      toast.error("Erro ao gerar preview: " + e.message);
+    } finally {
+      setPreviewing(false);
     }
   }
 
