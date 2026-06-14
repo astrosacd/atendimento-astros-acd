@@ -336,7 +336,7 @@ function buildChartSvg(current: WeekData, weekStart: Date): string {
 </svg>`;
 }
 
-function buildHtmlReport(textReport: string): string {
+function buildHtmlReport(textReport: string, chartSvg: string): string {
   const html = textReport
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -345,7 +345,10 @@ function buildHtmlReport(textReport: string): string {
     .replace(/_(.*?)_/g, "<em>$1</em>")
     .replace(/━+/g, '<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0"/>')
     .replace(/\n/g, "<br/>");
-  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:680px;margin:0 auto;padding:24px;color:#111827;line-height:1.6">${html}</div>`;
+  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:680px;margin:0 auto;padding:24px;color:#111827;line-height:1.6">
+    <div style="margin:8px 0 20px">${chartSvg}</div>
+    ${html}
+  </div>`;
 }
 
 serve(async (req) => {
