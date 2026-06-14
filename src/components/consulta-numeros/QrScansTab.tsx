@@ -612,7 +612,7 @@ export function QrScansTab() {
                         const modelosComNumeros = new Set<string>();
                         let temExterno = false;
                         let temSemCheckin = false;
-                        for (const num of numeros as any[]) {
+                        for (const num of autoHosp as any[]) {
                           const lastCk = latestCheckinByNumero.get(String(num?.numero ?? ""));
                           if (!lastCk) {
                             temSemCheckin = true;
