@@ -119,7 +119,45 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
     }
   }
 
-  return { renewals, payments };
+  // (iii) Clientes que NÃO renovaram — data_renovacao venceu na semana e não há
+  // mudança de renovação nem pagamento confirmado para esse cliente.
+  const renewedIds = new Set(renewals.map((r) => r.cliente_id).filter(Boolean) as string[]);
+  const paidIds = new Set(payments.map((p) => p.cliente_id).filter(Boolean) as string[]);
+
+  const weekStartDate = weekStart.toISOString().slice(0, 10);
+  const weekEndDate = weekEnd.toISOString().slice(0, 10);
+
+  const { data: vencidos } = await supabase
+    .from("clientes")
+    .select("id, nome, produto, plano, valor, moeda, data_renovacao, status")
+    .gte("data_renovacao", weekStartDate)
+    .lte("data_renovacao", weekEndDate);
+
+  const churnRisk: Array<{
+    cliente_id: string;
+    nome: string;
+    produto: string | null;
+    plano: string | null;
+    valor: number | null;
+    moeda: string;
+    data_renovacao: string | null;
+    status: string | null;
+  }> = [];
+  for (const c of vencidos || []) {
+    if (renewedIds.has(c.id) || paidIds.has(c.id)) continue;
+    churnRisk.push({
+      cliente_id: c.id,
+      nome: c.nome,
+      produto: c.produto,
+      plano: c.plano,
+      valor: c.valor,
+      moeda: c.moeda || "BRL",
+      data_renovacao: c.data_renovacao,
+      status: c.status,
+    });
+  }
+
+  return { renewals, payments, churnRisk };
 }
 
 function buildTotals(renewals: RenewalItem[], payments: PaymentItem[]) {
