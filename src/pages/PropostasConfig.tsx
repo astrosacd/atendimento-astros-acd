@@ -12,6 +12,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useNavigate } from 'react-router-dom';
 import { useProposalSendConfig } from '@/hooks/useProposalSending';
 import { BrandingConfig } from '@/components/proposals/BrandingConfig';
+import { ElevenLabsCreditsCard } from '@/components/dashboard/ElevenLabsCreditsCard';
+import { useElevenLabsCreditsMulti } from '@/hooks/useElevenLabsCreditsMulti';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +37,8 @@ export default function PropostasConfig() {
   const canViewGhost = hasPermission('configure_proposal_ghost_mode');
   const canViewVoices = hasPermission('configure_proposal_ai_voices');
   const [activeTab, setActiveTab] = useState('branding');
+  const elevenLabsMulti = useElevenLabsCreditsMulti(canViewVoices);
+  const elevenPropostas = elevenLabsMulti.sources.find((s) => s.source === 'propostas') || null;
 
   const [gmailUser, setGmailUser] = useState('');
   const [gmailAppPassword, setGmailAppPassword] = useState('');
