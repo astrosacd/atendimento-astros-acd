@@ -743,6 +743,13 @@ export default function PropostasConfig() {
                     </TabsContent>
 
                     {canViewVoices && <TabsContent value="vozes" className="space-y-6 animate-in fade-in-50 duration-300">
+                      <ElevenLabsCreditsCard
+                        data={elevenPropostas}
+                        loading={elevenLabsMulti.loading}
+                        error={elevenLabsMulti.error}
+                        onRefresh={elevenLabsMulti.refresh}
+                        moduleLabel="Propostas"
+                      />
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-4">
                           <div className="p-4 border rounded-lg bg-background/50 space-y-4">
