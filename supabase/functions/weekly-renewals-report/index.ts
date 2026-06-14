@@ -360,7 +360,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const body = await req.json().catch(() => ({}));
-    const { scheduled, test, overrides } = body || {};
+    const { scheduled, test, preview_only, overrides } = body || {};
 
     // Carrega config
     const { data: config } = await supabase
@@ -403,7 +403,7 @@ serve(async (req) => {
     const previous = await fetchWeekData(supabase, prevStart, prevEnd);
 
     const currentCount = current.renewals.length + current.payments.length;
-    if (currentCount === 0 && !effective.send_when_empty && !test) {
+    if (!preview_only && currentCount === 0 && !effective.send_when_empty && !test) {
       return new Response(JSON.stringify({ skipped: true, reason: "empty_week" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -417,8 +417,25 @@ serve(async (req) => {
       includeRenewals: effective.include_renewals,
       includePayments: effective.include_payments,
     });
-    const htmlReport = buildHtmlReport(textReport);
+    const chartSvg = buildChartSvg(current, weekStart);
+    const htmlReport = buildHtmlReport(textReport, chartSvg);
     const totals = buildTotals(current.renewals, current.payments);
+
+    // === PREVIEW ONLY === (botão "Ver relatório agora" — sem envio, sem log)
+    if (preview_only) {
+      return new Response(JSON.stringify({
+        success: true,
+        preview_only: true,
+        preview: textReport,
+        html: htmlReport,
+        totals,
+        counts: {
+          renewals: current.renewals.length,
+          payments: current.payments.length,
+          churnRisk: current.churnRisk.length,
+        },
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const results: any[] = [];
 
