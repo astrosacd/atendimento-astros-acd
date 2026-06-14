@@ -119,7 +119,45 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
     }
   }
 
-  return { renewals, payments };
+  // (iii) Clientes que NÃO renovaram — data_renovacao venceu na semana e não há
+  // mudança de renovação nem pagamento confirmado para esse cliente.
+  const renewedIds = new Set(renewals.map((r) => r.cliente_id).filter(Boolean) as string[]);
+  const paidIds = new Set(payments.map((p) => p.cliente_id).filter(Boolean) as string[]);
+
+  const weekStartDate = weekStart.toISOString().slice(0, 10);
+  const weekEndDate = weekEnd.toISOString().slice(0, 10);
+
+  const { data: vencidos } = await supabase
+    .from("clientes")
+    .select("id, nome, produto, plano, valor, moeda, data_renovacao, status")
+    .gte("data_renovacao", weekStartDate)
+    .lte("data_renovacao", weekEndDate);
+
+  const churnRisk: Array<{
+    cliente_id: string;
+    nome: string;
+    produto: string | null;
+    plano: string | null;
+    valor: number | null;
+    moeda: string;
+    data_renovacao: string | null;
+    status: string | null;
+  }> = [];
+  for (const c of vencidos || []) {
+    if (renewedIds.has(c.id) || paidIds.has(c.id)) continue;
+    churnRisk.push({
+      cliente_id: c.id,
+      nome: c.nome,
+      produto: c.produto,
+      plano: c.plano,
+      valor: c.valor,
+      moeda: c.moeda || "BRL",
+      data_renovacao: c.data_renovacao,
+      status: c.status,
+    });
+  }
+
+  return { renewals, payments, churnRisk };
 }
 
 function buildTotals(renewals: RenewalItem[], payments: PaymentItem[]) {
@@ -145,11 +183,24 @@ function pctChange(current: number, prev: number): string {
   return `${sign}${diff.toFixed(0)}%`;
 }
 
+type ChurnItem = {
+  cliente_id: string;
+  nome: string;
+  produto: string | null;
+  plano: string | null;
+  valor: number | null;
+  moeda: string;
+  data_renovacao: string | null;
+  status: string | null;
+};
+
+type WeekData = { renewals: RenewalItem[]; payments: PaymentItem[]; churnRisk: ChurnItem[] };
+
 function buildTextReport(opts: {
   weekStart: Date;
   weekEnd: Date;
-  current: { renewals: RenewalItem[]; payments: PaymentItem[] };
-  previous: { renewals: RenewalItem[]; payments: PaymentItem[] };
+  current: WeekData;
+  previous: WeekData;
   includeRenewals: boolean;
   includePayments: boolean;
 }): string {
@@ -169,7 +220,10 @@ function buildTextReport(opts: {
   lines.push(`• Total de eventos: ${currentCount} (anterior: ${previousCount}, ${pctChange(currentCount, previousCount)})`);
   lines.push(`• Valor BRL: ${fmtCurrency(totals.totalBRL, "BRL")} (anterior: ${fmtCurrency(totalsPrev.totalBRL, "BRL")}, ${pctChange(totals.totalBRL, totalsPrev.totalBRL)})`);
   if (totals.totalUSD > 0 || totalsPrev.totalUSD > 0) {
-    lines.push(`• Valor USD: ${fmtCurrency(totals.totalUSD, "USD")} (anterior: ${fmtCurrency(totalsPrev.totalUSD, "USD")}, ${pctChange(totals.totalUSD, totalsPrev.totalUSD)})`);
+    lines.push(`• Valor USD: ${fmtCurrency(totals.totalUSD, "USD")} (anterior: ${fmtCurrency(totals.totalUSD, "USD")}, ${pctChange(totals.totalUSD, totalsPrev.totalUSD)})`);
+  }
+  if (current.churnRisk.length > 0) {
+    lines.push(`⚠️ *Churn imediato:* ${current.churnRisk.length} cliente(s) com vencimento na semana sem renovação/pagamento.`);
   }
   lines.push("");
 
@@ -209,12 +263,80 @@ function buildTextReport(opts: {
     }
   }
 
+  // === CHURN IMEDIATO ===
+  lines.push(`━━━━━━━━━━━━━━━━━━━`);
+  lines.push(`*⚠️ Clientes que NÃO renovaram (${current.churnRisk.length})*`);
+  lines.push(`_Vencimento dentro da semana e sem renovação/pagamento confirmado — risco de churn imediato._`);
+  lines.push("");
+  if (current.churnRisk.length === 0) {
+    lines.push(`_Nenhum cliente em risco nesta semana. 👏_`);
+  } else {
+    for (const c of current.churnRisk) {
+      lines.push(`• *${c.nome}*${c.status ? ` _(${c.status})_` : ""}`);
+      lines.push(`   Produto: ${c.produto || "-"}${c.plano ? ` (${c.plano})` : ""}`);
+      lines.push(`   Valor: ${fmtCurrency(Number(c.valor) || 0, c.moeda || "BRL")}`);
+      lines.push(`   Venceu em: ${fmtDate(c.data_renovacao)}`);
+      lines.push("");
+    }
+  }
+
   lines.push(`━━━━━━━━━━━━━━━━━━━`);
   lines.push(`_Gerado automaticamente — ${new Date().toLocaleString("pt-BR")}_`);
   return lines.join("\n");
 }
 
-function buildHtmlReport(textReport: string): string {
+/**
+ * Gráfico de barras SVG (renovações + pagamentos por dia da semana).
+ * Inline SVG roda no Gmail/Outlook/Apple Mail.
+ */
+function buildChartSvg(current: WeekData, weekStart: Date): string {
+  const days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const renByDay = new Array(7).fill(0);
+  const payByDay = new Array(7).fill(0);
+  for (const r of current.renewals) {
+    if (!r.data_nova) continue;
+    const d = new Date(r.data_nova);
+    if (!isNaN(d.getTime())) renByDay[d.getDay()] += 1;
+  }
+  for (const p of current.payments) {
+    if (!p.paid_at) continue;
+    const d = new Date(p.paid_at);
+    if (!isNaN(d.getTime())) payByDay[d.getDay()] += 1;
+  }
+  const max = Math.max(1, ...renByDay, ...payByDay);
+  const W = 600, H = 220, padX = 40, padY = 30, chartH = H - padY * 2;
+  const bandW = (W - padX * 2) / 7;
+  const barW = bandW / 2 - 4;
+
+  let bars = "";
+  for (let i = 0; i < 7; i++) {
+    const xCenter = padX + bandW * i + bandW / 2;
+    const rH = Math.round((renByDay[i] / max) * chartH);
+    const pH = Math.round((payByDay[i] / max) * chartH);
+    const yR = padY + chartH - rH;
+    const yP = padY + chartH - pH;
+    bars += `<rect x="${xCenter - barW - 1}" y="${yR}" width="${barW}" height="${rH}" rx="3" fill="#6366f1"/>`;
+    bars += `<rect x="${xCenter + 1}" y="${yP}" width="${barW}" height="${pH}" rx="3" fill="#10b981"/>`;
+    if (renByDay[i] > 0) bars += `<text x="${xCenter - barW / 2 - 1}" y="${yR - 4}" text-anchor="middle" font-size="10" fill="#374151">${renByDay[i]}</text>`;
+    if (payByDay[i] > 0) bars += `<text x="${xCenter + barW / 2 + 1}" y="${yP - 4}" text-anchor="middle" font-size="10" fill="#374151">${payByDay[i]}</text>`;
+    bars += `<text x="${xCenter}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#6b7280">${days[i]}</text>`;
+  }
+
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="100%" style="max-width:600px;background:#f9fafb;border-radius:8px;display:block">
+  <text x="${W / 2}" y="18" text-anchor="middle" font-size="13" font-weight="bold" fill="#111827">Atividade por dia da semana</text>
+  <line x1="${padX}" y1="${padY + chartH}" x2="${W - padX}" y2="${padY + chartH}" stroke="#d1d5db" stroke-width="1"/>
+  ${bars}
+  <g transform="translate(${padX}, ${H - 26})">
+    <rect x="0" y="0" width="10" height="10" fill="#6366f1" rx="2"/>
+    <text x="14" y="9" font-size="10" fill="#374151">Renovações</text>
+    <rect x="90" y="0" width="10" height="10" fill="#10b981" rx="2"/>
+    <text x="104" y="9" font-size="10" fill="#374151">Pagamentos</text>
+  </g>
+</svg>`;
+}
+
+function buildHtmlReport(textReport: string, chartSvg: string): string {
   const html = textReport
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -223,7 +345,10 @@ function buildHtmlReport(textReport: string): string {
     .replace(/_(.*?)_/g, "<em>$1</em>")
     .replace(/━+/g, '<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0"/>')
     .replace(/\n/g, "<br/>");
-  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:680px;margin:0 auto;padding:24px;color:#111827;line-height:1.6">${html}</div>`;
+  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:680px;margin:0 auto;padding:24px;color:#111827;line-height:1.6">
+    <div style="margin:8px 0 20px">${chartSvg}</div>
+    ${html}
+  </div>`;
 }
 
 serve(async (req) => {
@@ -235,7 +360,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const body = await req.json().catch(() => ({}));
-    const { scheduled, test, overrides } = body || {};
+    const { scheduled, test, preview_only, overrides } = body || {};
 
     // Carrega config
     const { data: config } = await supabase
@@ -278,7 +403,7 @@ serve(async (req) => {
     const previous = await fetchWeekData(supabase, prevStart, prevEnd);
 
     const currentCount = current.renewals.length + current.payments.length;
-    if (currentCount === 0 && !effective.send_when_empty && !test) {
+    if (!preview_only && currentCount === 0 && !effective.send_when_empty && !test) {
       return new Response(JSON.stringify({ skipped: true, reason: "empty_week" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -292,8 +417,25 @@ serve(async (req) => {
       includeRenewals: effective.include_renewals,
       includePayments: effective.include_payments,
     });
-    const htmlReport = buildHtmlReport(textReport);
+    const chartSvg = buildChartSvg(current, weekStart);
+    const htmlReport = buildHtmlReport(textReport, chartSvg);
     const totals = buildTotals(current.renewals, current.payments);
+
+    // === PREVIEW ONLY === (botão "Ver relatório agora" — sem envio, sem log)
+    if (preview_only) {
+      return new Response(JSON.stringify({
+        success: true,
+        preview_only: true,
+        preview: textReport,
+        html: htmlReport,
+        totals,
+        counts: {
+          renewals: current.renewals.length,
+          payments: current.payments.length,
+          churnRisk: current.churnRisk.length,
+        },
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const results: any[] = [];
 

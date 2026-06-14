@@ -12,6 +12,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useNavigate } from 'react-router-dom';
 import { useProposalSendConfig } from '@/hooks/useProposalSending';
 import { BrandingConfig } from '@/components/proposals/BrandingConfig';
+import { ElevenLabsCreditsCard } from '@/components/dashboard/ElevenLabsCreditsCard';
+import { useElevenLabsCreditsMulti } from '@/hooks/useElevenLabsCreditsMulti';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +37,8 @@ export default function PropostasConfig() {
   const canViewGhost = hasPermission('configure_proposal_ghost_mode');
   const canViewVoices = hasPermission('configure_proposal_ai_voices');
   const [activeTab, setActiveTab] = useState('branding');
+  const elevenLabsMulti = useElevenLabsCreditsMulti(canViewVoices);
+  const elevenPropostas = elevenLabsMulti.sources.find((s) => s.source === 'propostas') || null;
 
   const [gmailUser, setGmailUser] = useState('');
   const [gmailAppPassword, setGmailAppPassword] = useState('');
@@ -739,6 +743,13 @@ export default function PropostasConfig() {
                     </TabsContent>
 
                     {canViewVoices && <TabsContent value="vozes" className="space-y-6 animate-in fade-in-50 duration-300">
+                      <ElevenLabsCreditsCard
+                        data={elevenPropostas}
+                        loading={elevenLabsMulti.loading}
+                        error={elevenLabsMulti.error}
+                        onRefresh={elevenLabsMulti.refresh}
+                        moduleLabel="Propostas"
+                      />
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-4">
                           <div className="p-4 border rounded-lg bg-background/50 space-y-4">

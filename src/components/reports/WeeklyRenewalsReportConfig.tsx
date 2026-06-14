@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Send, Save, X, Plus, History } from "lucide-react";
+import { Loader2, Send, Save, X, Plus, History, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -86,9 +86,12 @@ export function WeeklyRenewalsReportConfig() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
   const [newWhats, setNewWhats] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [preview, setPreview] = useState<string>("");
+  const [previewHtml, setPreviewHtml] = useState<string>("");
+  const [previewCounts, setPreviewCounts] = useState<{ renewals: number; payments: number; churnRisk: number } | null>(null);
 
   useEffect(() => {
     loadAll();
@@ -207,6 +210,28 @@ export function WeeklyRenewalsReportConfig() {
       toast.error("Erro no teste: " + e.message);
     } finally {
       setTesting(false);
+    }
+  }
+
+  async function handlePreview() {
+    setPreviewing(true);
+    setPreview("");
+    setPreviewHtml("");
+    setPreviewCounts(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("weekly-renewals-report", {
+        body: { preview_only: true },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setPreview(data?.preview || "");
+      setPreviewHtml(data?.html || "");
+      setPreviewCounts(data?.counts || null);
+      toast.success("Pré-visualização gerada (nenhum envio realizado).");
+    } catch (e: any) {
+      toast.error("Erro ao gerar preview: " + e.message);
+    } finally {
+      setPreviewing(false);
     }
   }
 
@@ -475,6 +500,10 @@ export function WeeklyRenewalsReportConfig() {
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
               Salvar configuração
             </Button>
+            <Button onClick={handlePreview} disabled={previewing} variant="secondary" className="flex-1">
+              {previewing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Eye className="h-4 w-4 mr-2" />}
+              Ver relatório agora
+            </Button>
             <Button onClick={handleTest} disabled={testing} variant="outline" className="flex-1">
               {testing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
               Enviar teste agora
@@ -493,13 +522,32 @@ export function WeeklyRenewalsReportConfig() {
       {preview && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Pré-visualização do último teste</CardTitle>
+            <CardTitle className="text-base flex items-center justify-between gap-2">
+              <span>Pré-visualização do relatório</span>
+              {previewCounts && (
+                <span className="text-xs font-normal text-muted-foreground">
+                  {previewCounts.renewals} renovação(ões) · {previewCounts.payments} pagamento(s) · {previewCounts.churnRisk} churn
+                </span>
+              )}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <Textarea readOnly value={preview} className="font-mono text-xs min-h-[300px]" />
+          <CardContent className="space-y-4">
+            {previewHtml && (
+              <div
+                className="rounded-md border bg-white overflow-auto max-h-[500px]"
+                dangerouslySetInnerHTML={{ __html: previewHtml }}
+              />
+            )}
+            <details>
+              <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                Ver versão em texto (igual à mensagem do WhatsApp)
+              </summary>
+              <Textarea readOnly value={preview} className="font-mono text-xs min-h-[300px] mt-2" />
+            </details>
           </CardContent>
         </Card>
       )}
+
 
       {/* Histórico */}
       <Card>

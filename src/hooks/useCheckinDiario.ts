@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { useQrScanConfig } from "@/hooks/useQrScan";
 
 export type TipoSlot = "normal" | "business" | "clone";
-export type StatusConexao = "conectado" | "desconectado";
+export type StatusConexao = "conectado" | "desconectado" | "desconectado_cliente";
 
 export interface Checkin {
   id: string;
