@@ -81,12 +81,18 @@ export function CheckinHistoryPopover({ numero }: Props) {
                   className="border rounded-md p-2 text-xs space-y-1 bg-muted/30"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <Badge
-                      variant={c.status_conexao === "conectado" ? "default" : "destructive"}
-                      className="text-[10px] h-5"
-                    >
-                      {c.status_conexao === "conectado" ? "🟢 Conectado" : "🔴 Desconectado"}
-                    </Badge>
+                    {c.status_conexao === "conectado" ? (
+                      <Badge variant="default" className="text-[10px] h-5">🟢 Conectado</Badge>
+                    ) : c.status_conexao === "desconectado_cliente" ? (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] h-5 border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                      >
+                        🟡 Desconectado do Cliente
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive" className="text-[10px] h-5">🔴 Desconectado</Badge>
+                    )}
                     <span className="text-[10px] text-muted-foreground">
                       {dt.toLocaleString("pt-BR", {
                         day: "2-digit",

@@ -181,10 +181,14 @@ export function CheckinInlineDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="conectado">Conectado</SelectItem>
-                <SelectItem value="desconectado">Desconectado</SelectItem>
+                <SelectItem value="conectado">🟢 Conectado</SelectItem>
+                <SelectItem value="desconectado_cliente">🟡 Desconectado do Cliente</SelectItem>
+                <SelectItem value="desconectado">🔴 Desconectado (banido)</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              <strong>Desconectado do Cliente</strong>: o WhatsApp está ativo no celular, mas não está vinculado ao cliente.
+            </p>
           </div>
           <div>
             <Label>Observação</Label>

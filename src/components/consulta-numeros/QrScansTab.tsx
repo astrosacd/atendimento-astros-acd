@@ -606,12 +606,34 @@ export function QrScansTab() {
                       placeholder="Filtrar por modelo"
                       searchPlaceholder="Buscar modelo…"
                       emptyMessage="Sem modelos"
-                      options={[
-                        { value: "__all__", label: "Todos os modelos" },
-                        { value: "__externo__", label: "📦 Aparelho externo" },
-                        { value: "__sem__", label: "⚠️ Sem check-in" },
-                        ...modelosList.map((m) => ({ value: m.id, label: m.nome })),
-                      ]}
+                      options={(() => {
+                        // Sincroniza com a Pesquisa Rápida do Dashboard:
+                        // só lista modelos que possuem ao menos 1 número com check-in.
+                        const modelosComNumeros = new Set<string>();
+                        let temExterno = false;
+                        let temSemCheckin = false;
+                        for (const num of numeros as any[]) {
+                          const lastCk = latestCheckinByNumero.get(String(num?.numero ?? ""));
+                          if (!lastCk) {
+                            temSemCheckin = true;
+                          } else if (lastCk.modelo_id == null) {
+                            temExterno = true;
+                          } else {
+                            modelosComNumeros.add(lastCk.modelo_id);
+                          }
+                        }
+                        const opts: { value: string; label: string }[] = [
+                          { value: "__all__", label: "Todos os modelos" },
+                        ];
+                        if (temExterno) opts.push({ value: "__externo__", label: "📦 Aparelho externo" });
+                        if (temSemCheckin) opts.push({ value: "__sem__", label: "⚠️ Sem check-in" });
+                        for (const m of modelosList) {
+                          if (modelosComNumeros.has(m.id)) {
+                            opts.push({ value: m.id, label: m.nome });
+                          }
+                        }
+                        return opts;
+                      })()}
                     />
                   </div>
                   <div className="relative w-64">

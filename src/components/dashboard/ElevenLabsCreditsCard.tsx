@@ -3,21 +3,25 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Mic, RefreshCw, AlertTriangle } from 'lucide-react';
-import { ElevenLabsCredits } from '@/hooks/useElevenLabsCredits';
+import type { ElevenLabsSource } from '@/hooks/useElevenLabsCreditsMulti';
 
 interface Props {
-  data: ElevenLabsCredits | null;
+  data: ElevenLabsSource | null;
   loading: boolean;
   error: string | null;
   onRefresh: () => void;
+  /** Sufixo opcional p/ identificar o módulo (ex.: "Ligações IA", "Propostas"). */
+  moduleLabel?: string;
 }
 
 const fmt = (n: number) => new Intl.NumberFormat('pt-BR').format(n);
 
-export function ElevenLabsCreditsCard({ data, loading, error, onRefresh }: Props) {
+export function ElevenLabsCreditsCard({ data, loading, error, onRefresh, moduleLabel }: Props) {
+  const configured = data?.configured !== false;
+  const sourceError = error || data?.error || null;
   const pct = data?.pct ?? 0;
-  const critical = pct >= 90;
-  const warning = pct >= 80 && pct < 90;
+  const critical = configured && pct >= 90;
+  const warning = configured && pct >= 80 && pct < 90;
 
   const toneBorder = critical
     ? 'border-destructive/40'
@@ -35,6 +39,10 @@ export function ElevenLabsCreditsCard({ data, loading, error, onRefresh }: Props
       ? '[&>div]:bg-amber-500'
       : '[&>div]:bg-fuchsia-500';
 
+  const title = moduleLabel
+    ? `ElevenLabs — ${moduleLabel}`
+    : 'ElevenLabs — Créditos';
+
   return (
     <Card className={`${toneBorder} transition-colors`}>
       <CardContent className="p-4">
@@ -44,8 +52,8 @@ export function ElevenLabsCreditsCard({ data, loading, error, onRefresh }: Props
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold text-foreground">ElevenLabs — Créditos</h3>
-              <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-foreground truncate">{title}</h3>
+              <div className="flex items-center gap-2 shrink-0">
                 {data?.tier && (
                   <Badge variant="outline" className="text-[10px] uppercase">{data.tier}</Badge>
                 )}
@@ -62,10 +70,14 @@ export function ElevenLabsCreditsCard({ data, loading, error, onRefresh }: Props
               </div>
             </div>
 
-            {error ? (
+            {!configured ? (
+              <div className="mt-2 text-xs text-muted-foreground">
+                Chave da ElevenLabs não configurada{moduleLabel ? ` para ${moduleLabel}` : ''}.
+              </div>
+            ) : sourceError ? (
               <div className="mt-2 flex items-start gap-2 text-xs text-destructive">
                 <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                <span className="break-words">{error}</span>
+                <span className="break-words">{sourceError}</span>
               </div>
             ) : !data && loading ? (
               <p className="text-xs text-muted-foreground mt-2">Consultando saldo...</p>
