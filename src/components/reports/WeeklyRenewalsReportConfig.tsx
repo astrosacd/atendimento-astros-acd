@@ -500,6 +500,10 @@ export function WeeklyRenewalsReportConfig() {
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
               Salvar configuração
             </Button>
+            <Button onClick={handlePreview} disabled={previewing} variant="secondary" className="flex-1">
+              {previewing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Eye className="h-4 w-4 mr-2" />}
+              Ver relatório agora
+            </Button>
             <Button onClick={handleTest} disabled={testing} variant="outline" className="flex-1">
               {testing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
               Enviar teste agora
@@ -518,13 +522,32 @@ export function WeeklyRenewalsReportConfig() {
       {preview && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Pré-visualização do último teste</CardTitle>
+            <CardTitle className="text-base flex items-center justify-between gap-2">
+              <span>Pré-visualização do relatório</span>
+              {previewCounts && (
+                <span className="text-xs font-normal text-muted-foreground">
+                  {previewCounts.renewals} renovação(ões) · {previewCounts.payments} pagamento(s) · {previewCounts.churnRisk} churn
+                </span>
+              )}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <Textarea readOnly value={preview} className="font-mono text-xs min-h-[300px]" />
+          <CardContent className="space-y-4">
+            {previewHtml && (
+              <div
+                className="rounded-md border bg-white overflow-auto max-h-[500px]"
+                dangerouslySetInnerHTML={{ __html: previewHtml }}
+              />
+            )}
+            <details>
+              <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                Ver versão em texto (igual à mensagem do WhatsApp)
+              </summary>
+              <Textarea readOnly value={preview} className="font-mono text-xs min-h-[300px] mt-2" />
+            </details>
           </CardContent>
         </Card>
       )}
+
 
       {/* Histórico */}
       <Card>
