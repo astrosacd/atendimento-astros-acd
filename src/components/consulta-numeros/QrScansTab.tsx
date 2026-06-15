@@ -792,6 +792,18 @@ export function QrScansTab() {
                               const lastCk = numero ? latestCheckinByNumero.get(numero) : null;
                               const modeloNome = lastCk?.modelo_snapshot ?? null;
                               const isToday = lastCk?.data_checkin === todayBrt;
+                              const checkinStatus = lastCk?.status_conexao;
+                              const statusVisual =
+                                checkinStatus === "conectado"
+                                  ? { variant: "default" as const, icon: "🟢", className: "", label: "Conectado" }
+                                  : checkinStatus === "desconectado_cliente"
+                                    ? {
+                                        variant: "outline" as const,
+                                        icon: "🟡",
+                                        className: "border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                                        label: "Desconectado do Cliente",
+                                      }
+                                    : { variant: "destructive" as const, icon: "🔴", className: "", label: "Desconectado" };
                               return (
                                 <div className="flex flex-col gap-1 items-start">
                                   {lastCk ? (
@@ -807,14 +819,11 @@ export function QrScansTab() {
                                         </Badge>
                                       ) : (
                                         <Badge
-                                          variant={
-                                            lastCk.status_conexao === "conectado"
-                                              ? "default"
-                                              : "destructive"
-                                          }
-                                          className="text-[10px] py-0 px-1.5 gap-1 inline-flex items-center w-fit max-w-full whitespace-nowrap leading-tight"
+                                          variant={statusVisual.variant}
+                                          className={`text-[10px] py-0 px-1.5 gap-1 inline-flex items-center w-fit max-w-full whitespace-nowrap leading-tight ${statusVisual.className}`}
+                                          title={statusVisual.label}
                                         >
-                                          <span>{lastCk.status_conexao === "conectado" ? "🟢" : "🔴"}</span>
+                                          <span>{statusVisual.icon}</span>
                                           <span className="truncate">{modeloNome ?? "—"}</span>
                                         </Badge>
                                       )}
