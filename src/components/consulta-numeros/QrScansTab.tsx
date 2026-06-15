@@ -239,7 +239,6 @@ export function QrScansTab() {
     if (!matchesSearch) return false;
     if (numerosModeloFilter === "__all__") return true;
     const lastCk = latestCheckinByNumero.get(rd.numero || "");
-    if (numerosModeloFilter === "__sem__") return !lastCk;
     if (numerosModeloFilter === "__externo__") return !!lastCk && lastCk.modelo_id == null;
     return !!lastCk && lastCk.modelo_id === numerosModeloFilter;
   });
@@ -607,30 +606,20 @@ export function QrScansTab() {
                       searchPlaceholder="Buscar modelo…"
                       emptyMessage="Sem modelos"
                       options={(() => {
-                        // Sincroniza com a Pesquisa Rápida do Dashboard:
-                        // só lista modelos que possuem ao menos 1 número com check-in.
-                        const modelosComNumeros = new Set<string>();
+                        // Lista os modelos cadastrados para filtro direto por aparelho.
                         let temExterno = false;
-                        let temSemCheckin = false;
                         for (const num of autoHosp as any[]) {
                           const lastCk = latestCheckinByNumero.get(String(num?.numero ?? ""));
-                          if (!lastCk) {
-                            temSemCheckin = true;
-                          } else if (lastCk.modelo_id == null) {
+                          if (lastCk?.modelo_id == null && lastCk) {
                             temExterno = true;
-                          } else {
-                            modelosComNumeros.add(lastCk.modelo_id);
                           }
                         }
                         const opts: { value: string; label: string }[] = [
                           { value: "__all__", label: "Todos os modelos" },
                         ];
                         if (temExterno) opts.push({ value: "__externo__", label: "📦 Aparelho externo" });
-                        if (temSemCheckin) opts.push({ value: "__sem__", label: "⚠️ Sem check-in" });
                         for (const m of modelosList) {
-                          if (modelosComNumeros.has(m.id)) {
-                            opts.push({ value: m.id, label: m.nome });
-                          }
+                          opts.push({ value: m.id, label: m.nome });
                         }
                         return opts;
                       })()}
