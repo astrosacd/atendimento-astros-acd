@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Send, Save, X, Plus, History, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeFunction } from "@/utils/invokeFunction";
 import { toast } from "sonner";
 
 const DAYS_OF_WEEK = [
@@ -178,7 +179,7 @@ export function WeeklyRenewalsReportConfig() {
     setTesting(true);
     setPreview("");
     try {
-      const { data, error } = await supabase.functions.invoke("weekly-renewals-report", {
+      const data = await invokeFunction("weekly-renewals-report", {
         body: {
           test: true,
           overrides: {
@@ -196,8 +197,6 @@ export function WeeklyRenewalsReportConfig() {
           },
         },
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
       setPreview(data?.preview || "");
       const errors = (data?.results || []).filter((r: any) => r.status === "error");
       if (errors.length > 0) {
@@ -219,11 +218,9 @@ export function WeeklyRenewalsReportConfig() {
     setPreviewHtml("");
     setPreviewCounts(null);
     try {
-      const { data, error } = await supabase.functions.invoke("weekly-renewals-report", {
+      const data = await invokeFunction("weekly-renewals-report", {
         body: { preview_only: true },
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
       setPreview(data?.preview || "");
       setPreviewHtml(data?.html || "");
       setPreviewCounts(data?.counts || null);

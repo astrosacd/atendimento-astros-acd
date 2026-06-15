@@ -239,7 +239,6 @@ export function QrScansTab() {
     if (!matchesSearch) return false;
     if (numerosModeloFilter === "__all__") return true;
     const lastCk = latestCheckinByNumero.get(rd.numero || "");
-    if (numerosModeloFilter === "__sem__") return !lastCk;
     if (numerosModeloFilter === "__externo__") return !!lastCk && lastCk.modelo_id == null;
     return !!lastCk && lastCk.modelo_id === numerosModeloFilter;
   });
@@ -607,30 +606,20 @@ export function QrScansTab() {
                       searchPlaceholder="Buscar modelo…"
                       emptyMessage="Sem modelos"
                       options={(() => {
-                        // Sincroniza com a Pesquisa Rápida do Dashboard:
-                        // só lista modelos que possuem ao menos 1 número com check-in.
-                        const modelosComNumeros = new Set<string>();
+                        // Lista os modelos cadastrados para filtro direto por aparelho.
                         let temExterno = false;
-                        let temSemCheckin = false;
                         for (const num of autoHosp as any[]) {
                           const lastCk = latestCheckinByNumero.get(String(num?.numero ?? ""));
-                          if (!lastCk) {
-                            temSemCheckin = true;
-                          } else if (lastCk.modelo_id == null) {
+                          if (lastCk?.modelo_id == null && lastCk) {
                             temExterno = true;
-                          } else {
-                            modelosComNumeros.add(lastCk.modelo_id);
                           }
                         }
                         const opts: { value: string; label: string }[] = [
                           { value: "__all__", label: "Todos os modelos" },
                         ];
                         if (temExterno) opts.push({ value: "__externo__", label: "📦 Aparelho externo" });
-                        if (temSemCheckin) opts.push({ value: "__sem__", label: "⚠️ Sem check-in" });
                         for (const m of modelosList) {
-                          if (modelosComNumeros.has(m.id)) {
-                            opts.push({ value: m.id, label: m.nome });
-                          }
+                          opts.push({ value: m.id, label: m.nome });
                         }
                         return opts;
                       })()}
@@ -803,6 +792,18 @@ export function QrScansTab() {
                               const lastCk = numero ? latestCheckinByNumero.get(numero) : null;
                               const modeloNome = lastCk?.modelo_snapshot ?? null;
                               const isToday = lastCk?.data_checkin === todayBrt;
+                              const checkinStatus = lastCk?.status_conexao;
+                              const statusVisual =
+                                checkinStatus === "conectado"
+                                  ? { variant: "default" as const, icon: "🟢", className: "", label: "Conectado" }
+                                  : checkinStatus === "desconectado_cliente"
+                                    ? {
+                                        variant: "outline" as const,
+                                        icon: "🟡",
+                                        className: "border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                                        label: "Desconectado do Cliente",
+                                      }
+                                    : { variant: "destructive" as const, icon: "🔴", className: "", label: "Desconectado" };
                               return (
                                 <div className="flex flex-col gap-1 items-start">
                                   {lastCk ? (
@@ -818,14 +819,11 @@ export function QrScansTab() {
                                         </Badge>
                                       ) : (
                                         <Badge
-                                          variant={
-                                            lastCk.status_conexao === "conectado"
-                                              ? "default"
-                                              : "destructive"
-                                          }
-                                          className="text-[10px] py-0 px-1.5 gap-1 inline-flex items-center w-fit max-w-full whitespace-nowrap leading-tight"
+                                          variant={statusVisual.variant}
+                                          className={`text-[10px] py-0 px-1.5 gap-1 inline-flex items-center w-fit max-w-full whitespace-nowrap leading-tight ${statusVisual.className}`}
+                                          title={statusVisual.label}
                                         >
-                                          <span>{lastCk.status_conexao === "conectado" ? "🟢" : "🔴"}</span>
+                                          <span>{statusVisual.icon}</span>
                                           <span className="truncate">{modeloNome ?? "—"}</span>
                                         </Badge>
                                       )}
