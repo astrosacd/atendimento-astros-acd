@@ -862,8 +862,18 @@ export function QrScansTab() {
                               );
                             })()}
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
-                            {n.auto_hospedado_observacao ?? "—"}
+                          <TableCell className="text-xs text-muted-foreground max-w-[220px]">
+                            {(() => {
+                              const numero = (n.row_data as any)?.numero ?? "";
+                              const lastCk = numero ? latestCheckinByNumero.get(numero) : null;
+                              const obs = (lastCk?.observacao && lastCk.observacao.trim()) || n.auto_hospedado_observacao || "";
+                              if (!obs) return "—";
+                              return (
+                                <span className="whitespace-pre-wrap break-words italic" title={obs}>
+                                  "{obs}"
+                                </span>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex flex-col items-end gap-2">
