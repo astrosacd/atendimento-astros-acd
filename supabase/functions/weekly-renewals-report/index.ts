@@ -301,10 +301,10 @@ function buildTextReport(opts: {
 }
 
 /**
- * Gráfico de barras SVG (renovações + pagamentos por dia da semana).
- * Inline SVG roda no Gmail/Outlook/Apple Mail.
+ * Gráfico de barras em HTML/table (Gmail/Outlook/Apple Mail).
+ * Gmail remove SVG inline e mostra só o texto bruto — por isso usamos tabela.
  */
-function buildChartSvg(current: WeekData, weekStart: Date): string {
+function buildChartSvg(current: WeekData, _weekStart: Date): string {
   const days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
   const renByDay = new Array(7).fill(0);
   const payByDay = new Array(7).fill(0);
@@ -319,36 +319,41 @@ function buildChartSvg(current: WeekData, weekStart: Date): string {
     if (!isNaN(d.getTime())) payByDay[d.getDay()] += 1;
   }
   const max = Math.max(1, ...renByDay, ...payByDay);
-  const W = 600, H = 220, padX = 40, padY = 30, chartH = H - padY * 2;
-  const bandW = (W - padX * 2) / 7;
-  const barW = bandW / 2 - 4;
+  const maxBarPx = 120;
 
-  let bars = "";
+  let cols = "";
   for (let i = 0; i < 7; i++) {
-    const xCenter = padX + bandW * i + bandW / 2;
-    const rH = Math.round((renByDay[i] / max) * chartH);
-    const pH = Math.round((payByDay[i] / max) * chartH);
-    const yR = padY + chartH - rH;
-    const yP = padY + chartH - pH;
-    bars += `<rect x="${xCenter - barW - 1}" y="${yR}" width="${barW}" height="${rH}" rx="3" fill="#6366f1"/>`;
-    bars += `<rect x="${xCenter + 1}" y="${yP}" width="${barW}" height="${pH}" rx="3" fill="#10b981"/>`;
-    if (renByDay[i] > 0) bars += `<text x="${xCenter - barW / 2 - 1}" y="${yR - 4}" text-anchor="middle" font-size="10" fill="#374151">${renByDay[i]}</text>`;
-    if (payByDay[i] > 0) bars += `<text x="${xCenter + barW / 2 + 1}" y="${yP - 4}" text-anchor="middle" font-size="10" fill="#374151">${payByDay[i]}</text>`;
-    bars += `<text x="${xCenter}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#6b7280">${days[i]}</text>`;
+    const rH = Math.round((renByDay[i] / max) * maxBarPx);
+    const pH = Math.round((payByDay[i] / max) * maxBarPx);
+    cols += `
+      <td valign="bottom" align="center" style="padding:0 4px;vertical-align:bottom;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr>
+          <td valign="bottom" style="vertical-align:bottom;padding-right:2px;">
+            <div style="font-size:10px;color:#374151;line-height:1;margin-bottom:2px;height:12px;">${renByDay[i] || ""}</div>
+            <div style="width:14px;height:${rH}px;background:#6366f1;border-radius:3px 3px 0 0;"></div>
+          </td>
+          <td valign="bottom" style="vertical-align:bottom;padding-left:2px;">
+            <div style="font-size:10px;color:#374151;line-height:1;margin-bottom:2px;height:12px;">${payByDay[i] || ""}</div>
+            <div style="width:14px;height:${pH}px;background:#10b981;border-radius:3px 3px 0 0;"></div>
+          </td>
+        </tr></table>
+        <div style="font-size:11px;color:#6b7280;margin-top:6px;border-top:1px solid #d1d5db;padding-top:4px;">${days[i]}</div>
+      </td>`;
   }
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="100%" style="max-width:600px;background:#f9fafb;border-radius:8px;display:block">
-  <text x="${W / 2}" y="18" text-anchor="middle" font-size="13" font-weight="bold" fill="#111827">Atividade por dia da semana</text>
-  <line x1="${padX}" y1="${padY + chartH}" x2="${W - padX}" y2="${padY + chartH}" stroke="#d1d5db" stroke-width="1"/>
-  ${bars}
-  <g transform="translate(${padX}, ${H - 26})">
-    <rect x="0" y="0" width="10" height="10" fill="#6366f1" rx="2"/>
-    <text x="14" y="9" font-size="10" fill="#374151">Renovações</text>
-    <rect x="90" y="0" width="10" height="10" fill="#10b981" rx="2"/>
-    <text x="104" y="9" font-size="10" fill="#374151">Pagamentos</text>
-  </g>
-</svg>`;
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;background:#f9fafb;border-radius:8px;padding:16px;margin:0 auto;">
+  <tr><td style="font-size:13px;font-weight:bold;color:#111827;padding-bottom:12px;text-align:center;">Atividade por dia da semana</td></tr>
+  <tr><td>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="height:${maxBarPx + 40}px;">
+      <tr>${cols}</tr>
+    </table>
+  </td></tr>
+  <tr><td style="padding-top:12px;text-align:center;font-size:11px;color:#374151;">
+    <span style="display:inline-block;width:10px;height:10px;background:#6366f1;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Renovações
+    <span style="display:inline-block;width:10px;height:10px;background:#10b981;border-radius:2px;vertical-align:middle;margin:0 4px 0 16px;"></span>Pagamentos
+  </td></tr>
+</table>`;
 }
 
 function buildHtmlReport(textReport: string, chartSvg: string): string {
