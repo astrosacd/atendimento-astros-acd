@@ -12,6 +12,7 @@ import { CheckinInlineDialog } from '@/components/consulta-numeros/CheckinInline
 import { usePermissions } from '@/hooks/usePermissions';
 import { useLatestCheckinByNumero } from '@/hooks/useCheckinDiario';
 import { useNumerosModelos } from '@/hooks/useNumerosAquecimento';
+import { useAutoHospedadoNumbers } from '@/hooks/useQrScan';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 
 
@@ -27,6 +28,7 @@ export function QuickNumberSearch() {
   const { data: insuranceStatus } = useInsurancePaymentStatusHybrid();
   const latestCheckinByNumero = useLatestCheckinByNumero();
   const { data: modelosList = [] } = useNumerosModelos();
+  const { data: autoHosp = [] } = useAutoHospedadoNumbers();
 
 
 
@@ -116,16 +118,20 @@ export function QuickNumberSearch() {
             searchPlaceholder="Buscar modelo…"
             emptyMessage="Sem modelos"
             options={(() => {
-              const modeloIdsComNumeros = new Set<string>();
-              let temExterno = false;
-              for (const ck of latestCheckinByNumero.values()) {
-                if (ck.modelo_id == null) temExterno = true;
-                else modeloIdsComNumeros.add(ck.modelo_id);
+              // Sincronizado com QR Scans: somente modelos vinculados a números auto-hospedados.
+              const modeloIdsComAutoHosp = new Set<string>();
+              for (const num of autoHosp as any[]) {
+                const numero = String(num?.row_data?.numero ?? num?.numero ?? '');
+                if (!numero) continue;
+                const ck = latestCheckinByNumero.get(numero);
+                if (ck?.modelo_id) modeloIdsComAutoHosp.add(ck.modelo_id);
               }
-              const opts: { value: string; label: string }[] = [];
-              if (temExterno) opts.push({ value: '__externo__', label: '📦 Aparelho externo' });
+              const opts: { value: string; label: string }[] = [
+                // "Aparelho externo" sempre disponível (entrada manual).
+                { value: '__externo__', label: '📦 Aparelho externo' },
+              ];
               for (const m of modelosList) {
-                if (modeloIdsComNumeros.has(m.id)) opts.push({ value: m.id, label: m.nome });
+                if (modeloIdsComAutoHosp.has(m.id)) opts.push({ value: m.id, label: m.nome });
               }
               return opts;
             })()}

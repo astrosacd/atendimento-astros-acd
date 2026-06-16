@@ -606,20 +606,19 @@ export function QrScansTab() {
                       searchPlaceholder="Buscar modelo…"
                       emptyMessage="Sem modelos"
                       options={(() => {
-                        // Lista os modelos cadastrados para filtro direto por aparelho.
-                        let temExterno = false;
+                        // Modelos disponíveis = somente os que possuem ≥1 número auto-hospedado vinculado.
+                        const modeloIdsComAutoHosp = new Set<string>();
                         for (const num of autoHosp as any[]) {
-                          const lastCk = latestCheckinByNumero.get(String(num?.numero ?? ""));
-                          if (lastCk?.modelo_id == null && lastCk) {
-                            temExterno = true;
-                          }
+                          const lastCk = latestCheckinByNumero.get(String(num?.row_data?.numero ?? num?.numero ?? ""));
+                          if (lastCk?.modelo_id) modeloIdsComAutoHosp.add(lastCk.modelo_id);
                         }
                         const opts: { value: string; label: string }[] = [
                           { value: "__all__", label: "Todos os modelos" },
+                          // "Aparelho externo" sempre disponível para seleção manual.
+                          { value: "__externo__", label: "📦 Aparelho externo" },
                         ];
-                        if (temExterno) opts.push({ value: "__externo__", label: "📦 Aparelho externo" });
                         for (const m of modelosList) {
-                          opts.push({ value: m.id, label: m.nome });
+                          if (modeloIdsComAutoHosp.has(m.id)) opts.push({ value: m.id, label: m.nome });
                         }
                         return opts;
                       })()}
@@ -863,8 +862,18 @@ export function QrScansTab() {
                               );
                             })()}
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
-                            {n.auto_hospedado_observacao ?? "—"}
+                          <TableCell className="text-xs text-muted-foreground max-w-[220px]">
+                            {(() => {
+                              const numero = (n.row_data as any)?.numero ?? "";
+                              const lastCk = numero ? latestCheckinByNumero.get(numero) : null;
+                              const obs = (lastCk?.observacao && lastCk.observacao.trim()) || n.auto_hospedado_observacao || "";
+                              if (!obs) return "—";
+                              return (
+                                <span className="whitespace-pre-wrap break-words italic" title={obs}>
+                                  "{obs}"
+                                </span>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex flex-col items-end gap-2">

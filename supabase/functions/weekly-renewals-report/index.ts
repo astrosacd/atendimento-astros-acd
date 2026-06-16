@@ -39,9 +39,24 @@ function fmtCurrency(value: number, moeda: string = "BRL") {
 function fmtDate(d: string | null) {
   if (!d) return "-";
   try {
-    return new Date(d).toLocaleDateString("pt-BR");
+    return new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(d));
   } catch {
     return d;
+  }
+}
+
+function fmtDateTimeBR(d: Date = new Date()) {
+  try {
+    const parts = new Intl.DateTimeFormat("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit", second: "2-digit",
+      hour12: false,
+    }).formatToParts(d);
+    const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+    return `${get("day")}/${get("month")}/${get("year")}, ${get("hour")}:${get("minute")}:${get("second")}`;
+  } catch {
+    return d.toISOString();
   }
 }
 
@@ -281,7 +296,7 @@ function buildTextReport(opts: {
   }
 
   lines.push(`━━━━━━━━━━━━━━━━━━━`);
-  lines.push(`_Gerado automaticamente — ${new Date().toLocaleString("pt-BR")}_`);
+  lines.push(`_Gerado automaticamente — ${fmtDateTimeBR()} (Brasília)_`);
   return lines.join("\n");
 }
 
@@ -530,7 +545,7 @@ serve(async (req) => {
         const client = new SMTPClient({
           connection: { hostname: "smtp.gmail.com", port: 465, tls: true, auth: { username: gmailUser, password: gmailPass } },
         });
-        const subject = `📊 Relatório Semanal de Clientes — ${fmtDate(weekStart.toISOString())} a ${fmtDate(weekEnd.toISOString())}`;
+        const subject = `Relatorio Semanal de Clientes - ${fmtDate(weekStart.toISOString())} a ${fmtDate(weekEnd.toISOString())}`;
         for (const to of effective.email_recipients) {
           try {
             await client.send({
