@@ -296,7 +296,7 @@ function buildTextReport(opts: {
   }
 
   lines.push(`━━━━━━━━━━━━━━━━━━━`);
-  lines.push(`_Gerado automaticamente — ${new Date().toLocaleString("pt-BR")}_`);
+  lines.push(`_Gerado automaticamente — ${fmtDateTimeBR()} (Brasília)_`);
   return lines.join("\n");
 }
 
