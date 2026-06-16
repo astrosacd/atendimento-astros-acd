@@ -28,6 +28,7 @@ export function QuickNumberSearch() {
   const { data: insuranceStatus } = useInsurancePaymentStatusHybrid();
   const latestCheckinByNumero = useLatestCheckinByNumero();
   const { data: modelosList = [] } = useNumerosModelos();
+  const { data: autoHosp = [] } = useAutoHospedadoNumbers();
 
 
 
