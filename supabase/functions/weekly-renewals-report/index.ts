@@ -545,7 +545,7 @@ serve(async (req) => {
         const client = new SMTPClient({
           connection: { hostname: "smtp.gmail.com", port: 465, tls: true, auth: { username: gmailUser, password: gmailPass } },
         });
-        const subject = `📊 Relatório Semanal de Clientes — ${fmtDate(weekStart.toISOString())} a ${fmtDate(weekEnd.toISOString())}`;
+        const subject = `Relatorio Semanal de Clientes - ${fmtDate(weekStart.toISOString())} a ${fmtDate(weekEnd.toISOString())}`;
         for (const to of effective.email_recipients) {
           try {
             await client.send({
