@@ -12,6 +12,7 @@ import { CheckinInlineDialog } from '@/components/consulta-numeros/CheckinInline
 import { usePermissions } from '@/hooks/usePermissions';
 import { useLatestCheckinByNumero } from '@/hooks/useCheckinDiario';
 import { useNumerosModelos } from '@/hooks/useNumerosAquecimento';
+import { useAutoHospedadoNumbers } from '@/hooks/useQrScan';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 
 
