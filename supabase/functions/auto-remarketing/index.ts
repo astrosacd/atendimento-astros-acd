@@ -256,24 +256,76 @@ serve(async (req: Request) => {
               let endpoint = `/sendText/${config.evolution_instance_name}`;
               let body: any = { number: cleanNumber };
 
-              if (isGhostMode && (config.ghost_audio_url || config.ghost_video_url)) {
-                const mediaUrl = config.ghost_audio_url || config.ghost_video_url;
-                const mediaType = config.ghost_audio_url ? 'audio' : 'video';
-                
-                endpoint = mediaType === 'audio' 
+              // Resolve mídia do ghost: dinâmico (TTS na hora) > estático (URL salva)
+              let ghostMediaUrl: string | null = null;
+              let ghostMediaType: 'audio' | 'video' | null = null;
+
+              if (isGhostMode) {
+                if (config.ghost_mode_type === 'dynamic' && config.elevenlabs_api_key && config.tts_text) {
+                  try {
+                    const ttsText = String(config.tts_text).replace(/\{\{nome_cliente\}\}/g, clientName);
+                    const voiceId = config.elevenlabs_voice_id || 'JBFqnCBsd6RMkjVDRZzb';
+                    console.log(`🎙️ Generating dynamic TTS for ${proposal.id} (voice=${voiceId})`);
+                    const ttsRes = await fetch(
+                      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
+                      {
+                        method: 'POST',
+                        headers: { 'xi-api-key': config.elevenlabs_api_key, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          text: ttsText,
+                          model_id: 'eleven_multilingual_v2',
+                          voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0.4, use_speaker_boost: true },
+                        }),
+                      }
+                    );
+                    if (!ttsRes.ok) {
+                      const errTxt = await ttsRes.text();
+                      throw new Error(`TTS ${ttsRes.status}: ${errTxt.slice(0, 200)}`);
+                    }
+                    const audioBuf = new Uint8Array(await ttsRes.arrayBuffer());
+                    const path = `ghost/auto-${proposal.id}-${Date.now()}.mp3`;
+                    const { error: upErr } = await supabase.storage
+                      .from('proposal-images')
+                      .upload(path, audioBuf, { upsert: true, contentType: 'audio/mpeg' });
+                    if (upErr) throw new Error(`Upload áudio: ${upErr.message}`);
+                    const { data: pub } = supabase.storage.from('proposal-images').getPublicUrl(path);
+                    ghostMediaUrl = pub.publicUrl;
+                    ghostMediaType = 'audio';
+                    console.log(`✅ Dynamic audio generated: ${ghostMediaUrl}`);
+                  } catch (ttsErr: any) {
+                    console.error(`❌ TTS dinâmico falhou para ${proposal.id}: ${ttsErr.message}`);
+                    // Fallback: tenta URL estática se houver
+                    if (config.ghost_audio_url) {
+                      ghostMediaUrl = config.ghost_audio_url;
+                      ghostMediaType = 'audio';
+                    } else if (config.ghost_video_url) {
+                      ghostMediaUrl = config.ghost_video_url;
+                      ghostMediaType = 'video';
+                    }
+                  }
+                } else if (config.ghost_audio_url) {
+                  ghostMediaUrl = config.ghost_audio_url;
+                  ghostMediaType = 'audio';
+                } else if (config.ghost_video_url) {
+                  ghostMediaUrl = config.ghost_video_url;
+                  ghostMediaType = 'video';
+                }
+              }
+
+              if (isGhostMode && ghostMediaUrl && ghostMediaType) {
+                endpoint = ghostMediaType === 'audio'
                   ? `/sendWhatsAppAudio/${config.evolution_instance_name}`
                   : `/sendMedia/${config.evolution_instance_name}`;
-                
-                body = {
-                  number: cleanNumber,
-                  [mediaType === 'audio' ? 'audio' : 'media']: mediaUrl,
-                  ...(mediaType === 'video' ? { mediaType: 'video', caption: `Vi que você olhou a proposta várias vezes! Ficou com alguma dúvida?` } : {}),
-                  delay: 1200,
-                  encoding: true
-                };
-                
-                console.log(`👻 GHOST MODE: Sending ${mediaType} to ${cleanNumber}`);
+
+                body = ghostMediaType === 'audio'
+                  ? { number: cleanNumber, audio: ghostMediaUrl, delay: 1200, encoding: true }
+                  : { number: cleanNumber, mediatype: 'video', media: ghostMediaUrl, mimetype: 'video/mp4', caption: `Vi que você olhou a proposta. Ficou alguma dúvida?`, delay: 1200 };
+
+                console.log(`👻 GHOST MODE: Sending ${ghostMediaType} to ${cleanNumber}`);
               } else {
+                if (isGhostMode) {
+                  console.warn(`⚠️ Ghost mode ativo mas sem mídia disponível (proposal ${proposal.id}) — enviando texto de remarketing`);
+                }
                 const message = generateRemarketingWhatsAppMessage(
                   clientName,
                   proposal.title,
@@ -299,7 +351,7 @@ serve(async (req: Request) => {
               }
 
               whatsappSent = true;
-              console.log(`✅ WhatsApp sent for ${proposal.id} (day ${dayNumber}${isGhostMode ? ' - GHOST' : ''})`);
+              console.log(`✅ WhatsApp sent for ${proposal.id} (day ${dayNumber}${isGhostMode ? ' - GHOST/' + (ghostMediaType || 'texto') : ''})`);
             }
           } catch (e: any) {
             console.error(`❌ WhatsApp error for ${proposal.id}:`, e.message);
