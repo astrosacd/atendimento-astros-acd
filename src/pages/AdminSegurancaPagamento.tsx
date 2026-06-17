@@ -507,6 +507,9 @@ export default function AdminSegurancaPagamento() {
                                     {payment.cliente.cobranca_ativa === false ? "Apenas Registro" : "Mensal"}
                                   </Badge>
                                 )}
+                                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium truncate" title={getPaymentProductLabel(payment)}>
+                                  📦 {getPaymentProductLabel(payment)}
+                                </span>
                                 {payment.cliente?.email && (
                                   <span className="text-[11px] text-muted-foreground truncate">
                                     {payment.cliente.email}
@@ -702,6 +705,9 @@ export default function AdminSegurancaPagamento() {
                                   ✉️ {payment.cliente.email}
                                 </p>
                               )}
+                              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium truncate" title={getPaymentProductLabel(payment)}>
+                                📦 {getPaymentProductLabel(payment)}
+                              </p>
                               {payment.cliente?.numero && (
                                 <p className="text-[11px] text-muted-foreground truncate">
                                   📱 {payment.cliente.numero}
