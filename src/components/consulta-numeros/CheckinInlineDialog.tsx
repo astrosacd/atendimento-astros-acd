@@ -163,8 +163,9 @@ export function CheckinInlineDialog({
               placeholder="Selecione um modelo disponível"
               searchPlaceholder="Buscar modelo…"
               emptyMessage="Nenhum modelo encontrado"
+              disabled={defaultIsExternal}
               options={[
-                { value: "__externo__", label: "📦 Sem modelo (aparelho externo)" },
+                { value: "__externo__", label: "📦 Aparelho externo" },
                 ...modelosComVagas.map((o) => ({
                   value: o.modelo.id,
                   label: `${o.modelo.nome} · ${o.ocupados}/${o.capacidade}${o.livres > 0 ? ` · falta ${o.livres}` : ""}`,
@@ -173,15 +174,18 @@ export function CheckinInlineDialog({
             />
             {isExterno && (
               <div className="mt-3 space-y-2">
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Modelo Manual (opcional)</Label>
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Modelo do aparelho externo *</Label>
                 <Input
                   value={manualModelo}
                   onChange={(e) => setManualModelo(e.target.value)}
                   placeholder="Ex: Redmi 13C, iPhone 11..."
                   className="h-8 text-xs"
+                  disabled={externalModelLocked}
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  Use para números em aparelhos de terceiros (não cadastrados no sistema).
+                  {externalModelLocked
+                    ? "Modelo fixo deste número externo. Para trocar, remova o número da lista e marque novamente."
+                    : "Obrigatório para registrar onde o número externo está hospedado."}
                 </p>
               </div>
             )}
