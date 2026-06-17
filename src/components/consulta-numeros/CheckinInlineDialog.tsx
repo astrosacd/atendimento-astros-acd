@@ -41,6 +41,8 @@ interface Props {
   clienteNome: string | null;
   /** Modelo já vinculado (último check-in conectado), se houver. */
   defaultModeloId?: string | null;
+  defaultIsExternal?: boolean;
+  defaultModeloManual?: string | null;
 }
 
 function deriveTipoSlot(nome: string): TipoSlot {
@@ -57,6 +59,8 @@ export function CheckinInlineDialog({
   baserowRowId,
   clienteNome,
   defaultModeloId,
+  defaultIsExternal = false,
+  defaultModeloManual,
 }: Props) {
   const { data: modelos = [] } = useNumerosModelos();
   const { data: numeros = [] } = useNumerosAquecimento();
@@ -64,19 +68,19 @@ export function CheckinInlineDialog({
   const ocupadosByModelo = useActiveCheckinsByModelo();
   const createMut = useCreateCheckin();
 
-  const [modeloId, setModeloId] = useState<string>(defaultModeloId ?? "");
+  const [modeloId, setModeloId] = useState<string>(defaultIsExternal ? "__externo__" : defaultModeloId ?? "");
   const [statusConexao, setStatusConexao] = useState<StatusConexao>("conectado");
   const [observacao, setObservacao] = useState("");
   const [manualModelo, setManualModelo] = useState("");
 
   useEffect(() => {
     if (open) {
-      setModeloId(defaultModeloId ?? "");
+      setModeloId(defaultIsExternal ? "__externo__" : defaultModeloId ?? "");
       setStatusConexao("conectado");
       setObservacao("");
-      setManualModelo("");
+      setManualModelo(defaultModeloManual ?? "");
     }
-  }, [open, defaultModeloId]);
+  }, [open, defaultModeloId, defaultIsExternal, defaultModeloManual]);
 
   const modelosComVagas = useMemo(() => {
     const vendidoId = statusList.find((s) => s.nome === "Vendido")?.id;
@@ -101,6 +105,7 @@ export function CheckinInlineDialog({
 
   const selectedModelo = modelos.find((m) => m.id === modeloId);
   const isExterno = modeloId === "__externo__";
+  const externalModelLocked = defaultIsExternal && !!defaultModeloManual?.trim();
 
   const handleSave = async () => {
     if (!modeloId) {
@@ -111,6 +116,10 @@ export function CheckinInlineDialog({
       toast({ title: "Modelo inválido", variant: "destructive" });
       return;
     }
+    if (isExterno && !manualModelo.trim()) {
+      toast({ title: "Informe o modelo manual do aparelho externo", variant: "destructive" });
+      return;
+    }
     try {
       await createMut.mutateAsync({
         numero,
@@ -118,7 +127,7 @@ export function CheckinInlineDialog({
         cliente_nome: clienteNome,
         aparelho_id: null,
         modelo_id: isExterno ? null : modeloId,
-        modelo_snapshot: isExterno ? (manualModelo.trim() || "Aparelho externo") : selectedModelo!.nome,
+        modelo_snapshot: isExterno ? manualModelo.trim() : selectedModelo!.nome,
         tipo_slot: isExterno ? "normal" : deriveTipoSlot(selectedModelo!.nome),
         status_conexao: statusConexao,
         observacao: observacao.trim() || null,
