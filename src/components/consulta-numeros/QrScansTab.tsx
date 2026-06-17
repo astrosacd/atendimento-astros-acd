@@ -192,6 +192,8 @@ export function QrScansTab() {
     baserowRowId: number | null;
     clienteNome: string | null;
     defaultModeloId: string | null;
+    defaultIsExternal?: boolean;
+    defaultModeloManual?: string | null;
   } | null>(null);
   const latestCheckinByNumero = useLatestCheckinByNumero();
   const { data: aparelhosList = [] } = useAparelhos();
@@ -784,6 +786,7 @@ export function QrScansTab() {
                               const numero = String(rd.numero ?? "");
                               const lastCk = numero ? latestCheckinByNumero.get(numero) : null;
                               const modeloNome = lastCk?.modelo_snapshot ?? null;
+                              const isExternal = !!lastCk && (lastCk as any).modelo_id == null;
                               const isToday = lastCk?.data_checkin === todayBrt;
                               const checkinStatus = lastCk?.status_conexao;
                               const statusVisual =
@@ -801,15 +804,30 @@ export function QrScansTab() {
                                 <div className="flex flex-col gap-1 items-start">
                                   {lastCk ? (
                                     <>
-                                      {(lastCk as any).modelo_id == null ? (
-                                        <Badge
-                                          variant="outline"
-                                          className="text-[10px] py-0 px-1.5 gap-1 inline-flex items-center w-fit max-w-full whitespace-nowrap leading-tight bg-muted text-muted-foreground border-muted-foreground/30"
-                                          title="Aparelho externo (não cadastrado no sistema)"
-                                        >
-                                          <span>📦</span>
-                                          <span className="truncate">Aparelho externo</span>
-                                        </Badge>
+                                      {isExternal ? (
+                                        <div className="flex flex-col gap-1 items-start max-w-[180px]">
+                                          <Badge
+                                            variant="outline"
+                                            className="text-[10px] py-0 px-1.5 gap-1 inline-flex items-center w-fit max-w-full whitespace-nowrap leading-tight bg-muted text-muted-foreground border-muted-foreground/30"
+                                            title="Aparelho externo fixo para este número"
+                                          >
+                                            <span>📦</span>
+                                            <span className="truncate">Aparelho externo</span>
+                                          </Badge>
+                                          <Badge
+                                            variant={statusVisual.variant}
+                                            className={`text-[10px] py-0 px-1.5 gap-1 inline-flex items-center w-fit max-w-full whitespace-nowrap leading-tight ${statusVisual.className}`}
+                                            title={statusVisual.label}
+                                          >
+                                            <span>{statusVisual.icon}</span>
+                                            <span className="truncate">{statusVisual.label}</span>
+                                          </Badge>
+                                          {modeloNome && modeloNome !== "Aparelho externo" && (
+                                            <span className="text-[10px] text-muted-foreground truncate max-w-full" title={modeloNome}>
+                                              {modeloNome}
+                                            </span>
+                                          )}
+                                        </div>
                                       ) : (
                                         <Badge
                                           variant={statusVisual.variant}
@@ -844,6 +862,8 @@ export function QrScansTab() {
                                         baserowRowId: n.baserow_row_id,
                                         clienteNome: rd.nome ?? rd.cliente ?? null,
                                         defaultModeloId: (lastCk as any)?.modelo_id ?? null,
+                                        defaultIsExternal: isExternal,
+                                        defaultModeloManual: isExternal && modeloNome !== "Aparelho externo" ? modeloNome : null,
                                       });
                                       setCheckinDialogOpen(true);
                                     }}
