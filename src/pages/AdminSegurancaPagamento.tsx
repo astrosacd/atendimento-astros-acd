@@ -1267,6 +1267,10 @@ export default function AdminSegurancaPagamento() {
                     </p>
                   </div>
                 </div>
+                <div className="rounded-md border bg-muted/30 p-3 space-y-1 text-sm">
+                  <p className="text-[10px] uppercase text-muted-foreground font-semibold">Produto</p>
+                  <p className="font-medium break-words">{getPaymentProductLabel(reasonDialog.payment)}</p>
+                </div>
 
                 <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-amber-600 flex items-center gap-1">
