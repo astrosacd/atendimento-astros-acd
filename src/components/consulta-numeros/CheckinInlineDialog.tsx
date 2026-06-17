@@ -32,7 +32,6 @@ import {
   type TipoSlot,
   type StatusConexao,
 } from "@/hooks/useCheckinDiario";
-import { Smartphone } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -68,18 +67,17 @@ export function CheckinInlineDialog({
   const [modeloId, setModeloId] = useState<string>(defaultModeloId ?? "");
   const [statusConexao, setStatusConexao] = useState<StatusConexao>("conectado");
   const [observacao, setObservacao] = useState("");
-
   const [manualModelo, setManualModelo] = useState("");
+
   useEffect(() => {
     if (open) {
       setModeloId(defaultModeloId ?? "");
       setStatusConexao("conectado");
-      setManualModelo("");
       setObservacao("");
+      setManualModelo("");
     }
   }, [open, defaultModeloId]);
 
-  // Calcula vagas por modelo (mesma lógica do CapacityBanner)
   const modelosComVagas = useMemo(() => {
     const vendidoId = statusList.find((s) => s.nome === "Vendido")?.id;
     const estoque = vendidoId
@@ -88,12 +86,12 @@ export function CheckinInlineDialog({
 
     return modelos
       .filter((m) => m.capacidade_whatsapp > 0)
+      .filter((m) => m.aparece_no_checkin !== false || m.id === defaultModeloId)
+      .map((m) => {
         const numbersInAquecimento = new Set(estoque.filter((n) => n.modelo_id === m.id).map(n => n.numero));
-        const numbersWithCheckin = ocupadosByModelo.get(m.id)?.numbers ?? new Set<string>();
+        const numbersWithCheckin = (ocupadosByModelo.get(m.id) as any)?.numbers ?? new Set<string>();
         const allUniqueNumbers = new Set([...numbersInAquecimento, ...numbersWithCheckin]);
         const ocupados = allUniqueNumbers.size;
-        const extra = ocupadosByModelo.get(m.id)?.total ?? 0;
-        const ocupados = doModelo + extra;
         const livres = Math.max(0, m.capacidade_whatsapp - ocupados);
         return { modelo: m, ocupados, capacidade: m.capacidade_whatsapp, livres };
       })
@@ -117,10 +115,10 @@ export function CheckinInlineDialog({
       await createMut.mutateAsync({
         numero,
         baserow_row_id: baserowRowId,
-        modelo_snapshot: isExterno ? (manualModelo.trim() || "Aparelho externo") : selectedModelo!.nome,
+        cliente_nome: clienteNome,
         aparelho_id: null,
         modelo_id: isExterno ? null : modeloId,
-        modelo_snapshot: isExterno ? "Aparelho externo" : selectedModelo!.nome,
+        modelo_snapshot: isExterno ? (manualModelo.trim() || "Aparelho externo") : selectedModelo!.nome,
         tipo_slot: isExterno ? "normal" : deriveTipoSlot(selectedModelo!.nome),
         status_conexao: statusConexao,
         observacao: observacao.trim() || null,
@@ -161,8 +159,11 @@ export function CheckinInlineDialog({
                 ...modelosComVagas.map((o) => ({
                   value: o.modelo.id,
                   label: `${o.modelo.nome} · ${o.ocupados}/${o.capacidade}${o.livres > 0 ? ` · falta ${o.livres}` : ""}`,
+                })),
+              ]}
+            />
             {isExterno && (
-              <div className="mt-3">
+              <div className="mt-3 space-y-2">
                 <Label className="text-[10px] uppercase font-bold text-muted-foreground">Modelo Manual (opcional)</Label>
                 <Input
                   value={manualModelo}
@@ -170,15 +171,10 @@ export function CheckinInlineDialog({
                   placeholder="Ex: Redmi 13C, iPhone 11..."
                   className="h-8 text-xs"
                 />
+                <p className="text-[10px] text-muted-foreground">
+                  Use para números em aparelhos de terceiros (não cadastrados no sistema).
+                </p>
               </div>
-            )}
-                })),
-              ]}
-            />
-            {isExterno && (
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Use para números em aparelhos de terceiros (não cadastrados no sistema).
-              </p>
             )}
             {modelosComVagas.length === 0 && !isExterno && (
               <p className="text-[10px] text-muted-foreground mt-1">
