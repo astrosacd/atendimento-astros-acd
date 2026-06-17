@@ -8,9 +8,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -31,7 +31,6 @@ import {
   type TipoSlot,
   type StatusConexao,
 } from "@/hooks/useCheckinDiario";
-import { Smartphone } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -41,6 +40,9 @@ interface Props {
   clienteNome: string | null;
   /** Modelo já vinculado (último check-in conectado), se houver. */
   defaultModeloId?: string | null;
+  defaultIsExternal?: boolean;
+  defaultModeloManual?: string | null;
+  defaultStatusConexao?: StatusConexao | null;
 }
 
 function deriveTipoSlot(nome: string): TipoSlot {
@@ -57,6 +59,9 @@ export function CheckinInlineDialog({
   baserowRowId,
   clienteNome,
   defaultModeloId,
+  defaultIsExternal = false,
+  defaultModeloManual,
+  defaultStatusConexao,
 }: Props) {
   const { data: modelos = [] } = useNumerosModelos();
   const { data: numeros = [] } = useNumerosAquecimento();
@@ -64,19 +69,20 @@ export function CheckinInlineDialog({
   const ocupadosByModelo = useActiveCheckinsByModelo();
   const createMut = useCreateCheckin();
 
-  const [modeloId, setModeloId] = useState<string>(defaultModeloId ?? "");
-  const [statusConexao, setStatusConexao] = useState<StatusConexao>("conectado");
+  const [modeloId, setModeloId] = useState<string>(defaultIsExternal ? "__externo__" : defaultModeloId ?? "");
+  const [statusConexao, setStatusConexao] = useState<StatusConexao>(defaultStatusConexao ?? "conectado");
   const [observacao, setObservacao] = useState("");
+  const [manualModelo, setManualModelo] = useState("");
 
   useEffect(() => {
     if (open) {
-      setModeloId(defaultModeloId ?? "");
-      setStatusConexao("conectado");
+      setModeloId(defaultIsExternal ? "__externo__" : defaultModeloId ?? "");
+      setStatusConexao(defaultStatusConexao ?? "conectado");
       setObservacao("");
+      setManualModelo(defaultModeloManual ?? "");
     }
-  }, [open, defaultModeloId]);
+  }, [open, defaultModeloId, defaultIsExternal, defaultModeloManual, defaultStatusConexao]);
 
-  // Calcula vagas por modelo (mesma lógica do CapacityBanner)
   const modelosComVagas = useMemo(() => {
     const vendidoId = statusList.find((s) => s.nome === "Vendido")?.id;
     const estoque = vendidoId
@@ -87,9 +93,10 @@ export function CheckinInlineDialog({
       .filter((m) => m.capacidade_whatsapp > 0)
       .filter((m) => m.aparece_no_checkin !== false || m.id === defaultModeloId)
       .map((m) => {
-        const doModelo = estoque.filter((n) => n.modelo_id === m.id).length;
-        const extra = ocupadosByModelo.get(m.id)?.total ?? 0;
-        const ocupados = doModelo + extra;
+        const numbersInAquecimento = new Set(estoque.filter((n) => n.modelo_id === m.id).map(n => n.numero));
+        const numbersWithCheckin = (ocupadosByModelo.get(m.id) as any)?.numbers ?? new Set<string>();
+        const allUniqueNumbers = new Set([...numbersInAquecimento, ...numbersWithCheckin]);
+        const ocupados = allUniqueNumbers.size;
         const livres = Math.max(0, m.capacidade_whatsapp - ocupados);
         return { modelo: m, ocupados, capacidade: m.capacidade_whatsapp, livres };
       })
@@ -99,6 +106,7 @@ export function CheckinInlineDialog({
 
   const selectedModelo = modelos.find((m) => m.id === modeloId);
   const isExterno = modeloId === "__externo__";
+  const externalModelLocked = defaultIsExternal && !!defaultModeloManual?.trim();
 
   const handleSave = async () => {
     if (!modeloId) {
@@ -109,6 +117,10 @@ export function CheckinInlineDialog({
       toast({ title: "Modelo inválido", variant: "destructive" });
       return;
     }
+    if (isExterno && !manualModelo.trim()) {
+      toast({ title: "Informe o modelo manual do aparelho externo", variant: "destructive" });
+      return;
+    }
     try {
       await createMut.mutateAsync({
         numero,
@@ -116,7 +128,7 @@ export function CheckinInlineDialog({
         cliente_nome: clienteNome,
         aparelho_id: null,
         modelo_id: isExterno ? null : modeloId,
-        modelo_snapshot: isExterno ? "Aparelho externo" : selectedModelo!.nome,
+        modelo_snapshot: isExterno ? manualModelo.trim() : selectedModelo!.nome,
         tipo_slot: isExterno ? "normal" : deriveTipoSlot(selectedModelo!.nome),
         status_conexao: statusConexao,
         observacao: observacao.trim() || null,
@@ -152,8 +164,9 @@ export function CheckinInlineDialog({
               placeholder="Selecione um modelo disponível"
               searchPlaceholder="Buscar modelo…"
               emptyMessage="Nenhum modelo encontrado"
+              disabled={defaultIsExternal}
               options={[
-                { value: "__externo__", label: "📦 Sem modelo (aparelho externo)" },
+                { value: "__externo__", label: "📦 Aparelho externo" },
                 ...modelosComVagas.map((o) => ({
                   value: o.modelo.id,
                   label: `${o.modelo.nome} · ${o.ocupados}/${o.capacidade}${o.livres > 0 ? ` · falta ${o.livres}` : ""}`,
@@ -161,9 +174,21 @@ export function CheckinInlineDialog({
               ]}
             />
             {isExterno && (
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Use para números em aparelhos de terceiros (não cadastrados no sistema).
-              </p>
+              <div className="mt-3 space-y-2">
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Modelo do aparelho externo *</Label>
+                <Input
+                  value={manualModelo}
+                  onChange={(e) => setManualModelo(e.target.value)}
+                  placeholder="Ex: Redmi 13C, iPhone 11..."
+                  className="h-8 text-xs"
+                  disabled={externalModelLocked}
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  {externalModelLocked
+                    ? "Modelo fixo deste número externo. Para trocar, remova o número da lista e marque novamente."
+                    : "Obrigatório para registrar onde o número externo está hospedado."}
+                </p>
+              </div>
             )}
             {modelosComVagas.length === 0 && !isExterno && (
               <p className="text-[10px] text-muted-foreground mt-1">

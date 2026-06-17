@@ -99,7 +99,7 @@ export default function AdminSegurancaPagamento() {
     try {
       const { data, error } = await supabase
         .from('client_payments')
-        .select('*, cliente:clientes(nome, email, numero, cobranca_ativa, data_renovacao, ciclo_cobranca)')
+        .select('*, cliente:clientes(nome, email, numero, produto, plano, cobranca_ativa, data_renovacao, ciclo_cobranca)')
         .or('status.eq.pending_approval,status.eq.rejected,payment_type.eq.pix_manual,payment_type.eq.link_pagamento,payment_type.eq.outros_manual,pix_transaction_id.not.is.null')
         .order('created_at', { ascending: false });
 
@@ -276,6 +276,7 @@ export default function AdminSegurancaPagamento() {
 
   const filteredPayments = payments.filter(p => {
     const matchesSearch = p.cliente?.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         p.cliente?.produto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          p.pix_transaction_id?.toLowerCase().includes(searchTerm.toLowerCase());
     let matchesStatus = true;
     if (statusFilter === 'pending_approval') matchesStatus = p.status === 'pending_approval';
@@ -320,6 +321,13 @@ export default function AdminSegurancaPagamento() {
       default:
         return null;
     }
+  };
+
+  const getPaymentProductLabel = (payment: any) => {
+    const produto = payment?.cliente?.produto || payment?.produto || payment?.metadata?.produto || '';
+    const plano = payment?.cliente?.plano || payment?.plano || payment?.metadata?.plano || '';
+    if (!produto && !plano) return 'Produto não informado';
+    return `${produto || 'Produto não informado'}${plano ? ` · ${plano}` : ''}`;
   };
 
   return (
@@ -499,6 +507,9 @@ export default function AdminSegurancaPagamento() {
                                     {payment.cliente.cobranca_ativa === false ? "Apenas Registro" : "Mensal"}
                                   </Badge>
                                 )}
+                                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium truncate" title={getPaymentProductLabel(payment)}>
+                                  📦 {getPaymentProductLabel(payment)}
+                                </span>
                                 {payment.cliente?.email && (
                                   <span className="text-[11px] text-muted-foreground truncate">
                                     {payment.cliente.email}
@@ -694,6 +705,9 @@ export default function AdminSegurancaPagamento() {
                                   ✉️ {payment.cliente.email}
                                 </p>
                               )}
+                              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium truncate" title={getPaymentProductLabel(payment)}>
+                                📦 {getPaymentProductLabel(payment)}
+                              </p>
                               {payment.cliente?.numero && (
                                 <p className="text-[11px] text-muted-foreground truncate">
                                   📱 {payment.cliente.numero}
@@ -1252,6 +1266,10 @@ export default function AdminSegurancaPagamento() {
                       )}
                     </p>
                   </div>
+                </div>
+                <div className="rounded-md border bg-muted/30 p-3 space-y-1 text-sm">
+                  <p className="text-[10px] uppercase text-muted-foreground font-semibold">Produto</p>
+                  <p className="font-medium break-words">{getPaymentProductLabel(reasonDialog.payment)}</p>
                 </div>
 
                 <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">

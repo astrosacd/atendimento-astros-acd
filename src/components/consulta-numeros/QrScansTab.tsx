@@ -84,7 +84,7 @@ import { getViewableComprovanteUrl } from "@/utils/comprovanteUrl";
 import { ComprovantePreview } from "./ComprovantePreview";
 import { CheckinInlineDialog } from "./CheckinInlineDialog";
 import { CheckinHistoryPopover } from "./CheckinHistoryPopover";
-import { useLatestCheckinByNumero } from "@/hooks/useCheckinDiario";
+import { useLatestCheckinByNumero, type StatusConexao } from "@/hooks/useCheckinDiario";
 import { useAparelhos } from "@/hooks/useAparelhos";
 import { useNumerosModelos } from "@/hooks/useNumerosAquecimento";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -192,10 +192,22 @@ export function QrScansTab() {
     baserowRowId: number | null;
     clienteNome: string | null;
     defaultModeloId: string | null;
+    defaultIsExternal?: boolean;
+    defaultModeloManual?: string | null;
+    defaultStatusConexao?: StatusConexao | null;
   } | null>(null);
   const latestCheckinByNumero = useLatestCheckinByNumero();
   const { data: aparelhosList = [] } = useAparelhos();
   const { data: modelosList = [] } = useNumerosModelos();
+
+  const getEffectiveCheckin = (numero: string, marcadoEm?: string | null) => {
+    const lastCk = latestCheckinByNumero.get(numero);
+    if (!lastCk) return null;
+    if (marcadoEm && new Date(lastCk.created_at).getTime() < new Date(marcadoEm).getTime()) {
+      return null;
+    }
+    return lastCk;
+  };
 
 
   // Search states for tabs
@@ -238,7 +250,7 @@ export function QrScansTab() {
       (rd.cliente?.toLowerCase() || "").includes(search);
     if (!matchesSearch) return false;
     if (numerosModeloFilter === "__all__") return true;
-    const lastCk = latestCheckinByNumero.get(rd.numero || "");
+    const lastCk = getEffectiveCheckin(rd.numero || "", n.auto_hospedado_marcado_em);
     if (numerosModeloFilter === "__externo__") return !!lastCk && lastCk.modelo_id == null;
     return !!lastCk && lastCk.modelo_id === numerosModeloFilter;
   });
@@ -606,19 +618,13 @@ export function QrScansTab() {
                       searchPlaceholder="Buscar modelo…"
                       emptyMessage="Sem modelos"
                       options={(() => {
-                        // Modelos disponíveis = somente os que possuem ≥1 número auto-hospedado vinculado.
-                        const modeloIdsComAutoHosp = new Set<string>();
-                        for (const num of autoHosp as any[]) {
-                          const lastCk = latestCheckinByNumero.get(String(num?.row_data?.numero ?? num?.numero ?? ""));
-                          if (lastCk?.modelo_id) modeloIdsComAutoHosp.add(lastCk.modelo_id);
-                        }
                         const opts: { value: string; label: string }[] = [
                           { value: "__all__", label: "Todos os modelos" },
                           // "Aparelho externo" sempre disponível para seleção manual.
                           { value: "__externo__", label: "📦 Aparelho externo" },
                         ];
                         for (const m of modelosList) {
-                          if (modeloIdsComAutoHosp.has(m.id)) opts.push({ value: m.id, label: m.nome });
+                          if (m.aparece_no_checkin !== false) opts.push({ value: m.id, label: m.nome });
                         }
                         return opts;
                       })()}
@@ -788,8 +794,9 @@ export function QrScansTab() {
                           <TableCell className="text-xs">
                             {(() => {
                               const numero = String(rd.numero ?? "");
-                              const lastCk = numero ? latestCheckinByNumero.get(numero) : null;
+                              const lastCk = numero ? getEffectiveCheckin(numero, n.auto_hospedado_marcado_em) : null;
                               const modeloNome = lastCk?.modelo_snapshot ?? null;
+                              const isExternal = !!lastCk && (lastCk as any).modelo_id == null;
                               const isToday = lastCk?.data_checkin === todayBrt;
                               const checkinStatus = lastCk?.status_conexao;
                               const statusVisual =
@@ -807,15 +814,30 @@ export function QrScansTab() {
                                 <div className="flex flex-col gap-1 items-start">
                                   {lastCk ? (
                                     <>
-                                      {(lastCk as any).modelo_id == null ? (
-                                        <Badge
-                                          variant="outline"
-                                          className="text-[10px] py-0 px-1.5 gap-1 inline-flex items-center w-fit max-w-full whitespace-nowrap leading-tight bg-muted text-muted-foreground border-muted-foreground/30"
-                                          title="Aparelho externo (não cadastrado no sistema)"
-                                        >
-                                          <span>📦</span>
-                                          <span className="truncate">Aparelho externo</span>
-                                        </Badge>
+                                      {isExternal ? (
+                                        <div className="flex flex-col gap-1 items-start max-w-[180px]">
+                                          <Badge
+                                            variant="outline"
+                                            className="text-[10px] py-0 px-1.5 gap-1 inline-flex items-center w-fit max-w-full whitespace-nowrap leading-tight bg-muted text-muted-foreground border-muted-foreground/30"
+                                            title="Aparelho externo fixo para este número"
+                                          >
+                                            <span>📦</span>
+                                            <span className="truncate">Aparelho externo</span>
+                                          </Badge>
+                                          <Badge
+                                            variant={statusVisual.variant}
+                                            className={`text-[10px] py-0 px-1.5 gap-1 inline-flex items-center w-fit max-w-full whitespace-nowrap leading-tight ${statusVisual.className}`}
+                                            title={statusVisual.label}
+                                          >
+                                            <span>{statusVisual.icon}</span>
+                                            <span className="truncate">{statusVisual.label}</span>
+                                          </Badge>
+                                          {modeloNome && modeloNome !== "Aparelho externo" && (
+                                            <span className="text-[10px] text-muted-foreground truncate max-w-full" title={modeloNome}>
+                                              {modeloNome}
+                                            </span>
+                                          )}
+                                        </div>
                                       ) : (
                                         <Badge
                                           variant={statusVisual.variant}
@@ -850,6 +872,9 @@ export function QrScansTab() {
                                         baserowRowId: n.baserow_row_id,
                                         clienteNome: rd.nome ?? rd.cliente ?? null,
                                         defaultModeloId: (lastCk as any)?.modelo_id ?? null,
+                                        defaultIsExternal: isExternal,
+                                        defaultModeloManual: isExternal && modeloNome !== "Aparelho externo" ? modeloNome : null,
+                                        defaultStatusConexao: lastCk?.status_conexao ?? null,
                                       });
                                       setCheckinDialogOpen(true);
                                     }}
@@ -865,7 +890,7 @@ export function QrScansTab() {
                           <TableCell className="text-xs text-muted-foreground max-w-[220px]">
                             {(() => {
                               const numero = (n.row_data as any)?.numero ?? "";
-                              const lastCk = numero ? latestCheckinByNumero.get(numero) : null;
+                              const lastCk = numero ? getEffectiveCheckin(numero, n.auto_hospedado_marcado_em) : null;
                               const obs = (lastCk?.observacao && lastCk.observacao.trim()) || n.auto_hospedado_observacao || "";
                               if (!obs) return "—";
                               return (
@@ -2137,6 +2162,9 @@ export function QrScansTab() {
           baserowRowId={checkinTarget.baserowRowId}
           clienteNome={checkinTarget.clienteNome}
           defaultModeloId={checkinTarget.defaultModeloId}
+          defaultIsExternal={checkinTarget.defaultIsExternal}
+          defaultModeloManual={checkinTarget.defaultModeloManual}
+          defaultStatusConexao={checkinTarget.defaultStatusConexao}
         />
       )}
     </div>

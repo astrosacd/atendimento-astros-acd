@@ -26,6 +26,8 @@ interface PaymentItem {
   moeda: string;
   payment_type: string;
   paid_at: string;
+  data_anterior: string | null;
+  data_nova: string | null;
 }
 
 function fmtCurrency(value: number, moeda: string = "BRL") {
@@ -39,7 +41,8 @@ function fmtCurrency(value: number, moeda: string = "BRL") {
 function fmtDate(d: string | null) {
   if (!d) return "-";
   try {
-    return new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(d));
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(d) ? new Date(`${d}T12:00:00`) : new Date(d);
+    return new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" }).format(date);
   } catch {
     return d;
   }
@@ -103,7 +106,7 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
   // (ii) Pagamentos efetivados — client_payments.paid_at na janela
   const { data: payRows } = await supabase
     .from("client_payments")
-    .select("cliente_id, amount, payment_type, paid_at, status")
+    .select("cliente_id, amount, payment_type, paid_at, status, billing_date")
     .gte("paid_at", weekStart.toISOString())
     .lte("paid_at", weekEnd.toISOString())
     .not("paid_at", "is", null);
@@ -113,15 +116,20 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
     const ids = Array.from(new Set(payRows.map((p: any) => p.cliente_id).filter(Boolean)));
     const { data: clientes } = await supabase
       .from("clientes")
-      .select("id, nome, produto, moeda")
+      .select("id, nome, produto, moeda, data_renovacao")
       .in("id", ids);
     const clienteMap = new Map<string, any>((clientes || []).map((c: any) => [c.id, c]));
+    const renewalByCliente = new Map<string, RenewalItem>();
+    for (const r of renewals) {
+      if (r.cliente_id) renewalByCliente.set(r.cliente_id, r);
+    }
 
     for (const p of payRows) {
       if (!["paid", "approved", "success", "completed"].includes((p.status || "").toLowerCase()) && p.status) {
         // Aceita também sem status conhecido se paid_at existe
       }
       const c = p.cliente_id ? clienteMap.get(p.cliente_id) : null;
+      const renewal = p.cliente_id ? renewalByCliente.get(p.cliente_id) : null;
       payments.push({
         cliente_id: p.cliente_id,
         nome: c?.nome || "Cliente desconhecido",
@@ -130,6 +138,8 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
         moeda: c?.moeda || "BRL",
         payment_type: p.payment_type || "-",
         paid_at: p.paid_at,
+        data_anterior: renewal?.data_anterior || p.billing_date || null,
+        data_nova: renewal?.data_nova || c?.data_renovacao || null,
       });
     }
   }
@@ -273,6 +283,8 @@ function buildTextReport(opts: {
         lines.push(`   Produto: ${p.produto || "-"}`);
         lines.push(`   Valor: ${fmtCurrency(p.amount, p.moeda || "BRL")} (${p.payment_type})`);
         lines.push(`   Pago em: ${fmtDate(p.paid_at)}`);
+        lines.push(`   Data antiga: ${fmtDate(p.data_anterior)}`);
+        lines.push(`   Nova renovação: ${fmtDate(p.data_nova)}`);
         lines.push("");
       }
     }
