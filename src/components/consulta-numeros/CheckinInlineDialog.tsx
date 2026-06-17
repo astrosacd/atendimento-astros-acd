@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -68,10 +69,12 @@ export function CheckinInlineDialog({
   const [statusConexao, setStatusConexao] = useState<StatusConexao>("conectado");
   const [observacao, setObservacao] = useState("");
 
+  const [manualModelo, setManualModelo] = useState("");
   useEffect(() => {
     if (open) {
       setModeloId(defaultModeloId ?? "");
       setStatusConexao("conectado");
+      setManualModelo("");
       setObservacao("");
     }
   }, [open, defaultModeloId]);
@@ -85,9 +88,10 @@ export function CheckinInlineDialog({
 
     return modelos
       .filter((m) => m.capacidade_whatsapp > 0)
-      .filter((m) => m.aparece_no_checkin !== false || m.id === defaultModeloId)
-      .map((m) => {
-        const doModelo = estoque.filter((n) => n.modelo_id === m.id).length;
+        const numbersInAquecimento = new Set(estoque.filter((n) => n.modelo_id === m.id).map(n => n.numero));
+        const numbersWithCheckin = ocupadosByModelo.get(m.id)?.numbers ?? new Set<string>();
+        const allUniqueNumbers = new Set([...numbersInAquecimento, ...numbersWithCheckin]);
+        const ocupados = allUniqueNumbers.size;
         const extra = ocupadosByModelo.get(m.id)?.total ?? 0;
         const ocupados = doModelo + extra;
         const livres = Math.max(0, m.capacidade_whatsapp - ocupados);
@@ -113,7 +117,7 @@ export function CheckinInlineDialog({
       await createMut.mutateAsync({
         numero,
         baserow_row_id: baserowRowId,
-        cliente_nome: clienteNome,
+        modelo_snapshot: isExterno ? (manualModelo.trim() || "Aparelho externo") : selectedModelo!.nome,
         aparelho_id: null,
         modelo_id: isExterno ? null : modeloId,
         modelo_snapshot: isExterno ? "Aparelho externo" : selectedModelo!.nome,
@@ -157,6 +161,17 @@ export function CheckinInlineDialog({
                 ...modelosComVagas.map((o) => ({
                   value: o.modelo.id,
                   label: `${o.modelo.nome} · ${o.ocupados}/${o.capacidade}${o.livres > 0 ? ` · falta ${o.livres}` : ""}`,
+            {isExterno && (
+              <div className="mt-3">
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Modelo Manual (opcional)</Label>
+                <Input
+                  value={manualModelo}
+                  onChange={(e) => setManualModelo(e.target.value)}
+                  placeholder="Ex: Redmi 13C, iPhone 11..."
+                  className="h-8 text-xs"
+                />
+              </div>
+            )}
                 })),
               ]}
             />

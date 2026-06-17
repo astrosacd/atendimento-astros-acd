@@ -606,19 +606,13 @@ export function QrScansTab() {
                       searchPlaceholder="Buscar modelo…"
                       emptyMessage="Sem modelos"
                       options={(() => {
-                        // Modelos disponíveis = somente os que possuem ≥1 número auto-hospedado vinculado.
-                        const modeloIdsComAutoHosp = new Set<string>();
-                        for (const num of autoHosp as any[]) {
-                          const lastCk = latestCheckinByNumero.get(String(num?.row_data?.numero ?? num?.numero ?? ""));
-                          if (lastCk?.modelo_id) modeloIdsComAutoHosp.add(lastCk.modelo_id);
-                        }
                         const opts: { value: string; label: string }[] = [
                           { value: "__all__", label: "Todos os modelos" },
                           // "Aparelho externo" sempre disponível para seleção manual.
                           { value: "__externo__", label: "📦 Aparelho externo" },
                         ];
                         for (const m of modelosList) {
-                          if (modeloIdsComAutoHosp.has(m.id)) opts.push({ value: m.id, label: m.nome });
+                          if (m.aparece_no_checkin !== false) opts.push({ value: m.id, label: m.nome });
                         }
                         return opts;
                       })()}

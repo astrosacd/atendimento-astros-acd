@@ -109,7 +109,7 @@ export function useActiveCheckinsByModelo() {
       seen.add(key);
       const cur = ocupados.get(c.modelo_id) ?? { total: 0, normal: 0, business: 0, clone: 0, numbers: new Set<string>() };
       cur.total += 1;
-      cur[c.tipo_slot] += 1;
+      cur[c.tipo_slot] += 1; cur.numbers.add(c.numero);
       ocupados.set(c.modelo_id, cur);
     }
     return ocupados;
