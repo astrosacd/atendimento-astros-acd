@@ -793,7 +793,7 @@ export function QrScansTab() {
                           <TableCell className="text-xs">
                             {(() => {
                               const numero = String(rd.numero ?? "");
-                              const lastCk = numero ? latestCheckinByNumero.get(numero) : null;
+                              const lastCk = numero ? getEffectiveCheckin(numero, n.auto_hospedado_marcado_em) : null;
                               const modeloNome = lastCk?.modelo_snapshot ?? null;
                               const isExternal = !!lastCk && (lastCk as any).modelo_id == null;
                               const isToday = lastCk?.data_checkin === todayBrt;
@@ -888,7 +888,7 @@ export function QrScansTab() {
                           <TableCell className="text-xs text-muted-foreground max-w-[220px]">
                             {(() => {
                               const numero = (n.row_data as any)?.numero ?? "";
-                              const lastCk = numero ? latestCheckinByNumero.get(numero) : null;
+                              const lastCk = numero ? getEffectiveCheckin(numero, n.auto_hospedado_marcado_em) : null;
                               const obs = (lastCk?.observacao && lastCk.observacao.trim()) || n.auto_hospedado_observacao || "";
                               if (!obs) return "—";
                               return (
