@@ -99,15 +99,13 @@ export function useActiveCheckinsByModelo() {
   const { data: checkins = [] } = useCheckins({ since });
 
   return useMemo(() => {
-    const seen = new Set<string>();
+    const seenNumero = new Set<string>();
     const ocupados = new Map<string, { total: number; normal: number; business: number; clone: number; numbers: Set<string> }>();
 
     for (const c of checkins) {
-      if (!c.modelo_id) continue;
-      const key = `${c.modelo_id}|${c.numero}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      if (c.status_conexao !== "conectado") continue;
+      if (seenNumero.has(c.numero)) continue;
+      seenNumero.add(c.numero);
+      if (!c.modelo_id || c.status_conexao !== "conectado") continue;
       const cur = ocupados.get(c.modelo_id) ?? { total: 0, normal: 0, business: 0, clone: 0, numbers: new Set<string>() };
       cur.total += 1;
       cur[c.tipo_slot] += 1;
