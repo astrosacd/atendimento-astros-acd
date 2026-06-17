@@ -84,7 +84,7 @@ import { getViewableComprovanteUrl } from "@/utils/comprovanteUrl";
 import { ComprovantePreview } from "./ComprovantePreview";
 import { CheckinInlineDialog } from "./CheckinInlineDialog";
 import { CheckinHistoryPopover } from "./CheckinHistoryPopover";
-import { useLatestCheckinByNumero } from "@/hooks/useCheckinDiario";
+import { useLatestCheckinByNumero, type StatusConexao } from "@/hooks/useCheckinDiario";
 import { useAparelhos } from "@/hooks/useAparelhos";
 import { useNumerosModelos } from "@/hooks/useNumerosAquecimento";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -194,7 +194,7 @@ export function QrScansTab() {
     defaultModeloId: string | null;
     defaultIsExternal?: boolean;
     defaultModeloManual?: string | null;
-    defaultStatusConexao?: import("@/hooks/useCheckinDiario").StatusConexao | null;
+    defaultStatusConexao?: StatusConexao | null;
   } | null>(null);
   const latestCheckinByNumero = useLatestCheckinByNumero();
   const { data: aparelhosList = [] } = useAparelhos();
