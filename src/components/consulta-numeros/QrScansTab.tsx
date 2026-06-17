@@ -199,6 +199,15 @@ export function QrScansTab() {
   const { data: aparelhosList = [] } = useAparelhos();
   const { data: modelosList = [] } = useNumerosModelos();
 
+  const getEffectiveCheckin = (numero: string, marcadoEm?: string | null) => {
+    const lastCk = latestCheckinByNumero.get(numero);
+    if (!lastCk) return null;
+    if (marcadoEm && new Date(lastCk.created_at).getTime() < new Date(marcadoEm).getTime()) {
+      return null;
+    }
+    return lastCk;
+  };
+
 
   // Search states for tabs
   const [numerosSearch, setNumerosSearch] = useState("");
@@ -240,7 +249,7 @@ export function QrScansTab() {
       (rd.cliente?.toLowerCase() || "").includes(search);
     if (!matchesSearch) return false;
     if (numerosModeloFilter === "__all__") return true;
-    const lastCk = latestCheckinByNumero.get(rd.numero || "");
+    const lastCk = getEffectiveCheckin(rd.numero || "", n.auto_hospedado_marcado_em);
     if (numerosModeloFilter === "__externo__") return !!lastCk && lastCk.modelo_id == null;
     return !!lastCk && lastCk.modelo_id === numerosModeloFilter;
   });
