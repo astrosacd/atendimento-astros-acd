@@ -42,6 +42,7 @@ interface Props {
   defaultModeloId?: string | null;
   defaultIsExternal?: boolean;
   defaultModeloManual?: string | null;
+  defaultStatusConexao?: StatusConexao | null;
 }
 
 function deriveTipoSlot(nome: string): TipoSlot {
@@ -60,6 +61,7 @@ export function CheckinInlineDialog({
   defaultModeloId,
   defaultIsExternal = false,
   defaultModeloManual,
+  defaultStatusConexao,
 }: Props) {
   const { data: modelos = [] } = useNumerosModelos();
   const { data: numeros = [] } = useNumerosAquecimento();
@@ -68,18 +70,18 @@ export function CheckinInlineDialog({
   const createMut = useCreateCheckin();
 
   const [modeloId, setModeloId] = useState<string>(defaultIsExternal ? "__externo__" : defaultModeloId ?? "");
-  const [statusConexao, setStatusConexao] = useState<StatusConexao>("conectado");
+  const [statusConexao, setStatusConexao] = useState<StatusConexao>(defaultStatusConexao ?? "conectado");
   const [observacao, setObservacao] = useState("");
   const [manualModelo, setManualModelo] = useState("");
 
   useEffect(() => {
     if (open) {
       setModeloId(defaultIsExternal ? "__externo__" : defaultModeloId ?? "");
-      setStatusConexao("conectado");
+      setStatusConexao(defaultStatusConexao ?? "conectado");
       setObservacao("");
       setManualModelo(defaultModeloManual ?? "");
     }
-  }, [open, defaultModeloId, defaultIsExternal, defaultModeloManual]);
+  }, [open, defaultModeloId, defaultIsExternal, defaultModeloManual, defaultStatusConexao]);
 
   const modelosComVagas = useMemo(() => {
     const vendidoId = statusList.find((s) => s.nome === "Vendido")?.id;
