@@ -194,6 +194,7 @@ export function QrScansTab() {
     defaultModeloId: string | null;
     defaultIsExternal?: boolean;
     defaultModeloManual?: string | null;
+    defaultStatusConexao?: import("@/hooks/useCheckinDiario").StatusConexao | null;
   } | null>(null);
   const latestCheckinByNumero = useLatestCheckinByNumero();
   const { data: aparelhosList = [] } = useAparelhos();
@@ -873,6 +874,7 @@ export function QrScansTab() {
                                         defaultModeloId: (lastCk as any)?.modelo_id ?? null,
                                         defaultIsExternal: isExternal,
                                         defaultModeloManual: isExternal && modeloNome !== "Aparelho externo" ? modeloNome : null,
+                                        defaultStatusConexao: lastCk?.status_conexao ?? null,
                                       });
                                       setCheckinDialogOpen(true);
                                     }}
@@ -2162,6 +2164,7 @@ export function QrScansTab() {
           defaultModeloId={checkinTarget.defaultModeloId}
           defaultIsExternal={checkinTarget.defaultIsExternal}
           defaultModeloManual={checkinTarget.defaultModeloManual}
+          defaultStatusConexao={checkinTarget.defaultStatusConexao}
         />
       )}
     </div>
