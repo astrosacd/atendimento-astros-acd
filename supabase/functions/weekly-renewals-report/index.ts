@@ -282,6 +282,8 @@ function buildTextReport(opts: {
         lines.push(`   Produto: ${p.produto || "-"}`);
         lines.push(`   Valor: ${fmtCurrency(p.amount, p.moeda || "BRL")} (${p.payment_type})`);
         lines.push(`   Pago em: ${fmtDate(p.paid_at)}`);
+        lines.push(`   Data antiga: ${fmtDate(p.data_anterior)}`);
+        lines.push(`   Nova renovação: ${fmtDate(p.data_nova)}`);
         lines.push("");
       }
     }
