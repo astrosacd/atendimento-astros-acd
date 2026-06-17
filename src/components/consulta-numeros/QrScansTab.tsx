@@ -2151,6 +2151,8 @@ export function QrScansTab() {
           baserowRowId={checkinTarget.baserowRowId}
           clienteNome={checkinTarget.clienteNome}
           defaultModeloId={checkinTarget.defaultModeloId}
+          defaultIsExternal={checkinTarget.defaultIsExternal}
+          defaultModeloManual={checkinTarget.defaultModeloManual}
         />
       )}
     </div>
