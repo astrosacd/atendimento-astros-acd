@@ -600,6 +600,51 @@ export function QrScansTab() {
         </TabsList>
 
         <TabsContent value="numeros" className="space-y-4">
+          {(() => {
+            const today = new Date().toISOString().slice(0, 10);
+            const total = autoHosp.length;
+            let comCheckinHoje = 0;
+            let semVinculo = 0;
+            for (const n of autoHosp) {
+              const numero = String((n as any).row_data?.numero ?? "");
+              if (!numero) continue;
+              const lastCk = getEffectiveCheckin(numero, (n as any).auto_hospedado_marcado_em);
+              if (lastCk && lastCk.data_checkin === today) comCheckinHoje++;
+              if (!lastCk || (!lastCk.modelo_id && !(lastCk.modelo_snapshot || "").trim())) semVinculo++;
+            }
+            const faltamHoje = Math.max(0, total - comCheckinHoje);
+            return (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Card className="bg-card border-border">
+                  <CardContent className="p-3">
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Total auto-hospedados</p>
+                    <p className="text-2xl font-bold mt-1">{total}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-emerald-500/5 border-emerald-500/30">
+                  <CardContent className="p-3">
+                    <p className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">Check-in hoje</p>
+                    <p className="text-2xl font-bold mt-1 text-emerald-600 dark:text-emerald-400">{comCheckinHoje}</p>
+                    <p className="text-[10px] text-muted-foreground">{today.split("-").reverse().join("/")}</p>
+                  </CardContent>
+                </Card>
+                <Card className={faltamHoje > 0 ? "bg-amber-500/5 border-amber-500/30" : "bg-card border-border"}>
+                  <CardContent className="p-3">
+                    <p className={`text-[10px] uppercase font-bold tracking-wider ${faltamHoje > 0 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>Faltam fazer check-in</p>
+                    <p className={`text-2xl font-bold mt-1 ${faltamHoje > 0 ? "text-amber-600 dark:text-amber-400" : ""}`}>{faltamHoje}</p>
+                    <p className="text-[10px] text-muted-foreground">hoje</p>
+                  </CardContent>
+                </Card>
+                <Card className={semVinculo > 0 ? "bg-red-500/5 border-red-500/30" : "bg-card border-border"}>
+                  <CardContent className="p-3">
+                    <p className={`text-[10px] uppercase font-bold tracking-wider ${semVinculo > 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>Sem vínculo c/ aparelho</p>
+                    <p className={`text-2xl font-bold mt-1 ${semVinculo > 0 ? "text-red-600 dark:text-red-400" : ""}`}>{semVinculo}</p>
+                    <p className="text-[10px] text-muted-foreground">nunca checados ou sem modelo</p>
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          })()}
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
