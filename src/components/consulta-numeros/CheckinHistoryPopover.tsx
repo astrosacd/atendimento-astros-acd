@@ -58,7 +58,7 @@ export function CheckinHistoryPopover({ numero }: Props) {
           <p className="text-xs font-semibold">Histórico de check-ins</p>
           <p className="text-[10px] text-muted-foreground font-mono">{numero}</p>
         </div>
-        <ScrollArea className="max-h-72">
+        <ScrollArea className="h-72">
           <div className="p-2 space-y-2">
             {isLoading && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground py-3 justify-center">
