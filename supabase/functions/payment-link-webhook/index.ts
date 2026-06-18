@@ -86,13 +86,16 @@ serve(async (req) => {
     });
 
     if (!mpResponse.ok) {
-      return new Response(JSON.stringify({ ok: true }), { headers: corsHeaders });
+      const errText = await mpResponse.text().catch(() => "");
+      console.error(`[payment-link-webhook] MP API ${mpResponse.status}: ${errText}`);
+      return new Response(JSON.stringify({ ok: true, error: "mp_api_failed", status: mpResponse.status }), { headers: corsHeaders });
     }
 
     const mpData = await mpResponse.json();
     const mpStatus = mpData.status;
     const preferenceId = mpData.preference_id;
     const externalReference = mpData.external_reference;
+    console.log(`[payment-link-webhook] MP status=${mpStatus} prefId=${preferenceId} extRef=${externalReference}`);
 
     const newStatus = mpStatus === "approved" ? "paid" : mpStatus === "rejected" ? "rejected" : "pending";
     const updatePayload = {
@@ -102,6 +105,9 @@ serve(async (req) => {
     };
 
     let updated = false;
+    let matchedBy: string | null = null;
+
+    // Try 1: by preference_id
     if (preferenceId) {
       const { data } = await supabase
         .from("payment_links")
@@ -110,20 +116,37 @@ serve(async (req) => {
         .eq("provider", "mercadopago")
         .select("id")
         .maybeSingle();
-      if (data) updated = true;
+      if (data) { updated = true; matchedBy = "preference_id"; }
     }
 
+    // Try 2: by external_reference exact
     if (!updated && externalReference) {
       const { data } = await supabase
         .from("payment_links")
         .update(updatePayload)
-        .or(`external_reference.eq.${String(externalReference)},preference_id.eq.${String(externalReference)}`)
+        .eq("external_reference", String(externalReference))
+        .eq("provider", "mercadopago")
         .select("id")
         .maybeSingle();
-      if (data) updated = true;
+      if (data) { updated = true; matchedBy = "external_reference"; }
     }
 
-    return new Response(JSON.stringify({ ok: true, updated }), {
+    // Try 3: extract UUID from "PL-<uuid>" and match by payment_links.id
+    if (!updated && typeof externalReference === "string" && externalReference.startsWith("PL-")) {
+      const linkId = externalReference.slice(3);
+      const { data } = await supabase
+        .from("payment_links")
+        .update(updatePayload)
+        .eq("id", linkId)
+        .eq("provider", "mercadopago")
+        .select("id")
+        .maybeSingle();
+      if (data) { updated = true; matchedBy = "id_from_ext_ref"; }
+    }
+
+    console.log(`[payment-link-webhook] updated=${updated} matchedBy=${matchedBy}`);
+
+    return new Response(JSON.stringify({ ok: true, updated, matched_by: matchedBy }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
