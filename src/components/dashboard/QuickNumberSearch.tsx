@@ -317,7 +317,7 @@ export function QuickNumberSearch() {
                     Modelo atual {isExterno ? '(externo)' : ''}
                   </div>
                   <p className="text-xs font-medium mt-0.5 truncate" title={lastCk.modelo_snapshot ?? ''}>
-                    {isExterno ? '📦 Aparelho externo' : (lastCk.modelo_snapshot ?? '—')}
+                    {isExterno ? `📦 ${lastCk.modelo_snapshot || 'Aparelho externo'}` : (lastCk.modelo_snapshot ?? '—')}
                   </p>
                   <p className="text-[9px] text-muted-foreground mt-0.5">
                     Último check-in: {new Date(lastCk.data_checkin).toLocaleDateString('pt-BR')} · {lastCk.status_conexao}
