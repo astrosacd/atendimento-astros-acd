@@ -184,7 +184,7 @@ export default function ExtratoInvestimento() {
       doc.save(fileName);
 
       // Log
-      await supabase.from('extrato_investimento_logs').insert({
+      await supabase.from('extrato_investimento_logs').insert([{
         cliente_nome: clienteFinal.trim(),
         referencia: referencia.trim() || null,
         total_unico: totalUnico,
