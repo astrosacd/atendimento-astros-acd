@@ -3683,6 +3683,45 @@ export type Database = {
         }
         Relationships: []
       }
+      extrato_investimento_logs: {
+        Row: {
+          cliente_nome: string
+          created_at: string
+          gerado_por: string | null
+          gerado_por_email: string | null
+          id: string
+          itens: Json
+          qtd_numeros: number
+          referencia: string | null
+          total_mensal: number
+          total_unico: number
+        }
+        Insert: {
+          cliente_nome: string
+          created_at?: string
+          gerado_por?: string | null
+          gerado_por_email?: string | null
+          id?: string
+          itens?: Json
+          qtd_numeros?: number
+          referencia?: string | null
+          total_mensal?: number
+          total_unico?: number
+        }
+        Update: {
+          cliente_nome?: string
+          created_at?: string
+          gerado_por?: string | null
+          gerado_por_email?: string | null
+          id?: string
+          itens?: Json
+          qtd_numeros?: number
+          referencia?: string | null
+          total_mensal?: number
+          total_unico?: number
+        }
+        Relationships: []
+      }
       followup_config: {
         Row: {
           config_key: string
@@ -9360,6 +9399,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      buscar_investimentos_cliente: {
+        Args: { p_email?: string; p_nome?: string; p_telefone?: string }
+        Returns: Json
+      }
       can_approve_order: { Args: { user_uuid: string }; Returns: boolean }
       check_profile_safe_update: { Args: never; Returns: boolean }
       check_temp_token_validity: {
@@ -9559,6 +9602,7 @@ export type Database = {
         Args: { p_token: string }
         Returns: boolean
       }
+      normalize_phone: { Args: { p: string }; Returns: string }
       preview_cobranca_orphan_payments: {
         Args: { p_days_old?: number }
         Returns: {
@@ -9584,6 +9628,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       sign_proposal: {
         Args: {
           p_client_signature?: string
