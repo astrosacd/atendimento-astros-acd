@@ -1,129 +1,75 @@
-# Sistema de Controle de Escaneamento de QR Code
+## Funcionalidade: Extrato de Investimento (PDF)
 
-## Entendimento confirmado
+Substitui o processo manual de gerar PDF de investimentos. Consolida múltiplos cadastros do mesmo cliente (por nome + e-mail + telefone), permite revisar/desmarcar registros, e gera PDF idêntico ao modelo Astros (azul-marinho + dourado).
 
-- **Números auto-hospedados** = números internos que vocês hospedam nos servidores (ex: Fernando, 10 números)
-- **Não mexer no Baserow** nem na sincronização existente
-- **Flag manual** no cadastro do número (dentro do sistema, não no Baserow) marca como "auto-hospedado"
-- Quando flagado → aparece automaticamente na nova aba "QR Scans"
-- **Limite:** 4 QR grátis/mês **por número**, reset à meia-noite, 1 por dia
-- **A partir do 5º:** R$ 14,97 — pagamento via link MP/Stripe **OU manual** (Pix, saldo, etc)
-- **Operador interno** clica "Registrar Escaneamento" no CRM
-- Escaneamento **só é consumido após confirmação do pagamento** (automática ou manual)
+### 1. Onde acessar
+- Adicionar botão **"Gerar Extrato de Investimento"** na página do cliente (`/clientes` → ação da linha) e/ou no detalhe do cliente.
+- Também acessível por uma rota nova `/clientes/extrato-investimento` com busca por nome/email/telefone.
 
----
+### 2. Agrupamento e busca
+- Query consolida `clientes` + `client_purchases` + `client_payments` (pagos) usando fuzzy match:
+  - Mesmo telefone (normalizado: só dígitos)
+  - OU mesmo email (lowercase)
+  - OU nome muito similar (`similarity()` do `pg_trgm`)
+- Retorna todos os registros encontrados com origem (cadastro principal, compras avulsas, mensalidades).
 
-## 1. Banco de dados
+### 3. Tela de seleção
+- Modal/página lista todos os itens encontrados, agrupados em duas seções:
+  - **Aquisição única** (compras de `client_purchases` + pagamentos únicos)
+  - **Mensais recorrentes** (cadastros de `clientes` com `cobranca_ativa=true` e `ciclo_cobranca='mensal'`)
+- Cada linha tem checkbox (marcado por padrão), quantidade editável, valor unitário e total calculado.
+- Campos editáveis: **Referência do extrato** (subtítulo), **Nome do cliente** (pré-preenchido com o mais frequente).
+- Botão **"Gerar PDF"** dispara a geração com a seleção final.
 
-### Nova coluna em `consulta_numeros_cache`
-- `auto_hospedado` (boolean, default false) — flag manual do operador
-- `auto_hospedado_observacao` (text, nullable) — observação livre
-- `auto_hospedado_marcado_em` (timestamptz)
-- `auto_hospedado_marcado_por` (uuid)
+### 4. Geração do PDF
+- Edge Function `gerar-extrato-investimento`:
+  - Recebe `{ cliente_nome, referencia, itens_unicos[], itens_mensais[] }`.
+  - Renderiza HTML idêntico ao layout Astros (cores `#0B1733` fundo, `#D4A84B` dourado, `#1B2E54` cards).
+  - Converte para PDF via `puppeteer-core` + Chromium (ou via `@react-pdf/renderer` server-side se mais simples no Deno).
+  - Página 1: header + 3 KPIs + tabela "Aquisição Única" + tabela "Mensais Recorrentes" + 2 totais.
+  - Página 2: detalhamento de cada item com descrição (pega de `predefined_products` quando bate por nome, senão deixa descrição padrão).
+  - Retorna o PDF base64 ou URL de bucket.
+- Frontend faz download direto (`extrato_<nome>_<data>.pdf`).
 
-> Não toca em `row_data` (vem do Baserow). Flag fica em colunas próprias do cache.
+### 5. Layout (fiel ao modelo)
+- Fundo `#0B1733`, dourado `#D4A84B`, texto branco/cinza claro.
+- Header: "ASTROS COMUNICAÇÃO DIGITAL" (dourado+branco) + badge "EXTRATO DE INVESTIMENTO".
+- Tipografia: serif/sans similar ao modelo (usar Inter ou Manrope — bundled no Chromium).
+- Cards com borda dourada no destaque "INVESTIMENTO ÚNICO".
+- Linha total com fundo dourado sólido e texto azul-marinho escuro.
+- Rodapé: "ASTROS COMUNICAÇÃO DIGITAL · Confidencial · página x/y".
 
-### Nova tabela `qr_scan_config` (singleton)
-- `qtd_gratis_por_mes` (int, default 4)
-- `qtd_max_por_dia` (int, default 1)
-- `valor_excedente` (numeric, default 14.97)
-- `payment_provider_default` ('mercadopago' | 'stripe')
-- `ativo` (bool)
+### 6. Detalhes técnicos
 
-### Nova tabela `qr_scan_history`
-- `baserow_row_id` (bigint) — referência ao número no cache
-- `numero` (text) — denormalizado p/ histórico
-- `cliente_nome` (text) — denormalizado
-- `scan_date` (date) — pra validar "1 por dia"
-- `tipo` ('gratis' | 'pago')
-- `valor_cobrado` (numeric, nullable)
-- `payment_status` ('nao_aplica' | 'pendente' | 'pago' | 'cancelado')
-- `payment_method` ('link_mp' | 'link_stripe' | 'manual_pix' | 'manual_saldo' | 'manual_outro' | null)
-- `payment_link_id` (uuid → payment_links, nullable)
-- `payment_manual_observacao` (text, nullable)
-- `payment_comprovante_url` (text, nullable) — upload do comprovante
-- `paid_at` (timestamptz, nullable)
-- `confirmed_by` (uuid) — operador que confirmou
-- `operador_user_id` (uuid)
-- `observacao` (text)
+**Banco**
+- Migration: habilitar extensão `pg_trgm` (se ainda não tiver) para o fuzzy match.
+- Criar função RPC `buscar_investimentos_cliente(p_nome text, p_email text, p_telefone text)` que retorna json consolidado (RLS-safe via `SECURITY DEFINER` + checagem `is_admin() OR auth.uid() IS NOT NULL`).
 
-### Nova tabela `qr_scan_monthly_counter` (cache)
-- `baserow_row_id`, `ano`, `mes`, `qtd_gratis_usados`, `qtd_pagos`
-- UNIQUE(baserow_row_id, ano, mes)
+**Frontend**
+- `src/pages/ExtratoInvestimento.tsx` — página com busca e tela de seleção.
+- `src/components/extrato/SelecaoItensDialog.tsx` — modal de revisão.
+- Botão na tabela de `/clientes` na lista de ações.
 
-### Nova permissão
-- `manage_qr_scans` — registrar/confirmar escaneamentos
-- `manage_qr_scans_config` — admin only (configurar valores e flags)
+**Edge Function**
+- `supabase/functions/gerar-extrato-investimento/index.ts`
+  - Geração via **`@react-pdf/renderer`** (funciona em Deno via `npm:` e gera PDF nativamente sem Chromium) **ou** via HTML→PDF com a lib `npm:html-pdf-node`/`npm:pdf-lib`.
+  - Vou usar HTML estático + `npm:@react-pdf/renderer` pela fidelidade ao layout.
 
----
+### 7. Permissão
+- Apenas usuários com `has_permission('clientes_view')` ou admins podem gerar.
 
-## 2. Edge Functions
+### 8. Riscos / pontos de atenção
+- Fuzzy match pode trazer falso-positivos → a tela de seleção é a salvaguarda (operador desmarca).
+- Renderização PDF no Edge Function tem limite de memória; vou validar com cliente de 15+ serviços.
+- Mapeamento de produto → descrição rica usa `predefined_products`; se não houver match, mostra só nome + valores.
 
-### `qr-scan-register`
-Input: `baserow_row_id`, `payment_method` (opcional), `force_paid` (bool)
+### 9. Itens fora deste escopo (confirmar se quer incluir)
+- Envio automático por WhatsApp/email após gerar.
+- Histórico de extratos gerados por cliente (auditoria).
+- Logo customizada do cliente/empresa.
 
-Lógica:
-1. Valida limite diário (já tem scan hoje? → bloqueia)
-2. Conta scans grátis do mês corrente p/ esse número
-3. Se `qtd_gratis < limite` → cria registro `tipo=gratis`, `payment_status=nao_aplica`, retorna sucesso
-4. Se já passou dos 4:
-   - Sem `payment_method` → retorna `needs_payment` com valor R$ 14,97 e opções (gerar link MP, link Stripe, marcar manual)
-   - Com `payment_method=link_mp|link_stripe` → chama módulo Payment Links, cria `qr_scan_history` com `payment_status=pendente`
-   - Com `payment_method=manual_*` → cria `qr_scan_history` com `payment_status=pendente` esperando confirmação
-
-### `qr-scan-confirm-payment`
-Input: `qr_scan_id`, `comprovante_url` (opcional), `observacao`
-- Marca como `pago`, atualiza `paid_at`, incrementa contador mensal
-- Só então o escaneamento "vale" (operador pode escanear o QR de fato)
-
-### `qr-scan-payment-webhook` (auto via Payment Links)
-- Quando MP/Stripe confirmam → marca scan correspondente como pago
-
----
-
-## 3. Frontend
-
-### Coluna na tabela existente de números (`/admin/consulta-numeros`)
-- Novo checkbox/toggle **"Auto-hospedado"** por linha (só quem tem `manage_qr_scans`)
-- Tooltip explicando: "Marque se este número está hospedado nos nossos servidores"
-
-### Nova aba **"QR Scans"** em `/admin/consulta-numeros`
-- **Card config** (admin) — limite grátis, limite diário, valor excedente, provider padrão
-- **Tabela de números auto-hospedados** — filtra `auto_hospedado=true`
-  - Colunas: número, cliente, grátis usados no mês (ex: 2/4), último scan, próximo disponível, botão **"📲 Registrar Escaneamento"**
-- **Histórico** — todos os scans (grátis e pagos) com filtros por cliente/data/status
-- **Pendentes de confirmação** — lista de scans aguardando pagamento manual com botão "Confirmar pagamento" (upload de comprovante opcional)
-
-### Dialog `RegistrarScanDialog`
-Fluxo:
-1. Verifica limites → mostra "Você tem 2/4 grátis este mês" ou "Excedeu o limite — R$ 14,97"
-2. Se cobrança:
-   - Opções: 🔗 Gerar link Mercado Pago / 🔗 Gerar link Stripe / 💰 Pagamento manual (Pix, saldo, outro)
-3. Se manual → campo observação + upload comprovante (opcional)
-4. Confirma → cria registro pendente
-5. Mostra QR pendente até confirmar pagamento
-
----
-
-## 4. Ordem de execução
-
-1. Migration: colunas em `consulta_numeros_cache` + 3 tabelas novas + permissões
-2. Edge function `qr-scan-register`
-3. Edge function `qr-scan-confirm-payment`
-4. Webhook MP/Stripe (estender `payment-link-webhook`)
-5. Hook `useQrScan` (lista, registra, confirma)
-6. Toggle "Auto-hospedado" na tabela de números
-7. Nova aba "QR Scans" com sub-componentes
-8. Dialog de registro
-9. Documentação no guia
-
----
-
-## ⚠️ Pontos de atenção
-
-- **Não toca em estrutura Baserow** — flag é só no cache local
-- Sync do Baserow continua igual; ao sobrescrever `row_data` o flag `auto_hospedado` é preservado (coluna separada)
-- Pagamento manual = confiança no operador; logamos quem confirmou
-- Reset à meia-noite usa timezone Brasília
-
-Posso prosseguir com a migration?
+### Confirmações necessárias antes de codar
+1. **Origem dos itens "mensais"**: usar `clientes.valor` + `ciclo_cobranca='mensal'` como base, certo? Ou tem outra tabela de assinaturas?
+2. **Descrição rica de cada produto** (texto + bullets na página 2): deve vir de `predefined_products.descricao` ou você vai cadastrar à parte? Se não houver, mostro só nome + valores.
+3. **Histórico**: salvar cada PDF gerado em bucket + tabela `extratos_investimento_logs` para auditoria? (recomendo sim)
+4. **Envio automático**: gerar só pra download, ou já adicionar botão "Enviar por WhatsApp" no fim?
