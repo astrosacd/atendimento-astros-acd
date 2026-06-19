@@ -190,7 +190,7 @@ export default function ExtratoInvestimento() {
         total_unico: totalUnico,
         total_mensal: totalMensal,
         qtd_numeros: qtdNumeros,
-        itens: { unicos: itensUnicos, mensais: itensMensais },
+        itens: { unicos: itensUnicos, mensais: itensMensais } as any,
         gerado_por: user?.id,
         gerado_por_email: user?.email,
       }]);
