@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import CadastrarCliente from "./pages/CadastrarCliente";
 import ConsultarCliente from "./pages/ConsultarCliente";
+import ExtratoInvestimento from "./pages/ExtratoInvestimento";
 import AtualizarCliente from "./pages/AtualizarCliente";
 import ExcluirCliente from "./pages/ExcluirCliente";
 import GerenciarUsuarios from "./pages/GerenciarUsuarios";
