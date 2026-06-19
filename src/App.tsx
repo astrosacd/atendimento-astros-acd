@@ -125,6 +125,7 @@ function AppRoutes() {
       {/* Client Management - permission-based */}
       <Route path="/cadastrar" element={<ProtectedRoute permission="create_clients"><CadastrarCliente /></ProtectedRoute>} />
       <Route path="/consultar" element={<ProtectedRoute permission="view_clients"><ConsultarCliente /></ProtectedRoute>} />
+      <Route path="/extrato-investimento" element={<ProtectedRoute permission="view_clients"><ExtratoInvestimento /></ProtectedRoute>} />
       <Route path="/atualizar" element={<ProtectedRoute permission="update_clients"><AtualizarCliente /></ProtectedRoute>} />
       <Route path="/excluir" element={<ProtectedRoute permission="delete_clients"><ExcluirCliente /></ProtectedRoute>} />
       
