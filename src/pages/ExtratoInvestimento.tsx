@@ -193,7 +193,7 @@ export default function ExtratoInvestimento() {
         itens: { unicos: itensUnicos, mensais: itensMensais },
         gerado_por: user?.id,
         gerado_por_email: user?.email,
-      });
+      }]);
 
       toast.success('PDF gerado e baixado.');
     } catch (e: any) {
