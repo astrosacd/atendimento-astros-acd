@@ -228,7 +228,7 @@ export default function ExtratoInvestimento() {
     if (selectedClienteId) carregarDadosCliente(selectedClienteId);
     else {
       setItems([]); setClienteFinal(''); setTotalInvestidoHist(0);
-      setDestinoEmail(''); setDestinoWhats('');
+      setDestinoEmail(''); setDestinoWhats(''); setObservacoesCliente([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClienteId]);
