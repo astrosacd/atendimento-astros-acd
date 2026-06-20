@@ -76,7 +76,7 @@ export function ClientUnifiedTimeline({ clienteId }: ClientUnifiedTimelineProps)
         historyRes, smsRes, rcsRes, paymentsRes, proposalsRes,
         tasksRes, filesRes, purchasesRes, followupsRes, licensesRes,
         chamadosRes, ligacoesRes, billingRes, scoresRes, recoveryRes,
-        agendaRes,
+        agendaRes, extratoRes,
       ] = await Promise.all([
         wrap(s.from('client_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(100)),
         wrap(s.from('sms_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(100)),
@@ -95,6 +95,9 @@ export function ClientUnifiedTimeline({ clienteId }: ClientUnifiedTimelineProps)
         wrap(s.from('client_recovery_attempts').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50)),
         clienteEmail
           ? wrap(s.from('calendar_events').select('*').eq('client_email', clienteEmail).order('start_time', { ascending: false }).limit(50))
+          : Promise.resolve({ data: [] }),
+        cliente?.nome
+          ? wrap(s.from('extrato_investimento_logs').select('*').eq('cliente_nome', cliente.nome).order('created_at', { ascending: false }).limit(50))
           : Promise.resolve({ data: [] }),
       ]);
 
