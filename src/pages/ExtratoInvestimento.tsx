@@ -657,15 +657,8 @@ export default function ExtratoInvestimento() {
                 <div className="flex items-center gap-2 font-semibold text-sm"><Mail className="h-4 w-4 text-blue-500" /> E-mail</div>
                 <Label className="text-xs">Destinatário</Label>
                 <Input value={destinoEmail} onChange={(e) => setDestinoEmail(e.target.value)} placeholder="cliente@email.com" />
-                <Label className="text-xs">Mensagem personalizada (opcional)</Label>
-                <Textarea
-                  rows={3}
-                  value={emailMensagem}
-                  onChange={(e) => setEmailMensagem(e.target.value)}
-                  placeholder="Prezado(a), conforme solicitado segue em anexo o extrato consolidado do seu investimento."
-                />
                 <p className="text-[10px] text-muted-foreground">
-                  Seu texto aparece destacado no topo de um e-mail HTML personalizado da Astros, com o PDF em anexo.
+                  O cliente receberá um e-mail HTML personalizado da Astros, com o PDF do extrato em anexo.
                 </p>
                 <Button
                   onClick={() => setConfirmChannel('email')}
