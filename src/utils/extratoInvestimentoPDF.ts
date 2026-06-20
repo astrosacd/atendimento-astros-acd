@@ -23,7 +23,7 @@ export type ProductType =
   | 'outro';
 
 export const PRODUCT_TYPE_LABEL: Record<ProductType, string> = {
-  numeros: 'Números / KPI',
+  numeros: 'Números (WhatsApp / Chips)',
   hospedagem: 'Hospedagem',
   seguro_manutencao: 'Seguro + Manutenção',
   ferramenta_software: 'Acesso a Ferramenta / Software',
