@@ -44,6 +44,8 @@ interface RowItem extends ExtratoItemV2 {
   source_label: string;
   recorrente: boolean;
   selected: boolean;
+  obs_interna?: string;
+  obs_origem_nome?: string;
 }
 
 const fmtBRL = (v: number) =>
