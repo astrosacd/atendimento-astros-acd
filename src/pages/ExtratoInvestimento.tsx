@@ -158,11 +158,8 @@ export default function ExtratoInvestimento() {
       const totalPurchases = (purchasesArr || []).reduce((s: number, p: any) => s + Number(p.valor || 0), 0);
       setTotalInvestidoHist(totalPagamentos + totalPurchases);
 
-      // Observações internas (somente para o usuário)
-      const obsList = (clientesRel || [])
-        .map((c: any) => ({ nome: c.nome || '—', obs: (c.observacao || '').trim() }))
-        .filter((o: any) => o.obs.length > 0);
-      setObservacoesCliente(obsList);
+
+
 
       const rows: RowItem[] = [];
 
