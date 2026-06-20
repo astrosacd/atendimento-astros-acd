@@ -666,7 +666,7 @@ export default function ExtratoInvestimento() {
                   Seu texto aparece destacado no topo de um e-mail HTML personalizado da Astros, com o PDF em anexo.
                 </p>
                 <Button
-                  onClick={() => enviar('email')}
+                  onClick={() => setConfirmChannel('email')}
                   disabled={!!sending || !pdfBaixado}
                   title={!pdfBaixado ? 'Baixe o PDF antes de enviar' : ''}
                   className="w-full bg-blue-600 hover:bg-blue-700"
