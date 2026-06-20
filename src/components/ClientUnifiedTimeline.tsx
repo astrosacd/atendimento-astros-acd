@@ -208,6 +208,18 @@ export function ClientUnifiedTimeline({ clienteId }: ClientUnifiedTimelineProps)
         status: e.status,
       }));
 
+      (extratoRes.data || []).forEach((x: any) => {
+        const ch = x?.itens?.channel as string | undefined;
+        const acao = ch === 'whatsapp' ? 'enviado por WhatsApp' : ch === 'email' ? 'enviado por e-mail' : 'gerado (download)';
+        const ref = x.referencia ? ` · Ref: ${x.referencia}` : '';
+        all.push({
+          id: `ext-${x.id}`, type: 'extrato', date: x.created_at,
+          title: `Extrato de investimento ${acao}`,
+          description: `Mensal: R$ ${Number(x.total_mensal || 0).toFixed(2)} · Único: R$ ${Number(x.total_unico || 0).toFixed(2)} · Números: ${x.qtd_numeros || 0}${ref}${x.gerado_por_email ? ` · por ${x.gerado_por_email}` : ''}`,
+        });
+      });
+
+
       if (cliente) {
         all.push({
           id: `client-${cliente.id}`, type: 'client', date: cliente.created_at,
