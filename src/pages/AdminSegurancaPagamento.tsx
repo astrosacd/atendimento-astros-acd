@@ -990,7 +990,8 @@ export default function AdminSegurancaPagamento() {
           if (!open) setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '', renewalMode: null });
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <TooltipProvider delayDuration={150}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {approvalDialog.action === 'approve' ? (
