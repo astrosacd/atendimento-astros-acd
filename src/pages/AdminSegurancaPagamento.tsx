@@ -208,7 +208,7 @@ export default function AdminSegurancaPagamento() {
     const isSuspicious = SUSPICIOUS.has(payment.ocr_status);
     // Suspeitos OU rejeição → sempre pedem motivo via Dialog
     if (isSuspicious || action === 'reject') {
-      setApprovalDialog({ open: true, payment, action, reason: '', renewalMode: 'anchor' });
+      setApprovalDialog({ open: true, payment, action, reason: '', renewalMode: null });
       return;
     }
     // Aprovação normal → perguntar base de renovação se houver data âncora
