@@ -189,6 +189,8 @@ export default function ExtratoInvestimento() {
           data_renovacao: recorrente ? c.data_renovacao || null : null,
           ciclo_label: recorrente ? (CICLO_MESES_LABEL[c.ciclo_cobranca] || 'Mensal') : undefined,
           status: recorrente ? computeStatus(c.data_renovacao) : 'unico',
+          obs_interna: (c.observacao || '').trim() || undefined,
+          obs_origem_nome: c.nome || undefined,
         });
       });
 
