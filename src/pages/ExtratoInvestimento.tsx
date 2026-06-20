@@ -643,8 +643,8 @@ export default function ExtratoInvestimento() {
                 />
                 <Button
                   onClick={() => setConfirmChannel('whatsapp')}
-                  disabled={!!sending || !pdfBaixado}
-                  title={!pdfBaixado ? 'Baixe o PDF antes de enviar' : ''}
+                  disabled={!!sending || !pdfBaixado || !whatsMensagem.trim()}
+                  title={!pdfBaixado ? 'Baixe o PDF antes de enviar' : (!whatsMensagem.trim() ? 'Digite a mensagem do WhatsApp' : '')}
                   className="w-full bg-emerald-600 hover:bg-emerald-700"
                 >
                   {sending === 'whatsapp' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <MessageSquare className="h-4 w-4 mr-2" />}
