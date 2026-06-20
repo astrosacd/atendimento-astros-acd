@@ -132,7 +132,7 @@ export default function ExtratoInvestimento() {
 
       const { data: clientesRel } = await supabase
         .from('clientes')
-        .select('id, nome, email, numero, produto, valor, ciclo_cobranca, data_renovacao, created_at, cobranca_ativa')
+        .select('id, nome, email, numero, produto, valor, ciclo_cobranca, data_renovacao, created_at, cobranca_ativa, observacao')
         .or(orParts.join(','));
 
       // 2) Purchases (únicos) - vinculadas a qualquer cliente relacionado
@@ -157,17 +157,26 @@ export default function ExtratoInvestimento() {
       const totalPurchases = (purchasesArr || []).reduce((s: number, p: any) => s + Number(p.valor || 0), 0);
       setTotalInvestidoHist(totalPagamentos + totalPurchases);
 
+      // Observações internas (somente para o usuário)
+      const obsList = (clientesRel || [])
+        .map((c: any) => ({ nome: c.nome || '—', obs: (c.observacao || '').trim() }))
+        .filter((o: any) => o.obs.length > 0);
+      setObservacoesCliente(obsList);
+
       const rows: RowItem[] = [];
 
       (clientesRel || []).forEach((c: any) => {
-        if (!c.cobranca_ativa || Number(c.valor || 0) <= 0) return;
-        const nome = c.produto || 'Serviço Mensal';
+        if (Number(c.valor || 0) <= 0) return;
+        const nome = c.produto || 'Serviço';
         const tipo = inferirTipo(nome);
+        const recorrente = !!c.cobranca_ativa;
         rows.push({
           uid: `cli-${c.id}`,
           origem: 'cliente',
-          source_label: `Cadastro · ${c.ciclo_cobranca || 'mensal'}`,
-          recorrente: true,
+          source_label: recorrente
+            ? `Cadastro · ${c.ciclo_cobranca || 'mensal'}`
+            : 'Cadastro · Pagamento único',
+          recorrente,
           selected: true,
           nome,
           product_type: tipo,
@@ -175,9 +184,9 @@ export default function ExtratoInvestimento() {
           valor_unitario: Number(c.valor || 0),
           unidade_label: unidadeForType(tipo),
           data_compra: (c.created_at || '').slice(0, 10) || null,
-          data_renovacao: c.data_renovacao || null,
-          ciclo_label: CICLO_MESES_LABEL[c.ciclo_cobranca] || 'Mensal',
-          status: computeStatus(c.data_renovacao),
+          data_renovacao: recorrente ? c.data_renovacao || null : null,
+          ciclo_label: recorrente ? (CICLO_MESES_LABEL[c.ciclo_cobranca] || 'Mensal') : undefined,
+          status: recorrente ? computeStatus(c.data_renovacao) : 'unico',
         });
       });
 
