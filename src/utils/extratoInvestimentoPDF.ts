@@ -181,18 +181,26 @@ function ensureSpace(doc: jsPDF, y: number, need: number): number {
 
 function drawItemBlock(doc: jsPDF, y: number, it: ExtratoItemV2, recorrente: boolean): number {
   const W = doc.internal.pageSize.getWidth();
-  y = ensureSpace(doc, y, 78);
+
+  // Descrição (observação para o cliente) — pode ocupar várias linhas
+  const descLines = it.descricao && it.descricao.trim()
+    ? doc.splitTextToSize(it.descricao.trim(), W - 120)
+    : [];
+  const descHeight = descLines.length > 0 ? 10 + descLines.length * 10 : 0;
+  const cardHeight = 70 + descHeight;
+
+  y = ensureSpace(doc, y, cardHeight + 8);
 
   // card
   doc.setFillColor(CARD);
-  doc.roundedRect(40, y, W - 80, 70, 6, 6, 'F');
+  doc.roundedRect(40, y, W - 80, cardHeight, 6, 6, 'F');
   doc.setDrawColor(CARD_BORDER);
   doc.setLineWidth(0.5);
-  doc.roundedRect(40, y, W - 80, 70, 6, 6, 'S');
+  doc.roundedRect(40, y, W - 80, cardHeight, 6, 6, 'S');
 
   // gold accent bar
   doc.setFillColor(GOLD);
-  doc.rect(40, y, 3, 70, 'F');
+  doc.rect(40, y, 3, cardHeight, 'F');
 
   // tipo badge
   const typeLabel = PRODUCT_TYPE_LABEL[it.product_type] ?? 'Outro';
@@ -226,6 +234,18 @@ function drawItemBlock(doc: jsPDF, y: number, it: ExtratoItemV2, recorrente: boo
   if (!recorrente) parts.push('Tipo: Pagamento único');
   if (parts.length) doc.text(parts.join('  ·  '), 54, y + 62);
 
+  // descrição (observação para cliente) — abaixo do bloco principal
+  if (descLines.length > 0) {
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(8.5);
+    doc.setTextColor(LIGHT);
+    let dy = y + 80;
+    descLines.forEach((line: string) => {
+      doc.text(line, 54, dy);
+      dy += 10;
+    });
+  }
+
   // total à direita
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
@@ -243,7 +263,7 @@ function drawItemBlock(doc: jsPDF, y: number, it: ExtratoItemV2, recorrente: boo
   doc.setTextColor(NAVY);
   doc.text(st.label.toUpperCase(), W - 54 - stw / 2, y + 56, { align: 'center' });
 
-  return y + 78;
+  return y + cardHeight + 8;
 }
 
 function totalRow(doc: jsPDF, y: number, label: string, value: string) {
