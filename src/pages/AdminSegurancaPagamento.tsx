@@ -125,8 +125,8 @@ export default function AdminSegurancaPagamento() {
     payment: any | null;
     action: 'approve' | 'reject';
     reason: string;
-    renewalMode: 'anchor' | 'from_today';
-  }>({ open: false, payment: null, action: 'approve', reason: '', renewalMode: 'anchor' });
+    renewalMode: 'anchor' | 'from_today' | null;
+  }>({ open: false, payment: null, action: 'approve', reason: '', renewalMode: null });
 
   // Dialog para escolher base de renovação (aprovação não-suspeita)
   const [renewalChoiceDialog, setRenewalChoiceDialog] = useState<{
