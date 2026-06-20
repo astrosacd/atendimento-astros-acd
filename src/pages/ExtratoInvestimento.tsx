@@ -678,6 +678,30 @@ export default function ExtratoInvestimento() {
             </CardContent>
           </Card>
         )}
+
+        <AlertDialog open={!!confirmChannel} onOpenChange={(o) => !o && setConfirmChannel(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Você já conferiu o PDF antes de enviar?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Confirme que revisou o conteúdo do extrato. O envio por{' '}
+                <strong>{confirmChannel === 'whatsapp' ? 'WhatsApp' : 'e-mail'}</strong> será disparado para o cliente após sua confirmação.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Não</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  const ch = confirmChannel;
+                  setConfirmChannel(null);
+                  if (ch) enviar(ch);
+                }}
+              >
+                Sim, enviar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
