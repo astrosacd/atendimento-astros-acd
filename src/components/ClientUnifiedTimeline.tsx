@@ -41,6 +41,7 @@ const TYPE_CONFIG = {
   agenda:    { icon: CalendarDays,  color: 'text-violet-500',   label: 'Agenda' },
   score:     { icon: TrendingUp,    color: 'text-teal-500',     label: 'Score' },
   recovery:  { icon: RefreshCw,     color: 'text-orange-400',   label: 'Recuperação' },
+  extrato:   { icon: FileBarChart,  color: 'text-amber-500',    label: 'Extrato Investim.' },
 } as const;
 
 const FILTER_OPTIONS: Array<{ value: string; label: string }> = [
