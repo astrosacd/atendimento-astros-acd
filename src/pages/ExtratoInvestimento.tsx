@@ -101,6 +101,8 @@ export default function ExtratoInvestimento() {
   const [whatsMensagem, setWhatsMensagem] = useState('');
   const [destinoEmail, setDestinoEmail] = useState('');
   const [destinoWhats, setDestinoWhats] = useState('');
+  const [observacoesCliente, setObservacoesCliente] = useState<{ nome: string; obs: string }[]>([]);
+  const [obsDialogOpen, setObsDialogOpen] = useState(false);
 
   // Opções do dropdown (clientes cadastrados, sem digitação livre)
   const clienteOptions = useMemo(
