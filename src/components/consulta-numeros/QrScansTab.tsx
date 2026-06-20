@@ -1747,7 +1747,7 @@ export function QrScansTab() {
 
       {/* Scan register dialog */}
       <Dialog open={scanDialogOpen} onOpenChange={setScanDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Registrar escaneamento de QR</DialogTitle>
             <DialogDescription>
