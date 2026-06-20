@@ -333,7 +333,7 @@ export default function ExtratoInvestimento() {
   const enviar = async (channel: 'whatsapp' | 'email') => {
     const err = validate(); if (err) { toast.error(err); return; }
     if (channel === 'whatsapp' && !destinoWhats.trim()) { toast.error('Informe o número do WhatsApp.'); return; }
-    if (channel === 'whatsapp' && !whatsMensagem.trim()) { toast.error('A mensagem do WhatsApp é obrigatória.'); return; }
+
     if (channel === 'email' && !destinoEmail.trim()) { toast.error('Informe o e-mail.'); return; }
 
     setSending(channel);
