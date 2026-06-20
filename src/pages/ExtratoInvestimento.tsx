@@ -401,51 +401,6 @@ export default function ExtratoInvestimento() {
                 </p>
               </div>
               <div className="flex gap-2 items-center">
-                <Dialog open={obsDialogOpen} onOpenChange={setObsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      title="Ver observações internas do cliente (somente você)"
-                      className="relative"
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      Observações
-                      {observacoesCliente.length > 0 && (
-                        <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-amber-500 text-[10px] text-white font-bold px-1">
-                          {observacoesCliente.length}
-                        </span>
-                      )}
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2">
-                        <Eye className="h-5 w-5 text-amber-600" /> Observações internas
-                      </DialogTitle>
-                      <DialogDescription>
-                        Conteúdo visível somente para você. Use para extrair informações e digitar no
-                        campo <strong>"Observação para o cliente"</strong> de cada item — esse sim aparece no PDF.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-                      {observacoesCliente.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-6">
-                          Nenhuma observação cadastrada nos registros deste cliente.
-                        </p>
-                      ) : (
-                        observacoesCliente.map((o, i) => (
-                          <div key={i} className="p-3 border rounded-lg bg-muted/30">
-                            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-                              {o.nome}
-                            </p>
-                            <p className="text-sm whitespace-pre-wrap">{o.obs}</p>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </DialogContent>
-                </Dialog>
                 <Button size="sm" variant="outline" onClick={() => addManual(false)}>
                   <Plus className="h-3 w-3 mr-1" /> Item único
                 </Button>
