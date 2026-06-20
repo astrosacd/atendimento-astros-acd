@@ -542,6 +542,37 @@ export default function ExtratoInvestimento() {
                         </div>
                       </>
                     )}
+                    <div className="col-span-2 md:col-span-6">
+                      <Label className="text-[10px] flex items-center gap-1">
+                        Observação para o cliente
+                        <span className="text-muted-foreground font-normal">(aparece no PDF)</span>
+                      </Label>
+                      <Textarea
+                        rows={2}
+                        className="text-xs resize-none"
+                        value={it.descricao || ''}
+                        onChange={(e) => updateItem(it.uid, { descricao: e.target.value })}
+                        placeholder="Ex.: Inclui suporte técnico 24/7 e backup diário."
+                      />
+                    </div>
+                            onChange={(e) => updateItem(it.uid, {
+                              data_renovacao: e.target.value || null,
+                              status: computeStatus(e.target.value),
+                            })} />
+                        </div>
+                        <div>
+                          <Label className="text-[10px]">Status</Label>
+                          <Select value={it.status || 'em_dia'} onValueChange={(v: StatusRenovacao) => updateItem(it.uid, { status: v })}>
+                            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="em_dia">Em dia</SelectItem>
+                              <SelectItem value="proxima">Renova em breve</SelectItem>
+                              <SelectItem value="atrasada">Atrasada</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
