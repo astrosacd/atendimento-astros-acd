@@ -9,8 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ShieldCheck, Search, Filter, AlertTriangle, CheckCircle2, 
   Clock, XCircle, MoreHorizontal, Eye, ExternalLink, Settings,
-  AlertCircle, ShieldAlert, FileSearch, Smartphone, RefreshCw
+  AlertCircle, ShieldAlert, FileSearch, Smartphone, RefreshCw, HelpCircle
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
