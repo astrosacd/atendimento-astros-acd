@@ -100,6 +100,7 @@ export default function ExtratoInvestimento() {
   const [totalInvestidoHist, setTotalInvestidoHist] = useState<number>(0);
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState<null | 'whatsapp' | 'email'>(null);
+  const [pdfBaixado, setPdfBaixado] = useState(false);
   const [emailMensagem, setEmailMensagem] = useState('');
   const [whatsMensagem, setWhatsMensagem] = useState('');
   const [destinoEmail, setDestinoEmail] = useState('');
@@ -225,6 +226,7 @@ export default function ExtratoInvestimento() {
   };
 
   useEffect(() => {
+    setPdfBaixado(false);
     if (selectedClienteId) carregarDadosCliente(selectedClienteId);
     else {
       setItems([]); setClienteFinal(''); setTotalInvestidoHist(0);
@@ -309,7 +311,8 @@ export default function ExtratoInvestimento() {
       const fileName = `extrato_${clienteFinal.trim().toLowerCase().replace(/\s+/g, '_')}_${todayISO()}.pdf`;
       doc.save(fileName);
       await baixarLog('download');
-      toast.success('PDF gerado e baixado.');
+      setPdfBaixado(true);
+      toast.success('PDF gerado. Agora você pode enviar ao cliente.');
     } catch (e: any) {
       console.error(e);
       toast.error('Falha ao gerar PDF: ' + (e?.message || e));
@@ -603,10 +606,18 @@ export default function ExtratoInvestimento() {
 
         {selectedClienteId && (
           <Card>
-            <CardHeader><CardTitle className="text-base">4. Enviar ao cliente</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle className="text-base">4. Enviar ao cliente</CardTitle>
+              {!pdfBaixado && (
+                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                  <FileDown className="h-3 w-3" />
+                  Baixe o PDF acima e confira antes de habilitar o envio.
+                </p>
+              )}
+            </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* WhatsApp */}
-              <div className="space-y-2 p-3 border rounded-lg">
+              <div className={`space-y-2 p-3 border rounded-lg ${!pdfBaixado ? 'opacity-60' : ''}`}>
                 <div className="flex items-center gap-2 font-semibold text-sm"><MessageSquare className="h-4 w-4 text-emerald-500" /> WhatsApp</div>
                 <Label className="text-xs">Número (com DDI)</Label>
                 <Input value={destinoWhats} onChange={(e) => setDestinoWhats(e.target.value)} placeholder="5511..." />
@@ -617,14 +628,19 @@ export default function ExtratoInvestimento() {
                   onChange={(e) => setWhatsMensagem(e.target.value)}
                   placeholder="Olá! Segue em anexo seu extrato de investimento."
                 />
-                <Button onClick={() => enviar('whatsapp')} disabled={!!sending} className="w-full bg-emerald-600 hover:bg-emerald-700">
+                <Button
+                  onClick={() => enviar('whatsapp')}
+                  disabled={!!sending || !pdfBaixado}
+                  title={!pdfBaixado ? 'Baixe o PDF antes de enviar' : ''}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                >
                   {sending === 'whatsapp' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <MessageSquare className="h-4 w-4 mr-2" />}
                   Enviar por WhatsApp
                 </Button>
               </div>
 
               {/* E-mail */}
-              <div className="space-y-2 p-3 border rounded-lg">
+              <div className={`space-y-2 p-3 border rounded-lg ${!pdfBaixado ? 'opacity-60' : ''}`}>
                 <div className="flex items-center gap-2 font-semibold text-sm"><Mail className="h-4 w-4 text-blue-500" /> E-mail</div>
                 <Label className="text-xs">Destinatário</Label>
                 <Input value={destinoEmail} onChange={(e) => setDestinoEmail(e.target.value)} placeholder="cliente@email.com" />
@@ -635,7 +651,15 @@ export default function ExtratoInvestimento() {
                   onChange={(e) => setEmailMensagem(e.target.value)}
                   placeholder="Prezado(a), conforme solicitado segue em anexo o extrato consolidado do seu investimento."
                 />
-                <Button onClick={() => enviar('email')} disabled={!!sending} className="w-full bg-blue-600 hover:bg-blue-700">
+                <p className="text-[10px] text-muted-foreground">
+                  Seu texto aparece destacado no topo de um e-mail HTML personalizado da Astros, com o PDF em anexo.
+                </p>
+                <Button
+                  onClick={() => enviar('email')}
+                  disabled={!!sending || !pdfBaixado}
+                  title={!pdfBaixado ? 'Baixe o PDF antes de enviar' : ''}
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                >
                   {sending === 'email' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Mail className="h-4 w-4 mr-2" />}
                   Enviar por E-mail
                 </Button>
