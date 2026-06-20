@@ -111,6 +111,7 @@ export default function ExtratoInvestimento() {
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState<null | 'whatsapp' | 'email'>(null);
   const [pdfBaixado, setPdfBaixado] = useState(false);
+  const [confirmChannel, setConfirmChannel] = useState<null | 'whatsapp' | 'email'>(null);
   const [emailMensagem, setEmailMensagem] = useState('');
   const [whatsMensagem, setWhatsMensagem] = useState('');
   const [destinoEmail, setDestinoEmail] = useState('');
