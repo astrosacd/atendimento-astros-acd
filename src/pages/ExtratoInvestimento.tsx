@@ -77,7 +77,9 @@ const CICLO_MESES_LABEL: Record<string, string> = {
 
 export default function ExtratoInvestimento() {
   const { user } = useAuth();
-  const { clientes, isLoading: loadingClientes } = useClientes();
+  const { fetchClientes, isLoading: loadingClientes } = useClientes();
+  const [clientes, setClientes] = useState<any[]>([]);
+  useEffect(() => { fetchClientes().then(setClientes).catch(() => {}); }, [fetchClientes]);
   const [selectedClienteId, setSelectedClienteId] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<RowItem[]>([]);
