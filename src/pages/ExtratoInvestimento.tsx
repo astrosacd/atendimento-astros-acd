@@ -29,6 +29,16 @@ import {
   DialogDescription,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   gerarExtratoInvestimentoPDF,
@@ -101,6 +111,7 @@ export default function ExtratoInvestimento() {
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState<null | 'whatsapp' | 'email'>(null);
   const [pdfBaixado, setPdfBaixado] = useState(false);
+  const [confirmChannel, setConfirmChannel] = useState<null | 'whatsapp' | 'email'>(null);
   const [emailMensagem, setEmailMensagem] = useState('');
   const [whatsMensagem, setWhatsMensagem] = useState('');
   const [destinoEmail, setDestinoEmail] = useState('');
@@ -629,7 +640,7 @@ export default function ExtratoInvestimento() {
                   placeholder="Olá! Segue em anexo seu extrato de investimento."
                 />
                 <Button
-                  onClick={() => enviar('whatsapp')}
+                  onClick={() => setConfirmChannel('whatsapp')}
                   disabled={!!sending || !pdfBaixado}
                   title={!pdfBaixado ? 'Baixe o PDF antes de enviar' : ''}
                   className="w-full bg-emerald-600 hover:bg-emerald-700"
@@ -655,7 +666,7 @@ export default function ExtratoInvestimento() {
                   Seu texto aparece destacado no topo de um e-mail HTML personalizado da Astros, com o PDF em anexo.
                 </p>
                 <Button
-                  onClick={() => enviar('email')}
+                  onClick={() => setConfirmChannel('email')}
                   disabled={!!sending || !pdfBaixado}
                   title={!pdfBaixado ? 'Baixe o PDF antes de enviar' : ''}
                   className="w-full bg-blue-600 hover:bg-blue-700"
@@ -667,6 +678,30 @@ export default function ExtratoInvestimento() {
             </CardContent>
           </Card>
         )}
+
+        <AlertDialog open={!!confirmChannel} onOpenChange={(o) => !o && setConfirmChannel(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Você já conferiu o PDF antes de enviar?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Confirme que revisou o conteúdo do extrato. O envio por{' '}
+                <strong>{confirmChannel === 'whatsapp' ? 'WhatsApp' : 'e-mail'}</strong> será disparado para o cliente após sua confirmação.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Não</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  const ch = confirmChannel;
+                  setConfirmChannel(null);
+                  if (ch) enviar(ch);
+                }}
+              >
+                Sim, enviar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );

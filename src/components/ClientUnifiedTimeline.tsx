@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   History, Smartphone, MessageSquare, User, CreditCard, FileText, Download,
   CheckSquare, ShoppingBag, Bell, Key, LifeBuoy, PhoneCall, Receipt,
-  CalendarDays, TrendingUp, RefreshCw,
+  CalendarDays, TrendingUp, RefreshCw, FileBarChart,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -41,6 +41,7 @@ const TYPE_CONFIG = {
   agenda:    { icon: CalendarDays,  color: 'text-violet-500',   label: 'Agenda' },
   score:     { icon: TrendingUp,    color: 'text-teal-500',     label: 'Score' },
   recovery:  { icon: RefreshCw,     color: 'text-orange-400',   label: 'Recuperação' },
+  extrato:   { icon: FileBarChart,  color: 'text-amber-500',    label: 'Extrato Investim.' },
 } as const;
 
 const FILTER_OPTIONS: Array<{ value: string; label: string }> = [
@@ -75,7 +76,7 @@ export function ClientUnifiedTimeline({ clienteId }: ClientUnifiedTimelineProps)
         historyRes, smsRes, rcsRes, paymentsRes, proposalsRes,
         tasksRes, filesRes, purchasesRes, followupsRes, licensesRes,
         chamadosRes, ligacoesRes, billingRes, scoresRes, recoveryRes,
-        agendaRes,
+        agendaRes, extratoRes,
       ] = await Promise.all([
         wrap(s.from('client_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(100)),
         wrap(s.from('sms_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(100)),
@@ -94,6 +95,9 @@ export function ClientUnifiedTimeline({ clienteId }: ClientUnifiedTimelineProps)
         wrap(s.from('client_recovery_attempts').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50)),
         clienteEmail
           ? wrap(s.from('calendar_events').select('*').eq('client_email', clienteEmail).order('start_time', { ascending: false }).limit(50))
+          : Promise.resolve({ data: [] }),
+        cliente?.nome
+          ? wrap(s.from('extrato_investimento_logs').select('*').eq('cliente_nome', cliente.nome).order('created_at', { ascending: false }).limit(50))
           : Promise.resolve({ data: [] }),
       ]);
 
@@ -203,6 +207,18 @@ export function ClientUnifiedTimeline({ clienteId }: ClientUnifiedTimelineProps)
         description: `${new Date(e.start_time).toLocaleString('pt-BR')}${e.location ? ` · ${e.location}` : ''}${e.meet_link ? ' · Meet' : ''}`,
         status: e.status,
       }));
+
+      (extratoRes.data || []).forEach((x: any) => {
+        const ch = x?.itens?.channel as string | undefined;
+        const acao = ch === 'whatsapp' ? 'enviado por WhatsApp' : ch === 'email' ? 'enviado por e-mail' : 'gerado (download)';
+        const ref = x.referencia ? ` · Ref: ${x.referencia}` : '';
+        all.push({
+          id: `ext-${x.id}`, type: 'extrato', date: x.created_at,
+          title: `Extrato de investimento ${acao}`,
+          description: `Mensal: R$ ${Number(x.total_mensal || 0).toFixed(2)} · Único: R$ ${Number(x.total_unico || 0).toFixed(2)} · Números: ${x.qtd_numeros || 0}${ref}${x.gerado_por_email ? ` · por ${x.gerado_por_email}` : ''}`,
+        });
+      });
+
 
       if (cliente) {
         all.push({
