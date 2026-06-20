@@ -349,7 +349,7 @@ export default function ExtratoInvestimento() {
           cliente_nome: clienteFinal.trim(),
           referencia: referencia.trim(),
           destino: channel === 'whatsapp' ? destinoWhats.trim() : destinoEmail.trim(),
-          mensagem: channel === 'whatsapp' ? whatsMensagem.trim() : undefined,
+          mensagem: undefined,
           pdf_base64: pdfBase64,
           file_name: fileName,
           total_investido: totalInvestidoHist,
