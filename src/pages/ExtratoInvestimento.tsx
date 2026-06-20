@@ -633,23 +633,19 @@ export default function ExtratoInvestimento() {
                 <div className="flex items-center gap-2 font-semibold text-sm"><MessageSquare className="h-4 w-4 text-emerald-500" /> WhatsApp</div>
                 <Label className="text-xs">Número (com DDI)</Label>
                 <Input value={destinoWhats} onChange={(e) => setDestinoWhats(e.target.value)} placeholder="5511..." />
-                <Label className="text-xs">Mensagem <span className="text-red-500">*</span></Label>
-                <Textarea
-                  rows={3}
-                  value={whatsMensagem}
-                  onChange={(e) => setWhatsMensagem(e.target.value)}
-                  placeholder="Olá! Segue em anexo seu extrato de investimento."
-                  required
-                />
+                <p className="text-xs text-muted-foreground">
+                  O cliente receberá uma mensagem padrão da Astros junto com o PDF do extrato em anexo.
+                </p>
                 <Button
                   onClick={() => setConfirmChannel('whatsapp')}
-                  disabled={!!sending || !pdfBaixado || !whatsMensagem.trim()}
-                  title={!pdfBaixado ? 'Baixe o PDF antes de enviar' : (!whatsMensagem.trim() ? 'Digite a mensagem do WhatsApp' : '')}
+                  disabled={!!sending || !pdfBaixado}
+                  title={!pdfBaixado ? 'Baixe o PDF antes de enviar' : ''}
                   className="w-full bg-emerald-600 hover:bg-emerald-700"
                 >
                   {sending === 'whatsapp' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <MessageSquare className="h-4 w-4 mr-2" />}
                   Enviar por WhatsApp
                 </Button>
+
               </div>
 
               {/* E-mail */}
