@@ -356,7 +356,7 @@ export default function ExtratoInvestimento() {
               options={clienteOptions}
               placeholder={loadingClientes ? 'Carregando...' : 'Filtre por nome, e-mail ou número'}
               searchPlaceholder="Digite para filtrar..."
-              emptyText="Nenhum cliente."
+              emptyMessage="Nenhum cliente."
               disabled={loadingClientes}
             />
             {loading && (
