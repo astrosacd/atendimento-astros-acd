@@ -1196,42 +1196,62 @@ export default function AdminSegurancaPagamento() {
             </div>
           )}
 
-          <div className="space-y-2">
-            <Button
-              variant="default"
-              className="w-full justify-start h-auto py-3"
-              onClick={() => renewalChoiceDialog.payment && performApproval(renewalChoiceDialog.payment.id, 'approve', undefined, 'anchor')}
-              disabled={approvingId === renewalChoiceDialog.payment?.id}
-            >
-              <div className="text-left">
-                <div className="font-semibold">Manter data do banco (recomendado)</div>
-                <div className="text-xs opacity-90">
-                  Próxima renovação: <span className="font-mono">{calcRenewalPreview(renewalChoiceDialog.payment, 'anchor')}</span>
+          {(() => {
+            const isMensal = renewalChoiceDialog.payment?.cliente?.ciclo_cobranca === 'mensal';
+            const anchorBtn = (
+              <Button
+                key="anchor"
+                variant={isMensal ? 'outline' : 'default'}
+                className={
+                  isMensal
+                    ? 'w-full justify-start h-auto py-3 border-pink-500/40 bg-pink-500/5 hover:bg-pink-500/10 text-foreground'
+                    : 'w-full justify-start h-auto py-3'
+                }
+                onClick={() => renewalChoiceDialog.payment && performApproval(renewalChoiceDialog.payment.id, 'approve', undefined, 'anchor')}
+                disabled={approvingId === renewalChoiceDialog.payment?.id}
+              >
+                <div className="text-left">
+                  <div className="font-semibold">
+                    Manter data do banco{!isMensal && ' (recomendado)'}
+                  </div>
+                  <div className={isMensal ? 'text-xs text-muted-foreground' : 'text-xs opacity-90'}>
+                    Próxima renovação: <span className="font-mono">{calcRenewalPreview(renewalChoiceDialog.payment, 'anchor')}</span>
+                  </div>
                 </div>
-              </div>
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start h-auto py-3"
-              onClick={() => renewalChoiceDialog.payment && performApproval(renewalChoiceDialog.payment.id, 'approve', undefined, 'from_today')}
-              disabled={approvingId === renewalChoiceDialog.payment?.id}
-            >
-              <div className="text-left">
-                <div className="font-semibold">Contar a partir de hoje</div>
-                <div className="text-xs text-muted-foreground">
-                  Use se o serviço foi pausado · Próxima: <span className="font-mono">{calcRenewalPreview(renewalChoiceDialog.payment, 'from_today')}</span>
+              </Button>
+            );
+            const todayBtn = (
+              <Button
+                key="today"
+                variant={isMensal ? 'default' : 'outline'}
+                className="w-full justify-start h-auto py-3"
+                onClick={() => renewalChoiceDialog.payment && performApproval(renewalChoiceDialog.payment.id, 'approve', undefined, 'from_today')}
+                disabled={approvingId === renewalChoiceDialog.payment?.id}
+              >
+                <div className="text-left">
+                  <div className="font-semibold">
+                    Contar a partir de hoje{isMensal && ' (recomendado)'}
+                  </div>
+                  <div className={isMensal ? 'text-xs opacity-90' : 'text-xs text-muted-foreground'}>
+                    {isMensal ? 'Cliente mensal — evita pular meses' : 'Use se o serviço foi pausado'} · Próxima: <span className="font-mono">{calcRenewalPreview(renewalChoiceDialog.payment, 'from_today')}</span>
+                  </div>
                 </div>
+              </Button>
+            );
+            return (
+              <div className="space-y-2">
+                {isMensal ? [todayBtn, anchorBtn] : [anchorBtn, todayBtn]}
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => setRenewalChoiceDialog({ open: false, payment: null })}
+                  disabled={approvingId === renewalChoiceDialog.payment?.id}
+                >
+                  Cancelar
+                </Button>
               </div>
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={() => setRenewalChoiceDialog({ open: false, payment: null })}
-              disabled={approvingId === renewalChoiceDialog.payment?.id}
-            >
-              Cancelar
-            </Button>
-          </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
