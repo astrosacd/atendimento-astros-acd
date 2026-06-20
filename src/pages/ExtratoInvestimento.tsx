@@ -429,6 +429,40 @@ export default function ExtratoInvestimento() {
                       value={it.nome}
                       onChange={(e) => updateItem(it.uid, { nome: e.target.value })}
                     />
+                    {it.obs_interna && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            title="Observação interna deste cadastro (somente você)"
+                            className="text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-96 max-h-[60vh] overflow-y-auto" side="left">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 pb-2 border-b">
+                              <Eye className="h-4 w-4 text-amber-600" />
+                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                Observação interna
+                              </p>
+                            </div>
+                            {it.obs_origem_nome && (
+                              <p className="text-[11px] text-muted-foreground">
+                                Cadastro: <strong>{it.obs_origem_nome}</strong>
+                              </p>
+                            )}
+                            <p className="text-sm whitespace-pre-wrap">{it.obs_interna}</p>
+                            <p className="text-[10px] text-muted-foreground italic pt-2 border-t">
+                              Visível somente para você. Use para extrair texto e colar no campo
+                              "Observação para o cliente" abaixo (esse sim aparece no PDF).
+                            </p>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    )}
                     <Button size="icon" variant="ghost" onClick={() => removeItem(it.uid)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
