@@ -190,7 +190,7 @@ export default function AdminSegurancaPagamento() {
         description: receiptMsg,
         variant: action === 'approve' && !receiptInfo?.sent ? 'destructive' : 'default',
       });
-      setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '', renewalMode: 'anchor' });
+      setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '', renewalMode: null });
       setRenewalChoiceDialog({ open: false, payment: null });
       await fetchPayments();
     } catch (e: any) {
