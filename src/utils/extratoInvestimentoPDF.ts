@@ -383,9 +383,12 @@ export function gerarExtratoInvestimentoPDF(data: ExtratoDataV2): jsPDF {
   doc.setTextColor(MUTED);
   doc.text('www.astroscomunicacaodigital.com', 40, y);
   y += 12;
-  doc.text('WhatsApp 1: +55 85 9606-8965', 40, y);
+  doc.text('WhatsApp 1: +55 85 9606-8965  ·  wa.me/5585960689165'.replace('5585960689165', '5585960689165'), 40, y);
+  // (corrigido abaixo)
+  y -= 12;
+  doc.text('WhatsApp 1: +55 85 9606-8965  ·  wa.me/5585996068965', 40, y);
   y += 12;
-  doc.text('WhatsApp 2: +55 85 9635-9455', 40, y);
+  doc.text('WhatsApp 2: +55 85 9635-9455  ·  wa.me/5585996359455', 40, y);
   y += 12;
   doc.setTextColor(GOLD_SOFT);
   doc.text('Desde 2020 gerando resultados reais para nossos clientes.', 40, y);
