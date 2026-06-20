@@ -20,7 +20,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClientes } from '@/hooks/useClientes';
-import { FileText, Loader2, FileDown, Plus, Trash2, MessageSquare, Mail } from 'lucide-react';
+import { FileText, Loader2, FileDown, Plus, Trash2, MessageSquare, Mail, Eye } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import {
   gerarExtratoInvestimentoPDF,
   ExtratoItemV2,
