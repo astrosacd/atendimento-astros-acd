@@ -987,7 +987,7 @@ export default function AdminSegurancaPagamento() {
       <Dialog
         open={approvalDialog.open}
         onOpenChange={(open) => {
-          if (!open) setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '', renewalMode: 'anchor' });
+          if (!open) setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '', renewalMode: null });
         }}
       >
         <DialogContent className="max-w-md">
