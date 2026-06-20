@@ -640,7 +640,7 @@ export default function ExtratoInvestimento() {
                   placeholder="Olá! Segue em anexo seu extrato de investimento."
                 />
                 <Button
-                  onClick={() => enviar('whatsapp')}
+                  onClick={() => setConfirmChannel('whatsapp')}
                   disabled={!!sending || !pdfBaixado}
                   title={!pdfBaixado ? 'Baixe o PDF antes de enviar' : ''}
                   className="w-full bg-emerald-600 hover:bg-emerald-700"
