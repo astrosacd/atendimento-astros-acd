@@ -62,7 +62,7 @@ function inferirTipo(nome: string): ProductType {
     return 'social_media';
   if (/hospedagem|host|vps|servidor|cloud/.test(n)) return 'hospedagem';
   if (/seguro|manuten[cç][aã]o/.test(n)) return 'seguro_manutencao';
-  if (/n[uú]mero|whatsapp|chip|kpi/.test(n)) return 'numeros';
+  if (/n[uú]mero|whatsapp|chip/.test(n)) return 'numeros';
   if (/software|licen[cç]a|sistema|saas|plataforma/.test(n)) return 'software_mensal';
   return 'outro';
 }
