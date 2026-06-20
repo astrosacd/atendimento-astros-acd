@@ -79,7 +79,8 @@ export default function ExtratoInvestimento() {
   const { user } = useAuth();
   const { fetchClientes, isLoading: loadingClientes } = useClientes();
   const [clientes, setClientes] = useState<any[]>([]);
-  useEffect(() => { fetchClientes().then(setClientes).catch(() => {}); }, [fetchClientes]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchClientes().then(setClientes).catch(() => {}); }, []);
   const [selectedClienteId, setSelectedClienteId] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<RowItem[]>([]);

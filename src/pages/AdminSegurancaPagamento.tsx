@@ -9,8 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ShieldCheck, Search, Filter, AlertTriangle, CheckCircle2, 
   Clock, XCircle, MoreHorizontal, Eye, ExternalLink, Settings,
-  AlertCircle, ShieldAlert, FileSearch, Smartphone, RefreshCw
+  AlertCircle, ShieldAlert, FileSearch, Smartphone, RefreshCw, HelpCircle
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -124,8 +125,8 @@ export default function AdminSegurancaPagamento() {
     payment: any | null;
     action: 'approve' | 'reject';
     reason: string;
-    renewalMode: 'anchor' | 'from_today';
-  }>({ open: false, payment: null, action: 'approve', reason: '', renewalMode: 'anchor' });
+    renewalMode: 'anchor' | 'from_today' | null;
+  }>({ open: false, payment: null, action: 'approve', reason: '', renewalMode: null });
 
   // Dialog para escolher base de renovação (aprovação não-suspeita)
   const [renewalChoiceDialog, setRenewalChoiceDialog] = useState<{
@@ -189,7 +190,7 @@ export default function AdminSegurancaPagamento() {
         description: receiptMsg,
         variant: action === 'approve' && !receiptInfo?.sent ? 'destructive' : 'default',
       });
-      setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '', renewalMode: 'anchor' });
+      setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '', renewalMode: null });
       setRenewalChoiceDialog({ open: false, payment: null });
       await fetchPayments();
     } catch (e: any) {
@@ -207,7 +208,7 @@ export default function AdminSegurancaPagamento() {
     const isSuspicious = SUSPICIOUS.has(payment.ocr_status);
     // Suspeitos OU rejeição → sempre pedem motivo via Dialog
     if (isSuspicious || action === 'reject') {
-      setApprovalDialog({ open: true, payment, action, reason: '', renewalMode: 'anchor' });
+      setApprovalDialog({ open: true, payment, action, reason: '', renewalMode: null });
       return;
     }
     // Aprovação normal → perguntar base de renovação se houver data âncora
@@ -986,10 +987,11 @@ export default function AdminSegurancaPagamento() {
       <Dialog
         open={approvalDialog.open}
         onOpenChange={(open) => {
-          if (!open) setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '', renewalMode: 'anchor' });
+          if (!open) setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '', renewalMode: null });
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <TooltipProvider delayDuration={150}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {approvalDialog.action === 'approve' ? (
@@ -1085,10 +1087,13 @@ export default function AdminSegurancaPagamento() {
             </p>
           </div>
 
-          {/* Escolha da base de renovação — só para aprovação */}
+          {/* Escolha da base de renovação — obrigatória para aprovação */}
           {approvalDialog.action === 'approve' && approvalDialog.payment?.cliente?.data_renovacao && approvalDialog.payment?.cliente?.ciclo_cobranca && (
             <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
-              <Label className="text-sm">Base da próxima renovação</Label>
+              <Label className="text-sm flex items-center gap-1">
+                Base da próxima renovação
+                <span className="text-destructive">*</span>
+              </Label>
               <div className="space-y-1.5">
                 <label className="flex items-start gap-2 cursor-pointer text-sm">
                   <input
@@ -1097,10 +1102,23 @@ export default function AdminSegurancaPagamento() {
                     value="anchor"
                     checked={approvalDialog.renewalMode === 'anchor'}
                     onChange={() => setApprovalDialog(prev => ({ ...prev, renewalMode: 'anchor' }))}
-                    className="mt-0.5"
+                    className="mt-1"
                   />
-                  <span>
-                    <strong>Manter data do banco</strong> (recomendado) → próxima renovação em{' '}
+                  <span className="flex-1">
+                    <span className="inline-flex items-center gap-1">
+                      <strong>Manter data do banco</strong>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button type="button" className="text-muted-foreground hover:text-foreground" aria-label="Explicação">
+                            <HelpCircle className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          Mantém o ciclo atual a partir da data já cadastrada no sistema. Use quando o cliente pagou em dia e o serviço nunca foi interrompido — preserva o aniversário da assinatura.
+                        </TooltipContent>
+                      </Tooltip>
+                    </span>
+                    {' '}→ próxima renovação em{' '}
                     <span className="font-mono">{calcRenewalPreview(approvalDialog.payment, 'anchor')}</span>
                   </span>
                 </label>
@@ -1111,31 +1129,51 @@ export default function AdminSegurancaPagamento() {
                     value="from_today"
                     checked={approvalDialog.renewalMode === 'from_today'}
                     onChange={() => setApprovalDialog(prev => ({ ...prev, renewalMode: 'from_today' }))}
-                    className="mt-0.5"
+                    className="mt-1"
                   />
-                  <span>
-                    <strong>Contar a partir de hoje</strong> (use se o serviço foi pausado) → próxima renovação em{' '}
+                  <span className="flex-1">
+                    <span className="inline-flex items-center gap-1">
+                      <strong>Contar a partir de hoje</strong>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button type="button" className="text-muted-foreground hover:text-foreground" aria-label="Explicação">
+                            <HelpCircle className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          Reinicia o ciclo a partir da data de hoje. Use quando o serviço ficou pausado, o cliente pagou com atraso significativo ou o cadastro estava com data antiga/duplicada — evita cobrar antes da próxima entrega real.
+                        </TooltipContent>
+                      </Tooltip>
+                    </span>
+                    {' '}→ próxima renovação em{' '}
                     <span className="font-mono">{calcRenewalPreview(approvalDialog.payment, 'from_today')}</span>
                   </span>
                 </label>
               </div>
+              {approvalDialog.renewalMode === null && (
+                <p className="text-[11px] text-destructive">Selecione uma das opções para continuar.</p>
+              )}
             </div>
           )}
 
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
             <Button
               variant="outline"
-              onClick={() => setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '', renewalMode: 'anchor' })}
+              onClick={() => setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '', renewalMode: null })}
               disabled={approvingId === approvalDialog.payment?.id}
             >
               Cancelar
             </Button>
             <Button
               variant={approvalDialog.action === 'approve' ? 'default' : 'destructive'}
-              onClick={() => approvalDialog.payment && performApproval(approvalDialog.payment.id, approvalDialog.action, approvalDialog.reason, approvalDialog.renewalMode)}
+              onClick={() => approvalDialog.payment && performApproval(approvalDialog.payment.id, approvalDialog.action, approvalDialog.reason, approvalDialog.renewalMode ?? 'anchor')}
               disabled={
                 approvingId === approvalDialog.payment?.id ||
-                (approvalDialog.action === 'approve' && approvalDialog.reason.trim().length < 5)
+                (approvalDialog.action === 'approve' && approvalDialog.reason.trim().length < 5) ||
+                (approvalDialog.action === 'approve'
+                  && !!approvalDialog.payment?.cliente?.data_renovacao
+                  && !!approvalDialog.payment?.cliente?.ciclo_cobranca
+                  && approvalDialog.renewalMode === null)
               }
             >
               {approvingId === approvalDialog.payment?.id ? (
@@ -1156,8 +1194,10 @@ export default function AdminSegurancaPagamento() {
               )}
             </Button>
           </div>
+        </TooltipProvider>
         </DialogContent>
       </Dialog>
+
 
       {/* Dialog: escolher base de renovação (aprovação não-suspeita) */}
       <Dialog
