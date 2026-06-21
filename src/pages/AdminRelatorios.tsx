@@ -26,11 +26,13 @@ interface ClienteData {
   nome: string;
   cpf: string | null;
   created_at: string;
+  updated_at?: string;
   data_renovacao: string;
   valor: number;
   ciclo_cobranca: string;
   moeda: string;
   plano: string | null;
+  cobranca_ativa?: boolean;
 }
 
 interface MarketingExpense {
@@ -78,6 +80,7 @@ export default function AdminRelatorios() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [clientes, setClientes] = useState<ClienteData[]>([]);
+  const [clientesInativos, setClientesInativos] = useState<ClienteData[]>([]);
   const [clientesRegistro, setClientesRegistro] = useState<ClienteData[]>([]);
   const [purchases, setPurchases] = useState<{ valor: number; moeda: string; cliente_id: string }[]>([]);
   const [marketingExpenses, setMarketingExpenses] = useState<MarketingExpense[]>([]);
@@ -98,11 +101,14 @@ export default function AdminRelatorios() {
     const dataInicio = subMonths(new Date(), mesesAtras).toISOString();
 
     try {
-      // Busca clientes recorrentes, clientes registro, histórico de compras e gastos de marketing
+      // Busca clientes recorrentes (ativos + inativos para churn/histórico), registro, compras e gastos
       const naoExcluido = 'excluir_metricas.is.null,excluir_metricas.eq.false';
-      const [clientesRecorrentesRes, clientesRegistroRes, clientesSemValorRes, purchasesRes, ordersRes, eventsRes, marketingRes] = await Promise.all([
-        supabase.from('clientes').select('id, nome, cpf, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', true).or(naoExcluido),
-        supabase.from('clientes').select('id, nome, cpf, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', false).gt('valor', 0).or(naoExcluido),
+      const cols = 'id, nome, cpf, created_at, updated_at, data_renovacao, valor, ciclo_cobranca, moeda, plano, cobranca_ativa';
+      const [clientesRecorrentesRes, clientesInativosRes, clientesRegistroRes, clientesSemValorRes, purchasesRes, ordersRes, eventsRes, marketingRes] = await Promise.all([
+        supabase.from('clientes').select(cols).eq('cobranca_ativa', true).or(naoExcluido),
+        // Inativos recorrentes: cobranca_ativa=false MAS com valor > 0 e ciclo recorrente (não vitalícios)
+        supabase.from('clientes').select(cols).eq('cobranca_ativa', false).gt('valor', 0).neq('ciclo_cobranca', 'vitalicio').or(naoExcluido),
+        supabase.from('clientes').select(cols).eq('cobranca_ativa', false).gt('valor', 0).or(naoExcluido),
         supabase.from('clientes').select('id', { count: 'exact', head: true }).eq('cobranca_ativa', false).or('valor.is.null,valor.eq.0').or(naoExcluido),
         supabase.from('client_purchases').select('valor, moeda, cliente_id'),
         supabase.from('gateway_orders').select('id, created_at, status, total, currency').gte('created_at', dataInicio),
@@ -111,6 +117,7 @@ export default function AdminRelatorios() {
       ]);
 
       if (clientesRecorrentesRes.data) setClientes(clientesRecorrentesRes.data);
+      if (clientesInativosRes.data) setClientesInativos(clientesInativosRes.data);
       if (clientesRegistroRes.data) setClientesRegistro(clientesRegistroRes.data);
       setClientesRegistroSemValor(clientesSemValorRes.count || 0);
       if (purchasesRes.data) setPurchases(purchasesRes.data);
@@ -198,13 +205,15 @@ export default function AdminRelatorios() {
   }, [clientesRegistro, purchases]);
 
   // LTV Calculation - Separado por moeda
+  // Considera ATIVOS + INATIVOS para tempo médio real de vida
   const ltvMetrics = useMemo(() => {
-    if (clientes.length === 0) return { 
+    if (clientes.length === 0 && clientesInativos.length === 0) return {
       ltvBRL: 0, ltvUSD: 0,
       ticketMedioBRL: 0, ticketMedioUSD: 0,
-      tempoMedioMeses: 0, 
+      tempoMedioMeses: 0,
       mrrBRL: 0, mrrUSD: 0,
-      clientesBRL: 0, clientesUSD: 0
+      clientesBRL: 0, clientesUSD: 0,
+      arrBRL: 0, arrUSD: 0,
     };
 
     const today = new Date();
@@ -213,72 +222,80 @@ export default function AdminRelatorios() {
     const dataLimite = new Date(today);
     dataLimite.setDate(dataLimite.getDate() - toleranciaDias);
 
-    // Filtrar clientes realmente ativos para MRR (renovação futura ou até 7 dias atrás)
+    // MRR: somente clientes ativos com renovação futura ou recente
     const clientesAtivosMRR = clientes.filter(c => {
       const renovacao = parseISO(c.data_renovacao);
       return renovacao >= dataLimite;
     });
 
-    const clientesBRL = clientes.filter(c => c.moeda === 'BRL');
-    const clientesUSD = clientes.filter(c => c.moeda === 'USD');
-    
-    // Para MRR: apenas clientes com renovação futura ou recente
-    const clientesBRLAtivos = clientesAtivosMRR.filter(c => c.moeda === 'BRL');
-    const clientesUSDAtivos = clientesAtivosMRR.filter(c => c.moeda === 'USD');
+    // BUG FIX: inclui moeda null como BRL (legado)
+    const isBRL = (c: ClienteData) => (c.moeda || 'BRL') === 'BRL';
+    const isUSD = (c: ClienteData) => c.moeda === 'USD';
 
-    const calcularMetricasPorMoeda = (clientesMoeda: ClienteData[], clientesMoedaAtivos: ClienteData[]) => {
-      if (clientesMoeda.length === 0) return { ticketMedio: 0, mrr: 0, ltv: 0 };
-      
-      // Ticket médio considera todos os clientes (histórico)
-      const valoresMensaisTodos = clientesMoeda.map(c => {
+    // Universo p/ ticket médio e tempo de vida: ativos + inativos recorrentes
+    const todosRecorrentes = [...clientes, ...clientesInativos];
+    const todosBRL = todosRecorrentes.filter(isBRL);
+    const todosUSD = todosRecorrentes.filter(isUSD);
+
+    const clientesBRLAtivos = clientesAtivosMRR.filter(isBRL);
+    const clientesUSDAtivos = clientesAtivosMRR.filter(isUSD);
+
+    // Tempo real de vida (em meses): para ativos = hoje - created_at; para inativos = updated_at (cancelamento aprox) - created_at
+    const tempoRealMeses = (c: ClienteData): number => {
+      const createdAt = parseISO(c.created_at);
+      const ativo = c.cobranca_ativa !== false;
+      const dataFim = ativo
+        ? today
+        : (c.updated_at ? parseISO(c.updated_at) : parseISO(c.data_renovacao));
+      const dataFimEfetiva = dataFim < createdAt ? createdAt : dataFim;
+      return Math.max(1, differenceInMonths(dataFimEfetiva, createdAt));
+    };
+
+    const calcularMetricasPorMoeda = (todos: ClienteData[], ativos: ClienteData[]) => {
+      if (todos.length === 0) return { ticketMedio: 0, mrr: 0, ltv: 0, tempoMedio: 0 };
+
+      const valoresMensaisTodos = todos.map(c => {
         const cicloMeses = CICLO_MESES[c.ciclo_cobranca] || 1;
-        return c.valor / cicloMeses;
+        return (c.valor || 0) / cicloMeses;
       });
       const ticketMedio = valoresMensaisTodos.reduce((a, b) => a + b, 0) / valoresMensaisTodos.length;
-      
-      // MRR considera apenas clientes ativos (renovação futura ou até 7 dias atrás)
-      const valoresMensaisAtivos = clientesMoedaAtivos.map(c => {
+
+      const mrr = ativos.reduce((acc, c) => {
         const cicloMeses = CICLO_MESES[c.ciclo_cobranca] || 1;
-        return c.valor / cicloMeses;
-      });
-      const mrr = valoresMensaisAtivos.reduce((a, b) => a + b, 0);
-      
-      const temposMeses = clientesMoeda.map(c => {
-        const createdAt = parseISO(c.created_at);
-        const renovacao = parseISO(c.data_renovacao);
-        const dataFim = renovacao < today ? renovacao : today;
-        return Math.max(1, differenceInMonths(dataFim, createdAt));
-      });
+        return acc + (c.valor || 0) / cicloMeses;
+      }, 0);
+
+      const temposMeses = todos.map(tempoRealMeses);
       const tempoMedio = temposMeses.reduce((a, b) => a + b, 0) / temposMeses.length;
       const ltv = ticketMedio * tempoMedio;
-      
-      return { ticketMedio, mrr, ltv };
+
+      return { ticketMedio, mrr, ltv, tempoMedio };
     };
 
-    const metricasBRL = calcularMetricasPorMoeda(clientesBRL, clientesBRLAtivos);
-    const metricasUSD = calcularMetricasPorMoeda(clientesUSD, clientesUSDAtivos);
+    const metricasBRL = calcularMetricasPorMoeda(todosBRL, clientesBRLAtivos);
+    const metricasUSD = calcularMetricasPorMoeda(todosUSD, clientesUSDAtivos);
 
-    // Tempo médio geral
-    const temposMesesGeral = clientes.map(c => {
-      const createdAt = parseISO(c.created_at);
-      const renovacao = parseISO(c.data_renovacao);
-      const dataFim = renovacao < today ? renovacao : today;
-      return Math.max(1, differenceInMonths(dataFim, createdAt));
-    });
-    const tempoMedioMeses = temposMesesGeral.length > 0 ? temposMesesGeral.reduce((a, b) => a + b, 0) / temposMesesGeral.length : 0;
+    // Tempo médio geral (ativos + inativos)
+    const todosTempos = todosRecorrentes.map(tempoRealMeses);
+    const tempoMedioMeses = todosTempos.length > 0
+      ? todosTempos.reduce((a, b) => a + b, 0) / todosTempos.length
+      : 0;
 
-    return { 
-      ltvBRL: metricasBRL.ltv, 
+    return {
+      ltvBRL: metricasBRL.ltv,
       ltvUSD: metricasUSD.ltv,
-      ticketMedioBRL: metricasBRL.ticketMedio, 
+      ticketMedioBRL: metricasBRL.ticketMedio,
       ticketMedioUSD: metricasUSD.ticketMedio,
-      tempoMedioMeses, 
-      mrrBRL: metricasBRL.mrr, 
+      tempoMedioMeses,
+      mrrBRL: metricasBRL.mrr,
       mrrUSD: metricasUSD.mrr,
-      clientesBRL: clientesBRL.length,
-      clientesUSD: clientesUSD.length
+      clientesBRL: clientesAtivosMRR.filter(isBRL).length,
+      clientesUSD: clientesAtivosMRR.filter(isUSD).length,
+      arrBRL: metricasBRL.mrr * 12,
+      arrUSD: metricasUSD.mrr * 12,
     };
-  }, [clientes]);
+  }, [clientes, clientesInativos]);
+
 
   // Métricas Profissionais (Business Intelligence)
   const biMetrics = useMemo(() => {
@@ -302,40 +319,42 @@ export default function AdminRelatorios() {
 
     const currentMarketingSpend = monthlyNormalSpend + proratedSpend;
     
-    // Novos clientes do mês atual
+    // Novos clientes do mês atual (ativos + inativos + registro) — evita subnotificar quem entrou e cancelou
     const startOfThisMonth = startOfMonth(today);
     const endOfThisMonth = endOfMonth(today);
-    const newClientsThisMonth = clientes.filter(c => {
+    const noMesAtual = (c: ClienteData) => {
       const createdAt = parseISO(c.created_at);
       return createdAt >= startOfThisMonth && createdAt <= endOfThisMonth;
-    }).length + clientesRegistro.filter(c => {
-      const createdAt = parseISO(c.created_at);
-      return createdAt >= startOfThisMonth && createdAt <= endOfThisMonth;
-    }).length;
+    };
+    const newClientsThisMonth =
+      clientes.filter(noMesAtual).length +
+      clientesInativos.filter(noMesAtual).length +
+      clientesRegistro.filter(noMesAtual).length;
 
     // CAC = Gasto / Novos Clientes
     const cac = newClientsThisMonth > 0 ? currentMarketingSpend / newClientsThisMonth : 0;
 
-    // MRR e ARPU (Average Revenue Per User)
-    const activeClientsCount = ltvMetrics.clientesBRL + ltvMetrics.clientesUSD;
-    const totalMRRBRL = ltvMetrics.mrrBRL;
-    const arpu = activeClientsCount > 0 ? totalMRRBRL / activeClientsCount : 0;
+    // ARPU BRL: somente clientes BRL ativos (não dilui com USD)
+    const arpu = ltvMetrics.clientesBRL > 0 ? ltvMetrics.mrrBRL / ltvMetrics.clientesBRL : 0;
+    const arpuUSD = ltvMetrics.clientesUSD > 0 ? ltvMetrics.mrrUSD / ltvMetrics.clientesUSD : 0;
 
-    // LTV / CAC
+    // LTV / CAC (BRL — CAC é em BRL)
     const ltvCacRatio = cac > 0 ? ltvMetrics.ltvBRL / cac : 0;
 
-    // Payback = CAC / Ticket Médio Mensal
+    // Payback = CAC / Ticket Médio Mensal BRL
     const payback = ltvMetrics.ticketMedioBRL > 0 ? cac / ltvMetrics.ticketMedioBRL : 0;
 
     return {
       cac,
       arpu,
+      arpuUSD,
       ltvCacRatio,
       payback,
       newClientsThisMonth,
       currentMarketingSpend
     };
-  }, [marketingExpenses, clientes, clientesRegistro, ltvMetrics]);
+  }, [marketingExpenses, clientes, clientesInativos, clientesRegistro, ltvMetrics]);
+
 
   // Métricas de Conversão (Gateway)
   const conversaoMetrics = useMemo(() => {
@@ -376,24 +395,33 @@ export default function AdminRelatorios() {
     return months;
   }, [events, orders, periodoMeses]);
 
-  // Funnel de Conversão
+  // Funnel de Conversão (dedupe page_views por slug+dia para evitar inflar)
   const funnelData = useMemo(() => {
-    const pageViews = events.filter(e => e.event_type === 'page_view').length;
+    const viewKeys = new Set<string>();
+    events.forEach(e => {
+      if (e.event_type === 'page_view') {
+        const dia = e.created_at.slice(0, 10);
+        viewKeys.add(`${e.slug || 'unknown'}::${dia}`);
+      }
+    });
+    const pageViews = viewKeys.size;
     const checkoutStarts = events.filter(e => e.event_type === 'checkout_started').length;
     const completedOrders = orders.filter(o => o.status === 'completed').length;
 
     return [
-      { name: 'Visualizações', value: pageViews, percentage: 100 },
+      { name: 'Visualizações (únicas)', value: pageViews, percentage: 100 },
       { name: 'Iniciaram Checkout', value: checkoutStarts, percentage: pageViews > 0 ? (checkoutStarts / pageViews) * 100 : 0 },
       { name: 'Compraram', value: completedOrders, percentage: pageViews > 0 ? (completedOrders / pageViews) * 100 : 0 },
     ];
   }, [events, orders]);
 
-  // Métricas de Churn
+
+  // Métricas de Churn — usa ativos + inativos para incluir cancelamentos reais
   const churnMetrics = useMemo(() => {
     const mesesAtras = parseInt(periodoMeses);
     const months: MonthlyMetric[] = [];
     const today = new Date();
+    const universo = [...clientes, ...clientesInativos];
 
     for (let i = mesesAtras - 1; i >= 0; i--) {
       const monthDate = subMonths(today, i);
@@ -402,28 +430,21 @@ export default function AdminRelatorios() {
       const monthKey = format(monthDate, 'yyyy-MM');
       const monthLabel = format(monthDate, 'MMM/yy', { locale: ptBR });
 
-      // Agrupamento por CPF ou Nome para considerar "Empresa" ao invés de "Produto"
-      // Clientes ativos no início do mês (tinham pelo menos uma assinatura ativa)
-      const ativosInicio = new Set(clientes.filter(c => {
+      // Agrupado por CPF/Nome (empresa, não produto)
+      const ativosInicio = new Set(universo.filter(c => {
         const createdAt = parseISO(c.created_at);
         const renovacao = parseISO(c.data_renovacao);
-        // Estava ativo no início do mês: criado antes e renovação após o início
         return createdAt < monthStart && renovacao >= monthStart;
       }).map(c => c.cpf || c.nome));
 
       const clientesAtivosInicioCount = ativosInicio.size;
 
-      // Clientes que "saíram" no mês (não têm nenhuma assinatura ativa no fim do mês mas tinham no início)
       const perdidosNoMes = Array.from(ativosInicio).filter(identificador => {
-        // Busca todas as assinaturas deste cliente
-        const assinaturasDoCliente = clientes.filter(c => (c.cpf || c.nome) === identificador);
-        
-        // Verifica se TODAS as assinaturas dele venceram no mês ou antes e nenhuma renovou após o fim do mês
+        const assinaturasDoCliente = universo.filter(c => (c.cpf || c.nome) === identificador);
         const temAssinaturaAtivaNoFim = assinaturasDoCliente.some(c => {
           const renovacao = parseISO(c.data_renovacao);
           return renovacao >= monthEnd;
         });
-
         return !temAssinaturaAtivaNoFim;
       }).length;
 
@@ -438,7 +459,8 @@ export default function AdminRelatorios() {
     }
 
     return months;
-  }, [clientes, periodoMeses]);
+  }, [clientes, clientesInativos, periodoMeses]);
+
 
   // Churn médio
   const churnMedio = useMemo(() => {
@@ -479,10 +501,11 @@ export default function AdminRelatorios() {
     })).sort((a, b) => b.mrr - a.mrr);
   }, [clientes]);
 
-  // Crescimento MRR
+  // Crescimento MRR — usa ativos + inativos para histórico correto
   const mrrGrowth = useMemo(() => {
     const mesesAtras = parseInt(periodoMeses);
     const months: MonthlyMetric[] = [];
+    const universo = [...clientes, ...clientesInativos];
 
     for (let i = mesesAtras - 1; i >= 0; i--) {
       const monthDate = subMonths(new Date(), i);
@@ -490,8 +513,8 @@ export default function AdminRelatorios() {
       const monthKey = format(monthDate, 'yyyy-MM');
       const monthLabel = format(monthDate, 'MMM/yy', { locale: ptBR });
 
-      // MRR no final do mês (clientes ativos com renovação >= final do mês)
-      const clientesAtivos = clientes.filter(c => {
+      // Cliente estava ativo no fim do mês se foi criado antes e renovação >= fim do mês
+      const clientesAtivos = universo.filter(c => {
         const createdAt = parseISO(c.created_at);
         const renovacao = parseISO(c.data_renovacao);
         return createdAt <= monthEnd && renovacao >= monthEnd;
@@ -499,23 +522,20 @@ export default function AdminRelatorios() {
 
       const mrr = clientesAtivos.reduce((acc, c) => {
         const cicloMeses = CICLO_MESES[c.ciclo_cobranca] || 1;
-        return acc + (c.valor / cicloMeses);
+        return acc + ((c.valor || 0) / cicloMeses);
       }, 0);
 
-      months.push({
-        month: monthKey,
-        monthLabel,
-        value: mrr,
-      });
+      months.push({ month: monthKey, monthLabel, value: mrr });
     }
 
     return months;
-  }, [clientes, periodoMeses]);
+  }, [clientes, clientesInativos, periodoMeses]);
 
-  // Novos clientes por mês
+  // Novos clientes por mês (ativos + inativos + registro — incluir quem entrou mesmo que tenha cancelado)
   const novosClientesMes = useMemo(() => {
     const mesesAtras = parseInt(periodoMeses);
     const months: MonthlyMetric[] = [];
+    const universo = [...clientes, ...clientesInativos, ...clientesRegistro];
 
     for (let i = mesesAtras - 1; i >= 0; i--) {
       const monthDate = subMonths(new Date(), i);
@@ -524,20 +544,78 @@ export default function AdminRelatorios() {
       const monthKey = format(monthDate, 'yyyy-MM');
       const monthLabel = format(monthDate, 'MMM/yy', { locale: ptBR });
 
-      const novos = new Set(clientes.filter(c => {
+      const novos = new Set(universo.filter(c => {
         const createdAt = parseISO(c.created_at);
         return createdAt >= monthStart && createdAt <= monthEnd;
       }).map(c => c.cpf || c.nome)).size;
 
-      months.push({
-        month: monthKey,
-        monthLabel,
-        value: novos,
-      });
+      months.push({ month: monthKey, monthLabel, value: novos });
     }
 
     return months;
-  }, [clientes, periodoMeses]);
+  }, [clientes, clientesInativos, clientesRegistro, periodoMeses]);
+
+  // MRR Waterfall — Novo MRR e Churn MRR do mês corrente (BRL)
+  const mrrWaterfall = useMemo(() => {
+    const today = new Date();
+    const monthStart = startOfMonth(today);
+    const monthEnd = endOfMonth(today);
+    const isBRL = (c: ClienteData) => (c.moeda || 'BRL') === 'BRL';
+    const valorMensal = (c: ClienteData) => (c.valor || 0) / (CICLO_MESES[c.ciclo_cobranca] || 1);
+
+    const novoMRR = [...clientes, ...clientesInativos]
+      .filter(isBRL)
+      .filter(c => {
+        const createdAt = parseISO(c.created_at);
+        return createdAt >= monthStart && createdAt <= monthEnd;
+      })
+      .reduce((acc, c) => acc + valorMensal(c), 0);
+
+    // Churn MRR: clientes inativos cuja data_renovacao caiu neste mês
+    const churnMRR = clientesInativos
+      .filter(isBRL)
+      .filter(c => {
+        const renovacao = parseISO(c.data_renovacao);
+        return renovacao >= monthStart && renovacao <= monthEnd;
+      })
+      .reduce((acc, c) => acc + valorMensal(c), 0);
+
+    const netNovo = novoMRR - churnMRR;
+    return { novoMRR, churnMRR, netNovo };
+  }, [clientes, clientesInativos]);
+
+  // Top 10 clientes por MRR (BRL + USD em colunas separadas)
+  const topClientes = useMemo(() => {
+    return clientes
+      .filter(c => {
+        const renovacao = parseISO(c.data_renovacao);
+        const limite = new Date();
+        limite.setDate(limite.getDate() - 7);
+        return renovacao >= limite;
+      })
+      .map(c => ({
+        id: c.id,
+        nome: c.nome,
+        plano: c.plano || 'Individual',
+        moeda: (c.moeda || 'BRL') as 'BRL' | 'USD',
+        mrr: (c.valor || 0) / (CICLO_MESES[c.ciclo_cobranca] || 1),
+      }))
+      .sort((a, b) => b.mrr - a.mrr)
+      .slice(0, 10);
+  }, [clientes]);
+
+  // NRR (Net Revenue Retention) — aproximação: MRR atual / MRR de 1 mês atrás
+  const nrrMetrics = useMemo(() => {
+    if (mrrGrowth.length < 2) return { nrrBRL: 0, grrBRL: 0 };
+    const mrrAtual = mrrGrowth[mrrGrowth.length - 1].value;
+    const mrrAnterior = mrrGrowth[mrrGrowth.length - 2].value;
+    const nrrBRL = mrrAnterior > 0 ? (mrrAtual / mrrAnterior) * 100 : 0;
+    // GRR aproximado: (MRR anterior - churn) / MRR anterior
+    const grrBRL = mrrAnterior > 0 ? ((mrrAnterior - mrrWaterfall.churnMRR) / mrrAnterior) * 100 : 0;
+    return { nrrBRL, grrBRL };
+  }, [mrrGrowth, mrrWaterfall]);
+
+
 
   const formatCurrency = (value: number, currency: 'BRL' | 'USD' = 'BRL') => {
     return new Intl.NumberFormat(currency === 'BRL' ? 'pt-BR' : 'en-US', { 
@@ -760,13 +838,90 @@ export default function AdminRelatorios() {
                 info="O Payback diz quantos meses o cliente precisa ficar pagando a mensalidade para 'se pagar'. Se o Payback é 2 meses, a partir do 3º mês o cliente é lucro puro. Ideal que seja abaixo de 6 meses."
               />
               <MetricCard
-                title="ARPU (Faturamento Médio)"
+                title="ARPU BRL (Faturamento Médio)"
                 value={formatCurrency(biMetrics.arpu, 'BRL')}
-                subtitle="Receita por cliente ativo"
+                subtitle={`USD: ${formatCurrency(biMetrics.arpuUSD, 'USD')}`}
                 icon={Briefcase}
-                info="ARPU é o faturamento médio por usuário. Ele mostra quanto cada cliente (da base toda) está te rendendo por mês em média. Se você tem planos de R$ 50 e R$ 150, seu ARPU deve ficar no meio disso."
+                info="ARPU é o faturamento médio por usuário ativo. Calculado separadamente por moeda (BRL e USD) para evitar diluição."
               />
             </CardContent>
+
+            {/* KPIs adicionais — ARR, NRR/GRR, MRR Waterfall */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <MetricCard
+                title="ARR BRL (Receita Anual)"
+                value={formatCurrency(ltvMetrics.arrBRL, 'BRL')}
+                subtitle={`USD: ${formatCurrency(ltvMetrics.arrUSD, 'USD')}`}
+                icon={DollarSign}
+                info="ARR (Annual Recurring Revenue) = MRR × 12. Mostra a receita recorrente projetada para os próximos 12 meses se nada mudar."
+              />
+              <MetricCard
+                title="NRR (Retenção de Receita)"
+                value={`${nrrMetrics.nrrBRL.toFixed(1)}%`}
+                subtitle="MRR atual / MRR mês anterior"
+                icon={TrendingUp}
+                trend={nrrMetrics.nrrBRL >= 100 ? 'up' : 'down'}
+                trendValue={nrrMetrics.nrrBRL >= 100 ? 'Crescendo' : 'Encolhendo'}
+                info="NRR > 100% significa que a base existente está crescendo (mais upgrades/renovações que cancelamentos). Ideal: > 110% para SaaS."
+              />
+              <MetricCard
+                title="GRR (Retenção Bruta)"
+                value={`${nrrMetrics.grrBRL.toFixed(1)}%`}
+                subtitle="Sem contar expansões"
+                icon={TrendingDown}
+                trend={nrrMetrics.grrBRL >= 90 ? 'up' : 'down'}
+                trendValue={nrrMetrics.grrBRL >= 90 ? 'Saudável' : 'Alto churn'}
+                info="GRR (Gross Revenue Retention) ignora upgrades — mede só quanto da receita você manteve dos clientes que já tinha. Ideal: > 90%."
+              />
+              <MetricCard
+                title="Novo MRR (este mês)"
+                value={formatCurrency(mrrWaterfall.novoMRR, 'BRL')}
+                subtitle={`Churn: -${formatCurrency(mrrWaterfall.churnMRR, 'BRL')}`}
+                icon={TrendingUp}
+                trend={mrrWaterfall.netNovo >= 0 ? 'up' : 'down'}
+                trendValue={`Líquido: ${formatCurrency(mrrWaterfall.netNovo, 'BRL')}`}
+                info="Novo MRR = receita recorrente trazida por clientes novos no mês. Churn MRR = receita perdida com cancelamentos. Líquido positivo = base cresceu."
+              />
+            </div>
+
+            {/* Top 10 Clientes por MRR */}
+            <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Top 10 Clientes por MRR
+                </CardTitle>
+                <CardDescription>
+                  Quem mais contribui para sua receita recorrente
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {topClientes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">Nenhum cliente ativo.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {topClientes.map((c, idx) => (
+                      <div key={c.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="w-7 h-7 rounded-full bg-primary/15 text-primary text-xs font-bold flex items-center justify-center flex-shrink-0">
+                            {idx + 1}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{c.nome}</p>
+                            <p className="text-xs text-muted-foreground">{c.plano}</p>
+                          </div>
+                        </div>
+                        <span className="font-bold text-sm whitespace-nowrap">
+                          {formatCurrency(c.mrr, c.moeda)}/mês
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="bg-card/50 backdrop-blur-sm border-border/50">
