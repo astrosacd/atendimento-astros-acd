@@ -194,6 +194,7 @@ serve(async (req) => {
         channel: "whatsapp",
         status: results.whatsapp.sent ? "sent" : "error",
         error_message: results.whatsapp.error,
+        resolution_note: `operador:${userData.user.id}|desconto:${discountPercent}%|link:${paymentUrl}`,
       });
     }
 
