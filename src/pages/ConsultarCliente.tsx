@@ -910,6 +910,15 @@ export default function ConsultarCliente() {
                                         <span>Upsell / Cross-sell IA</span>
                                       </DropdownMenuItem>
                                     )}
+                                    {isAdmin && cliente.cobranca_ativa !== false && (
+                                      <DropdownMenuItem
+                                        onClick={() => setCouponClienteId(cliente.id)}
+                                        className="gap-2"
+                                      >
+                                        <Gift className="h-4 w-4 text-pink-500" />
+                                        <span>🎁 Enviar cupom de desconto</span>
+                                      </DropdownMenuItem>
+                                    )}
                                   </>
                                 )}
 
