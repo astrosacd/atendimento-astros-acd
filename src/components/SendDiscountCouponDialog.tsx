@@ -120,13 +120,23 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
       setDiscount(10);
       setChannels({ whatsapp: true, email: false });
       setCooldown(null);
+      setConvertedValue(null);
       return;
     }
     if (!clienteId) return;
     (async () => {
       setLoadingClient(true);
       try {
-        const cutoff = new Date(Date.now() - 30 * 86400000).toISOString();
+        // Busca cooldown configurável primeiro
+        const { data: cfg } = await supabase
+          .from('billing_config')
+          .select('config_value')
+          .eq('config_key', 'coupon_cooldown_days')
+          .maybeSingle();
+        const days = Math.max(0, parseInt((cfg?.config_value as string) || '30', 10) || 30);
+        setCooldownDays(days);
+
+        const cutoff = new Date(Date.now() - days * 86400000).toISOString();
         const [{ data: cli }, { data: sc }, { data: recent }] = await Promise.all([
           supabase.from('clientes').select('id,nome,email,numero,produto,valor,moeda').eq('id', clienteId).single(),
           supabase
@@ -153,13 +163,37 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
         if (recent && recent.length > 0) {
           const ts = new Date(recent[0].sent_at as string).getTime();
           const daysSince = Math.floor((Date.now() - ts) / 86400000);
-          setCooldown({ last_sent_at: recent[0].sent_at as string, days_remaining: Math.max(0, 30 - daysSince) });
+          setCooldown({ last_sent_at: recent[0].sent_at as string, days_remaining: Math.max(0, days - daysSince) });
         }
       } finally {
         setLoadingClient(false);
       }
     })();
   }, [open, clienteId]);
+
+  // Conversão automática BRL ↔ USD quando troca o gateway
+  // Assume que cliente.valor está na moeda nativa do cadastro (cliente.moeda)
+  useEffect(() => {
+    if (!cliente || !valorOriginal) {
+      setConvertedValue(null);
+      return;
+    }
+    const clienteMoeda = (cliente.moeda || 'BRL').toUpperCase() as 'BRL' | 'USD';
+    if (clienteMoeda === currencyCode) {
+      // Mesma moeda — não precisa converter
+      setConvertedValue(null);
+      return;
+    }
+    (async () => {
+      const result = clienteMoeda === 'BRL'
+        ? await convertBRLtoUSD(valorOriginal)
+        : await convertUSDtoBRL(valorOriginal);
+      if (result) {
+        setConvertedValue({ value: result.value, rate: result.rate, from: clienteMoeda, to: currencyCode });
+      }
+    })();
+  }, [provider, cliente, valorOriginal, currencyCode, convertBRLtoUSD, convertUSDtoBRL]);
+
 
   const valorOriginal = Number(cliente?.valor || 0);
   const valorComDesconto = useMemo(() => {
