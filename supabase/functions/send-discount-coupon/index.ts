@@ -121,33 +121,44 @@ serve(async (req) => {
       });
     }
 
-    // 🛡️ Anti-abuso: 1 cupom a cada 30 dias por cliente
-    const COOLDOWN_DAYS = 30;
-    const cutoff = new Date(Date.now() - COOLDOWN_DAYS * 86400000).toISOString();
-    const { data: recentCoupons } = await supabase
-      .from("billing_logs")
-      .select("id, sent_at")
-      .eq("cliente_id", cliente.id)
-      .eq("message_type", "cupom_desconto")
-      .eq("status", "sent")
-      .gte("sent_at", cutoff)
-      .order("sent_at", { ascending: false })
-      .limit(1);
-    if (recentCoupons && recentCoupons.length > 0) {
-      const last = recentCoupons[0];
-      const daysSince = Math.floor((Date.now() - new Date(last.sent_at as string).getTime()) / 86400000);
-      const daysRemaining = Math.max(0, COOLDOWN_DAYS - daysSince);
-      return new Response(
-        JSON.stringify({
-          error: `Limite anti-abuso: já existe um cupom enviado a este cliente nos últimos ${COOLDOWN_DAYS} dias. Aguarde ${daysRemaining} dia(s).`,
-          code: "COUPON_COOLDOWN_ACTIVE",
-          last_sent_at: last.sent_at,
-          days_remaining: daysRemaining,
-          cooldown_days: COOLDOWN_DAYS,
-        }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    // 🛡️ Anti-abuso: cooldown configurável (billing_config.coupon_cooldown_days, default 30)
+    const { data: cooldownCfg } = await supabase
+      .from("billing_config")
+      .select("config_value")
+      .eq("config_key", "coupon_cooldown_days")
+      .maybeSingle();
+    const COOLDOWN_DAYS = Math.max(
+      0,
+      parseInt((cooldownCfg?.config_value as string) || "30", 10) || 30,
+    );
+    if (COOLDOWN_DAYS > 0) {
+      const cutoff = new Date(Date.now() - COOLDOWN_DAYS * 86400000).toISOString();
+      const { data: recentCoupons } = await supabase
+        .from("billing_logs")
+        .select("id, sent_at")
+        .eq("cliente_id", cliente.id)
+        .eq("message_type", "cupom_desconto")
+        .eq("status", "sent")
+        .gte("sent_at", cutoff)
+        .order("sent_at", { ascending: false })
+        .limit(1);
+      if (recentCoupons && recentCoupons.length > 0) {
+        const last = recentCoupons[0];
+        const daysSince = Math.floor((Date.now() - new Date(last.sent_at as string).getTime()) / 86400000);
+        const daysRemaining = Math.max(0, COOLDOWN_DAYS - daysSince);
+        return new Response(
+          JSON.stringify({
+            error: `Limite anti-abuso: já existe um cupom enviado a este cliente nos últimos ${COOLDOWN_DAYS} dias. Aguarde ${daysRemaining} dia(s).`,
+            code: "COUPON_COOLDOWN_ACTIVE",
+            last_sent_at: last.sent_at,
+            days_remaining: daysRemaining,
+            cooldown_days: COOLDOWN_DAYS,
+          }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
     }
+
 
     const { data: configRows } = await supabase
       .from("billing_config")
