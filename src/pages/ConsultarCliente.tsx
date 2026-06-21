@@ -65,6 +65,8 @@ import { ClientServerCredentials } from '@/components/ClientServerCredentials';
 import { CreateWhatsAppGroupDialog } from '@/components/CreateWhatsAppGroupDialog';
 import { ClientAIUpsell } from '@/components/ClientAIUpsell';
 import { SendDiscountCouponDialog } from '@/components/SendDiscountCouponDialog';
+import { ClientCouponsHistory } from '@/components/ClientCouponsHistory';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ClientScoreBadge } from '@/components/ClientScoreBadge';
 import { ClientPaymentApprovalBadge } from '@/components/ClientPaymentApprovalBadge';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -1106,40 +1108,51 @@ export default function ConsultarCliente() {
                 {selectedCliente?.nome}
               </DialogDescription>
             </DialogHeader>
-            
-            {loadingHistory ? (
-              <div className="py-8 text-center text-muted-foreground">{t('common.loading')}</div>
-            ) : clienteHistory.length > 0 ? (
-              <div className="space-y-3 mt-4">
-                {clienteHistory.map((entry) => (
-                  <div 
-                    key={entry.id}
-                    className="bg-secondary/50 border border-border rounded-lg p-4"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`font-medium ${getActionColor(entry.action)}`}>
-                        {getActionLabel(entry.action)}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDateTime(entry.created_at)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {t('clients.changedBy')}: {entry.changed_by_email || t('common.system')}
-                    </p>
-                    {entry.changed_fields && entry.changed_fields.length > 0 && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {t('clients.changedFields')}: {entry.changed_fields.join(', ')}
-                      </p>
-                    )}
+
+            <Tabs defaultValue="alteracoes" className="mt-4">
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="alteracoes">Alterações</TabsTrigger>
+                <TabsTrigger value="cupons">🎁 Cupons Enviados</TabsTrigger>
+              </TabsList>
+              <TabsContent value="alteracoes" className="mt-4">
+                {loadingHistory ? (
+                  <div className="py-8 text-center text-muted-foreground">{t('common.loading')}</div>
+                ) : clienteHistory.length > 0 ? (
+                  <div className="space-y-3">
+                    {clienteHistory.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="bg-secondary/50 border border-border rounded-lg p-4"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`font-medium ${getActionColor(entry.action)}`}>
+                            {getActionLabel(entry.action)}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDateTime(entry.created_at)}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {t('clients.changedBy')}: {entry.changed_by_email || t('common.system')}
+                        </p>
+                        {entry.changed_fields && entry.changed_fields.length > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {t('clients.changedFields')}: {entry.changed_fields.join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="py-8 text-center text-muted-foreground">
-                {t('clients.noHistoryFound')}
-              </div>
-            )}
+                ) : (
+                  <div className="py-8 text-center text-muted-foreground">
+                    {t('clients.noHistoryFound')}
+                  </div>
+                )}
+              </TabsContent>
+              <TabsContent value="cupons" className="mt-4">
+                {selectedCliente && <ClientCouponsHistory clienteId={selectedCliente.id} />}
+              </TabsContent>
+            </Tabs>
           </DialogContent>
         </Dialog>
 

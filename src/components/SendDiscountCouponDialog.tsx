@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Gift, Loader2, Link2, MessageSquare, Mail, Sparkles, Copy, CheckCircle2 } from 'lucide-react';
+import { Gift, Loader2, Link2, MessageSquare, Mail, Sparkles, Copy, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -85,6 +85,7 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
   const [message, setMessage] = useState<string>('');
   const [subject, setSubject] = useState<string>('');
   const [copied, setCopied] = useState(false);
+  const [cooldown, setCooldown] = useState<{ last_sent_at: string; days_remaining: number } | null>(null);
 
   // Reset on open
   useEffect(() => {
@@ -96,25 +97,41 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
       setMessage('');
       setDiscount(10);
       setChannels({ whatsapp: true, email: false });
+      setCooldown(null);
       return;
     }
     if (!clienteId) return;
     (async () => {
       setLoadingClient(true);
       try {
-        const [{ data: cli }, { data: sc }] = await Promise.all([
+        const cutoff = new Date(Date.now() - 30 * 86400000).toISOString();
+        const [{ data: cli }, { data: sc }, { data: recent }] = await Promise.all([
           supabase.from('clientes').select('id,nome,email,numero,produto,valor,moeda').eq('id', clienteId).single(),
           supabase
             .from('client_scores')
             .select('score,desconto_sugerido')
             .eq('cliente_id', clienteId)
             .maybeSingle(),
+          supabase
+            .from('billing_logs')
+            .select('sent_at')
+            .eq('cliente_id', clienteId)
+            .eq('message_type', 'cupom_desconto')
+            .eq('status', 'sent')
+            .gte('sent_at', cutoff)
+            .order('sent_at', { ascending: false })
+            .limit(1),
         ]);
         if (cli) setCliente(cli as Cliente);
         if (sc) {
           setScore(sc as ScoreData);
           const sug = Number((sc as any).desconto_sugerido);
           if (Number.isFinite(sug) && sug > 0 && sug <= 50) setDiscount(Math.round(sug));
+        }
+        if (recent && recent.length > 0) {
+          const ts = new Date(recent[0].sent_at as string).getTime();
+          const daysSince = Math.floor((Date.now() - ts) / 86400000);
+          setCooldown({ last_sent_at: recent[0].sent_at as string, days_remaining: Math.max(0, 30 - daysSince) });
         }
       } finally {
         setLoadingClient(false);
@@ -260,6 +277,18 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
 
         {!loadingClient && cliente && step === 'config' && (
           <div className="space-y-4">
+            {cooldown && (
+              <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
+                <ShieldAlert className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-destructive">Limite anti-abuso ativo (30 dias)</p>
+                  <p className="text-xs text-muted-foreground">
+                    Último cupom enviado em <strong>{new Date(cooldown.last_sent_at).toLocaleString('pt-BR')}</strong>.
+                    Faltam <strong>{cooldown.days_remaining} dia(s)</strong> para liberar novo envio.
+                  </p>
+                </div>
+              </div>
+            )}
             {score && (
               <div className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm">
                 <Sparkles className="h-4 w-4 text-amber-500" />
@@ -335,9 +364,9 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
 
             <DialogFooter>
               <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button onClick={handleGenerate} disabled={generating} className="gap-2">
+              <Button onClick={handleGenerate} disabled={generating || !!cooldown} className="gap-2">
                 {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
-                Gerar link de pagamento
+                {cooldown ? `Bloqueado (${cooldown.days_remaining}d)` : 'Gerar link de pagamento'}
               </Button>
             </DialogFooter>
           </div>
