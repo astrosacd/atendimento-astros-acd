@@ -70,6 +70,7 @@ import {
   Download,
   UserPlus,
   Database,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface BillingConfig {
