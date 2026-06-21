@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   History, Smartphone, MessageSquare, User, CreditCard, FileText, Download,
   CheckSquare, ShoppingBag, Bell, Key, LifeBuoy, PhoneCall, Receipt,
-  CalendarDays, TrendingUp, RefreshCw, FileBarChart,
+  CalendarDays, TrendingUp, RefreshCw, FileBarChart, Gift,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
