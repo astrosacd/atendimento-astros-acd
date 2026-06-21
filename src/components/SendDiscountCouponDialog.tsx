@@ -44,6 +44,22 @@ interface GeneratedLink {
   expires_at: string;
 }
 
+const stripDiacritics = (s: string) =>
+  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+const buildCouponCode = (produto: string, clienteNome: string, desconto: number) => {
+  const prod = stripDiacritics(produto || 'PLANO')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 6) || 'PLANO';
+  const firstName = (clienteNome || '').trim().split(/\s+/)[0] || 'CLI';
+  const nome = stripDiacritics(firstName)
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 3) || 'CLI';
+  return `${prod}${nome}${desconto}`;
+};
+
 const buildDefaultMessage = (
   clienteNome: string,
   produto: string,
