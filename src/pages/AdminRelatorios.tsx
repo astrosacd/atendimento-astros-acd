@@ -416,11 +416,12 @@ export default function AdminRelatorios() {
   }, [events, orders]);
 
 
-  // Métricas de Churn
+  // Métricas de Churn — usa ativos + inativos para incluir cancelamentos reais
   const churnMetrics = useMemo(() => {
     const mesesAtras = parseInt(periodoMeses);
     const months: MonthlyMetric[] = [];
     const today = new Date();
+    const universo = [...clientes, ...clientesInativos];
 
     for (let i = mesesAtras - 1; i >= 0; i--) {
       const monthDate = subMonths(today, i);
@@ -429,28 +430,21 @@ export default function AdminRelatorios() {
       const monthKey = format(monthDate, 'yyyy-MM');
       const monthLabel = format(monthDate, 'MMM/yy', { locale: ptBR });
 
-      // Agrupamento por CPF ou Nome para considerar "Empresa" ao invés de "Produto"
-      // Clientes ativos no início do mês (tinham pelo menos uma assinatura ativa)
-      const ativosInicio = new Set(clientes.filter(c => {
+      // Agrupado por CPF/Nome (empresa, não produto)
+      const ativosInicio = new Set(universo.filter(c => {
         const createdAt = parseISO(c.created_at);
         const renovacao = parseISO(c.data_renovacao);
-        // Estava ativo no início do mês: criado antes e renovação após o início
         return createdAt < monthStart && renovacao >= monthStart;
       }).map(c => c.cpf || c.nome));
 
       const clientesAtivosInicioCount = ativosInicio.size;
 
-      // Clientes que "saíram" no mês (não têm nenhuma assinatura ativa no fim do mês mas tinham no início)
       const perdidosNoMes = Array.from(ativosInicio).filter(identificador => {
-        // Busca todas as assinaturas deste cliente
-        const assinaturasDoCliente = clientes.filter(c => (c.cpf || c.nome) === identificador);
-        
-        // Verifica se TODAS as assinaturas dele venceram no mês ou antes e nenhuma renovou após o fim do mês
+        const assinaturasDoCliente = universo.filter(c => (c.cpf || c.nome) === identificador);
         const temAssinaturaAtivaNoFim = assinaturasDoCliente.some(c => {
           const renovacao = parseISO(c.data_renovacao);
           return renovacao >= monthEnd;
         });
-
         return !temAssinaturaAtivaNoFim;
       }).length;
 
@@ -465,7 +459,8 @@ export default function AdminRelatorios() {
     }
 
     return months;
-  }, [clientes, periodoMeses]);
+  }, [clientes, clientesInativos, periodoMeses]);
+
 
   // Churn médio
   const churnMedio = useMemo(() => {
