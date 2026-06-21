@@ -26,11 +26,13 @@ interface ClienteData {
   nome: string;
   cpf: string | null;
   created_at: string;
+  updated_at?: string;
   data_renovacao: string;
   valor: number;
   ciclo_cobranca: string;
   moeda: string;
   plano: string | null;
+  cobranca_ativa?: boolean;
 }
 
 interface MarketingExpense {
