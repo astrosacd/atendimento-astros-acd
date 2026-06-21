@@ -2050,7 +2050,44 @@ const AdminCobranca = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Anti-abuso Cupom de Desconto */}
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShieldAlert className="w-5 h-5 text-amber-500" />
+                    Anti-abuso · Cupom de Desconto
+                  </CardTitle>
+                  <CardDescription>
+                    Período mínimo (em dias) entre envios de cupom de desconto para o mesmo cliente. Use <strong>0</strong> para desabilitar o bloqueio.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Cooldown entre cupons (dias)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={365}
+                      placeholder="30"
+                      value={config.coupon_cooldown_days ?? '30'}
+                      onChange={(e) => setConfig({ ...config, coupon_cooldown_days: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Conta a partir do <strong>envio</strong> efetivo (status=sent em billing_logs), não da geração do link.
+                    </p>
+                  </div>
+                  <div className={`p-3 rounded-lg text-sm ${parseInt(config.coupon_cooldown_days ?? '30', 10) > 0 ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border border-amber-500/20 text-amber-400'}`}>
+                    {parseInt(config.coupon_cooldown_days ?? '30', 10) > 0 ? (
+                      <><CheckCircle className="w-4 h-4 inline mr-2" />Bloqueio ativo: {parseInt(config.coupon_cooldown_days ?? '30', 10)} dia(s)</>
+                    ) : (
+                      <><AlertCircle className="w-4 h-4 inline mr-2" />Anti-abuso desabilitado — operadores podem disparar cupons sem limite</>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
+
 
             <div className="flex justify-end">
               <Button onClick={saveConfig} disabled={isSaving} className="bg-gradient-to-r from-emerald-500 to-green-600">
