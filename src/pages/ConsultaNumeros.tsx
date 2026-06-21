@@ -2103,7 +2103,7 @@ export default function ConsultaNumeros() {
                             onClick={() => {
                               setNewObservacao('SIM não aprovisionado');
                               setEditValues(prev => ({ ...prev, excluido_da_base: 'EXCLUIDO' }));
-                              toast.success('Observação preenchida e status marcado como EXCLUIDO');
+                              toast({ title: 'Observação preenchida', description: 'Status marcado como EXCLUIDO' });
                             }}
                             className="gap-1"
                           >
