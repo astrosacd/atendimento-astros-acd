@@ -80,6 +80,7 @@ export default function AdminRelatorios() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [clientes, setClientes] = useState<ClienteData[]>([]);
+  const [clientesInativos, setClientesInativos] = useState<ClienteData[]>([]);
   const [clientesRegistro, setClientesRegistro] = useState<ClienteData[]>([]);
   const [purchases, setPurchases] = useState<{ valor: number; moeda: string; cliente_id: string }[]>([]);
   const [marketingExpenses, setMarketingExpenses] = useState<MarketingExpense[]>([]);
@@ -100,11 +101,14 @@ export default function AdminRelatorios() {
     const dataInicio = subMonths(new Date(), mesesAtras).toISOString();
 
     try {
-      // Busca clientes recorrentes, clientes registro, histórico de compras e gastos de marketing
+      // Busca clientes recorrentes (ativos + inativos para churn/histórico), registro, compras e gastos
       const naoExcluido = 'excluir_metricas.is.null,excluir_metricas.eq.false';
-      const [clientesRecorrentesRes, clientesRegistroRes, clientesSemValorRes, purchasesRes, ordersRes, eventsRes, marketingRes] = await Promise.all([
-        supabase.from('clientes').select('id, nome, cpf, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', true).or(naoExcluido),
-        supabase.from('clientes').select('id, nome, cpf, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', false).gt('valor', 0).or(naoExcluido),
+      const cols = 'id, nome, cpf, created_at, updated_at, data_renovacao, valor, ciclo_cobranca, moeda, plano, cobranca_ativa';
+      const [clientesRecorrentesRes, clientesInativosRes, clientesRegistroRes, clientesSemValorRes, purchasesRes, ordersRes, eventsRes, marketingRes] = await Promise.all([
+        supabase.from('clientes').select(cols).eq('cobranca_ativa', true).or(naoExcluido),
+        // Inativos recorrentes: cobranca_ativa=false MAS com valor > 0 e ciclo recorrente (não vitalícios)
+        supabase.from('clientes').select(cols).eq('cobranca_ativa', false).gt('valor', 0).neq('ciclo_cobranca', 'vitalicio').or(naoExcluido),
+        supabase.from('clientes').select(cols).eq('cobranca_ativa', false).gt('valor', 0).or(naoExcluido),
         supabase.from('clientes').select('id', { count: 'exact', head: true }).eq('cobranca_ativa', false).or('valor.is.null,valor.eq.0').or(naoExcluido),
         supabase.from('client_purchases').select('valor, moeda, cliente_id'),
         supabase.from('gateway_orders').select('id, created_at, status, total, currency').gte('created_at', dataInicio),
@@ -113,6 +117,7 @@ export default function AdminRelatorios() {
       ]);
 
       if (clientesRecorrentesRes.data) setClientes(clientesRecorrentesRes.data);
+      if (clientesInativosRes.data) setClientesInativos(clientesInativosRes.data);
       if (clientesRegistroRes.data) setClientesRegistro(clientesRegistroRes.data);
       setClientesRegistroSemValor(clientesSemValorRes.count || 0);
       if (purchasesRes.data) setPurchases(purchasesRes.data);
