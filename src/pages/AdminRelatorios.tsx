@@ -848,10 +848,10 @@ export default function AdminRelatorios() {
                 icon={Briefcase}
                 info="ARPU é o faturamento médio por usuário ativo. Calculado separadamente por moeda (BRL e USD) para evitar diluição."
               />
-            </CardContent>
+            </div>
 
             {/* KPIs adicionais — ARR, NRR/GRR, MRR Waterfall */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
               <MetricCard
                 title="ARR BRL (Receita Anual)"
                 value={formatCurrency(ltvMetrics.arrBRL, 'BRL')}
