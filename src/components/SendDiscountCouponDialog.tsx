@@ -220,7 +220,32 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
           channels: selectedChannels,
         },
       });
-      if (res.error) throw new Error(res.error.message || 'Erro ao enviar');
+
+      // Tratar erro HTTP (incluindo 429 do cooldown anti-abuso)
+      if (res.error) {
+        let parsed: any = null;
+        try {
+          const ctx: any = (res.error as any).context;
+          if (ctx && typeof ctx.json === 'function') parsed = await ctx.json();
+          else if (ctx && typeof ctx.text === 'function') parsed = JSON.parse(await ctx.text());
+        } catch { /* ignore */ }
+
+        if (parsed?.code === 'COUPON_COOLDOWN_ACTIVE') {
+          setCooldown({
+            last_sent_at: parsed.last_sent_at,
+            days_remaining: parsed.days_remaining ?? 0,
+          });
+          setStep('config');
+          toast({
+            title: 'Bloqueado pelo limite anti-abuso',
+            description: parsed.error || `Aguarde ${parsed.days_remaining} dia(s).`,
+            variant: 'destructive',
+          });
+          return;
+        }
+        throw new Error(parsed?.error || res.error.message || 'Erro ao enviar');
+      }
+
       const data: any = res.data;
       if (data?.error) throw new Error(data.error);
 
