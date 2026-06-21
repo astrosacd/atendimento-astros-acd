@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server, ShieldCheck, MoreHorizontal, TrendingUp, Copy, PhoneCall, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server, ShieldCheck, MoreHorizontal, TrendingUp, Copy, PhoneCall, MessageSquare, Gift } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,6 +64,7 @@ import { ClientSocialCredentials } from '@/components/ClientSocialCredentials';
 import { ClientServerCredentials } from '@/components/ClientServerCredentials';
 import { CreateWhatsAppGroupDialog } from '@/components/CreateWhatsAppGroupDialog';
 import { ClientAIUpsell } from '@/components/ClientAIUpsell';
+import { SendDiscountCouponDialog } from '@/components/SendDiscountCouponDialog';
 import { ClientScoreBadge } from '@/components/ClientScoreBadge';
 import { ClientPaymentApprovalBadge } from '@/components/ClientPaymentApprovalBadge';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -100,6 +101,7 @@ export default function ConsultarCliente() {
   const [aiClienteName, setAiClienteName] = useState<string>('');
   const [upsellClienteId, setUpsellClienteId] = useState<string | null>(null);
   const [upsellClienteName, setUpsellClienteName] = useState<string>('');
+  const [couponClienteId, setCouponClienteId] = useState<string | null>(null);
   const [socialClienteId, setSocialClienteId] = useState<string | null>(null);
   const [socialClienteName, setSocialClienteName] = useState<string>('');
   const [serverClienteId, setServerClienteId] = useState<string | null>(null);
@@ -908,6 +910,15 @@ export default function ConsultarCliente() {
                                         <span>Upsell / Cross-sell IA</span>
                                       </DropdownMenuItem>
                                     )}
+                                    {isAdmin && cliente.cobranca_ativa !== false && (
+                                      <DropdownMenuItem
+                                        onClick={() => setCouponClienteId(cliente.id)}
+                                        className="gap-2"
+                                      >
+                                        <Gift className="h-4 w-4 text-pink-500" />
+                                        <span>🎁 Enviar cupom de desconto</span>
+                                      </DropdownMenuItem>
+                                    )}
                                   </>
                                 )}
 
@@ -1389,6 +1400,13 @@ export default function ConsultarCliente() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Enviar cupom de desconto */}
+        <SendDiscountCouponDialog
+          open={!!couponClienteId}
+          onOpenChange={(o) => !o && setCouponClienteId(null)}
+          clienteId={couponClienteId}
+        />
 
         {/* WhatsApp Group Creation */}
         <CreateWhatsAppGroupDialog
