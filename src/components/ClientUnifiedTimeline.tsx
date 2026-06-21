@@ -182,12 +182,20 @@ export function ClientUnifiedTimeline({ clienteId }: ClientUnifiedTimelineProps)
         status: l.status,
       }));
 
-      (billingRes.data || []).forEach((b: any) => all.push({
-        id: `bil-${b.id}`, type: 'billing', date: b.sent_at,
-        title: `Cobrança ${b.message_type} via ${b.channel} (${b.status})`,
-        description: b.error_message || b.resolution_note || '—',
-        status: b.status,
-      }));
+      (billingRes.data || []).forEach((b: any) => {
+        const isCoupon = b.message_type === 'cupom_desconto';
+        const descontoMatch = b.resolution_note?.match(/desconto:([^|]+)/)?.[1];
+        all.push({
+          id: `bil-${b.id}`,
+          type: isCoupon ? 'coupon' : 'billing',
+          date: b.sent_at,
+          title: isCoupon
+            ? `🎁 Cupom ${descontoMatch || ''} enviado via ${b.channel} (${b.status})`
+            : `Cobrança ${b.message_type} via ${b.channel} (${b.status})`,
+          description: b.error_message || b.resolution_note || '—',
+          status: b.status,
+        });
+      });
 
       (scoresRes.data || []).forEach((sc: any) => all.push({
         id: `sc-${sc.id}`, type: 'score', date: sc.created_at,
