@@ -2092,6 +2092,28 @@ export default function ConsultaNumeros() {
                         </div>
                       )}
                       
+                      {/* Botão rápido: SIM não aprovisionado */}
+                      {isObservacoes && (
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={isNonEditable}
+                            onClick={() => {
+                              setNewObservacao('SIM não aprovisionado');
+                              setEditValues(prev => ({ ...prev, excluido_da_base: 'EXCLUIDO' }));
+                              toast({ title: 'Observação preenchida', description: 'Status marcado como EXCLUIDO' });
+                            }}
+                            className="gap-1"
+                          >
+                            <Tag className="h-3 w-3" />
+                            SIM não aprovisionado
+                          </Button>
+                        </div>
+                      )}
+                      
+                      
                       <Textarea
                         value={isObservacoes ? newObservacao : (editValues[field.name] || '')}
                         onChange={(e) => {
