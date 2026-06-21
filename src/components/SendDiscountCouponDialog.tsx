@@ -7,9 +7,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Gift, Loader2, Link2, MessageSquare, Mail, Sparkles, Copy, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { Gift, Loader2, Link2, MessageSquare, Mail, Sparkles, Copy, CheckCircle2, ShieldAlert, RefreshCw, ArrowLeftRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useCurrencyConversion } from '@/hooks/useCurrencyConversion';
+
 
 interface Props {
   open: boolean;
@@ -102,6 +104,10 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
   const [subject, setSubject] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [cooldown, setCooldown] = useState<{ last_sent_at: string; days_remaining: number } | null>(null);
+  const [cooldownDays, setCooldownDays] = useState<number>(30);
+  const [convertedValue, setConvertedValue] = useState<{ value: number; rate: number; from: 'BRL' | 'USD'; to: 'BRL' | 'USD' } | null>(null);
+  const { isLoading: convLoading, convertBRLtoUSD, convertUSDtoBRL } = useCurrencyConversion();
+
 
   // Reset on open
   useEffect(() => {
