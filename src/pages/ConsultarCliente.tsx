@@ -101,6 +101,7 @@ export default function ConsultarCliente() {
   const [aiClienteName, setAiClienteName] = useState<string>('');
   const [upsellClienteId, setUpsellClienteId] = useState<string | null>(null);
   const [upsellClienteName, setUpsellClienteName] = useState<string>('');
+  const [couponClienteId, setCouponClienteId] = useState<string | null>(null);
   const [socialClienteId, setSocialClienteId] = useState<string | null>(null);
   const [socialClienteName, setSocialClienteName] = useState<string>('');
   const [serverClienteId, setServerClienteId] = useState<string | null>(null);
