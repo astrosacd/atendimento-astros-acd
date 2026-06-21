@@ -813,7 +813,7 @@ export default function AdminRelatorios() {
 
           {/* Tab Inteligência de Negócio (BI) */}
           <TabsContent value="bi" className="space-y-6">
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
               <MetricCard
                 title="CAC (Custo por Cliente)"
                 value={formatCurrency(biMetrics.cac, 'BRL')}
