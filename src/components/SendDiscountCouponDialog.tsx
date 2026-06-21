@@ -170,6 +170,19 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
       }
     })();
   }, [open, clienteId]);
+  const valorOriginal = Number(cliente?.valor || 0);
+  const valorComDesconto = useMemo(() => {
+    if (!valorOriginal) return 0;
+    return Number((valorOriginal * (1 - discount / 100)).toFixed(2));
+  }, [valorOriginal, discount]);
+
+  const produtoLabel = (cliente?.produto || 'Plano').trim();
+  const empresaLabel = useMemo(
+    () => buildCouponCode(produtoLabel, cliente?.nome || '', discount),
+    [produtoLabel, cliente?.nome, discount],
+  );
+  const currencySymbol = provider === 'stripe' ? '$' : 'R$';
+  const currencyCode: 'BRL' | 'USD' = provider === 'stripe' ? 'USD' : 'BRL';
 
   // Conversão automática BRL ↔ USD quando troca o gateway
   // Assume que cliente.valor está na moeda nativa do cadastro (cliente.moeda)
@@ -180,7 +193,6 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
     }
     const clienteMoeda = (cliente.moeda || 'BRL').toUpperCase() as 'BRL' | 'USD';
     if (clienteMoeda === currencyCode) {
-      // Mesma moeda — não precisa converter
       setConvertedValue(null);
       return;
     }
@@ -194,20 +206,6 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
     })();
   }, [provider, cliente, valorOriginal, currencyCode, convertBRLtoUSD, convertUSDtoBRL]);
 
-
-  const valorOriginal = Number(cliente?.valor || 0);
-  const valorComDesconto = useMemo(() => {
-    if (!valorOriginal) return 0;
-    return Number((valorOriginal * (1 - discount / 100)).toFixed(2));
-  }, [valorOriginal, discount]);
-
-  const produtoLabel = (cliente?.produto || 'Plano').trim();
-  const empresaLabel = useMemo(
-    () => buildCouponCode(produtoLabel, cliente?.nome || '', discount),
-    [produtoLabel, cliente?.nome, discount],
-  );
-  const currencySymbol = provider === 'stripe' ? '$' : 'R$';
-  const currencyCode = provider === 'stripe' ? 'USD' : 'BRL';
 
   const handleGenerate = async () => {
     if (!cliente) return;
