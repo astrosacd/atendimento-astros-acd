@@ -162,7 +162,12 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
   }, [valorOriginal, discount]);
 
   const produtoLabel = (cliente?.produto || 'Plano').trim();
-  const empresaLabel = `${produtoLabel} ${discount}`; // Ex: "Hub 10" => 10% de desconto
+  const empresaLabel = useMemo(
+    () => buildCouponCode(produtoLabel, cliente?.nome || '', discount),
+    [produtoLabel, cliente?.nome, discount],
+  );
+  const currencySymbol = provider === 'stripe' ? '$' : 'R$';
+  const currencyCode = provider === 'stripe' ? 'USD' : 'BRL';
 
   const handleGenerate = async () => {
     if (!cliente) return;
