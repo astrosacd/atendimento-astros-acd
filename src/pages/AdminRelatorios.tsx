@@ -395,18 +395,26 @@ export default function AdminRelatorios() {
     return months;
   }, [events, orders, periodoMeses]);
 
-  // Funnel de Conversão
+  // Funnel de Conversão (dedupe page_views por slug+dia para evitar inflar)
   const funnelData = useMemo(() => {
-    const pageViews = events.filter(e => e.event_type === 'page_view').length;
+    const viewKeys = new Set<string>();
+    events.forEach(e => {
+      if (e.event_type === 'page_view') {
+        const dia = e.created_at.slice(0, 10);
+        viewKeys.add(`${e.slug || 'unknown'}::${dia}`);
+      }
+    });
+    const pageViews = viewKeys.size;
     const checkoutStarts = events.filter(e => e.event_type === 'checkout_started').length;
     const completedOrders = orders.filter(o => o.status === 'completed').length;
 
     return [
-      { name: 'Visualizações', value: pageViews, percentage: 100 },
+      { name: 'Visualizações (únicas)', value: pageViews, percentage: 100 },
       { name: 'Iniciaram Checkout', value: checkoutStarts, percentage: pageViews > 0 ? (checkoutStarts / pageViews) * 100 : 0 },
       { name: 'Compraram', value: completedOrders, percentage: pageViews > 0 ? (completedOrders / pageViews) * 100 : 0 },
     ];
   }, [events, orders]);
+
 
   // Métricas de Churn
   const churnMetrics = useMemo(() => {
