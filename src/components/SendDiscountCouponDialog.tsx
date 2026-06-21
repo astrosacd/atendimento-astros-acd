@@ -395,16 +395,16 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
 
             <div className="rounded-md border bg-muted/30 p-3 space-y-1 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">Produto</span><span className="font-medium">{produtoLabel}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Valor original</span><span>{cliente.moeda === 'USD' ? '$' : 'R$'} {valorOriginal.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Valor original</span><span>{currencySymbol} {valorOriginal.toFixed(2)}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Desconto aplicado</span><Badge variant="secondary">{discount}%</Badge></div>
               <div className="flex justify-between text-base font-bold pt-1 border-t border-border/40">
                 <span>Total com desconto</span>
                 <span className="text-emerald-600 dark:text-emerald-400">
-                  {cliente.moeda === 'USD' ? '$' : 'R$'} {valorComDesconto.toFixed(2)}
+                  {currencySymbol} {valorComDesconto.toFixed(2)}
                 </span>
               </div>
               <p className="text-[11px] text-muted-foreground pt-1">
-                Link será gerado com o nome <strong>"{empresaLabel}"</strong> ({discount}% de desconto sobre o valor padrão).
+                Cupom gerado: <strong className="font-mono tracking-wider">{empresaLabel}</strong> · {discount}% de desconto sobre o valor padrão · cobrado em <strong>{currencyCode}</strong>.
               </p>
             </div>
 
