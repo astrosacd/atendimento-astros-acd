@@ -104,19 +104,34 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
     (async () => {
       setLoadingClient(true);
       try {
-        const [{ data: cli }, { data: sc }] = await Promise.all([
+        const cutoff = new Date(Date.now() - 30 * 86400000).toISOString();
+        const [{ data: cli }, { data: sc }, { data: recent }] = await Promise.all([
           supabase.from('clientes').select('id,nome,email,numero,produto,valor,moeda').eq('id', clienteId).single(),
           supabase
             .from('client_scores')
             .select('score,desconto_sugerido')
             .eq('cliente_id', clienteId)
             .maybeSingle(),
+          supabase
+            .from('billing_logs')
+            .select('sent_at')
+            .eq('cliente_id', clienteId)
+            .eq('message_type', 'cupom_desconto')
+            .eq('status', 'sent')
+            .gte('sent_at', cutoff)
+            .order('sent_at', { ascending: false })
+            .limit(1),
         ]);
         if (cli) setCliente(cli as Cliente);
         if (sc) {
           setScore(sc as ScoreData);
           const sug = Number((sc as any).desconto_sugerido);
           if (Number.isFinite(sug) && sug > 0 && sug <= 50) setDiscount(Math.round(sug));
+        }
+        if (recent && recent.length > 0) {
+          const ts = new Date(recent[0].sent_at as string).getTime();
+          const daysSince = Math.floor((Date.now() - ts) / 86400000);
+          setCooldown({ last_sent_at: recent[0].sent_at as string, days_remaining: Math.max(0, 30 - daysSince) });
         }
       } finally {
         setLoadingClient(false);
