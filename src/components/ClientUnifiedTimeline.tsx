@@ -38,6 +38,7 @@ const TYPE_CONFIG = {
   chamado:   { icon: LifeBuoy,      color: 'text-red-500',      label: 'Chamado' },
   ligacao:   { icon: PhoneCall,     color: 'text-green-500',    label: 'Ligação IA' },
   billing:   { icon: Receipt,       color: 'text-rose-500',     label: 'Cobrança' },
+  coupon:    { icon: Gift,          color: 'text-pink-500',     label: 'Cupom Desconto' },
   agenda:    { icon: CalendarDays,  color: 'text-violet-500',   label: 'Agenda' },
   score:     { icon: TrendingUp,    color: 'text-teal-500',     label: 'Score' },
   recovery:  { icon: RefreshCw,     color: 'text-orange-400',   label: 'Recuperação' },
