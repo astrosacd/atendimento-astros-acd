@@ -277,6 +277,18 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
 
         {!loadingClient && cliente && step === 'config' && (
           <div className="space-y-4">
+            {cooldown && (
+              <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
+                <ShieldAlert className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-destructive">Limite anti-abuso ativo (30 dias)</p>
+                  <p className="text-xs text-muted-foreground">
+                    Último cupom enviado em <strong>{new Date(cooldown.last_sent_at).toLocaleString('pt-BR')}</strong>.
+                    Faltam <strong>{cooldown.days_remaining} dia(s)</strong> para liberar novo envio.
+                  </p>
+                </div>
+              </div>
+            )}
             {score && (
               <div className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm">
                 <Sparkles className="h-4 w-4 text-amber-500" />
