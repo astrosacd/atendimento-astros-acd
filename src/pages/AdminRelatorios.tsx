@@ -205,13 +205,15 @@ export default function AdminRelatorios() {
   }, [clientesRegistro, purchases]);
 
   // LTV Calculation - Separado por moeda
+  // Considera ATIVOS + INATIVOS para tempo médio real de vida
   const ltvMetrics = useMemo(() => {
-    if (clientes.length === 0) return { 
+    if (clientes.length === 0 && clientesInativos.length === 0) return {
       ltvBRL: 0, ltvUSD: 0,
       ticketMedioBRL: 0, ticketMedioUSD: 0,
-      tempoMedioMeses: 0, 
+      tempoMedioMeses: 0,
       mrrBRL: 0, mrrUSD: 0,
-      clientesBRL: 0, clientesUSD: 0
+      clientesBRL: 0, clientesUSD: 0,
+      arrBRL: 0, arrUSD: 0,
     };
 
     const today = new Date();
@@ -220,72 +222,80 @@ export default function AdminRelatorios() {
     const dataLimite = new Date(today);
     dataLimite.setDate(dataLimite.getDate() - toleranciaDias);
 
-    // Filtrar clientes realmente ativos para MRR (renovação futura ou até 7 dias atrás)
+    // MRR: somente clientes ativos com renovação futura ou recente
     const clientesAtivosMRR = clientes.filter(c => {
       const renovacao = parseISO(c.data_renovacao);
       return renovacao >= dataLimite;
     });
 
-    const clientesBRL = clientes.filter(c => c.moeda === 'BRL');
-    const clientesUSD = clientes.filter(c => c.moeda === 'USD');
-    
-    // Para MRR: apenas clientes com renovação futura ou recente
-    const clientesBRLAtivos = clientesAtivosMRR.filter(c => c.moeda === 'BRL');
-    const clientesUSDAtivos = clientesAtivosMRR.filter(c => c.moeda === 'USD');
+    // BUG FIX: inclui moeda null como BRL (legado)
+    const isBRL = (c: ClienteData) => (c.moeda || 'BRL') === 'BRL';
+    const isUSD = (c: ClienteData) => c.moeda === 'USD';
 
-    const calcularMetricasPorMoeda = (clientesMoeda: ClienteData[], clientesMoedaAtivos: ClienteData[]) => {
-      if (clientesMoeda.length === 0) return { ticketMedio: 0, mrr: 0, ltv: 0 };
-      
-      // Ticket médio considera todos os clientes (histórico)
-      const valoresMensaisTodos = clientesMoeda.map(c => {
+    // Universo p/ ticket médio e tempo de vida: ativos + inativos recorrentes
+    const todosRecorrentes = [...clientes, ...clientesInativos];
+    const todosBRL = todosRecorrentes.filter(isBRL);
+    const todosUSD = todosRecorrentes.filter(isUSD);
+
+    const clientesBRLAtivos = clientesAtivosMRR.filter(isBRL);
+    const clientesUSDAtivos = clientesAtivosMRR.filter(isUSD);
+
+    // Tempo real de vida (em meses): para ativos = hoje - created_at; para inativos = updated_at (cancelamento aprox) - created_at
+    const tempoRealMeses = (c: ClienteData): number => {
+      const createdAt = parseISO(c.created_at);
+      const ativo = c.cobranca_ativa !== false;
+      const dataFim = ativo
+        ? today
+        : (c.updated_at ? parseISO(c.updated_at) : parseISO(c.data_renovacao));
+      const dataFimEfetiva = dataFim < createdAt ? createdAt : dataFim;
+      return Math.max(1, differenceInMonths(dataFimEfetiva, createdAt));
+    };
+
+    const calcularMetricasPorMoeda = (todos: ClienteData[], ativos: ClienteData[]) => {
+      if (todos.length === 0) return { ticketMedio: 0, mrr: 0, ltv: 0, tempoMedio: 0 };
+
+      const valoresMensaisTodos = todos.map(c => {
         const cicloMeses = CICLO_MESES[c.ciclo_cobranca] || 1;
-        return c.valor / cicloMeses;
+        return (c.valor || 0) / cicloMeses;
       });
       const ticketMedio = valoresMensaisTodos.reduce((a, b) => a + b, 0) / valoresMensaisTodos.length;
-      
-      // MRR considera apenas clientes ativos (renovação futura ou até 7 dias atrás)
-      const valoresMensaisAtivos = clientesMoedaAtivos.map(c => {
+
+      const mrr = ativos.reduce((acc, c) => {
         const cicloMeses = CICLO_MESES[c.ciclo_cobranca] || 1;
-        return c.valor / cicloMeses;
-      });
-      const mrr = valoresMensaisAtivos.reduce((a, b) => a + b, 0);
-      
-      const temposMeses = clientesMoeda.map(c => {
-        const createdAt = parseISO(c.created_at);
-        const renovacao = parseISO(c.data_renovacao);
-        const dataFim = renovacao < today ? renovacao : today;
-        return Math.max(1, differenceInMonths(dataFim, createdAt));
-      });
+        return acc + (c.valor || 0) / cicloMeses;
+      }, 0);
+
+      const temposMeses = todos.map(tempoRealMeses);
       const tempoMedio = temposMeses.reduce((a, b) => a + b, 0) / temposMeses.length;
       const ltv = ticketMedio * tempoMedio;
-      
-      return { ticketMedio, mrr, ltv };
+
+      return { ticketMedio, mrr, ltv, tempoMedio };
     };
 
-    const metricasBRL = calcularMetricasPorMoeda(clientesBRL, clientesBRLAtivos);
-    const metricasUSD = calcularMetricasPorMoeda(clientesUSD, clientesUSDAtivos);
+    const metricasBRL = calcularMetricasPorMoeda(todosBRL, clientesBRLAtivos);
+    const metricasUSD = calcularMetricasPorMoeda(todosUSD, clientesUSDAtivos);
 
-    // Tempo médio geral
-    const temposMesesGeral = clientes.map(c => {
-      const createdAt = parseISO(c.created_at);
-      const renovacao = parseISO(c.data_renovacao);
-      const dataFim = renovacao < today ? renovacao : today;
-      return Math.max(1, differenceInMonths(dataFim, createdAt));
-    });
-    const tempoMedioMeses = temposMesesGeral.length > 0 ? temposMesesGeral.reduce((a, b) => a + b, 0) / temposMesesGeral.length : 0;
+    // Tempo médio geral (ativos + inativos)
+    const todosTempos = todosRecorrentes.map(tempoRealMeses);
+    const tempoMedioMeses = todosTempos.length > 0
+      ? todosTempos.reduce((a, b) => a + b, 0) / todosTempos.length
+      : 0;
 
-    return { 
-      ltvBRL: metricasBRL.ltv, 
+    return {
+      ltvBRL: metricasBRL.ltv,
       ltvUSD: metricasUSD.ltv,
-      ticketMedioBRL: metricasBRL.ticketMedio, 
+      ticketMedioBRL: metricasBRL.ticketMedio,
       ticketMedioUSD: metricasUSD.ticketMedio,
-      tempoMedioMeses, 
-      mrrBRL: metricasBRL.mrr, 
+      tempoMedioMeses,
+      mrrBRL: metricasBRL.mrr,
       mrrUSD: metricasUSD.mrr,
-      clientesBRL: clientesBRL.length,
-      clientesUSD: clientesUSD.length
+      clientesBRL: clientesAtivosMRR.filter(isBRL).length,
+      clientesUSD: clientesAtivosMRR.filter(isUSD).length,
+      arrBRL: metricasBRL.mrr * 12,
+      arrUSD: metricasUSD.mrr * 12,
     };
-  }, [clientes]);
+  }, [clientes, clientesInativos]);
+
 
   // Métricas Profissionais (Business Intelligence)
   const biMetrics = useMemo(() => {
