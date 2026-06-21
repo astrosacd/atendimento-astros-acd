@@ -217,12 +217,15 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
       toast({ title: 'Valor inválido', description: 'Cliente não tem valor cadastrado.', variant: 'destructive' });
       return;
     }
+    // Valor base na moeda do gateway: usa o convertido se houver, senão o original
+    const valorBase = convertedValue ? convertedValue.value : valorOriginal;
+    const valorFinalGateway = Number((valorBase * (1 - discount / 100)).toFixed(2));
     setGenerating(true);
     try {
       const res = await supabase.functions.invoke('generate-payment-link', {
         body: {
           empresa: empresaLabel,
-          valor_da_venda: valorComDesconto.toFixed(2),
+          valor_da_venda: valorFinalGateway.toFixed(2),
           validade_horas: validadeHoras,
           provider,
         },
@@ -235,14 +238,15 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
         cliente.nome,
         produtoLabel,
         discount,
-        valorOriginal,
-        valorComDesconto,
+        valorBase,
+        valorFinalGateway,
         currencyCode,
         data.payment_url,
         validadeHoras,
       );
       setMessage(msg);
       setSubject(`🎁 ${discount}% de desconto exclusivo - ${produtoLabel}`);
+
       setStep('preview');
       toast({ title: 'Link gerado!', description: 'Revise a mensagem antes de enviar.' });
     } catch (err: any) {
