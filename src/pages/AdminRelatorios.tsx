@@ -633,8 +633,8 @@ export default function AdminRelatorios() {
     trendValue?: string;
     info?: string;
   }) => (
-    <Card className="bg-card/50 backdrop-blur-sm border-border/50">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Card className="bg-card/50 backdrop-blur-sm border-border/50 h-full flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 min-h-[3.25rem]">
         <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
           {title}
           {info && (
@@ -650,19 +650,23 @@ export default function AdminRelatorios() {
             </TooltipProvider>
           )}
         </CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
-        {trend && trendValue && (
-          <div className={`flex items-center gap-1 mt-2 text-xs ${
-            trend === 'up' ? 'text-success' : trend === 'down' ? 'text-destructive' : 'text-muted-foreground'
-          }`}>
-            {trend === 'up' ? <TrendingUp className="h-3 w-3" /> : trend === 'down' ? <TrendingDown className="h-3 w-3" /> : null}
-            {trendValue}
-          </div>
-        )}
+      <CardContent className="flex-1 flex flex-col justify-between">
+        <div>
+          <div className="text-2xl font-bold">{value}</div>
+          {subtitle && <p className="text-xs text-muted-foreground mt-1 min-h-[1rem]">{subtitle}</p>}
+        </div>
+        <div className={`flex items-center gap-1 mt-2 text-xs min-h-[1rem] ${
+          trend === 'up' ? 'text-success' : trend === 'down' ? 'text-destructive' : 'text-muted-foreground'
+        }`}>
+          {trend && trendValue ? (
+            <>
+              {trend === 'up' ? <TrendingUp className="h-3 w-3" /> : trend === 'down' ? <TrendingDown className="h-3 w-3" /> : null}
+              {trendValue}
+            </>
+          ) : null}
+        </div>
       </CardContent>
     </Card>
   );
