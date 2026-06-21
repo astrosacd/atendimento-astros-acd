@@ -199,7 +199,7 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
         discount,
         valorOriginal,
         valorComDesconto,
-        cliente.moeda || 'BRL',
+        currencyCode,
         data.payment_url,
         validadeHoras,
       );
