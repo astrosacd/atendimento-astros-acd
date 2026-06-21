@@ -97,6 +97,7 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
       setMessage('');
       setDiscount(10);
       setChannels({ whatsapp: true, email: false });
+      setCooldown(null);
       return;
     }
     if (!clienteId) return;
