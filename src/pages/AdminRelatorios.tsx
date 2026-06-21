@@ -319,40 +319,42 @@ export default function AdminRelatorios() {
 
     const currentMarketingSpend = monthlyNormalSpend + proratedSpend;
     
-    // Novos clientes do mês atual
+    // Novos clientes do mês atual (ativos + inativos + registro) — evita subnotificar quem entrou e cancelou
     const startOfThisMonth = startOfMonth(today);
     const endOfThisMonth = endOfMonth(today);
-    const newClientsThisMonth = clientes.filter(c => {
+    const noMesAtual = (c: ClienteData) => {
       const createdAt = parseISO(c.created_at);
       return createdAt >= startOfThisMonth && createdAt <= endOfThisMonth;
-    }).length + clientesRegistro.filter(c => {
-      const createdAt = parseISO(c.created_at);
-      return createdAt >= startOfThisMonth && createdAt <= endOfThisMonth;
-    }).length;
+    };
+    const newClientsThisMonth =
+      clientes.filter(noMesAtual).length +
+      clientesInativos.filter(noMesAtual).length +
+      clientesRegistro.filter(noMesAtual).length;
 
     // CAC = Gasto / Novos Clientes
     const cac = newClientsThisMonth > 0 ? currentMarketingSpend / newClientsThisMonth : 0;
 
-    // MRR e ARPU (Average Revenue Per User)
-    const activeClientsCount = ltvMetrics.clientesBRL + ltvMetrics.clientesUSD;
-    const totalMRRBRL = ltvMetrics.mrrBRL;
-    const arpu = activeClientsCount > 0 ? totalMRRBRL / activeClientsCount : 0;
+    // ARPU BRL: somente clientes BRL ativos (não dilui com USD)
+    const arpu = ltvMetrics.clientesBRL > 0 ? ltvMetrics.mrrBRL / ltvMetrics.clientesBRL : 0;
+    const arpuUSD = ltvMetrics.clientesUSD > 0 ? ltvMetrics.mrrUSD / ltvMetrics.clientesUSD : 0;
 
-    // LTV / CAC
+    // LTV / CAC (BRL — CAC é em BRL)
     const ltvCacRatio = cac > 0 ? ltvMetrics.ltvBRL / cac : 0;
 
-    // Payback = CAC / Ticket Médio Mensal
+    // Payback = CAC / Ticket Médio Mensal BRL
     const payback = ltvMetrics.ticketMedioBRL > 0 ? cac / ltvMetrics.ticketMedioBRL : 0;
 
     return {
       cac,
       arpu,
+      arpuUSD,
       ltvCacRatio,
       payback,
       newClientsThisMonth,
       currentMarketingSpend
     };
-  }, [marketingExpenses, clientes, clientesRegistro, ltvMetrics]);
+  }, [marketingExpenses, clientes, clientesInativos, clientesRegistro, ltvMetrics]);
+
 
   // Métricas de Conversão (Gateway)
   const conversaoMetrics = useMemo(() => {
