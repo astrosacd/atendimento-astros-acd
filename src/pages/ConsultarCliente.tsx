@@ -1401,6 +1401,13 @@ export default function ConsultarCliente() {
           </DialogContent>
         </Dialog>
 
+        {/* Enviar cupom de desconto */}
+        <SendDiscountCouponDialog
+          open={!!couponClienteId}
+          onOpenChange={(o) => !o && setCouponClienteId(null)}
+          clienteId={couponClienteId}
+        />
+
         {/* WhatsApp Group Creation */}
         <CreateWhatsAppGroupDialog
           clienteId={groupClienteId || ''}
