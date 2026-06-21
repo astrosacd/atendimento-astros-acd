@@ -369,7 +369,7 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
               <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
                 <ShieldAlert className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-semibold text-destructive">Limite anti-abuso ativo (30 dias)</p>
+                  <p className="font-semibold text-destructive">Limite anti-abuso ativo ({cooldownDays} dias)</p>
                   <p className="text-xs text-muted-foreground">
                     Último cupom enviado em <strong>{new Date(cooldown.last_sent_at).toLocaleString('pt-BR')}</strong>.
                     Faltam <strong>{cooldown.days_remaining} dia(s)</strong> para liberar novo envio.
@@ -435,20 +435,48 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
 
             <Separator />
 
-            <div className="rounded-md border bg-muted/30 p-3 space-y-1 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Produto</span><span className="font-medium">{produtoLabel}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Valor original</span><span>{currencySymbol} {valorOriginal.toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Desconto aplicado</span><Badge variant="secondary">{discount}%</Badge></div>
-              <div className="flex justify-between text-base font-bold pt-1 border-t border-border/40">
-                <span>Total com desconto</span>
-                <span className="text-emerald-600 dark:text-emerald-400">
-                  {currencySymbol} {valorComDesconto.toFixed(2)}
-                </span>
-              </div>
-              <p className="text-[11px] text-muted-foreground pt-1">
-                Cupom gerado: <strong className="font-mono tracking-wider">{empresaLabel}</strong> · {discount}% de desconto sobre o valor padrão · cobrado em <strong>{currencyCode}</strong>.
-              </p>
-            </div>
+            {(() => {
+              const valorBase = convertedValue ? convertedValue.value : valorOriginal;
+              const valorFinal = Number((valorBase * (1 - discount / 100)).toFixed(2));
+              const origemSym = convertedValue?.from === 'USD' ? '$' : 'R$';
+              return (
+                <div className="rounded-md border bg-muted/30 p-3 space-y-1 text-sm">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Produto</span><span className="font-medium">{produtoLabel}</span></div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Valor original ({cliente.moeda || 'BRL'})</span>
+                    <span>{origemSym} {valorOriginal.toFixed(2)}</span>
+                  </div>
+                  {convertedValue && (
+                    <div className="flex items-center justify-between gap-2 rounded bg-blue-500/5 border border-blue-500/20 px-2 py-1 my-1">
+                      <span className="flex items-center gap-1 text-xs text-blue-700 dark:text-blue-400">
+                        <ArrowLeftRight className="h-3 w-3" />
+                        Convertido para {convertedValue.to}
+                      </span>
+                      <span className="text-xs font-medium">
+                        {currencySymbol} {convertedValue.value.toFixed(2)}
+                        <span className="text-muted-foreground ml-1">(cotação {convertedValue.rate.toFixed(4)})</span>
+                      </span>
+                    </div>
+                  )}
+                  {convLoading && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Buscando cotação...
+                    </div>
+                  )}
+                  <div className="flex justify-between"><span className="text-muted-foreground">Desconto aplicado</span><Badge variant="secondary">{discount}%</Badge></div>
+                  <div className="flex justify-between text-base font-bold pt-1 border-t border-border/40">
+                    <span>Total com desconto ({currencyCode})</span>
+                    <span className="text-emerald-600 dark:text-emerald-400">
+                      {currencySymbol} {valorFinal.toFixed(2)}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground pt-1">
+                    Cupom gerado: <strong className="font-mono tracking-wider">{empresaLabel}</strong> · {discount}% de desconto · cobrado em <strong>{currencyCode}</strong> via {provider === 'stripe' ? 'Stripe' : 'Mercado Pago'}.
+                  </p>
+                </div>
+              );
+            })()}
+
 
             <DialogFooter>
               <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
