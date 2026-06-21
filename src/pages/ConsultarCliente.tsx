@@ -65,6 +65,8 @@ import { ClientServerCredentials } from '@/components/ClientServerCredentials';
 import { CreateWhatsAppGroupDialog } from '@/components/CreateWhatsAppGroupDialog';
 import { ClientAIUpsell } from '@/components/ClientAIUpsell';
 import { SendDiscountCouponDialog } from '@/components/SendDiscountCouponDialog';
+import { ClientCouponsHistory } from '@/components/ClientCouponsHistory';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ClientScoreBadge } from '@/components/ClientScoreBadge';
 import { ClientPaymentApprovalBadge } from '@/components/ClientPaymentApprovalBadge';
 import { usePermissions } from '@/hooks/usePermissions';
