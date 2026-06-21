@@ -838,13 +838,90 @@ export default function AdminRelatorios() {
                 info="O Payback diz quantos meses o cliente precisa ficar pagando a mensalidade para 'se pagar'. Se o Payback é 2 meses, a partir do 3º mês o cliente é lucro puro. Ideal que seja abaixo de 6 meses."
               />
               <MetricCard
-                title="ARPU (Faturamento Médio)"
+                title="ARPU BRL (Faturamento Médio)"
                 value={formatCurrency(biMetrics.arpu, 'BRL')}
-                subtitle="Receita por cliente ativo"
+                subtitle={`USD: ${formatCurrency(biMetrics.arpuUSD, 'USD')}`}
                 icon={Briefcase}
-                info="ARPU é o faturamento médio por usuário. Ele mostra quanto cada cliente (da base toda) está te rendendo por mês em média. Se você tem planos de R$ 50 e R$ 150, seu ARPU deve ficar no meio disso."
+                info="ARPU é o faturamento médio por usuário ativo. Calculado separadamente por moeda (BRL e USD) para evitar diluição."
               />
             </CardContent>
+
+            {/* KPIs adicionais — ARR, NRR/GRR, MRR Waterfall */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <MetricCard
+                title="ARR BRL (Receita Anual)"
+                value={formatCurrency(ltvMetrics.arrBRL, 'BRL')}
+                subtitle={`USD: ${formatCurrency(ltvMetrics.arrUSD, 'USD')}`}
+                icon={DollarSign}
+                info="ARR (Annual Recurring Revenue) = MRR × 12. Mostra a receita recorrente projetada para os próximos 12 meses se nada mudar."
+              />
+              <MetricCard
+                title="NRR (Retenção de Receita)"
+                value={`${nrrMetrics.nrrBRL.toFixed(1)}%`}
+                subtitle="MRR atual / MRR mês anterior"
+                icon={TrendingUp}
+                trend={nrrMetrics.nrrBRL >= 100 ? 'up' : 'down'}
+                trendValue={nrrMetrics.nrrBRL >= 100 ? 'Crescendo' : 'Encolhendo'}
+                info="NRR > 100% significa que a base existente está crescendo (mais upgrades/renovações que cancelamentos). Ideal: > 110% para SaaS."
+              />
+              <MetricCard
+                title="GRR (Retenção Bruta)"
+                value={`${nrrMetrics.grrBRL.toFixed(1)}%`}
+                subtitle="Sem contar expansões"
+                icon={TrendingDown}
+                trend={nrrMetrics.grrBRL >= 90 ? 'up' : 'down'}
+                trendValue={nrrMetrics.grrBRL >= 90 ? 'Saudável' : 'Alto churn'}
+                info="GRR (Gross Revenue Retention) ignora upgrades — mede só quanto da receita você manteve dos clientes que já tinha. Ideal: > 90%."
+              />
+              <MetricCard
+                title="Novo MRR (este mês)"
+                value={formatCurrency(mrrWaterfall.novoMRR, 'BRL')}
+                subtitle={`Churn: -${formatCurrency(mrrWaterfall.churnMRR, 'BRL')}`}
+                icon={TrendingUp}
+                trend={mrrWaterfall.netNovo >= 0 ? 'up' : 'down'}
+                trendValue={`Líquido: ${formatCurrency(mrrWaterfall.netNovo, 'BRL')}`}
+                info="Novo MRR = receita recorrente trazida por clientes novos no mês. Churn MRR = receita perdida com cancelamentos. Líquido positivo = base cresceu."
+              />
+            </div>
+
+            {/* Top 10 Clientes por MRR */}
+            <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Top 10 Clientes por MRR
+                </CardTitle>
+                <CardDescription>
+                  Quem mais contribui para sua receita recorrente
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {topClientes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">Nenhum cliente ativo.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {topClientes.map((c, idx) => (
+                      <div key={c.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="w-7 h-7 rounded-full bg-primary/15 text-primary text-xs font-bold flex items-center justify-center flex-shrink-0">
+                            {idx + 1}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{c.nome}</p>
+                            <p className="text-xs text-muted-foreground">{c.plano}</p>
+                          </div>
+                        </div>
+                        <span className="font-bold text-sm whitespace-nowrap">
+                          {formatCurrency(c.mrr, c.moeda)}/mês
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="bg-card/50 backdrop-blur-sm border-border/50">
