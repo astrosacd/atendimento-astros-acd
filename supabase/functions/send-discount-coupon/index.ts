@@ -228,6 +228,7 @@ serve(async (req) => {
         channel: "email",
         status: results.email.sent ? "sent" : "error",
         error_message: results.email.error,
+        resolution_note: `operador:${userData.user.id}|desconto:${discountPercent}%|link:${paymentUrl}`,
       });
     }
 
