@@ -61,24 +61,67 @@ serve(async (req) => {
 
     for (const cliente of clientes) {
       try {
-        // Coletar dados de comportamento do cliente
-        const [paymentsRes, billingRes] = await Promise.all([
+        // Coletar dados de comportamento do cliente (HISTÓRICO COMPLETO)
+        const [
+          paymentsRes,
+          billingRes,
+          purchasesRes,
+          recoveryRes,
+          followupsRes,
+          pipelineRes,
+          tasksRes,
+        ] = await Promise.all([
           supabase
             .from("client_payments")
             .select("status, amount, paid_at, billing_date, created_at")
             .eq("cliente_id", cliente.id)
             .order("created_at", { ascending: false })
-            .limit(50),
+            .limit(100),
           supabase
             .from("billing_logs")
             .select("status, message_type, sent_at")
             .eq("cliente_id", cliente.id)
             .order("sent_at", { ascending: false })
+            .limit(100),
+          supabase
+            .from("client_purchases")
+            .select("produto, valor, moeda, data_compra")
+            .eq("cliente_id", cliente.id)
+            .order("data_compra", { ascending: false })
             .limit(50),
+          supabase
+            .from("client_recovery_attempts")
+            .select("canal, status, data_envio, converteu")
+            .eq("cliente_id", cliente.id)
+            .order("data_envio", { ascending: false })
+            .limit(30),
+          supabase
+            .from("client_followups")
+            .select("channel, status, conversion_status, scheduled_at")
+            .eq("cliente_id", cliente.id)
+            .order("scheduled_at", { ascending: false })
+            .limit(30),
+          supabase
+            .from("client_pipeline")
+            .select("stage_id, updated_at, created_at")
+            .eq("cliente_id", cliente.id)
+            .order("updated_at", { ascending: false })
+            .limit(10),
+          supabase
+            .from("client_tasks")
+            .select("status, priority, due_date, completed_at")
+            .eq("cliente_id", cliente.id)
+            .order("created_at", { ascending: false })
+            .limit(30),
         ]);
 
         const payments = paymentsRes.data || [];
         const billings = billingRes.data || [];
+        const purchases = purchasesRes.data || [];
+        const recovery = recoveryRes.data || [];
+        const followups = followupsRes.data || [];
+        const pipeline = pipelineRes.data || [];
+        const tasks = tasksRes.data || [];
 
         // Métricas básicas
         const totalPayments = payments.length;
@@ -108,33 +151,73 @@ serve(async (req) => {
         }
         if (atrasos > 0) atrasoMedio = atrasoMedio / atrasos;
 
+        // LTV real (soma de pagamentos aprovados + compras avulsas)
+        const ltvPagamentos = payments
+          .filter((p) => p.status === "approved" || p.status === "paid")
+          .reduce((s, p) => s + (Number(p.amount) || 0), 0);
+        const ltvCompras = purchases.reduce((s, p) => s + (Number(p.valor) || 0), 0);
+        const ltvTotal = Math.round((ltvPagamentos + ltvCompras) * 100) / 100;
+
+        // Engajamento via follow-ups
+        const followupsConvertidos = followups.filter(
+          (f) => f.conversion_status === "converted" || f.status === "converted"
+        ).length;
+        const recoveryConvertidos = recovery.filter((r) => r.converteu === true).length;
+        const recoveryFalhas = recovery.filter((r) => r.converteu === false).length;
+
+        // Tarefas vencidas (pendentes com due_date passada)
+        const hoje = Date.now();
+        const tarefasVencidas = tasks.filter(
+          (t) =>
+            t.status !== "completed" &&
+            t.status !== "concluido" &&
+            t.due_date &&
+            new Date(t.due_date).getTime() < hoje
+        ).length;
+
         const fatores = {
           tempo_casa_dias: tempoCasa,
           total_pagamentos: totalPayments,
           pagamentos_aprovados: paidCount,
           taxa_pagamento: totalPayments > 0 ? Math.round((paidCount / totalPayments) * 100) : null,
           ticket_medio: Math.round(ticketMedio * 100) / 100,
+          ltv_total: ltvTotal,
           atrasos_count: atrasos,
           atraso_medio_dias: Math.round(atrasoMedio),
           erros_cobranca: errorBillings,
           cobranca_ativa: cliente.cobranca_ativa,
           ciclo: cliente.ciclo_cobranca,
+          compras_avulsas: purchases.length,
+          followups_total: followups.length,
+          followups_convertidos: followupsConvertidos,
+          recovery_tentativas: recovery.length,
+          recovery_convertidas: recoveryConvertidos,
+          recovery_falhas: recoveryFalhas,
+          tarefas_vencidas: tarefasVencidas,
+          esta_no_pipeline: pipeline.length > 0,
         };
 
         // Pedir análise para a IA
         const prompt = `Você é um analista de risco financeiro de um CRM. Analise os dados abaixo de um cliente e gere um SCORE de 0 a 1000 (estilo Serasa interno).
 
 Critérios:
-- 800-1000 (Ouro): excelente histórico, paga em dia, longo tempo de casa, ticket alto
+- 800-1000 (Ouro): excelente histórico, paga em dia, longo tempo de casa, ticket alto, alto LTV, engajamento positivo
 - 600-799 (Prata): bom histórico, atrasos pontuais, recorrência confiável
 - 400-599 (Bronze): histórico mediano, atrasos frequentes ou pouco tempo de casa
-- 0-399 (Risco): muitos atrasos, erros de cobrança, baixo engajamento
+- 0-399 (Risco): muitos atrasos, erros de cobrança, tentativas de recovery falhas, baixo engajamento
+
+Considere FORTEMENTE:
+- LTV acumulado (lifetime value real)
+- Quantidade de compras avulsas (cross-sell)
+- Conversões de follow-ups e recovery
+- Tarefas vencidas (alerta operacional)
 
 Dados do cliente "${cliente.nome}" (produto: ${cliente.produto}):
 ${JSON.stringify(fatores, null, 2)}
 
 Responda APENAS com JSON válido no formato:
-{"score": <0-1000>, "justificativa": "<texto curto explicando, máx 200 caracteres>", "desconto_sugerido": <0-30 percentual recomendado>}`;
+{"score": <0-1000>, "justificativa": "<texto curto explicando, máx 220 caracteres>", "desconto_sugerido": <0-30 percentual recomendado para retenção>}`;
+
 
         const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
