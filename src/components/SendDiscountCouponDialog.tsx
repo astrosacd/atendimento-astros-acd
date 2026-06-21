@@ -364,9 +364,9 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
 
             <DialogFooter>
               <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button onClick={handleGenerate} disabled={generating} className="gap-2">
+              <Button onClick={handleGenerate} disabled={generating || !!cooldown} className="gap-2">
                 {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
-                Gerar link de pagamento
+                {cooldown ? `Bloqueado (${cooldown.days_remaining}d)` : 'Gerar link de pagamento'}
               </Button>
             </DialogFooter>
           </div>
