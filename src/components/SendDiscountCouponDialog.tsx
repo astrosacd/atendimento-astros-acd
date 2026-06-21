@@ -85,6 +85,7 @@ export function SendDiscountCouponDialog({ open, onOpenChange, clienteId }: Prop
   const [message, setMessage] = useState<string>('');
   const [subject, setSubject] = useState<string>('');
   const [copied, setCopied] = useState(false);
+  const [cooldown, setCooldown] = useState<{ last_sent_at: string; days_remaining: number } | null>(null);
 
   // Reset on open
   useEffect(() => {
