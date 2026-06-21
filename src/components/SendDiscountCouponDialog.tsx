@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Gift, Loader2, Link2, MessageSquare, Mail, Sparkles, Copy, CheckCircle2 } from 'lucide-react';
+import { Gift, Loader2, Link2, MessageSquare, Mail, Sparkles, Copy, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
