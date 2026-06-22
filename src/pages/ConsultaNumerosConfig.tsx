@@ -466,6 +466,10 @@ export default function ConsultaNumerosConfig() {
                 <Bell className="h-4 w-4" />
                 Lembretes
               </TabsTrigger>
+              <TabsTrigger value="obsPresets" className="gap-2">
+                <Zap className="h-4 w-4" />
+                Presets de Observação
+              </TabsTrigger>
               <TabsTrigger value="auto-sync" className="gap-2">
                 <Clock className="h-4 w-4" />
                 Sincronização Automática
