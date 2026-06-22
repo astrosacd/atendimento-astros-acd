@@ -34,6 +34,15 @@ interface ObsTag {
   cor: string;
 }
 
+interface ObsPreset {
+  id: string;
+  label: string;
+  texto_observacao: string;
+  status_padrao: string | null;
+  ordem: number;
+  ativo: boolean;
+}
+
 interface BaserowField {
   id: number;
   name: string;
