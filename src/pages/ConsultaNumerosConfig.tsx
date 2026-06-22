@@ -70,6 +70,11 @@ export default function ConsultaNumerosConfig() {
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState('#ef4444');
 
+  // Preset form state
+  const [presetForm, setPresetForm] = useState<{ id: string | null; label: string; texto_observacao: string; status_padrao: string; ordem: number; ativo: boolean }>({
+    id: null, label: '', texto_observacao: '', status_padrao: '', ordem: 0, ativo: true,
+  });
+
   // Fetch config
   const { data: configData, isLoading: loadingConfig } = useQuery({
     queryKey: ['consulta-numeros-config'],
