@@ -2108,24 +2108,31 @@ export default function ConsultaNumeros() {
                         </div>
                       )}
                       
-                      {/* Botão rápido: SIM não aprovisionado */}
-                      {isObservacoes && (
+                      {/* Presets configuráveis — só aparecem para números do tipo IN */}
+                      {isObservacoes && selectedRow && getNumeroTipo(selectedRow) === 'IN' && obsPresets.length > 0 && (
                         <div className="flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            disabled={isNonEditable}
-                            onClick={() => {
-                              setNewObservacao('SIM não aprovisionado');
-                              setEditValues(prev => ({ ...prev, excluido_da_base: 'EXCLUIDO' }));
-                              toast({ title: 'Observação preenchida', description: 'Status marcado como EXCLUIDO' });
-                            }}
-                            className="gap-1"
-                          >
-                            <Tag className="h-3 w-3" />
-                            SIM não aprovisionado
-                          </Button>
+                          {obsPresets.map((preset) => (
+                            <Button
+                              key={preset.id}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={isNonEditable}
+                              onClick={() => {
+                                setNewObservacao(preset.texto_observacao);
+                                if (preset.status_padrao) {
+                                  setEditValues(prev => ({ ...prev, excluido_da_base: preset.status_padrao! }));
+                                  toast({ title: 'Preset aplicado', description: `Status marcado como ${preset.status_padrao}` });
+                                } else {
+                                  toast({ title: 'Preset aplicado', description: preset.label });
+                                }
+                              }}
+                              className="gap-1"
+                            >
+                              <Tag className="h-3 w-3" />
+                              {preset.label}
+                            </Button>
+                          ))}
                         </div>
                       )}
                       
