@@ -10,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Save, RefreshCw, Database, EyeOff, Loader2, Plus, Trash2, Tag, Mail, Bell, Clock } from 'lucide-react';
+import { ArrowLeft, Save, RefreshCw, Database, EyeOff, Loader2, Plus, Trash2, Tag, Mail, Bell, Clock, Zap, Pencil } from 'lucide-react';
+import { Switch as SwitchUI } from '@/components/ui/switch';
 import { AutoSyncConfigCard } from '@/components/consulta-numeros/AutoSyncConfigCard';
 import { ReminderConfigTab } from '@/components/consulta-numeros/ReminderConfigTab';
 import { supabase } from '@/integrations/supabase/client';
