@@ -2753,6 +2753,39 @@ export type Database = {
         }
         Relationships: []
       }
+      consulta_numeros_obs_presets: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          label: string
+          ordem: number
+          status_padrao: string | null
+          texto_observacao: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          label: string
+          ordem?: number
+          status_padrao?: string | null
+          texto_observacao: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          label?: string
+          ordem?: number
+          status_padrao?: string | null
+          texto_observacao?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       consulta_numeros_obs_tags: {
         Row: {
           cor: string | null

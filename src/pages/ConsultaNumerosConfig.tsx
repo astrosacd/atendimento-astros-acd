@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Save, RefreshCw, Database, EyeOff, Loader2, Plus, Trash2, Tag, Mail, Bell, Clock } from 'lucide-react';
+import { ArrowLeft, Save, RefreshCw, Database, EyeOff, Loader2, Plus, Trash2, Tag, Mail, Bell, Clock, Zap, Pencil } from 'lucide-react';
 import { AutoSyncConfigCard } from '@/components/consulta-numeros/AutoSyncConfigCard';
 import { ReminderConfigTab } from '@/components/consulta-numeros/ReminderConfigTab';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,6 +32,15 @@ interface ObsTag {
   id: string;
   nome: string;
   cor: string;
+}
+
+interface ObsPreset {
+  id: string;
+  label: string;
+  texto_observacao: string;
+  status_padrao: string | null;
+  ordem: number;
+  ativo: boolean;
 }
 
 interface BaserowField {
@@ -60,6 +69,11 @@ export default function ConsultaNumerosConfig() {
   const [newFieldName, setNewFieldName] = useState('');
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState('#ef4444');
+
+  // Preset form state
+  const [presetForm, setPresetForm] = useState<{ id: string | null; label: string; texto_observacao: string; status_padrao: string; ordem: number; ativo: boolean }>({
+    id: null, label: '', texto_observacao: '', status_padrao: '', ordem: 0, ativo: true,
+  });
 
   // Fetch config
   const { data: configData, isLoading: loadingConfig } = useQuery({
@@ -254,6 +268,80 @@ export default function ConsultaNumerosConfig() {
     },
   });
 
+  // ===== Observation Presets =====
+  const { data: obsPresets = [], isLoading: loadingObsPresets } = useQuery({
+    queryKey: ['consulta-numeros-obs-presets-admin'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('consulta_numeros_obs_presets')
+        .select('*')
+        .order('ordem', { ascending: true })
+        .order('label', { ascending: true });
+      if (error) throw error;
+      return (data || []) as ObsPreset[];
+    },
+    staleTime: 60_000,
+  });
+
+  const upsertPresetMutation = useMutation({
+    mutationFn: async (form: typeof presetForm) => {
+      const payload = {
+        label: form.label.trim(),
+        texto_observacao: form.texto_observacao.trim(),
+        status_padrao: form.status_padrao.trim() || null,
+        ordem: Number(form.ordem) || 0,
+        ativo: form.ativo,
+      };
+      if (form.id) {
+        const { error } = await supabase.from('consulta_numeros_obs_presets').update(payload).eq('id', form.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('consulta_numeros_obs_presets').insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast({ title: presetForm.id ? 'Preset atualizado!' : 'Preset adicionado!' });
+      setPresetForm({ id: null, label: '', texto_observacao: '', status_padrao: '', ordem: 0, ativo: true });
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-obs-presets-admin'] });
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-obs-presets'] });
+    },
+    onError: (error: Error) => toast({ title: 'Erro ao salvar preset', description: error.message, variant: 'destructive' }),
+  });
+
+  const deletePresetMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('consulta_numeros_obs_presets').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Preset removido!' });
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-obs-presets-admin'] });
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-obs-presets'] });
+    },
+    onError: (error: Error) => toast({ title: 'Erro ao remover', description: error.message, variant: 'destructive' }),
+  });
+
+  const togglePresetAtivoMutation = useMutation({
+    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
+      const { error } = await supabase.from('consulta_numeros_obs_presets').update({ ativo }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-obs-presets-admin'] });
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-obs-presets'] });
+    },
+    onError: (error: Error) => toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' }),
+  });
+
+  const handleSavePreset = () => {
+    if (!presetForm.label.trim() || !presetForm.texto_observacao.trim()) {
+      toast({ title: 'Preencha label e texto da observação', variant: 'destructive' });
+      return;
+    }
+    upsertPresetMutation.mutate(presetForm);
+  };
+
   // Auto-sync: ensure every Baserow field exists in masked fields table (default: not masked)
   const syncMaskedFieldsMutation = useMutation({
     mutationFn: async (fieldNames: string[]) => {
@@ -377,6 +465,10 @@ export default function ConsultaNumerosConfig() {
               <TabsTrigger value="reminders" className="gap-2">
                 <Bell className="h-4 w-4" />
                 Lembretes
+              </TabsTrigger>
+              <TabsTrigger value="obsPresets" className="gap-2">
+                <Zap className="h-4 w-4" />
+                Presets de Observação
               </TabsTrigger>
               <TabsTrigger value="auto-sync" className="gap-2">
                 <Clock className="h-4 w-4" />
@@ -769,6 +861,163 @@ export default function ConsultaNumerosConfig() {
 
             <TabsContent value="reminders">
               <ReminderConfigTab />
+            </TabsContent>
+
+            <TabsContent value="obsPresets">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Zap className="h-5 w-5" />
+                    Presets de Observação
+                  </CardTitle>
+                  <CardDescription>
+                    Atalhos rápidos exibidos no editor de registros (campo Observações). Aparecem somente em números do tipo <strong>IN</strong> (interno).
+                    Cada preset define um texto e, opcionalmente, um status padrão a ser aplicado em <code>excluido_da_base</code>.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Form */}
+                  <div className="grid gap-3 p-4 border rounded-lg bg-muted/30">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-1">
+                        <Label>Label (texto do botão)</Label>
+                        <Input
+                          placeholder="Ex: SIM não aprovisionado"
+                          value={presetForm.label}
+                          onChange={(e) => setPresetForm(prev => ({ ...prev, label: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Status padrão (opcional)</Label>
+                        <Input
+                          placeholder="Ex: EXCLUIDO (deixe vazio se não aplicar)"
+                          value={presetForm.status_padrao}
+                          onChange={(e) => setPresetForm(prev => ({ ...prev, status_padrao: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Texto da observação (será inserido no campo)</Label>
+                      <Textarea
+                        rows={2}
+                        placeholder="Ex: SIM não aprovisionado"
+                        value={presetForm.texto_observacao}
+                        onChange={(e) => setPresetForm(prev => ({ ...prev, texto_observacao: e.target.value }))}
+                      />
+                    </div>
+                    <div className="flex flex-wrap items-end gap-4">
+                      <div className="space-y-1">
+                        <Label>Ordem</Label>
+                        <Input
+                          type="number"
+                          className="w-24"
+                          value={presetForm.ordem}
+                          onChange={(e) => setPresetForm(prev => ({ ...prev, ordem: Number(e.target.value) }))}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={presetForm.ativo}
+                          onCheckedChange={(v) => setPresetForm(prev => ({ ...prev, ativo: v }))}
+                        />
+                        <Label className="text-sm">Ativo</Label>
+                      </div>
+                      <div className="ml-auto flex gap-2">
+                        {presetForm.id && (
+                          <Button
+                            variant="ghost"
+                            onClick={() => setPresetForm({ id: null, label: '', texto_observacao: '', status_padrao: '', ordem: 0, ativo: true })}
+                          >
+                            Cancelar
+                          </Button>
+                        )}
+                        <Button onClick={handleSavePreset} disabled={upsertPresetMutation.isPending}>
+                          {upsertPresetMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}
+                          {presetForm.id ? 'Atualizar' : 'Adicionar'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* List */}
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[60px]">Ordem</TableHead>
+                          <TableHead>Label</TableHead>
+                          <TableHead>Texto</TableHead>
+                          <TableHead className="w-[140px]">Status padrão</TableHead>
+                          <TableHead className="w-[80px]">Ativo</TableHead>
+                          <TableHead className="w-[120px]">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {loadingObsPresets ? (
+                          <TableRow><TableCell colSpan={6}><Skeleton className="h-8" /></TableCell></TableRow>
+                        ) : obsPresets.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                              Nenhum preset configurado
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          obsPresets.map((p) => (
+                            <TableRow key={p.id}>
+                              <TableCell>{p.ordem}</TableCell>
+                              <TableCell className="font-medium">{p.label}</TableCell>
+                              <TableCell className="text-sm text-muted-foreground max-w-[280px] truncate">{p.texto_observacao}</TableCell>
+                              <TableCell>{p.status_padrao || <span className="text-muted-foreground">—</span>}</TableCell>
+                              <TableCell>
+                                <Switch
+                                  checked={p.ativo}
+                                  onCheckedChange={(v) => togglePresetAtivoMutation.mutate({ id: p.id, ativo: v })}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setPresetForm({
+                                      id: p.id,
+                                      label: p.label,
+                                      texto_observacao: p.texto_observacao,
+                                      status_padrao: p.status_padrao || '',
+                                      ordem: p.ordem,
+                                      ativo: p.ativo,
+                                    })}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => deletePresetMutation.mutate(p.id)}
+                                    disabled={deletePresetMutation.isPending}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                    <p className="text-sm font-medium">Como funciona:</p>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      <li>• Os botões só aparecem para números do tipo <strong>IN</strong> (interno).</li>
+                      <li>• Ao clicar, o texto preenche o campo Observações e o status padrão (se houver) é aplicado em <code>excluido_da_base</code>.</li>
+                      <li>• Use o toggle <strong>Ativo</strong> para desativar sem excluir.</li>
+                      <li>• Permissão necessária para editar: <code>manage_consulta_numeros_obs_presets</code>.</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="auto-sync">
