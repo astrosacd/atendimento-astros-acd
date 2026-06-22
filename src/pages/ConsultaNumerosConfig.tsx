@@ -268,6 +268,80 @@ export default function ConsultaNumerosConfig() {
     },
   });
 
+  // ===== Observation Presets =====
+  const { data: obsPresets = [], isLoading: loadingObsPresets } = useQuery({
+    queryKey: ['consulta-numeros-obs-presets-admin'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('consulta_numeros_obs_presets')
+        .select('*')
+        .order('ordem', { ascending: true })
+        .order('label', { ascending: true });
+      if (error) throw error;
+      return (data || []) as ObsPreset[];
+    },
+    staleTime: 60_000,
+  });
+
+  const upsertPresetMutation = useMutation({
+    mutationFn: async (form: typeof presetForm) => {
+      const payload = {
+        label: form.label.trim(),
+        texto_observacao: form.texto_observacao.trim(),
+        status_padrao: form.status_padrao.trim() || null,
+        ordem: Number(form.ordem) || 0,
+        ativo: form.ativo,
+      };
+      if (form.id) {
+        const { error } = await supabase.from('consulta_numeros_obs_presets').update(payload).eq('id', form.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('consulta_numeros_obs_presets').insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast({ title: presetForm.id ? 'Preset atualizado!' : 'Preset adicionado!' });
+      setPresetForm({ id: null, label: '', texto_observacao: '', status_padrao: '', ordem: 0, ativo: true });
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-obs-presets-admin'] });
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-obs-presets'] });
+    },
+    onError: (error: Error) => toast({ title: 'Erro ao salvar preset', description: error.message, variant: 'destructive' }),
+  });
+
+  const deletePresetMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('consulta_numeros_obs_presets').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Preset removido!' });
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-obs-presets-admin'] });
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-obs-presets'] });
+    },
+    onError: (error: Error) => toast({ title: 'Erro ao remover', description: error.message, variant: 'destructive' }),
+  });
+
+  const togglePresetAtivoMutation = useMutation({
+    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
+      const { error } = await supabase.from('consulta_numeros_obs_presets').update({ ativo }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-obs-presets-admin'] });
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-obs-presets'] });
+    },
+    onError: (error: Error) => toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' }),
+  });
+
+  const handleSavePreset = () => {
+    if (!presetForm.label.trim() || !presetForm.texto_observacao.trim()) {
+      toast({ title: 'Preencha label e texto da observação', variant: 'destructive' });
+      return;
+    }
+    upsertPresetMutation.mutate(presetForm);
+  };
+
   // Auto-sync: ensure every Baserow field exists in masked fields table (default: not masked)
   const syncMaskedFieldsMutation = useMutation({
     mutationFn: async (fieldNames: string[]) => {
