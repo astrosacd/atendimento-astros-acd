@@ -277,6 +277,22 @@ export default function ConsultaNumeros() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Fetch observation presets (atalhos configuráveis) — only active, ordered
+  const { data: obsPresets = [] } = useQuery({
+    queryKey: ['consulta-numeros-obs-presets'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('consulta_numeros_obs_presets')
+        .select('*')
+        .eq('ativo', true)
+        .order('ordem', { ascending: true })
+        .order('label', { ascending: true });
+      if (error) throw error;
+      return (data || []) as Array<{ id: string; label: string; texto_observacao: string; status_padrao: string | null }>;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Helper function to mask sensitive data
   const maskValue = (value: string | null | undefined, fieldName: string): string => {
     if (!value) return '-';
