@@ -934,67 +934,10 @@ export default function ConsultaNumerosConfig() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Form */}
-                  <div className="grid gap-3 p-4 border rounded-lg bg-muted/30">
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div className="space-y-1">
-                        <Label>Label (texto do botão)</Label>
-                        <Input
-                          placeholder="Ex: SIM não aprovisionado"
-                          value={presetForm.label}
-                          onChange={(e) => setPresetForm(prev => ({ ...prev, label: e.target.value }))}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label>Status padrão (opcional)</Label>
-                        <Input
-                          placeholder="Ex: EXCLUIDO (deixe vazio se não aplicar)"
-                          value={presetForm.status_padrao}
-                          onChange={(e) => setPresetForm(prev => ({ ...prev, status_padrao: e.target.value }))}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Texto da observação (será inserido no campo)</Label>
-                      <Textarea
-                        rows={2}
-                        placeholder="Ex: SIM não aprovisionado"
-                        value={presetForm.texto_observacao}
-                        onChange={(e) => setPresetForm(prev => ({ ...prev, texto_observacao: e.target.value }))}
-                      />
-                    </div>
-                    <div className="flex flex-wrap items-end gap-4">
-                      <div className="space-y-1">
-                        <Label>Ordem</Label>
-                        <Input
-                          type="number"
-                          className="w-24"
-                          value={presetForm.ordem}
-                          onChange={(e) => setPresetForm(prev => ({ ...prev, ordem: Number(e.target.value) }))}
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={presetForm.ativo}
-                          onCheckedChange={(v) => setPresetForm(prev => ({ ...prev, ativo: v }))}
-                        />
-                        <Label className="text-sm">Ativo</Label>
-                      </div>
-                      <div className="ml-auto flex gap-2">
-                        {presetForm.id && (
-                          <Button
-                            variant="ghost"
-                            onClick={() => setPresetForm({ id: null, label: '', texto_observacao: '', status_padrao: '', ordem: 0, ativo: true })}
-                          >
-                            Cancelar
-                          </Button>
-                        )}
-                        <Button onClick={handleSavePreset} disabled={upsertPresetMutation.isPending}>
-                          {upsertPresetMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}
-                          {presetForm.id ? 'Atualizar' : 'Adicionar'}
-                        </Button>
-                      </div>
-                    </div>
+                  <div className="flex justify-end">
+                    <Button onClick={openNewPreset}>
+                      <Plus className="h-4 w-4 mr-1" /> Novo preset
+                    </Button>
                   </div>
 
                   {/* List */}
@@ -1003,9 +946,9 @@ export default function ConsultaNumerosConfig() {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-[60px]">Ordem</TableHead>
-                          <TableHead>Label</TableHead>
+                          <TableHead>Preset</TableHead>
                           <TableHead>Texto</TableHead>
-                          <TableHead className="w-[140px]">Status padrão</TableHead>
+                          <TableHead className="w-[180px]">Status padrão</TableHead>
                           <TableHead className="w-[80px]">Ativo</TableHead>
                           <TableHead className="w-[120px]">Ações</TableHead>
                         </TableRow>
@@ -1020,46 +963,47 @@ export default function ConsultaNumerosConfig() {
                             </TableCell>
                           </TableRow>
                         ) : (
-                          obsPresets.map((p) => (
-                            <TableRow key={p.id}>
-                              <TableCell>{p.ordem}</TableCell>
-                              <TableCell className="font-medium">{p.label}</TableCell>
-                              <TableCell className="text-sm text-muted-foreground max-w-[280px] truncate">{p.texto_observacao}</TableCell>
-                              <TableCell>{p.status_padrao || <span className="text-muted-foreground">—</span>}</TableCell>
-                              <TableCell>
-                                <Switch
-                                  checked={p.ativo}
-                                  onCheckedChange={(v) => togglePresetAtivoMutation.mutate({ id: p.id, ativo: v })}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setPresetForm({
-                                      id: p.id,
-                                      label: p.label,
-                                      texto_observacao: p.texto_observacao,
-                                      status_padrao: p.status_padrao || '',
-                                      ordem: p.ordem,
-                                      ativo: p.ativo,
-                                    })}
+                          obsPresets.map((p) => {
+                            const Icon = getPresetIcon(p.icone);
+                            const cor = p.cor || '#3b82f6';
+                            return (
+                              <TableRow key={p.id}>
+                                <TableCell>{p.ordem}</TableCell>
+                                <TableCell>
+                                  <span
+                                    className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium border"
+                                    style={{ backgroundColor: `${cor}20`, borderColor: `${cor}66`, color: cor }}
                                   >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => deletePresetMutation.mutate(p.id)}
-                                    disabled={deletePresetMutation.isPending}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))
+                                    <Icon className="h-3.5 w-3.5" />
+                                    {p.label}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-sm text-muted-foreground max-w-[280px] truncate">{p.texto_observacao}</TableCell>
+                                <TableCell>{p.status_padrao || <span className="text-muted-foreground">—</span>}</TableCell>
+                                <TableCell>
+                                  <Switch
+                                    checked={p.ativo}
+                                    onCheckedChange={(v) => togglePresetAtivoMutation.mutate({ id: p.id, ativo: v })}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex gap-1">
+                                    <Button variant="ghost" size="sm" onClick={() => openEditPreset(p)}>
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => { if (confirm(`Excluir preset "${p.label}"?`)) deletePresetMutation.mutate(p.id); }}
+                                      disabled={deletePresetMutation.isPending}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
                         )}
                       </TableBody>
                     </Table>
@@ -1070,10 +1014,143 @@ export default function ConsultaNumerosConfig() {
                     <ul className="text-xs text-muted-foreground space-y-1">
                       <li>• Os botões só aparecem para números do tipo <strong>IN</strong> (interno).</li>
                       <li>• Ao clicar, o texto preenche o campo Observações e o status padrão (se houver) é aplicado em <code>excluido_da_base</code>.</li>
+                      <li>• O <strong>Status padrão</strong> é sincronizado em tempo real com as opções reais do Baserow.</li>
                       <li>• Use o toggle <strong>Ativo</strong> para desativar sem excluir.</li>
                       <li>• Permissão necessária para editar: <code>manage_consulta_numeros_obs_presets</code>.</li>
                     </ul>
                   </div>
+
+                  {/* Edit/Create Dialog */}
+                  <Dialog open={presetDialogOpen} onOpenChange={setPresetDialogOpen}>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>{presetForm.id ? 'Editar preset' : 'Novo preset'}</DialogTitle>
+                        <DialogDescription>
+                          Configure o atalho que aparecerá no editor do campo Observações (números IN).
+                        </DialogDescription>
+                      </DialogHeader>
+
+                      <div className="grid gap-4 py-2">
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <div className="space-y-1">
+                            <Label>Label (texto do botão)</Label>
+                            <Input
+                              placeholder="Ex: SIM não aprovisionado"
+                              value={presetForm.label}
+                              onChange={(e) => setPresetForm(prev => ({ ...prev, label: e.target.value }))}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Status padrão (opcional)</Label>
+                            <Select
+                              value={presetForm.status_padrao || '__none__'}
+                              onValueChange={(v) => setPresetForm(prev => ({ ...prev, status_padrao: v === '__none__' ? '' : v }))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Não aplicar" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">— Não aplicar —</SelectItem>
+                                {statusOptions.map(opt => (
+                                  <SelectItem key={opt.id} value={opt.value}>{opt.value}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {statusOptions.length === 0 && (
+                              <p className="text-[11px] text-muted-foreground">Nenhuma opção carregada do Baserow. Rode a sincronização para popular.</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label>Texto da observação (será inserido no campo)</Label>
+                          <Textarea
+                            rows={2}
+                            placeholder="Ex: SIM não aprovisionado"
+                            value={presetForm.texto_observacao}
+                            onChange={(e) => setPresetForm(prev => ({ ...prev, texto_observacao: e.target.value }))}
+                          />
+                        </div>
+
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label>Cor</Label>
+                            <div className="flex flex-wrap gap-2">
+                              {PRESET_COLORS.map(c => (
+                                <button
+                                  key={c}
+                                  type="button"
+                                  onClick={() => setPresetForm(prev => ({ ...prev, cor: c }))}
+                                  className={`h-7 w-7 rounded-full border-2 transition ${presetForm.cor === c ? 'ring-2 ring-offset-2 ring-offset-background' : 'border-transparent'}`}
+                                  style={{ backgroundColor: c, borderColor: presetForm.cor === c ? c : 'transparent' }}
+                                  aria-label={`Cor ${c}`}
+                                />
+                              ))}
+                              <input
+                                type="color"
+                                value={presetForm.cor}
+                                onChange={(e) => setPresetForm(prev => ({ ...prev, cor: e.target.value }))}
+                                className="h-7 w-7 rounded cursor-pointer bg-transparent border"
+                                aria-label="Cor personalizada"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Ícone</Label>
+                            <div className="flex flex-wrap gap-1.5">
+                              {PRESET_ICONS.map(({ key, Icon }) => (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  onClick={() => setPresetForm(prev => ({ ...prev, icone: key }))}
+                                  className={`h-8 w-8 rounded-md border flex items-center justify-center transition ${presetForm.icone === key ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted'}`}
+                                  aria-label={key}
+                                >
+                                  <Icon className="h-4 w-4" style={{ color: presetForm.cor }} />
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-4">
+                          <div className="space-y-1">
+                            <Label>Ordem</Label>
+                            <Input
+                              type="number"
+                              className="w-24"
+                              value={presetForm.ordem}
+                              onChange={(e) => setPresetForm(prev => ({ ...prev, ordem: Number(e.target.value) }))}
+                            />
+                          </div>
+                          <div className="flex items-center gap-2 pt-5">
+                            <Switch
+                              checked={presetForm.ativo}
+                              onCheckedChange={(v) => setPresetForm(prev => ({ ...prev, ativo: v }))}
+                            />
+                            <Label className="text-sm">Ativo</Label>
+                          </div>
+                          <div className="ml-auto pt-5">
+                            <span
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border"
+                              style={{ backgroundColor: `${presetForm.cor}20`, borderColor: `${presetForm.cor}66`, color: presetForm.cor }}
+                            >
+                              {(() => { const I = getPresetIcon(presetForm.icone); return <I className="h-4 w-4" />; })()}
+                              {presetForm.label || 'Pré-visualização'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <DialogFooter>
+                        <Button variant="ghost" onClick={() => setPresetDialogOpen(false)}>Cancelar</Button>
+                        <Button onClick={handleSavePreset} disabled={upsertPresetMutation.isPending}>
+                          {upsertPresetMutation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                          {presetForm.id ? 'Atualizar' : 'Adicionar'}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </CardContent>
               </Card>
             </TabsContent>
