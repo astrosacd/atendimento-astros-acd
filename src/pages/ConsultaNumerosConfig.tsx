@@ -58,6 +58,14 @@ interface ObsPreset {
   status_padrao: string | null;
   ordem: number;
   ativo: boolean;
+  cor: string | null;
+  icone: string | null;
+}
+
+interface BaserowSelectOption {
+  id: number;
+  value: string;
+  color: string;
 }
 
 interface BaserowField {
