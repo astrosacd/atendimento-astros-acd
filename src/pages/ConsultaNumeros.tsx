@@ -288,7 +288,7 @@ export default function ConsultaNumeros() {
         .order('ordem', { ascending: true })
         .order('label', { ascending: true });
       if (error) throw error;
-      return (data || []) as Array<{ id: string; label: string; texto_observacao: string; status_padrao: string | null }>;
+      return (data || []) as Array<{ id: string; label: string; texto_observacao: string; status_padrao: string | null; cor: string | null; icone: string | null }>;
     },
     staleTime: 5 * 60 * 1000,
   });
