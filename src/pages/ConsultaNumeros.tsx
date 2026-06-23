@@ -14,7 +14,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, AlertCircle, Plus, Loader2, X, Tag, Mail, Eye, MessageSquare, QrCode, Shield, ShieldCheck, ShieldAlert, ShieldOff, CheckCircle2 } from 'lucide-react';
+import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, AlertCircle, Plus, Loader2, X, Tag, Mail, Eye, MessageSquare, QrCode, Shield, ShieldCheck, ShieldAlert, ShieldOff, CheckCircle2, Ban, XCircle, AlertTriangle, Zap, Flame, Star, Circle } from 'lucide-react';
+
+const PRESET_ICON_MAP: Record<string, any> = { Tag, Ban, ShieldAlert, CheckCircle2, XCircle, AlertTriangle, Zap, Flame, Star, Circle };
 import { ValidacaoSmsTab } from '@/components/consulta-numeros/ValidacaoSmsTab';
 import { MonitoredStatusDisplay } from '@/components/consulta-numeros/MonitoredStatusDisplay';
 import { QrScansTab } from '@/components/consulta-numeros/QrScansTab';
@@ -288,7 +290,7 @@ export default function ConsultaNumeros() {
         .order('ordem', { ascending: true })
         .order('label', { ascending: true });
       if (error) throw error;
-      return (data || []) as Array<{ id: string; label: string; texto_observacao: string; status_padrao: string | null }>;
+      return (data || []) as Array<{ id: string; label: string; texto_observacao: string; status_padrao: string | null; cor: string | null; icone: string | null }>;
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -2111,28 +2113,33 @@ export default function ConsultaNumeros() {
                       {/* Presets configuráveis — só aparecem para números do tipo IN */}
                       {isObservacoes && selectedRow && getNumeroTipo(selectedRow) === 'IN' && obsPresets.length > 0 && (
                         <div className="flex flex-wrap gap-2">
-                          {obsPresets.map((preset) => (
-                            <Button
-                              key={preset.id}
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              disabled={isNonEditable}
-                              onClick={() => {
-                                setNewObservacao(preset.texto_observacao);
-                                if (preset.status_padrao) {
-                                  setEditValues(prev => ({ ...prev, excluido_da_base: preset.status_padrao! }));
-                                  toast({ title: 'Preset aplicado', description: `Status marcado como ${preset.status_padrao}` });
-                                } else {
-                                  toast({ title: 'Preset aplicado', description: preset.label });
-                                }
-                              }}
-                              className="gap-1"
-                            >
-                              <Tag className="h-3 w-3" />
-                              {preset.label}
-                            </Button>
-                          ))}
+                          {obsPresets.map((preset) => {
+                            const Icon = PRESET_ICON_MAP[preset.icone || 'Tag'] || Tag;
+                            const cor = preset.cor || '#3b82f6';
+                            return (
+                              <Button
+                                key={preset.id}
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={isNonEditable}
+                                onClick={() => {
+                                  setNewObservacao(preset.texto_observacao);
+                                  if (preset.status_padrao) {
+                                    setEditValues(prev => ({ ...prev, excluido_da_base: preset.status_padrao! }));
+                                    toast({ title: 'Preset aplicado', description: `Status marcado como ${preset.status_padrao}` });
+                                  } else {
+                                    toast({ title: 'Preset aplicado', description: preset.label });
+                                  }
+                                }}
+                                className="gap-1"
+                                style={{ borderColor: `${cor}80`, color: cor, backgroundColor: `${cor}15` }}
+                              >
+                                <Icon className="h-3 w-3" />
+                                {preset.label}
+                              </Button>
+                            );
+                          })}
                         </div>
                       )}
                       
