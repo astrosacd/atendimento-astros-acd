@@ -10,11 +10,28 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Save, RefreshCw, Database, EyeOff, Loader2, Plus, Trash2, Tag, Mail, Bell, Clock, Zap, Pencil } from 'lucide-react';
+import { ArrowLeft, Save, RefreshCw, Database, EyeOff, Loader2, Plus, Trash2, Tag, Mail, Bell, Clock, Zap, Pencil, Ban, ShieldAlert, CheckCircle2, XCircle, AlertTriangle, Flame, Star, Circle } from 'lucide-react';
 import { AutoSyncConfigCard } from '@/components/consulta-numeros/AutoSyncConfigCard';
 import { ReminderConfigTab } from '@/components/consulta-numeros/ReminderConfigTab';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+
+const PRESET_ICONS = [
+  { key: 'Tag', Icon: Tag },
+  { key: 'Ban', Icon: Ban },
+  { key: 'ShieldAlert', Icon: ShieldAlert },
+  { key: 'CheckCircle2', Icon: CheckCircle2 },
+  { key: 'XCircle', Icon: XCircle },
+  { key: 'AlertTriangle', Icon: AlertTriangle },
+  { key: 'Zap', Icon: Zap },
+  { key: 'Flame', Icon: Flame },
+  { key: 'Star', Icon: Star },
+  { key: 'Circle', Icon: Circle },
+];
+const PRESET_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'];
+const getPresetIcon = (key?: string | null) => PRESET_ICONS.find(i => i.key === key)?.Icon || Tag;
 
 interface ConfigItem {
   id: string;
