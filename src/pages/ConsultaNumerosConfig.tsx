@@ -95,10 +95,23 @@ export default function ConsultaNumerosConfig() {
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState('#ef4444');
 
-  // Preset form state
-  const [presetForm, setPresetForm] = useState<{ id: string | null; label: string; texto_observacao: string; status_padrao: string; ordem: number; ativo: boolean }>({
-    id: null, label: '', texto_observacao: '', status_padrao: '', ordem: 0, ativo: true,
+  // Preset form state + dialog
+  const [presetDialogOpen, setPresetDialogOpen] = useState(false);
+  const [presetForm, setPresetForm] = useState<{ id: string | null; label: string; texto_observacao: string; status_padrao: string; ordem: number; ativo: boolean; cor: string; icone: string }>({
+    id: null, label: '', texto_observacao: '', status_padrao: '', ordem: 0, ativo: true, cor: '#3b82f6', icone: 'Tag',
   });
+  const openNewPreset = () => {
+    setPresetForm({ id: null, label: '', texto_observacao: '', status_padrao: '', ordem: 0, ativo: true, cor: '#3b82f6', icone: 'Tag' });
+    setPresetDialogOpen(true);
+  };
+  const openEditPreset = (p: ObsPreset) => {
+    setPresetForm({
+      id: p.id, label: p.label, texto_observacao: p.texto_observacao,
+      status_padrao: p.status_padrao || '', ordem: p.ordem, ativo: p.ativo,
+      cor: p.cor || '#3b82f6', icone: p.icone || 'Tag',
+    });
+    setPresetDialogOpen(true);
+  };
 
   // Fetch config
   const { data: configData, isLoading: loadingConfig } = useQuery({
