@@ -321,6 +321,23 @@ export default function ConsultaNumerosConfig() {
     staleTime: 60_000,
   });
 
+  // Fetch real status options from Baserow cache (single source of truth)
+  const { data: statusOptions = [] } = useQuery({
+    queryKey: ['baserow-excluido-options'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('consulta_numeros_fields_cache')
+        .select('fields_data')
+        .order('synced_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const fields = ((data?.fields_data as any[]) || []);
+      const f = fields.find((x: any) => x.name === 'excluido_da_base');
+      return (f?.select_options as BaserowSelectOption[]) || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const upsertPresetMutation = useMutation({
     mutationFn: async (form: typeof presetForm) => {
       const payload = {
@@ -329,6 +346,8 @@ export default function ConsultaNumerosConfig() {
         status_padrao: form.status_padrao.trim() || null,
         ordem: Number(form.ordem) || 0,
         ativo: form.ativo,
+        cor: form.cor || null,
+        icone: form.icone || null,
       };
       if (form.id) {
         const { error } = await supabase.from('consulta_numeros_obs_presets').update(payload).eq('id', form.id);
@@ -340,7 +359,8 @@ export default function ConsultaNumerosConfig() {
     },
     onSuccess: () => {
       toast({ title: presetForm.id ? 'Preset atualizado!' : 'Preset adicionado!' });
-      setPresetForm({ id: null, label: '', texto_observacao: '', status_padrao: '', ordem: 0, ativo: true });
+      setPresetDialogOpen(false);
+      setPresetForm({ id: null, label: '', texto_observacao: '', status_padrao: '', ordem: 0, ativo: true, cor: '#3b82f6', icone: 'Tag' });
       queryClient.invalidateQueries({ queryKey: ['consulta-numeros-obs-presets-admin'] });
       queryClient.invalidateQueries({ queryKey: ['consulta-numeros-obs-presets'] });
     },
