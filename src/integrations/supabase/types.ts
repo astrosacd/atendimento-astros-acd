@@ -2756,7 +2756,9 @@ export type Database = {
       consulta_numeros_obs_presets: {
         Row: {
           ativo: boolean
+          cor: string | null
           created_at: string
+          icone: string | null
           id: string
           label: string
           ordem: number
@@ -2766,7 +2768,9 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          cor?: string | null
           created_at?: string
+          icone?: string | null
           id?: string
           label: string
           ordem?: number
@@ -2776,7 +2780,9 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          cor?: string | null
           created_at?: string
+          icone?: string | null
           id?: string
           label?: string
           ordem?: number
