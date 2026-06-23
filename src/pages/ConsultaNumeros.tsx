@@ -2113,28 +2113,33 @@ export default function ConsultaNumeros() {
                       {/* Presets configuráveis — só aparecem para números do tipo IN */}
                       {isObservacoes && selectedRow && getNumeroTipo(selectedRow) === 'IN' && obsPresets.length > 0 && (
                         <div className="flex flex-wrap gap-2">
-                          {obsPresets.map((preset) => (
-                            <Button
-                              key={preset.id}
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              disabled={isNonEditable}
-                              onClick={() => {
-                                setNewObservacao(preset.texto_observacao);
-                                if (preset.status_padrao) {
-                                  setEditValues(prev => ({ ...prev, excluido_da_base: preset.status_padrao! }));
-                                  toast({ title: 'Preset aplicado', description: `Status marcado como ${preset.status_padrao}` });
-                                } else {
-                                  toast({ title: 'Preset aplicado', description: preset.label });
-                                }
-                              }}
-                              className="gap-1"
-                            >
-                              <Tag className="h-3 w-3" />
-                              {preset.label}
-                            </Button>
-                          ))}
+                          {obsPresets.map((preset) => {
+                            const Icon = PRESET_ICON_MAP[preset.icone || 'Tag'] || Tag;
+                            const cor = preset.cor || '#3b82f6';
+                            return (
+                              <Button
+                                key={preset.id}
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={isNonEditable}
+                                onClick={() => {
+                                  setNewObservacao(preset.texto_observacao);
+                                  if (preset.status_padrao) {
+                                    setEditValues(prev => ({ ...prev, excluido_da_base: preset.status_padrao! }));
+                                    toast({ title: 'Preset aplicado', description: `Status marcado como ${preset.status_padrao}` });
+                                  } else {
+                                    toast({ title: 'Preset aplicado', description: preset.label });
+                                  }
+                                }}
+                                className="gap-1"
+                                style={{ borderColor: `${cor}80`, color: cor, backgroundColor: `${cor}15` }}
+                              >
+                                <Icon className="h-3 w-3" />
+                                {preset.label}
+                              </Button>
+                            );
+                          })}
                         </div>
                       )}
                       
