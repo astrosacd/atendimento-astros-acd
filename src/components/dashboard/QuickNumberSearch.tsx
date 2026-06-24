@@ -339,29 +339,66 @@ export function QuickNumberSearch() {
             })()}
 
             {canCheckin && (
-              <div className="grid grid-cols-1 gap-2">
-                <Button
-                  size="sm"
-                  variant="default"
-                  className="w-full h-9"
-                  onClick={() => setCheckinOpen(true)}
-                >
-                  <CalendarCheck className="h-4 w-4 mr-1.5" />
-                  Foi checado agora (check-in)
-                </Button>
-                {canScan && numberData.auto_hospedado && numberData.baserow_row_id != null && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full h-9"
-                    onClick={() => setScanOpen(true)}
-                  >
-                    <QrCode className="h-4 w-4 mr-1.5" />
-                    Registrar escaneamento
-                  </Button>
-                )}
-              </div>
+              numberData.auto_hospedado ? (
+                <div className="space-y-2">
+                  {/* Badge X/4 grátis no mês */}
+                  {numberData.baserow_row_id != null && (() => {
+                    const maxGratis = qrConfig?.qtd_gratis_por_mes ?? 4;
+                    const counter = monthlyCounters?.get(numberData.baserow_row_id) ?? { qtd_gratis_usados: 0, qtd_pagos: 0 };
+                    const usados = counter.qtd_gratis_usados;
+                    const restantes = Math.max(0, maxGratis - usados);
+                    const esgotado = restantes === 0;
+                    return (
+                      <div className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md border text-[11px] ${esgotado ? 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'}`}>
+                        <span className="font-bold flex items-center gap-1">
+                          <QrCode className="h-3 w-3" />
+                          Grátis no mês
+                        </span>
+                        <span className="font-mono font-bold">
+                          {usados}/{maxGratis}
+                          {counter.qtd_pagos > 0 && (
+                            <span className="ml-1 text-muted-foreground">· {counter.qtd_pagos} pago{counter.qtd_pagos === 1 ? '' : 's'}</span>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                  <div className="grid grid-cols-1 gap-2">
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="w-full h-9"
+                      onClick={() => setCheckinOpen(true)}
+                    >
+                      <CalendarCheck className="h-4 w-4 mr-1.5" />
+                      Foi checado agora (check-in)
+                    </Button>
+                    {canScan && numberData.baserow_row_id != null && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full h-9"
+                        onClick={() => setScanOpen(true)}
+                      >
+                        <QrCode className="h-4 w-4 mr-1.5" />
+                        Registrar escaneamento
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-2.5 rounded-md bg-muted/40 border border-dashed border-border text-[11px] flex gap-2 items-start">
+                  <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="font-semibold text-foreground">Número não auto-hospedado</p>
+                    <p className="text-muted-foreground leading-snug">
+                      Para fazer check-in ou registrar escaneamento, primeiro auto-hospede ele na aba <span className="font-medium text-foreground">QR Scans</span> em Consulta Números.
+                    </p>
+                  </div>
+                </div>
+              )
             )}
+
           </div>
         )}
       </CardContent>
