@@ -226,9 +226,11 @@ export default function AdminNumerosAquecimento() {
                 statusList={statusList} 
                 modelosList={modelosList} 
                 existingNumeros={numeros}
+                extraOcupadosByModelo={checkinExtraByModelo}
                 onCreate={createNumero.mutate}
                 isCreating={createNumero.isPending}
               />
+
             )}
           </div>
         </div>
