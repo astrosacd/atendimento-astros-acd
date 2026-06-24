@@ -33,6 +33,9 @@ export function QuickNumberSearch() {
   const latestCheckinByNumero = useLatestCheckinByNumero();
   const { data: modelosList = [] } = useNumerosModelos();
   const { data: autoHosp = [] } = useAutoHospedadoNumbers();
+  const { data: qrConfig } = useQrScanConfig();
+  const { data: monthlyCounters } = useMonthlyCounters();
+
 
 
 
