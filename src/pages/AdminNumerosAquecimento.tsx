@@ -1073,12 +1073,41 @@ function CreateNumeroDialog({
   // Opções de modelo com indicação de capacidade ocupada
   // (inclui slots ocupados por check-ins ativos de auto-hospedados — sincroniza com QR Scans)
   const modeloOptions = modelosList.map((m) => {
-    const extra = extraOcupadosByModelo?.get(m.id)?.total ?? 0;
-    const ocupados = numerosEstoque.filter((n) => n.modelo_id === m.id).length + extra;
+    const doModelo = numerosEstoque.filter((n) => n.modelo_id === m.id);
+    const internos = doModelo.length;
+    const internosNormal = doModelo.filter((n) => n.tipo_whatsapp === 'normal').length;
+    const internosBusiness = doModelo.filter((n) => n.tipo_whatsapp === 'business').length;
+    const extraInfo = extraOcupadosByModelo?.get(m.id);
+    const extra = extraInfo?.total ?? 0;
+    const ocupados = internos + extra;
     const cheio = m.capacidade_whatsapp > 0 && ocupados >= m.capacidade_whatsapp;
+    const tooltip = (
+      <div className="space-y-1">
+        <div className="font-semibold">
+          Ocupação: {ocupados}{m.capacidade_whatsapp > 0 ? ` / ${m.capacidade_whatsapp}` : ''}
+        </div>
+        <div>📱 Internos (Status Números): <strong>{internos}</strong></div>
+        {internos > 0 && (
+          <div className="pl-3 text-muted-foreground">
+            • Normal: {internosNormal} · Business: {internosBusiness}
+          </div>
+        )}
+        <div>🔲 Auto-hospedados (QR Scans): <strong>{extra}</strong></div>
+        {extra > 0 && extraInfo && (
+          <div className="pl-3 text-muted-foreground">
+            • Normal: {extraInfo.normal} · Business: {extraInfo.business}
+            {extraInfo.clone > 0 ? ` · Clone: ${extraInfo.clone}` : ''}
+          </div>
+        )}
+        {cheio && (
+          <div className="pt-1 text-destructive font-medium">⚠️ Capacidade esgotada</div>
+        )}
+      </div>
+    );
     return {
       value: m.id,
       label: `${m.nome}${m.capacidade_whatsapp > 0 ? ` (${ocupados}/${m.capacidade_whatsapp})` : ''}${cheio ? ' - cheio' : ''}`,
+      tooltip,
     };
   });
 
