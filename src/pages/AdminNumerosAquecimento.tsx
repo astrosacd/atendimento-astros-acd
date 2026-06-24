@@ -226,9 +226,11 @@ export default function AdminNumerosAquecimento() {
                 statusList={statusList} 
                 modelosList={modelosList} 
                 existingNumeros={numeros}
+                extraOcupadosByModelo={checkinExtraByModelo}
                 onCreate={createNumero.mutate}
                 isCreating={createNumero.isPending}
               />
+
             )}
           </div>
         </div>
@@ -1041,12 +1043,14 @@ function CreateNumeroDialog({
   statusList, 
   modelosList,
   existingNumeros,
+  extraOcupadosByModelo,
   onCreate,
   isCreating
 }: { 
   statusList: NumeroStatus[]; 
   modelosList: NumeroModelo[];
   existingNumeros: NumeroAquecimento[];
+  extraOcupadosByModelo?: Map<string, { total: number; normal: number; business: number; clone: number }>;
   onCreate: (data: any, options: { onSuccess: () => void }) => void;
   isCreating: boolean;
 }) {
@@ -1067,14 +1071,17 @@ function CreateNumeroDialog({
     : existingNumeros;
 
   // Opções de modelo com indicação de capacidade ocupada
+  // (inclui slots ocupados por check-ins ativos de auto-hospedados — sincroniza com QR Scans)
   const modeloOptions = modelosList.map((m) => {
-    const ocupados = numerosEstoque.filter((n) => n.modelo_id === m.id).length;
+    const extra = extraOcupadosByModelo?.get(m.id)?.total ?? 0;
+    const ocupados = numerosEstoque.filter((n) => n.modelo_id === m.id).length + extra;
     const cheio = m.capacidade_whatsapp > 0 && ocupados >= m.capacidade_whatsapp;
     return {
       value: m.id,
       label: `${m.nome}${m.capacidade_whatsapp > 0 ? ` (${ocupados}/${m.capacidade_whatsapp})` : ''}${cheio ? ' - cheio' : ''}`,
     };
   });
+
 
   const handleSubmit = () => {
     if (!numero) {
@@ -1103,7 +1110,9 @@ function CreateNumeroDialog({
       const modelo = modelosList.find((m) => m.id === modeloId);
       if (modelo && modelo.capacidade_whatsapp > 0) {
         const doModelo = numerosEstoque.filter((n) => n.modelo_id === modeloId);
-        const ocupados = doModelo.length;
+        const extra = extraOcupadosByModelo?.get(modeloId)?.total ?? 0;
+        const ocupados = doModelo.length + extra;
+
         if (ocupados >= modelo.capacidade_whatsapp) {
           const tipoLabel = tipoWhatsapp === 'business' ? 'Business' : 'Normal';
           toast.error(
