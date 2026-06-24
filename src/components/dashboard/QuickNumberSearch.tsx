@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Shield, Smartphone, ExternalLink, Loader2, AlertCircle, CheckCircle2, XCircle, CalendarCheck, QrCode } from 'lucide-react';
+import { Search, Shield, Smartphone, ExternalLink, Loader2, AlertCircle, CheckCircle2, XCircle, CalendarCheck, QrCode, Info } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useInsurancePaymentStatusHybrid } from '@/hooks/useInsurance';
@@ -13,8 +13,9 @@ import { RegisterScanQuickDialog } from '@/components/dashboard/RegisterScanQuic
 import { usePermissions } from '@/hooks/usePermissions';
 import { useLatestCheckinByNumero } from '@/hooks/useCheckinDiario';
 import { useNumerosModelos } from '@/hooks/useNumerosAquecimento';
-import { useAutoHospedadoNumbers } from '@/hooks/useQrScan';
+import { useAutoHospedadoNumbers, useQrScanConfig, useMonthlyCounters } from '@/hooks/useQrScan';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+
 
 
 
