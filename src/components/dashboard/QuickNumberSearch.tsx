@@ -366,18 +366,30 @@ export function QuickNumberSearch() {
         const numeroStr = (numberData.row_data as any)?.numero || '';
         const lastCk = latestCheckinByNumero.get(numeroStr);
         const wasExterno = !!lastCk && lastCk.modelo_id == null;
+        const clienteNome = (numberData.row_data as any)?.nome ?? (numberData.row_data as any)?.cliente ?? info?.clientName ?? null;
         return (
-          <CheckinInlineDialog
-            open={checkinOpen}
-            onOpenChange={setCheckinOpen}
-            numero={numeroStr}
-            baserowRowId={numberData.baserow_row_id}
-            clienteNome={(numberData.row_data as any)?.nome ?? (numberData.row_data as any)?.cliente ?? info?.clientName ?? null}
-            defaultModeloId={lastCk?.modelo_id ?? null}
-            defaultIsExternal={wasExterno}
-            defaultModeloManual={wasExterno ? lastCk?.modelo_snapshot ?? null : null}
-            defaultStatusConexao={(lastCk?.status_conexao as any) ?? null}
-          />
+          <>
+            <CheckinInlineDialog
+              open={checkinOpen}
+              onOpenChange={setCheckinOpen}
+              numero={numeroStr}
+              baserowRowId={numberData.baserow_row_id}
+              clienteNome={clienteNome}
+              defaultModeloId={lastCk?.modelo_id ?? null}
+              defaultIsExternal={wasExterno}
+              defaultModeloManual={wasExterno ? lastCk?.modelo_snapshot ?? null : null}
+              defaultStatusConexao={(lastCk?.status_conexao as any) ?? null}
+            />
+            {numberData.baserow_row_id != null && (
+              <RegisterScanQuickDialog
+                open={scanOpen}
+                onOpenChange={setScanOpen}
+                baserowRowId={numberData.baserow_row_id}
+                numero={numeroStr}
+                clienteNome={clienteNome}
+              />
+            )}
+          </>
         );
       })()}
 
