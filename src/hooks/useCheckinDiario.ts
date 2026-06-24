@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMemo } from "react";
-import { useQrScanConfig } from "@/hooks/useQrScan";
+import { useQrScanConfig, useAutoHospedadoNumbers } from "@/hooks/useQrScan";
 
 export type TipoSlot = "normal" | "business" | "clone";
 export type StatusConexao = "conectado" | "desconectado" | "desconectado_cliente";
