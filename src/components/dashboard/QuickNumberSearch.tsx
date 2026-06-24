@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Shield, Smartphone, ExternalLink, Loader2, AlertCircle, CheckCircle2, XCircle, CalendarCheck } from 'lucide-react';
+import { Search, Shield, Smartphone, ExternalLink, Loader2, AlertCircle, CheckCircle2, XCircle, CalendarCheck, QrCode } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useInsurancePaymentStatusHybrid } from '@/hooks/useInsurance';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CheckinInlineDialog } from '@/components/consulta-numeros/CheckinInlineDialog';
+import { RegisterScanQuickDialog } from '@/components/dashboard/RegisterScanQuickDialog';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useLatestCheckinByNumero } from '@/hooks/useCheckinDiario';
 import { useNumerosModelos } from '@/hooks/useNumerosAquecimento';
@@ -21,9 +22,11 @@ export function QuickNumberSearch() {
   const [searchTerm, setSearchTerm] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [checkinOpen, setCheckinOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const [modeloFilter, setModeloFilter] = useState<string>('');
   const { hasPermission } = usePermissions();
   const canCheckin = hasPermission('view_consulta_numeros');
+  const canScan = hasPermission('view_consulta_numeros');
 
   const { data: insuranceStatus } = useInsurancePaymentStatusHybrid();
   const latestCheckinByNumero = useLatestCheckinByNumero();
@@ -332,15 +335,28 @@ export function QuickNumberSearch() {
             })()}
 
             {canCheckin && (
-              <Button
-                size="sm"
-                variant="default"
-                className="w-full h-9"
-                onClick={() => setCheckinOpen(true)}
-              >
-                <CalendarCheck className="h-4 w-4 mr-1.5" />
-                Foi checado agora (check-in)
-              </Button>
+              <div className="grid grid-cols-1 gap-2">
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="w-full h-9"
+                  onClick={() => setCheckinOpen(true)}
+                >
+                  <CalendarCheck className="h-4 w-4 mr-1.5" />
+                  Foi checado agora (check-in)
+                </Button>
+                {canScan && numberData.auto_hospedado && numberData.baserow_row_id != null && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full h-9"
+                    onClick={() => setScanOpen(true)}
+                  >
+                    <QrCode className="h-4 w-4 mr-1.5" />
+                    Registrar escaneamento
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -350,18 +366,30 @@ export function QuickNumberSearch() {
         const numeroStr = (numberData.row_data as any)?.numero || '';
         const lastCk = latestCheckinByNumero.get(numeroStr);
         const wasExterno = !!lastCk && lastCk.modelo_id == null;
+        const clienteNome = (numberData.row_data as any)?.nome ?? (numberData.row_data as any)?.cliente ?? info?.clientName ?? null;
         return (
-          <CheckinInlineDialog
-            open={checkinOpen}
-            onOpenChange={setCheckinOpen}
-            numero={numeroStr}
-            baserowRowId={numberData.baserow_row_id}
-            clienteNome={(numberData.row_data as any)?.nome ?? (numberData.row_data as any)?.cliente ?? info?.clientName ?? null}
-            defaultModeloId={lastCk?.modelo_id ?? null}
-            defaultIsExternal={wasExterno}
-            defaultModeloManual={wasExterno ? lastCk?.modelo_snapshot ?? null : null}
-            defaultStatusConexao={(lastCk?.status_conexao as any) ?? null}
-          />
+          <>
+            <CheckinInlineDialog
+              open={checkinOpen}
+              onOpenChange={setCheckinOpen}
+              numero={numeroStr}
+              baserowRowId={numberData.baserow_row_id}
+              clienteNome={clienteNome}
+              defaultModeloId={lastCk?.modelo_id ?? null}
+              defaultIsExternal={wasExterno}
+              defaultModeloManual={wasExterno ? lastCk?.modelo_snapshot ?? null : null}
+              defaultStatusConexao={(lastCk?.status_conexao as any) ?? null}
+            />
+            {numberData.baserow_row_id != null && (
+              <RegisterScanQuickDialog
+                open={scanOpen}
+                onOpenChange={setScanOpen}
+                baserowRowId={numberData.baserow_row_id}
+                numero={numeroStr}
+                clienteNome={clienteNome}
+              />
+            )}
+          </>
         );
       })()}
 
