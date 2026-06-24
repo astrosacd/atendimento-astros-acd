@@ -335,15 +335,28 @@ export function QuickNumberSearch() {
             })()}
 
             {canCheckin && (
-              <Button
-                size="sm"
-                variant="default"
-                className="w-full h-9"
-                onClick={() => setCheckinOpen(true)}
-              >
-                <CalendarCheck className="h-4 w-4 mr-1.5" />
-                Foi checado agora (check-in)
-              </Button>
+              <div className="grid grid-cols-1 gap-2">
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="w-full h-9"
+                  onClick={() => setCheckinOpen(true)}
+                >
+                  <CalendarCheck className="h-4 w-4 mr-1.5" />
+                  Foi checado agora (check-in)
+                </Button>
+                {canScan && numberData.auto_hospedado && numberData.baserow_row_id != null && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full h-9"
+                    onClick={() => setScanOpen(true)}
+                  >
+                    <QrCode className="h-4 w-4 mr-1.5" />
+                    Registrar escaneamento
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         )}
