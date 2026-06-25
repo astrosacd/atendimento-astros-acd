@@ -69,6 +69,18 @@ export default function ConsultaNumeros() {
   const { hasPermission } = usePermissions();
   const { t } = useTranslation();
   const { logActivity } = useSystemActivities();
+
+  // Tab controlada via URL (?tab=qr-scans) — habilita deep-link de outros módulos.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') ?? '';
+  const moduleTab = VALID_MODULE_TABS.has(tabParam) ? tabParam : 'consulta';
+  const handleModuleTabChange = (v: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (v === 'consulta') next.delete('tab');
+    else next.set('tab', v);
+    setSearchParams(next, { replace: true });
+  };
+
   
   const [inputSearchQuery, setInputSearchQuery] = useState('');
   const [appliedSearchQuery, setAppliedSearchQuery] = useState('');
