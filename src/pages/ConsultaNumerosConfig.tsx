@@ -14,6 +14,7 @@ import { ArrowLeft, Save, RefreshCw, Database, EyeOff, Loader2, Plus, Trash2, Ta
 import { AutoSyncConfigCard } from '@/components/consulta-numeros/AutoSyncConfigCard';
 import { ReminderConfigTab } from '@/components/consulta-numeros/ReminderConfigTab';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
