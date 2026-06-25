@@ -51,8 +51,18 @@ serve(async (req) => {
       });
     }
     if (scan.payment_status !== "pendente") {
-      return new Response(JSON.stringify({ error: `Scan já está com status ${scan.payment_status}` }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      // Idempotente: se já está no estado-alvo, retorna ok
+      const targetStatus = action === "cancel" ? "cancelado" : "pago";
+      if (scan.payment_status === targetStatus) {
+        return new Response(JSON.stringify({ ok: true, status: targetStatus, already: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({
+        error: `Esta cobrança já foi ${scan.payment_status === "cancelado" ? "cancelada" : scan.payment_status === "pago" ? "paga" : scan.payment_status} e não pode mais ser alterada. Atualize a lista.`,
+        current_status: scan.payment_status,
+      }), {
+        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
