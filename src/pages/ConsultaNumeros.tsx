@@ -1207,7 +1207,7 @@ export default function ConsultaNumeros() {
         </div>
 
         {/* Module Tabs */}
-        <Tabs defaultValue="consulta" className="w-full">
+        <Tabs value={moduleTab} onValueChange={handleModuleTabChange} className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="consulta">
               <Search className="h-4 w-4 mr-2" />
