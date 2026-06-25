@@ -389,11 +389,21 @@ export function QuickNumberSearch() {
               ) : (
                 <div className="p-2.5 rounded-md bg-muted/40 border border-dashed border-border text-[11px] flex gap-2 items-start">
                   <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                  <div className="space-y-0.5">
+                  <div className="space-y-1.5 flex-1">
                     <p className="font-semibold text-foreground">Número não auto-hospedado</p>
                     <p className="text-muted-foreground leading-snug">
                       Para fazer check-in ou registrar escaneamento, primeiro auto-hospede ele na aba <span className="font-medium text-foreground">QR Scans</span> em Consulta Números.
                     </p>
+                    {(numberData.row_data as any)?.numero && (
+                      <a
+                        href={`/admin/consulta-numeros?tab=qr-scans&numero=${encodeURIComponent(String((numberData.row_data as any).numero))}&flag=1`}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium text-[11px]"
+                      >
+                        <QrCode className="h-3 w-3" />
+                        Auto-hospedar agora
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
                   </div>
                 </div>
               )
