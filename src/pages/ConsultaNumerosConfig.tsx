@@ -14,6 +14,7 @@ import { ArrowLeft, Save, RefreshCw, Database, EyeOff, Loader2, Plus, Trash2, Ta
 import { AutoSyncConfigCard } from '@/components/consulta-numeros/AutoSyncConfigCard';
 import { ReminderConfigTab } from '@/components/consulta-numeros/ReminderConfigTab';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -97,6 +98,7 @@ export default function ConsultaNumerosConfig() {
 
   // Preset form state + dialog
   const [presetDialogOpen, setPresetDialogOpen] = useState(false);
+  const [presetToDelete, setPresetToDelete] = useState<{ id: string; label: string } | null>(null);
   const [presetForm, setPresetForm] = useState<{ id: string | null; label: string; texto_observacao: string; status_padrao: string; ordem: number; ativo: boolean; cor: string; icone: string }>({
     id: null, label: '', texto_observacao: '', status_padrao: '', ordem: 0, ativo: true, cor: '#3b82f6', icone: 'Tag',
   });
@@ -994,7 +996,7 @@ export default function ConsultaNumerosConfig() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => { if (confirm(`Excluir preset "${p.label}"?`)) deletePresetMutation.mutate(p.id); }}
+                                      onClick={() => setPresetToDelete({ id: p.id, label: p.label })}
                                       disabled={deletePresetMutation.isPending}
                                     >
                                       <Trash2 className="h-4 w-4 text-destructive" />
@@ -1151,6 +1153,31 @@ export default function ConsultaNumerosConfig() {
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
+
+                  <AlertDialog open={!!presetToDelete} onOpenChange={(o) => !o && setPresetToDelete(null)}>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir preset?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja excluir o preset <strong>"{presetToDelete?.label}"</strong>? Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => {
+                            if (presetToDelete) {
+                              deletePresetMutation.mutate(presetToDelete.id);
+                              setPresetToDelete(null);
+                            }
+                          }}
+                        >
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </CardContent>
               </Card>
             </TabsContent>

@@ -118,7 +118,14 @@ export function SearchableSelect({
                             <Info className="h-3.5 w-3.5" />
                           </span>
                         </TooltipTrigger>
-                        <TooltipContent side="right" className="max-w-[280px] whitespace-pre-wrap text-xs">
+                        <TooltipContent
+                          side="right"
+                          align="start"
+                          sideOffset={12}
+                          collisionPadding={16}
+                          avoidCollisions
+                          className="max-w-[280px] whitespace-pre-wrap text-xs z-[10001]"
+                        >
                           {option.tooltip}
                         </TooltipContent>
                       </Tooltip>
