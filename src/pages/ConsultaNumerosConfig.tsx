@@ -996,7 +996,7 @@ export default function ConsultaNumerosConfig() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => { if (confirm(`Excluir preset "${p.label}"?`)) deletePresetMutation.mutate(p.id); }}
+                                      onClick={() => setPresetToDelete({ id: p.id, label: p.label })}
                                       disabled={deletePresetMutation.isPending}
                                     >
                                       <Trash2 className="h-4 w-4 text-destructive" />
