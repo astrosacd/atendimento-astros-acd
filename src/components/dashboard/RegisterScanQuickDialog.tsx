@@ -27,13 +27,7 @@ import {
   useQrScanHistory,
 } from "@/hooks/useQrScan";
 
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  link_mp: "🔗 Link Mercado Pago",
-  link_stripe: "🔗 Link Stripe",
-  manual_pix: "💠 PIX manual",
-  manual_saldo: "💵 Saldo / Dinheiro",
-  manual_outro: "Outro",
-};
+import { PAYMENT_METHOD_LABELS } from "@/constants/qrScan";
 
 interface Props {
   open: boolean;

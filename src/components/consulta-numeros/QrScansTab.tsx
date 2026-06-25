@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Card,
   CardContent,
@@ -90,13 +90,7 @@ import { useNumerosModelos } from "@/hooks/useNumerosAquecimento";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 
 
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  link_mp: "🔗 Link Mercado Pago",
-  link_stripe: "🔗 Link Stripe",
-  manual_pix: "💰 PIX (manual)",
-  manual_saldo: "💼 Saldo do cliente",
-  manual_outro: "📝 Outro (manual)",
-};
+import { PAYMENT_METHOD_LABELS } from "@/constants/qrScan";
 
 const STATUS_BADGES: Record<string, { label: string; variant: any }> = {
   nao_aplica: { label: "Grátis", variant: "secondary" },
@@ -216,6 +210,28 @@ export function QrScansTab() {
   const [pendentesSearch, setPendentesSearch] = useState("");
   const [historySearch, setHistorySearch] = useState("");
   const [insuranceSearch, setInsuranceSearch] = useState("");
+
+  // Deep-link: aceita ?numero=...&flag=1 para pré-preencher busca e abrir o
+  // dialog "Marcar como auto-hospedado" — usado pelo aviso da Pesquisa Rápida.
+  const deepLinkAppliedRef = useRef(false);
+  useEffect(() => {
+    if (deepLinkAppliedRef.current) return;
+    const url = new URL(window.location.href);
+    const numeroParam = url.searchParams.get("numero");
+    const flagParam = url.searchParams.get("flag");
+    if (!numeroParam) return;
+    deepLinkAppliedRef.current = true;
+    setNumerosSearch(numeroParam);
+    if (flagParam === "1") {
+      setSearchQuery(numeroParam);
+      setFlagDialogOpen(true);
+    }
+    // Limpa params para não reabrir o dialog em navegações futuras.
+    url.searchParams.delete("numero");
+    url.searchParams.delete("flag");
+    window.history.replaceState({}, "", url.toString());
+  }, []);
+
 
 
   useEffect(() => {

@@ -35,6 +35,9 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useSystemActivities } from '@/hooks/useSystemActivities';
+import { useSearchParams } from 'react-router-dom';
+
+const VALID_MODULE_TABS = new Set(['consulta', 'validacao-sms', 'qr-scans']);
 
 interface NumeroResult {
   id: number;
@@ -66,6 +69,18 @@ export default function ConsultaNumeros() {
   const { hasPermission } = usePermissions();
   const { t } = useTranslation();
   const { logActivity } = useSystemActivities();
+
+  // Tab controlada via URL (?tab=qr-scans) — habilita deep-link de outros módulos.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') ?? '';
+  const moduleTab = VALID_MODULE_TABS.has(tabParam) ? tabParam : 'consulta';
+  const handleModuleTabChange = (v: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (v === 'consulta') next.delete('tab');
+    else next.set('tab', v);
+    setSearchParams(next, { replace: true });
+  };
+
   
   const [inputSearchQuery, setInputSearchQuery] = useState('');
   const [appliedSearchQuery, setAppliedSearchQuery] = useState('');
@@ -1192,7 +1207,7 @@ export default function ConsultaNumeros() {
         </div>
 
         {/* Module Tabs */}
-        <Tabs defaultValue="consulta" className="w-full">
+        <Tabs value={moduleTab} onValueChange={handleModuleTabChange} className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="consulta">
               <Search className="h-4 w-4 mr-2" />
