@@ -98,6 +98,7 @@ export default function ConsultaNumerosConfig() {
 
   // Preset form state + dialog
   const [presetDialogOpen, setPresetDialogOpen] = useState(false);
+  const [presetToDelete, setPresetToDelete] = useState<{ id: string; label: string } | null>(null);
   const [presetForm, setPresetForm] = useState<{ id: string | null; label: string; texto_observacao: string; status_padrao: string; ordem: number; ativo: boolean; cor: string; icone: string }>({
     id: null, label: '', texto_observacao: '', status_padrao: '', ordem: 0, ativo: true, cor: '#3b82f6', icone: 'Tag',
   });
