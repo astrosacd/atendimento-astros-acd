@@ -211,6 +211,28 @@ export function QrScansTab() {
   const [historySearch, setHistorySearch] = useState("");
   const [insuranceSearch, setInsuranceSearch] = useState("");
 
+  // Deep-link: aceita ?numero=...&flag=1 para pré-preencher busca e abrir o
+  // dialog "Marcar como auto-hospedado" — usado pelo aviso da Pesquisa Rápida.
+  const deepLinkAppliedRef = useRef(false);
+  useEffect(() => {
+    if (deepLinkAppliedRef.current) return;
+    const url = new URL(window.location.href);
+    const numeroParam = url.searchParams.get("numero");
+    const flagParam = url.searchParams.get("flag");
+    if (!numeroParam) return;
+    deepLinkAppliedRef.current = true;
+    setNumerosSearch(numeroParam);
+    if (flagParam === "1") {
+      setSearchQuery(numeroParam);
+      setFlagDialogOpen(true);
+    }
+    // Limpa params para não reabrir o dialog em navegações futuras.
+    url.searchParams.delete("numero");
+    url.searchParams.delete("flag");
+    window.history.replaceState({}, "", url.toString());
+  }, []);
+
+
 
   useEffect(() => {
     if (config) {
