@@ -90,13 +90,7 @@ import { useNumerosModelos } from "@/hooks/useNumerosAquecimento";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 
 
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  link_mp: "🔗 Link Mercado Pago",
-  link_stripe: "🔗 Link Stripe",
-  manual_pix: "💰 PIX (manual)",
-  manual_saldo: "💼 Saldo do cliente",
-  manual_outro: "📝 Outro (manual)",
-};
+import { PAYMENT_METHOD_LABELS } from "@/constants/qrScan";
 
 const STATUS_BADGES: Record<string, { label: string; variant: any }> = {
   nao_aplica: { label: "Grátis", variant: "secondary" },
