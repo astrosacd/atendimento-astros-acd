@@ -1153,6 +1153,31 @@ export default function ConsultaNumerosConfig() {
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
+
+                  <AlertDialog open={!!presetToDelete} onOpenChange={(o) => !o && setPresetToDelete(null)}>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir preset?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja excluir o preset <strong>"{presetToDelete?.label}"</strong>? Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => {
+                            if (presetToDelete) {
+                              deletePresetMutation.mutate(presetToDelete.id);
+                              setPresetToDelete(null);
+                            }
+                          }}
+                        >
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </CardContent>
               </Card>
             </TabsContent>
