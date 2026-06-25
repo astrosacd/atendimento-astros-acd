@@ -35,6 +35,9 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useSystemActivities } from '@/hooks/useSystemActivities';
+import { useSearchParams } from 'react-router-dom';
+
+const VALID_MODULE_TABS = new Set(['consulta', 'validacao-sms', 'qr-scans']);
 
 interface NumeroResult {
   id: number;
