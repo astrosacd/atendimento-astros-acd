@@ -30,9 +30,9 @@ import {
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   link_mp: "🔗 Link Mercado Pago",
   link_stripe: "🔗 Link Stripe",
-  pix_manual: "💠 PIX manual",
-  dinheiro: "💵 Dinheiro",
-  outro: "Outro",
+  manual_pix: "💠 PIX manual",
+  manual_saldo: "💵 Saldo / Dinheiro",
+  manual_outro: "Outro",
 };
 
 interface Props {
