@@ -53,6 +53,7 @@ export default function AtualizarCliente() {
   const [newValor, setNewValor] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newEditProduto, setNewEditProduto] = useState('');
+  const [newCpf, setNewCpf] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [showUpgradeConfirm, setShowUpgradeConfirm] = useState(false);
   const [newTipo, setNewTipo] = useState('cliente');
