@@ -207,6 +207,7 @@ export function QrScansTab() {
   // Search states for tabs
   const [numerosSearch, setNumerosSearch] = useState("");
   const [numerosModeloFilter, setNumerosModeloFilter] = useState<string>("__all__");
+  const [numerosStatusFilter, setNumerosStatusFilter] = useState<string>("__all__");
   const [pendentesSearch, setPendentesSearch] = useState("");
   const [historySearch, setHistorySearch] = useState("");
   const [insuranceSearch, setInsuranceSearch] = useState("");
