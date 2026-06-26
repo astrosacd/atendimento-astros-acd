@@ -208,6 +208,7 @@ export function QrScansTab() {
   const [numerosSearch, setNumerosSearch] = useState("");
   const [numerosModeloFilter, setNumerosModeloFilter] = useState<string>("__all__");
   const [numerosStatusFilter, setNumerosStatusFilter] = useState<string>("__all__");
+  const [numerosClienteFilter, setNumerosClienteFilter] = useState<string>("__all__");
   const [pendentesSearch, setPendentesSearch] = useState("");
   const [historySearch, setHistorySearch] = useState("");
   const [insuranceSearch, setInsuranceSearch] = useState("");
@@ -258,7 +259,30 @@ export function QrScansTab() {
       configDraft.ativo !== config.ativo ||
       configDraft.checkin_ativo_dias !== (config.checkin_ativo_dias ?? 7));
 
-  const filteredAutoHosp = autoHosp.filter((n) => {
+  const getClienteNome = (rd: any): string => {
+    const raw = (rd?.cliente ?? rd?.nome ?? "").toString().trim();
+    return raw || "Sem cliente";
+  };
+
+  const clientesOptions = (() => {
+    const set = new Map<string, string>();
+    for (const n of autoHosp) {
+      const nome = getClienteNome((n as any).row_data);
+      set.set(nome.toLowerCase(), nome);
+    }
+    const arr = Array.from(set.values()).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    return [
+      { value: "__all__", label: `Todos os clientes (${arr.length})` },
+      ...arr.map((nome) => ({ value: nome, label: nome })),
+    ];
+  })();
+
+  const autoHospByCliente = autoHosp.filter((n) => {
+    if (numerosClienteFilter === "__all__") return true;
+    return getClienteNome((n as any).row_data) === numerosClienteFilter;
+  });
+
+  const filteredAutoHosp = autoHospByCliente.filter((n) => {
     const rd = n.row_data || {};
     const search = numerosSearch.toLowerCase();
     const matchesSearch =
