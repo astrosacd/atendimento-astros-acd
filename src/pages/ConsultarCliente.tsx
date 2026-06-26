@@ -127,6 +127,7 @@ export default function ConsultarCliente() {
   const [editNumero, setEditNumero] = useState('');
   const [editProduto, setEditProduto] = useState('');
   const [editObservacao, setEditObservacao] = useState('');
+  const [editCpf, setEditCpf] = useState('');
   const [showEditConfirm, setShowEditConfirm] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   
