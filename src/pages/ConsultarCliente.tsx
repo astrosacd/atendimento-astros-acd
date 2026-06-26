@@ -73,6 +73,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { LigarComIADialog } from '@/components/LigarComIADialog';
 import { SendSMSDialog } from '@/components/central-sms/SendSMSDialog';
+import { RenovarComPagamentoButton } from '@/components/RenovarComPagamentoButton';
 
 export default function ConsultarCliente() {
   const navigate = useNavigate();
@@ -768,6 +769,11 @@ export default function ConsultarCliente() {
                               >
                                 <Copy className="h-4 w-4" />
                               </Button>
+                            )}
+
+                            {/* Renovar c/ Pagamento — só aparece se cliente NÃO tem histórico de cobrança */}
+                            {isAdmin && cliente.cobranca_ativa !== false && (
+                              <RenovarComPagamentoButton cliente={cliente} />
                             )}
 
                             {/* Histórico - sempre visível */}
