@@ -719,14 +719,14 @@ export function QrScansTab() {
           })()}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-[200px]">
                   <CardTitle>Números auto-hospedados</CardTitle>
                   <CardDescription>
                     Clique em "Registrar escaneamento" para contabilizar um QR.
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <div className="w-56">
                     <SearchableSelect
                       value={numerosModeloFilter}
@@ -770,7 +770,6 @@ export function QrScansTab() {
                     />
                   </div>
                 </div>
-
               </div>
             </CardHeader>
             <CardContent>
