@@ -751,6 +751,16 @@ export function QrScansTab() {
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                  <div className="w-64">
+                    <SearchableSelect
+                      value={numerosClienteFilter}
+                      onValueChange={(v) => setNumerosClienteFilter(v || "__all__")}
+                      placeholder="Filtrar por cliente"
+                      searchPlaceholder="Buscar cliente…"
+                      emptyMessage="Sem clientes"
+                      options={clientesOptions}
+                    />
+                  </div>
                   <div className="w-56">
                     <SearchableSelect
                       value={numerosModeloFilter}
