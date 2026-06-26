@@ -319,7 +319,7 @@ export function useUpdateNumero() {
 
       const { data: numero, error } = await supabase
         .from('numeros_aquecimento')
-        .update(updateData)
+        .update(updateData as never)
         .eq('id', id)
         .select()
         .single();

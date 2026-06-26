@@ -150,7 +150,7 @@ export function useProposals() {
     mutationFn: async ({ id, ...updates }: Partial<Proposal> & { id: string }) => {
       const { data, error } = await supabase
         .from('proposals')
-        .update(updates)
+        .update(updates as never)
         .eq('id', id)
         .select()
         .single();

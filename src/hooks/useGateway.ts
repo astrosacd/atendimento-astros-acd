@@ -249,7 +249,7 @@ export function useGatewayProducts() {
     mutationFn: async ({ id, ...product }: Partial<GatewayProduct> & { id: string }) => {
       const { data, error } = await supabase
         .from('gateway_products')
-        .update(product)
+        .update(product as never)
         .eq('id', id)
         .select()
         .single();
@@ -487,7 +487,7 @@ export function useGatewayOrders() {
     mutationFn: async ({ id, ...order }: Partial<GatewayOrder> & { id: string }) => {
       const { data, error } = await supabase
         .from('gateway_orders')
-        .update(order)
+        .update(order as never)
         .eq('id', id)
         .select()
         .single();

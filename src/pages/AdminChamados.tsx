@@ -240,7 +240,7 @@ const AdminChamados = () => {
     mutationFn: async ({ id, status }: { id: string; status: ChamadoStatus }) => {
       const updateData: Record<string, unknown> = { status };
       if (status === 'fechado') updateData.closed_at = new Date().toISOString();
-      const { error } = await supabase.from('chamados').update(updateData).eq('id', id);
+      const { error } = await supabase.from('chamados').update(updateData as never).eq('id', id);
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
