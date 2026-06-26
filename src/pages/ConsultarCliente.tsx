@@ -1406,6 +1406,13 @@ export default function ConsultarCliente() {
                       </div>
                     </div>
                   )}
+                  {(editingCliente?.cpf || '') !== editCpf && (
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-bold text-update uppercase tracking-wider">CPF/CNPJ:</span>
+                      <span className="text-muted-foreground line-through">{editingCliente?.cpf || '(vazio)'}</span>
+                      <span className="text-foreground font-medium text-sm">➜ {editCpf || '(vazio)'}</span>
+                    </div>
+                  )}
                 </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
