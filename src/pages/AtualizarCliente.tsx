@@ -139,6 +139,7 @@ export default function AtualizarCliente() {
     setNewEditProduto(cliente.produto || '');
     setNewNumero(cliente.numero || '');
     setNewEmail(cliente.email || '');
+    setNewCpf(cliente.cpf || '');
     setNewPlano(planoNormalizado || 'Individual');
     setIsOriginallyReseller(clienteIsReseller);
     setNewTipo(cliente.tipo || 'cliente');
