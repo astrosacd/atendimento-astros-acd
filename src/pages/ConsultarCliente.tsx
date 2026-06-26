@@ -341,6 +341,7 @@ export default function ConsultarCliente() {
     setEditNumero(cliente.numero || '');
     setEditProduto(cliente.produto || '');
     setEditObservacao(cliente.observacao || '');
+    setEditCpf(cliente.cpf || '');
   };
 
   const handleSaveEdit = () => {
@@ -351,6 +352,7 @@ export default function ConsultarCliente() {
     if (editNumero !== editingCliente.numero) updates.numero = editNumero;
     if (editProduto !== editingCliente.produto) updates.produto = editProduto;
     if (editObservacao !== (editingCliente.observacao || '')) updates.observacao = editObservacao;
+    if (editCpf !== (editingCliente.cpf || '')) updates.cpf = editCpf;
     
     if (Object.keys(updates).length === 0) {
       toast({ title: 'Nenhuma alteração detectada' });
@@ -369,6 +371,7 @@ export default function ConsultarCliente() {
     if (editNumero !== editingCliente.numero) updates.numero = editNumero;
     if (editProduto !== editingCliente.produto) updates.produto = editProduto;
     if (editObservacao !== (editingCliente.observacao || '')) updates.observacao = editObservacao;
+    if (editCpf !== (editingCliente.cpf || '')) updates.cpf = editCpf;
     
     const result = await updateCliente(editingCliente.id, updates, editingCliente);
     if (result) {
