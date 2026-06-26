@@ -657,14 +657,14 @@ export function QrScansTab() {
             // Data local (evita bug de UTC trocar o dia depois das 21h BRT)
             const now = new Date();
             const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-            const total = autoHosp.length;
+            const total = autoHospByCliente.length;
             let comCheckinHoje = 0;
             let semVinculo = 0;
             let stConectado = 0;
             let stDescCliente = 0;
             let stDesconectado = 0;
             let stSemStatus = 0;
-            for (const n of autoHosp) {
+            for (const n of autoHospByCliente) {
               const numero = String((n as any).row_data?.numero ?? "");
               if (!numero) continue;
               const lastCk = getEffectiveCheckin(numero, (n as any).auto_hospedado_marcado_em);
