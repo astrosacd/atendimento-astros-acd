@@ -266,10 +266,22 @@ export function QrScansTab() {
       (rd.nome?.toLowerCase() || "").includes(search) ||
       (rd.cliente?.toLowerCase() || "").includes(search);
     if (!matchesSearch) return false;
-    if (numerosModeloFilter === "__all__") return true;
     const lastCk = getEffectiveCheckin(rd.numero || "", n.auto_hospedado_marcado_em);
-    if (numerosModeloFilter === "__externo__") return !!lastCk && lastCk.modelo_id == null;
-    return !!lastCk && lastCk.modelo_id === numerosModeloFilter;
+    if (numerosModeloFilter !== "__all__") {
+      if (numerosModeloFilter === "__externo__") {
+        if (!lastCk || lastCk.modelo_id != null) return false;
+      } else if (lastCk?.modelo_id !== numerosModeloFilter) {
+        return false;
+      }
+    }
+    if (numerosStatusFilter !== "__all__") {
+      if (numerosStatusFilter === "__sem_status__") {
+        if (lastCk?.status_conexao) return false;
+      } else if (lastCk?.status_conexao !== numerosStatusFilter) {
+        return false;
+      }
+    }
+    return true;
   });
 
 
