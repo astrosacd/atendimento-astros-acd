@@ -1323,6 +1323,15 @@ export default function ConsultarCliente() {
                 />
               </div>
               <div className="space-y-2">
+                <Label className="text-foreground font-medium">{t('clients.cpfCnpj')}</Label>
+                <Input
+                  placeholder="CPF ou CNPJ"
+                  value={editCpf}
+                  onChange={(e) => setEditCpf(e.target.value)}
+                  className="bg-secondary border-border text-foreground h-10"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label className="text-foreground font-medium">{t('clients.observations')}</Label>
                 <Textarea
                   placeholder="Observações"
