@@ -73,6 +73,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { LigarComIADialog } from '@/components/LigarComIADialog';
 import { SendSMSDialog } from '@/components/central-sms/SendSMSDialog';
+import { RenovarComPagamentoButton } from '@/components/RenovarComPagamentoButton';
 
 export default function ConsultarCliente() {
   const navigate = useNavigate();
