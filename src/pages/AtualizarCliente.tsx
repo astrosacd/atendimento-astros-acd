@@ -234,6 +234,7 @@ export default function AtualizarCliente() {
       setNewTags([]);
       setNewNumero('');
       setNewEmail('');
+      setNewCpf('');
       setNewValor('');
       setNewPlano(null);
       setIsOriginallyReseller(false);
