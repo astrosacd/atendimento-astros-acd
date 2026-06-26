@@ -773,7 +773,21 @@ export default function ConsultarCliente() {
 
                             {/* Renovar c/ Pagamento — só aparece se cliente NÃO tem histórico de cobrança */}
                             {isAdmin && cliente.cobranca_ativa !== false && (
-                              <RenovarComPagamentoButton cliente={cliente} />
+                              <RenovarComPagamentoButton
+                                cliente={cliente}
+                                onUpdated={async () => {
+                                  const fresh = await fetchClientes();
+                                  setAllClientes(fresh);
+                                  const base = query.trim()
+                                    ? fresh.filter((c) =>
+                                        [c.nome, c.numero, c.email, c.cpf]
+                                          .filter(Boolean)
+                                          .some((v) => String(v).toLowerCase().includes(query.toLowerCase())),
+                                      )
+                                    : fresh;
+                                  setResults(applyFilters(base));
+                                }}
+                              />
                             )}
 
                             {/* Histórico - sempre visível */}
