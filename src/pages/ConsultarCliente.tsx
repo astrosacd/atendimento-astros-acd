@@ -771,6 +771,11 @@ export default function ConsultarCliente() {
                               </Button>
                             )}
 
+                            {/* Renovar c/ Pagamento — só aparece se cliente NÃO tem histórico de cobrança */}
+                            {isAdmin && cliente.cobranca_ativa !== false && (
+                              <RenovarComPagamentoButton cliente={cliente} />
+                            )}
+
                             {/* Histórico - sempre visível */}
                             <Button
                               onClick={() => handleViewHistory(cliente)}
