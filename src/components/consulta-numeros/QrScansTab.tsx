@@ -737,7 +737,6 @@ export function QrScansTab() {
                       options={(() => {
                         const opts: { value: string; label: string }[] = [
                           { value: "__all__", label: "Todos os modelos" },
-                          // "Aparelho externo" sempre disponível para seleção manual.
                           { value: "__externo__", label: "📦 Aparelho externo" },
                         ];
                         for (const m of modelosList) {
@@ -746,6 +745,20 @@ export function QrScansTab() {
                         return opts;
                       })()}
                     />
+                  </div>
+                  <div className="w-56">
+                    <Select value={numerosStatusFilter} onValueChange={setNumerosStatusFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Filtrar por status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">Todos os status</SelectItem>
+                        <SelectItem value="conectado">Conectado</SelectItem>
+                        <SelectItem value="desconectado_cliente">Desconectado pelo cliente</SelectItem>
+                        <SelectItem value="desconectado">Desconectado / Banido</SelectItem>
+                        <SelectItem value="__sem_status__">Sem status</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="relative w-64">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
