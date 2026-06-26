@@ -208,6 +208,7 @@ export function QrScansTab() {
   const [numerosSearch, setNumerosSearch] = useState("");
   const [numerosModeloFilter, setNumerosModeloFilter] = useState<string>("__all__");
   const [numerosStatusFilter, setNumerosStatusFilter] = useState<string>("__all__");
+  const [numerosClienteFilter, setNumerosClienteFilter] = useState<string>("__all__");
   const [pendentesSearch, setPendentesSearch] = useState("");
   const [historySearch, setHistorySearch] = useState("");
   const [insuranceSearch, setInsuranceSearch] = useState("");
@@ -258,7 +259,30 @@ export function QrScansTab() {
       configDraft.ativo !== config.ativo ||
       configDraft.checkin_ativo_dias !== (config.checkin_ativo_dias ?? 7));
 
-  const filteredAutoHosp = autoHosp.filter((n) => {
+  const getClienteNome = (rd: any): string => {
+    const raw = (rd?.cliente ?? rd?.nome ?? "").toString().trim();
+    return raw || "Sem cliente";
+  };
+
+  const clientesOptions = (() => {
+    const set = new Map<string, string>();
+    for (const n of autoHosp) {
+      const nome = getClienteNome((n as any).row_data);
+      set.set(nome.toLowerCase(), nome);
+    }
+    const arr = Array.from(set.values()).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    return [
+      { value: "__all__", label: `Todos os clientes (${arr.length})` },
+      ...arr.map((nome) => ({ value: nome, label: nome })),
+    ];
+  })();
+
+  const autoHospByCliente = autoHosp.filter((n) => {
+    if (numerosClienteFilter === "__all__") return true;
+    return getClienteNome((n as any).row_data) === numerosClienteFilter;
+  });
+
+  const filteredAutoHosp = autoHospByCliente.filter((n) => {
     const rd = n.row_data || {};
     const search = numerosSearch.toLowerCase();
     const matchesSearch =
@@ -633,14 +657,14 @@ export function QrScansTab() {
             // Data local (evita bug de UTC trocar o dia depois das 21h BRT)
             const now = new Date();
             const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-            const total = autoHosp.length;
+            const total = autoHospByCliente.length;
             let comCheckinHoje = 0;
             let semVinculo = 0;
             let stConectado = 0;
             let stDescCliente = 0;
             let stDesconectado = 0;
             let stSemStatus = 0;
-            for (const n of autoHosp) {
+            for (const n of autoHospByCliente) {
               const numero = String((n as any).row_data?.numero ?? "");
               if (!numero) continue;
               const lastCk = getEffectiveCheckin(numero, (n as any).auto_hospedado_marcado_em);
@@ -727,6 +751,16 @@ export function QrScansTab() {
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                  <div className="w-64">
+                    <SearchableSelect
+                      value={numerosClienteFilter}
+                      onValueChange={(v) => setNumerosClienteFilter(v || "__all__")}
+                      placeholder="Filtrar por cliente"
+                      searchPlaceholder="Buscar cliente…"
+                      emptyMessage="Sem clientes"
+                      options={clientesOptions}
+                    />
+                  </div>
                   <div className="w-56">
                     <SearchableSelect
                       value={numerosModeloFilter}
