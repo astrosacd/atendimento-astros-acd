@@ -53,6 +53,7 @@ export default function AtualizarCliente() {
   const [newValor, setNewValor] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newEditProduto, setNewEditProduto] = useState('');
+  const [newCpf, setNewCpf] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [showUpgradeConfirm, setShowUpgradeConfirm] = useState(false);
   const [newTipo, setNewTipo] = useState('cliente');
@@ -138,6 +139,7 @@ export default function AtualizarCliente() {
     setNewEditProduto(cliente.produto || '');
     setNewNumero(cliente.numero || '');
     setNewEmail(cliente.email || '');
+    setNewCpf(cliente.cpf || '');
     setNewPlano(planoNormalizado || 'Individual');
     setIsOriginallyReseller(clienteIsReseller);
     setNewTipo(cliente.tipo || 'cliente');
@@ -197,6 +199,7 @@ export default function AtualizarCliente() {
       excluir_metricas?: boolean;
       produto?: string;
       cobranca_ativa?: boolean;
+      cpf?: string;
     } = {
       observacao: newObservacao,
       tags: newTags,
@@ -208,6 +211,7 @@ export default function AtualizarCliente() {
       tipo: newTipo,
       excluir_metricas: newExcluirMetricas,
       produto: newEditProduto,
+      cpf: newCpf,
     };
     
     // Só atualiza a data e ciclo se for cliente mensal ou estiver convertendo
@@ -230,6 +234,7 @@ export default function AtualizarCliente() {
       setNewTags([]);
       setNewNumero('');
       setNewEmail('');
+      setNewCpf('');
       setNewValor('');
       setNewPlano(null);
       setIsOriginallyReseller(false);
@@ -440,10 +445,19 @@ export default function AtualizarCliente() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                  <p className="text-muted-foreground min-w-0 break-words">
-                    {t('clients.cpfCnpj')}: <span className="text-foreground">{selectedCliente.cpf || '-'}</span>
-                  </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm items-end">
+                  <div className="space-y-1.5 min-w-0">
+                    <Label htmlFor="newCpf" className="text-xs text-muted-foreground uppercase tracking-wider">
+                      {t('clients.cpfCnpj')}
+                    </Label>
+                    <Input
+                      id="newCpf"
+                      value={newCpf}
+                      onChange={(e) => setNewCpf(e.target.value)}
+                      placeholder="CPF ou CNPJ"
+                      className="bg-secondary border-border text-foreground h-10"
+                    />
+                  </div>
                   {!isClienteVitalicio && (
                     <p className="text-muted-foreground sm:text-right">
                       {t('clients.currentDate')}: <span className="text-update font-medium">{formatDate(selectedCliente.data_renovacao)}</span>

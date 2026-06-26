@@ -127,6 +127,7 @@ export default function ConsultarCliente() {
   const [editNumero, setEditNumero] = useState('');
   const [editProduto, setEditProduto] = useState('');
   const [editObservacao, setEditObservacao] = useState('');
+  const [editCpf, setEditCpf] = useState('');
   const [showEditConfirm, setShowEditConfirm] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   
@@ -340,6 +341,7 @@ export default function ConsultarCliente() {
     setEditNumero(cliente.numero || '');
     setEditProduto(cliente.produto || '');
     setEditObservacao(cliente.observacao || '');
+    setEditCpf(cliente.cpf || '');
   };
 
   const handleSaveEdit = () => {
@@ -350,6 +352,7 @@ export default function ConsultarCliente() {
     if (editNumero !== editingCliente.numero) updates.numero = editNumero;
     if (editProduto !== editingCliente.produto) updates.produto = editProduto;
     if (editObservacao !== (editingCliente.observacao || '')) updates.observacao = editObservacao;
+    if (editCpf !== (editingCliente.cpf || '')) updates.cpf = editCpf;
     
     if (Object.keys(updates).length === 0) {
       toast({ title: 'Nenhuma alteração detectada' });
@@ -368,6 +371,7 @@ export default function ConsultarCliente() {
     if (editNumero !== editingCliente.numero) updates.numero = editNumero;
     if (editProduto !== editingCliente.produto) updates.produto = editProduto;
     if (editObservacao !== (editingCliente.observacao || '')) updates.observacao = editObservacao;
+    if (editCpf !== (editingCliente.cpf || '')) updates.cpf = editCpf;
     
     const result = await updateCliente(editingCliente.id, updates, editingCliente);
     if (result) {
@@ -1319,6 +1323,15 @@ export default function ConsultarCliente() {
                 />
               </div>
               <div className="space-y-2">
+                <Label className="text-foreground font-medium">{t('clients.cpfCnpj')}</Label>
+                <Input
+                  placeholder="CPF ou CNPJ"
+                  value={editCpf}
+                  onChange={(e) => setEditCpf(e.target.value)}
+                  className="bg-secondary border-border text-foreground h-10"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label className="text-foreground font-medium">{t('clients.observations')}</Label>
                 <Textarea
                   placeholder="Observações"
@@ -1391,6 +1404,13 @@ export default function ConsultarCliente() {
                         <span className="text-muted-foreground line-through block italic text-[11px] leading-relaxed break-words whitespace-pre-wrap">{editingCliente?.observacao || '(vazio)'}</span>
                         <span className="text-foreground block font-medium leading-relaxed break-words whitespace-pre-wrap">➜ {editObservacao || '(vazio)'}</span>
                       </div>
+                    </div>
+                  )}
+                  {(editingCliente?.cpf || '') !== editCpf && (
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-bold text-update uppercase tracking-wider">CPF/CNPJ:</span>
+                      <span className="text-muted-foreground line-through">{editingCliente?.cpf || '(vazio)'}</span>
+                      <span className="text-foreground font-medium text-sm">➜ {editCpf || '(vazio)'}</span>
                     </div>
                   )}
                 </div>
