@@ -281,7 +281,7 @@ export const useClientTasks = () => {
 
       const { data: updatedTask, error } = await supabase
         .from('client_tasks')
-        .update(updates)
+        .update(updates as never)
         .eq('id', id)
         .select()
         .single();

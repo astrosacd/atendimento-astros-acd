@@ -109,7 +109,7 @@ export function useProposalSections(proposalId: string | undefined) {
 
       const { data, error } = await supabase
         .from('proposal_sections')
-        .update(updateData)
+        .update(updateData as never)
         .eq('id', id)
         .select()
         .single();
