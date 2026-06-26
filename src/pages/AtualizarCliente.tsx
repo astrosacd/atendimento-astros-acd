@@ -199,6 +199,7 @@ export default function AtualizarCliente() {
       excluir_metricas?: boolean;
       produto?: string;
       cobranca_ativa?: boolean;
+      cpf?: string;
     } = {
       observacao: newObservacao,
       tags: newTags,
@@ -210,6 +211,7 @@ export default function AtualizarCliente() {
       tipo: newTipo,
       excluir_metricas: newExcluirMetricas,
       produto: newEditProduto,
+      cpf: newCpf,
     };
     
     // Só atualiza a data e ciclo se for cliente mensal ou estiver convertendo
