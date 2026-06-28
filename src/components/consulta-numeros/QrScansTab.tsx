@@ -806,7 +806,16 @@ export function QrScansTab() {
                         <SelectItem value="conectado">Conectado</SelectItem>
                         <SelectItem value="desconectado_cliente">Desconectado pelo cliente</SelectItem>
                         <SelectItem value="desconectado">Desconectado / Banido</SelectItem>
-                        <SelectItem value="__sem_status__">Sem status</SelectItem>
+                        {(() => {
+                          const hasSemStatus = autoHospByCliente.some((n) => {
+                            const rd = (n as any).row_data || {};
+                            const lastCk = getEffectiveCheckin(rd.numero || "", (n as any).auto_hospedado_marcado_em);
+                            return !lastCk?.status_conexao;
+                          });
+                          return hasSemStatus ? (
+                            <SelectItem value="__sem_status__">Sem status</SelectItem>
+                          ) : null;
+                        })()}
                       </SelectContent>
                     </Select>
                   </div>
