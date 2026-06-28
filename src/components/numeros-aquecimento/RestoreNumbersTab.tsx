@@ -498,18 +498,35 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
             <div className="space-y-2">
               <Label>Modelo *</Label>
               <SearchableSelect
-                options={modelosList.map((m) => ({ value: m.id, label: m.nome }))}
+                options={modelosComVagas.map((o) => ({
+                  value: o.modelo.id,
+                  label: `${o.modelo.nome} · ${o.ocupados}/${o.capacidade} · falta ${o.livres}`,
+                }))}
                 value={restoreModeloId}
-                onValueChange={setRestoreModeloId}
-                placeholder="Selecione o modelo"
+                onValueChange={(v) => {
+                  setRestoreModeloId(v);
+                  const m = modelosComVagas.find((o) => o.modelo.id === v);
+                  const forced = m ? deriveTipoFromModeloNome(m.modelo.nome) : null;
+                  if (forced) setRestoreTipoWhatsapp(forced);
+                }}
+                placeholder={modelosComVagas.length === 0 ? 'Nenhum modelo com vaga disponível' : 'Selecione o modelo'}
                 searchPlaceholder="Buscar modelo..."
-                emptyMessage="Nenhum modelo encontrado."
+                emptyMessage="Nenhum modelo com vaga disponível."
               />
+              {modelosComVagas.length === 0 && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                  Todos os modelos estão na capacidade máxima. Libere uma vaga (exclusão ou desvinculação de check-in) antes de restaurar.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label>Tipo WhatsApp *</Label>
-              <Select value={restoreTipoWhatsapp} onValueChange={(v) => setRestoreTipoWhatsapp(v as 'normal' | 'business')}>
+              <Select
+                value={restoreTipoWhatsapp}
+                onValueChange={(v) => setRestoreTipoWhatsapp(v as 'normal' | 'business')}
+                disabled={!!tipoForcado}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
@@ -518,7 +535,13 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
                   <SelectItem value="business">💼 WhatsApp Business</SelectItem>
                 </SelectContent>
               </Select>
+              {tipoForcado && (
+                <p className="text-[11px] text-muted-foreground">
+                  Tipo definido automaticamente pelo nome do modelo ({tipoForcado === 'business' ? 'Business' : 'Normal'}).
+                </p>
+              )}
             </div>
+
 
             <div className="space-y-2">
               <Label htmlFor="restore-obs">Observações (opcional)</Label>
