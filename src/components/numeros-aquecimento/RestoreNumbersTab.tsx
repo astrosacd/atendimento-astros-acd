@@ -328,6 +328,17 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
       return;
     }
 
+    // Validação de capacidade (defesa em profundidade)
+    const vaga = modelosComVagas.find((o) => o.modelo.id === restoreModeloId);
+    if (!vaga || vaga.livres <= 0) {
+      toast.error('Este modelo não tem mais vagas disponíveis. Escolha outro modelo.');
+      return;
+    }
+    if (tipoForcado && restoreTipoWhatsapp !== tipoForcado) {
+      toast.error(`Este modelo aceita apenas WhatsApp ${tipoForcado === 'business' ? 'Business' : 'Normal'}.`);
+      return;
+    }
+
     restoreNumber.mutate({
       deletedRecord: selectedNumber,
       statusId: restoreStatusId,
