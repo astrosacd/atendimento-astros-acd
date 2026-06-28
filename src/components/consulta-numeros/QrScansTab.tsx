@@ -769,13 +769,29 @@ export function QrScansTab() {
                       searchPlaceholder="Buscar modelo…"
                       emptyMessage="Sem modelos"
                       options={(() => {
-                        const opts: { value: string; label: string }[] = [
-                          { value: "__all__", label: "Todos os modelos" },
-                          { value: "__externo__", label: "📦 Aparelho externo" },
-                        ];
-                        for (const m of modelosList) {
-                          if (m.aparece_no_checkin !== false) opts.push({ value: m.id, label: m.nome });
+                        // Sincronia: só mostra modelos que estão de fato vinculados a algum
+                        // número auto-hospedado atual (respeitando o filtro de cliente).
+                        // Assim o dropdown reflete o que existe no check-in / Status Números,
+                        // em vez de listar todos os modelos cadastrados.
+                        const presentModeloIds = new Set<string>();
+                        let hasExterno = false;
+                        for (const n of autoHospByCliente) {
+                          const rd = (n as any).row_data || {};
+                          const lastCk = getEffectiveCheckin(rd.numero || "", (n as any).auto_hospedado_marcado_em);
+                          if (lastCk?.modelo_id) {
+                            presentModeloIds.add(lastCk.modelo_id);
+                          } else if (lastCk) {
+                            hasExterno = true;
+                          }
                         }
+                        const opts: { value: string; label: string }[] = [
+                          { value: "__all__", label: `Todos os modelos (${presentModeloIds.size})` },
+                        ];
+                        if (hasExterno) opts.push({ value: "__externo__", label: "📦 Aparelho externo" });
+                        const filtered = modelosList
+                          .filter((m) => m.aparece_no_checkin !== false && presentModeloIds.has(m.id))
+                          .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+                        for (const m of filtered) opts.push({ value: m.id, label: m.nome });
                         return opts;
                       })()}
                     />
