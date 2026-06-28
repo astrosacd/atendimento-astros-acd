@@ -14,8 +14,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { formatUltimaAtividade, NumeroStatus, NumeroModelo } from '@/hooks/useNumerosAquecimento';
+import { formatUltimaAtividade, NumeroStatus, NumeroModelo, useNumerosAquecimento } from '@/hooks/useNumerosAquecimento';
+import { useActiveCheckinsByModelo } from '@/hooks/useCheckinDiario';
 import type { Json } from '@/integrations/supabase/types';
+
+function deriveTipoFromModeloNome(nome: string): 'normal' | 'business' | null {
+  const n = nome.toLowerCase();
+  if (/\bbusiness\b/.test(n)) return 'business';
+  if (/\bnormal\b/.test(n)) return 'normal';
+  return null;
+}
 
 interface DeletedNumber {
   id: string;
