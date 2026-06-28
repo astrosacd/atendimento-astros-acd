@@ -62,6 +62,43 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sendingWhatsapp, setSendingWhatsapp] = useState(false);
 
+  // Capacidade dos modelos (mesma lógica da aba Números / CheckinInlineDialog)
+  const { data: numerosTotais = [] } = useNumerosAquecimento();
+  const ocupadosByModelo = useActiveCheckinsByModelo();
+
+  const modelosComVagas = useMemo(() => {
+    const vendidoId = statusList.find((s) => s.nome === 'Vendido')?.id;
+    const estoque = vendidoId
+      ? numerosTotais.filter((n) => n.status_id !== vendidoId)
+      : numerosTotais;
+
+    return modelosList
+      .filter((m) => m.capacidade_whatsapp > 0)
+      .filter((m) => m.aparece_no_checkin !== false)
+      .map((m) => {
+        const numbersInAquecimento = new Set(
+          estoque.filter((n) => n.modelo_id === m.id).map((n) => n.numero)
+        );
+        const numbersWithCheckin =
+          ((ocupadosByModelo.get(m.id) as { numbers?: Set<string> } | undefined)?.numbers) ?? new Set<string>();
+        const allUniqueNumbers = new Set([...numbersInAquecimento, ...numbersWithCheckin]);
+        const ocupados = allUniqueNumbers.size;
+        const livres = Math.max(0, m.capacidade_whatsapp - ocupados);
+        return { modelo: m, ocupados, capacidade: m.capacidade_whatsapp, livres };
+      })
+      .filter((o) => o.livres > 0)
+      .sort((a, b) => a.modelo.nome.localeCompare(b.modelo.nome, 'pt-BR'));
+  }, [modelosList, numerosTotais, statusList, ocupadosByModelo]);
+
+  const selectedModeloVagas = useMemo(
+    () => modelosComVagas.find((o) => o.modelo.id === restoreModeloId),
+    [modelosComVagas, restoreModeloId]
+  );
+  const tipoForcado = selectedModeloVagas
+    ? deriveTipoFromModeloNome(selectedModeloVagas.modelo.nome)
+    : null;
+
+
   const callRestauracaoFunction = async (payload: { channel: 'email' | 'whatsapp'; numeros: { numero: string; data_exclusao: string }[] }) => {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     const accessToken = sessionData?.session?.access_token;
