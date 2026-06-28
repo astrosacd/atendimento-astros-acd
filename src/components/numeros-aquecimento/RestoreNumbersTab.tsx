@@ -14,8 +14,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { formatUltimaAtividade, NumeroStatus, NumeroModelo } from '@/hooks/useNumerosAquecimento';
+import { formatUltimaAtividade, NumeroStatus, NumeroModelo, useNumerosAquecimento } from '@/hooks/useNumerosAquecimento';
+import { useActiveCheckinsByModelo } from '@/hooks/useCheckinDiario';
 import type { Json } from '@/integrations/supabase/types';
+
+function deriveTipoFromModeloNome(nome: string): 'normal' | 'business' | null {
+  const n = nome.toLowerCase();
+  if (/\bbusiness\b/.test(n)) return 'business';
+  if (/\bnormal\b/.test(n)) return 'normal';
+  return null;
+}
 
 interface DeletedNumber {
   id: string;
@@ -53,6 +61,43 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sendingWhatsapp, setSendingWhatsapp] = useState(false);
+
+  // Capacidade dos modelos (mesma lógica da aba Números / CheckinInlineDialog)
+  const { data: numerosTotais = [] } = useNumerosAquecimento();
+  const ocupadosByModelo = useActiveCheckinsByModelo();
+
+  const modelosComVagas = useMemo(() => {
+    const vendidoId = statusList.find((s) => s.nome === 'Vendido')?.id;
+    const estoque = vendidoId
+      ? numerosTotais.filter((n) => n.status_id !== vendidoId)
+      : numerosTotais;
+
+    return modelosList
+      .filter((m) => m.capacidade_whatsapp > 0)
+      .filter((m) => m.aparece_no_checkin !== false)
+      .map((m) => {
+        const numbersInAquecimento = new Set(
+          estoque.filter((n) => n.modelo_id === m.id).map((n) => n.numero)
+        );
+        const numbersWithCheckin =
+          ((ocupadosByModelo.get(m.id) as { numbers?: Set<string> } | undefined)?.numbers) ?? new Set<string>();
+        const allUniqueNumbers = new Set([...numbersInAquecimento, ...numbersWithCheckin]);
+        const ocupados = allUniqueNumbers.size;
+        const livres = Math.max(0, m.capacidade_whatsapp - ocupados);
+        return { modelo: m, ocupados, capacidade: m.capacidade_whatsapp, livres };
+      })
+      .filter((o) => o.livres > 0)
+      .sort((a, b) => a.modelo.nome.localeCompare(b.modelo.nome, 'pt-BR'));
+  }, [modelosList, numerosTotais, statusList, ocupadosByModelo]);
+
+  const selectedModeloVagas = useMemo(
+    () => modelosComVagas.find((o) => o.modelo.id === restoreModeloId),
+    [modelosComVagas, restoreModeloId]
+  );
+  const tipoForcado = selectedModeloVagas
+    ? deriveTipoFromModeloNome(selectedModeloVagas.modelo.nome)
+    : null;
+
 
   const callRestauracaoFunction = async (payload: { channel: 'email' | 'whatsapp'; numeros: { numero: string; data_exclusao: string }[] }) => {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -283,6 +328,17 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
       return;
     }
 
+    // Validação de capacidade (defesa em profundidade)
+    const vaga = modelosComVagas.find((o) => o.modelo.id === restoreModeloId);
+    if (!vaga || vaga.livres <= 0) {
+      toast.error('Este modelo não tem mais vagas disponíveis. Escolha outro modelo.');
+      return;
+    }
+    if (tipoForcado && restoreTipoWhatsapp !== tipoForcado) {
+      toast.error(`Este modelo aceita apenas WhatsApp ${tipoForcado === 'business' ? 'Business' : 'Normal'}.`);
+      return;
+    }
+
     restoreNumber.mutate({
       deletedRecord: selectedNumber,
       statusId: restoreStatusId,
@@ -453,18 +509,35 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
             <div className="space-y-2">
               <Label>Modelo *</Label>
               <SearchableSelect
-                options={modelosList.map((m) => ({ value: m.id, label: m.nome }))}
+                options={modelosComVagas.map((o) => ({
+                  value: o.modelo.id,
+                  label: `${o.modelo.nome} · ${o.ocupados}/${o.capacidade} · falta ${o.livres}`,
+                }))}
                 value={restoreModeloId}
-                onValueChange={setRestoreModeloId}
-                placeholder="Selecione o modelo"
+                onValueChange={(v) => {
+                  setRestoreModeloId(v);
+                  const m = modelosComVagas.find((o) => o.modelo.id === v);
+                  const forced = m ? deriveTipoFromModeloNome(m.modelo.nome) : null;
+                  if (forced) setRestoreTipoWhatsapp(forced);
+                }}
+                placeholder={modelosComVagas.length === 0 ? 'Nenhum modelo com vaga disponível' : 'Selecione o modelo'}
                 searchPlaceholder="Buscar modelo..."
-                emptyMessage="Nenhum modelo encontrado."
+                emptyMessage="Nenhum modelo com vaga disponível."
               />
+              {modelosComVagas.length === 0 && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                  Todos os modelos estão na capacidade máxima. Libere uma vaga (exclusão ou desvinculação de check-in) antes de restaurar.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label>Tipo WhatsApp *</Label>
-              <Select value={restoreTipoWhatsapp} onValueChange={(v) => setRestoreTipoWhatsapp(v as 'normal' | 'business')}>
+              <Select
+                value={restoreTipoWhatsapp}
+                onValueChange={(v) => setRestoreTipoWhatsapp(v as 'normal' | 'business')}
+                disabled={!!tipoForcado}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
@@ -473,7 +546,13 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
                   <SelectItem value="business">💼 WhatsApp Business</SelectItem>
                 </SelectContent>
               </Select>
+              {tipoForcado && (
+                <p className="text-[11px] text-muted-foreground">
+                  Tipo definido automaticamente pelo nome do modelo ({tipoForcado === 'business' ? 'Business' : 'Normal'}).
+                </p>
+              )}
             </div>
+
 
             <div className="space-y-2">
               <Label htmlFor="restore-obs">Observações (opcional)</Label>
