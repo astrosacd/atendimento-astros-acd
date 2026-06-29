@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { copyToClipboard } from "@/utils/clipboard";
 import {
   Card,
   CardContent,
