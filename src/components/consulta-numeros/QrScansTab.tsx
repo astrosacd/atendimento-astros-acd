@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { copyToClipboard } from "@/utils/clipboard";
 import {
   Card,
   CardContent,
@@ -2099,9 +2100,13 @@ export function QrScansTab() {
                 <Input value={generatedPaymentUrl} readOnly className="font-mono text-xs" />
                 <Button
                   size="sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText(generatedPaymentUrl);
-                    toast({ title: "Copiado!" });
+                  onClick={async () => {
+                    const ok = await copyToClipboard(generatedPaymentUrl);
+                    toast({
+                      title: ok ? "Copiado!" : "Não foi possível copiar",
+                      description: ok ? undefined : "Selecione o link manualmente e use Ctrl+C / Cmd+C.",
+                      variant: ok ? undefined : "destructive",
+                    });
                   }}
                 >
                   Copiar

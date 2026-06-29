@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { copyToClipboard } from "@/utils/clipboard";
 import {
   Dialog,
   DialogContent,
@@ -210,7 +211,14 @@ export function RegisterScanQuickDialog({
             </div>
             <div className="flex gap-2">
               <Input value={generatedUrl} readOnly className="font-mono text-xs" />
-              <Button size="sm" onClick={() => { navigator.clipboard.writeText(generatedUrl); toast({ title: "Copiado!" }); }}>
+              <Button size="sm" onClick={async () => {
+                const ok = await copyToClipboard(generatedUrl);
+                toast({
+                  title: ok ? "Copiado!" : "Não foi possível copiar",
+                  description: ok ? undefined : "Selecione o link manualmente e use Ctrl+C / Cmd+C.",
+                  variant: ok ? undefined : "destructive",
+                });
+              }}>
                 Copiar
               </Button>
             </div>
