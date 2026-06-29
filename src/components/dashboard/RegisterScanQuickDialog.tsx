@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { copyToClipboard } from "@/utils/clipboard";
 import {
   Dialog,
   DialogContent,
