@@ -125,12 +125,38 @@ export default function AdminHorarioComercial() {
     try {
       await saveHorarioConfig(cfgUrl, cfgKey);
       toast({ title: 'Conexão salva' });
-      await loadAll();
+      await loadAll(true);
     } catch (e: any) {
       toast({ title: 'Erro ao salvar conexão', description: e.message, variant: 'destructive' });
     } finally {
       setSavingCfg(false);
     }
+  };
+
+  const salvarEdicaoBloqueio = async () => {
+    if (!editing) return;
+    if (!editing.dia_todo && (!editing.hora_inicio || !editing.hora_fim)) {
+      toast({ title: 'Informe hora inicial e final', variant: 'destructive' });
+      return;
+    }
+    const client = await getHorarioSupabase();
+    if (!client) return;
+    setSavingEdit(true);
+    const { error } = await client.from('bloqueios').update({
+      data: editing.data,
+      dia_todo: editing.dia_todo,
+      hora_inicio: editing.dia_todo ? null : editing.hora_inicio,
+      hora_fim: editing.dia_todo ? null : editing.hora_fim,
+      motivo: editing.motivo || null,
+    }).eq('id', editing.id);
+    setSavingEdit(false);
+    if (error) {
+      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Bloqueio atualizado' });
+    setEditing(null);
+    loadAll();
   };
 
   const testarConexao = async () => {
