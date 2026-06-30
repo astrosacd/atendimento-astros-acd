@@ -3,6 +3,9 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, CalendarX } from 'lucide-react';
 import { useBusinessHoursStatus } from '@/hooks/useBusinessHoursStatus';
 
+const trim = (t: string | null | undefined) => (t ? t.slice(0, 5) : '');
+const fmtMotivo = (m?: string | null) => (m && m.trim() ? ` Motivo: (${m.trim()})` : '');
+
 export const BusinessHoursStatusCard = () => {
   const status = useBusinessHoursStatus();
 
@@ -10,6 +13,14 @@ export const BusinessHoursStatusCard = () => {
   const dotRing = status.isOpen ? 'bg-emerald-500/30' : 'bg-red-500/30';
   const label = status.isOpen ? 'Aberto' : 'Fechado';
   const accentText = status.isOpen ? 'text-emerald-600' : 'text-red-600';
+
+  // Bloqueios parciais do dia (mesmo quando não ativos no momento)
+  const parciais = status.bloqueiosParciais || [];
+  const parciaisFuturos = parciais.filter((b) => {
+    // Se já é o bloqueio "ativo" que zerou o status, evita duplicar
+    if (status.bloqueio && status.bloqueio.id === b.id) return false;
+    return true;
+  });
 
   return (
     <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/20 hover:border-amber-500/40 transition-all">
@@ -41,6 +52,23 @@ export const BusinessHoursStatusCard = () => {
           )}
           <span>{status.loading ? 'Carregando...' : status.todayLabel}</span>
         </div>
+
+        {/* Bloqueios parciais agendados para hoje */}
+        {parciaisFuturos.length > 0 && (
+          <div className="mt-3 space-y-1.5 border-t border-amber-500/20 pt-2">
+            <div className="text-[11px] uppercase tracking-wide font-semibold text-amber-600 flex items-center gap-1">
+              <CalendarX className="h-3 w-3" /> Bloqueios parciais hoje
+            </div>
+            {parciaisFuturos.map((b) => (
+              <div key={b.id} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                <span className="font-medium text-foreground/80">
+                  {trim(b.hora_inicio)}–{trim(b.hora_fim)}
+                </span>
+                <span>{fmtMotivo(b.motivo).trim() || '—'}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

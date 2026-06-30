@@ -23,9 +23,13 @@ export interface BusinessHoursStatus {
   reason: 'open' | 'closed_hours' | 'closed_sunday' | 'blocked' | 'no_config' | 'no_connection';
   todayLabel: string;
   bloqueio?: Bloqueio;
+  bloqueiosParciais?: Bloqueio[];
   horario?: BusinessHours;
   loading: boolean;
 }
+
+// Formata motivo no padrão: "Motivo: (texto)"
+const fmtMotivo = (m?: string | null) => (m && m.trim() ? ` Motivo: (${m.trim()})` : '');
 
 // Sempre considera o fuso horário de São Paulo (Brasília)
 const SP_TZ = 'America/Sao_Paulo';
@@ -108,28 +112,33 @@ export function useBusinessHoursStatus() {
       return {
         isOpen: false,
         reason: 'blocked',
-        todayLabel: blocoTotal.motivo ? `Bloqueio: ${blocoTotal.motivo}` : 'Fechado por bloqueio',
+        todayLabel: `Fechado por bloqueio${fmtMotivo(blocoTotal.motivo)}`,
         bloqueio: blocoTotal,
         horario: horario || undefined,
         loading: false,
       };
     }
-    // Bloqueio parcial ativo agora
-    const blocoParcial = bloqueiosHoje.find((b) => !b.dia_todo && b.hora_inicio && b.hora_fim && inRange(nowMin, b.hora_inicio, b.hora_fim));
-    if (blocoParcial) {
+
+    // Todos os bloqueios parciais do dia (para exibição mesmo quando não ativo)
+    const parciais = bloqueiosHoje.filter((b) => !b.dia_todo && b.hora_inicio && b.hora_fim);
+    const blocoParcialAtivo = parciais.find((b) => inRange(nowMin, b.hora_inicio!, b.hora_fim!));
+
+    // Bloqueio parcial ativo agora — fechado
+    if (blocoParcialAtivo) {
       return {
         isOpen: false,
         reason: 'blocked',
-        todayLabel: `Bloqueio ${formatTime(blocoParcial.hora_inicio)}–${formatTime(blocoParcial.hora_fim)}${blocoParcial.motivo ? `: ${blocoParcial.motivo}` : ''}`,
-        bloqueio: blocoParcial,
+        todayLabel: `Bloqueio ${formatTime(blocoParcialAtivo.hora_inicio)}–${formatTime(blocoParcialAtivo.hora_fim)}${fmtMotivo(blocoParcialAtivo.motivo)}`,
+        bloqueio: blocoParcialAtivo,
+        bloqueiosParciais: parciais,
         horario: horario || undefined,
         loading: false,
       };
     }
 
-    if (!horario) return { isOpen: false, reason: 'no_config', todayLabel: 'Sem configuração', loading: false };
+    if (!horario) return { isOpen: false, reason: 'no_config', todayLabel: 'Sem configuração', bloqueiosParciais: parciais, loading: false };
     if (dow === 0) {
-      return { isOpen: false, reason: 'closed_sunday', todayLabel: 'Fechado (domingo)', horario, loading: false };
+      return { isOpen: false, reason: 'closed_sunday', todayLabel: 'Fechado (domingo)', horario, bloqueiosParciais: parciais, loading: false };
     }
     let start: string | null = null;
     let end: string | null = null;
@@ -141,7 +150,7 @@ export function useBusinessHoursStatus() {
       end = horario.semana_fim;
     }
     if (!start || !end) {
-      return { isOpen: false, reason: 'closed_hours', todayLabel: 'Fechado hoje', horario, loading: false };
+      return { isOpen: false, reason: 'closed_hours', todayLabel: 'Fechado hoje', horario, bloqueiosParciais: parciais, loading: false };
     }
     const open = inRange(nowMin, start, end);
     return {
@@ -149,6 +158,7 @@ export function useBusinessHoursStatus() {
       reason: open ? 'open' : 'closed_hours',
       todayLabel: `Hoje: ${formatTime(start)} às ${formatTime(end)}`,
       horario,
+      bloqueiosParciais: parciais,
       loading: false,
     };
   };
