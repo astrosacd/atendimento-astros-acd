@@ -705,6 +705,60 @@ export type Database = {
         }
         Relationships: []
       }
+      bloqueios_historico: {
+        Row: {
+          acao: string
+          bloqueio_id: number | null
+          created_at: string
+          dados_antes: Json | null
+          dados_depois: Json | null
+          data_bloqueio: string | null
+          dia_todo: boolean | null
+          hora_fim: string | null
+          hora_inicio: string | null
+          id: number
+          motivo: string | null
+          origem: string
+          user_email: string | null
+          user_id: string | null
+          user_nome: string | null
+        }
+        Insert: {
+          acao: string
+          bloqueio_id?: number | null
+          created_at?: string
+          dados_antes?: Json | null
+          dados_depois?: Json | null
+          data_bloqueio?: string | null
+          dia_todo?: boolean | null
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: number
+          motivo?: string | null
+          origem?: string
+          user_email?: string | null
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Update: {
+          acao?: string
+          bloqueio_id?: number | null
+          created_at?: string
+          dados_antes?: Json | null
+          dados_depois?: Json | null
+          data_bloqueio?: string | null
+          dia_todo?: boolean | null
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: number
+          motivo?: string | null
+          origem?: string
+          user_email?: string | null
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Relationships: []
+      }
       calendar_config: {
         Row: {
           config_key: string
@@ -4428,6 +4482,42 @@ export type Database = {
           key?: string
           updated_at?: string
           value?: Json
+        }
+        Relationships: []
+      }
+      horario_cleanup_config: {
+        Row: {
+          cleanup_hour: number
+          cleanup_minute: number
+          enabled: boolean
+          external_anon_key: string | null
+          external_url: string | null
+          id: number
+          last_run_at: string | null
+          last_run_deleted: number | null
+          updated_at: string
+        }
+        Insert: {
+          cleanup_hour?: number
+          cleanup_minute?: number
+          enabled?: boolean
+          external_anon_key?: string | null
+          external_url?: string | null
+          id?: number
+          last_run_at?: string | null
+          last_run_deleted?: number | null
+          updated_at?: string
+        }
+        Update: {
+          cleanup_hour?: number
+          cleanup_minute?: number
+          enabled?: boolean
+          external_anon_key?: string | null
+          external_url?: string | null
+          id?: number
+          last_run_at?: string | null
+          last_run_deleted?: number | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -9546,6 +9636,7 @@ export type Database = {
       execute_divulgador_cron: { Args: never; Returns: undefined }
       execute_followups_cron: { Args: never; Returns: undefined }
       execute_gateway_abandoned_cart: { Args: never; Returns: undefined }
+      execute_horario_bloqueios_cleanup: { Args: never; Returns: undefined }
       execute_instagram_spy_cron: { Args: never; Returns: undefined }
       execute_instagram_token_auto_refresh: { Args: never; Returns: undefined }
       execute_process_automations: { Args: never; Returns: undefined }
@@ -9614,6 +9705,7 @@ export type Database = {
           schedule: string
         }[]
       }
+      get_horario_cleanup_config: { Args: never; Returns: Json }
       get_instagram_spy_cron_schedule: {
         Args: never
         Returns: {
@@ -9728,6 +9820,14 @@ export type Database = {
           p_share_token: string
           p_user_agent?: string
         }
+        Returns: boolean
+      }
+      set_horario_cleanup_schedule: {
+        Args: { p_enabled: boolean; p_hour: number; p_minute: number }
+        Returns: Json
+      }
+      set_horario_external_connection: {
+        Args: { p_anon_key: string; p_url: string }
         Returns: boolean
       }
       show_limit: { Args: never; Returns: number }
