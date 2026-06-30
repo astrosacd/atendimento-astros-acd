@@ -286,19 +286,23 @@ export default function AdminHorarioComercial() {
     notifyChange();
   };
 
-  const excluirBloqueio = async (id: number) => {
-    if (!confirm('Excluir este bloqueio?')) return;
+  const confirmarExclusao = async () => {
+    if (!confirmDelete) return;
     const client = await getHorarioSupabase();
     if (!client) return;
+    setDeleting(true);
     const prev = bloqueios;
+    const id = confirmDelete.id;
     setBloqueios((p) => p.filter((b) => b.id !== id)); // otimista
     const { error } = await client.from('bloqueios').delete().eq('id', id);
+    setDeleting(false);
     if (error) {
       setBloqueios(prev); // rollback
       toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
       return;
     }
     toast({ title: 'Bloqueio removido' });
+    setConfirmDelete(null);
     notifyChange();
   };
 
