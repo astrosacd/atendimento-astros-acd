@@ -197,7 +197,7 @@ const Admin = () => {
               if (module.key === 'systemPermissions') return hasPermission('manage_permissions');
               if (module.key === 'systemHealth') return hasPermission('manage_system_health');
               if (module.key === 'mcp') return hasPermission('view_mcp_config');
-              if (module.key === 'horarioComercial') return hasPermission('manage_settings');
+              if (module.key === 'horarioComercial') return hasPermission('manage_horario_comercial');
               return true;
             })
             .map((module) => (

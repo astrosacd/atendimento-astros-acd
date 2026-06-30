@@ -45,13 +45,15 @@ export const BusinessHoursStatusCard = () => {
           <span className={`text-lg font-bold ${accentText}`}>{label}</span>
         </div>
 
-        <div className="mt-3 flex items-start gap-2 text-sm text-muted-foreground">
+        <div className="mt-3 flex items-start gap-2 text-sm text-muted-foreground min-w-0">
           {status.reason === 'blocked' ? (
             <CalendarX className="h-4 w-4 mt-0.5 text-red-500 shrink-0" />
           ) : (
             <Clock className="h-4 w-4 mt-0.5 shrink-0" />
           )}
-          <span>{status.loading ? 'Carregando...' : status.todayLabel}</span>
+          <span className="break-words [overflow-wrap:anywhere] min-w-0 flex-1">
+            {status.loading ? 'Carregando...' : status.todayLabel}
+          </span>
         </div>
 
         {/* Bloqueios parciais agendados para hoje */}
@@ -61,11 +63,13 @@ export const BusinessHoursStatusCard = () => {
               <CalendarX className="h-3 w-3" /> Bloqueios parciais hoje
             </div>
             {parciaisFuturos.map((b) => (
-              <div key={b.id} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                <span className="font-medium text-foreground/80">
+              <div key={b.id} className="text-xs text-muted-foreground flex items-start gap-1.5 min-w-0">
+                <span className="font-medium text-foreground/80 shrink-0">
                   {trim(b.hora_inicio)}–{trim(b.hora_fim)}
                 </span>
-                <span>{showMotivo(b.motivo) || '—'}</span>
+                <span className="break-words [overflow-wrap:anywhere] min-w-0 flex-1">
+                  {showMotivo(b.motivo) || '—'}
+                </span>
               </div>
             ))}
           </div>
