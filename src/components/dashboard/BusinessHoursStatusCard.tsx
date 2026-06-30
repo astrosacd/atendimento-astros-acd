@@ -65,7 +65,7 @@ export const BusinessHoursStatusCard = () => {
                 <span className="font-medium text-foreground/80">
                   {trim(b.hora_inicio)}–{trim(b.hora_fim)}
                 </span>
-                <span>{fmtMotivo(b.motivo).trim() || '—'}</span>
+                <span>{showMotivo(b.motivo) || '—'}</span>
               </div>
             ))}
           </div>
