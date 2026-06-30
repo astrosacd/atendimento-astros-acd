@@ -38,6 +38,7 @@ import { RevenueGoalCard } from '@/components/dashboard/RevenueGoalCard';
 import { ChurnRateCard } from '@/components/dashboard/ChurnRateCard';
 import { RevenueByCurrencyCard } from '@/components/dashboard/RevenueByCurrencyCard';
 import { SystemHealthCard } from '@/components/dashboard/SystemHealthCard';
+import { BusinessHoursStatusCard } from '@/components/dashboard/BusinessHoursStatusCard';
 import { LigacoesAgendadasCard } from '@/components/dashboard/LigacoesAgendadasCard';
 import { AlertsCenter } from '@/components/dashboard/sections/AlertsCenter';
 import { AnaliseAvancadaSection } from '@/components/dashboard/sections/AnaliseAvancadaSection';
@@ -328,6 +329,7 @@ export default function Dashboard() {
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <LigacoesAgendadasCard />
+            <BusinessHoursStatusCard />
             {hasPermission('manage_system_health') && <SystemHealthCard />}
             {hasPermission('view_quick_number_search') && <QuickNumberSearch />}
             {isAdmin && (
