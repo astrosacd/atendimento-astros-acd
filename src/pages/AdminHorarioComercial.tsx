@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Clock, CalendarX, Trash2, Plus, Save, Loader2, Link2, KeyRound, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { ArrowLeft, Clock, CalendarX, Trash2, Plus, Save, Loader2, Link2, KeyRound, CheckCircle2, AlertTriangle, RefreshCw, Pencil } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getHorarioSupabase, getCachedHorarioConfig, saveHorarioConfig } from '@/integrations/horario-supabase/client';
@@ -61,7 +62,11 @@ export default function AdminHorarioComercial() {
   const [horaFim, setHoraFim] = useState('');
   const [adding, setAdding] = useState(false);
 
-  const loadAll = async () => {
+  // Edição de bloqueio
+  const [editing, setEditing] = useState<Bloqueio | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const loadAll = async (notify = false) => {
     setLoading(true);
     const client = await getHorarioSupabase();
     if (!client) {
@@ -76,6 +81,8 @@ export default function AdminHorarioComercial() {
     ]);
     if (eh || eb) {
       toast({ title: 'Erro ao ler tabelas externas', description: (eh || eb)?.message, variant: 'destructive' });
+      setLoading(false);
+      return;
     }
     const horarioData = h as any as Horario | null;
     setHorario(horarioData);
@@ -84,9 +91,21 @@ export default function AdminHorarioComercial() {
       setSemanaFim(trim(horarioData.semana_fim));
       setSabadoInicio(trim(horarioData.sabado_inicio));
       setSabadoFim(trim(horarioData.sabado_fim));
+    } else {
+      setSemanaInicio('');
+      setSemanaFim('');
+      setSabadoInicio('');
+      setSabadoFim('');
     }
-    setBloqueios((b as any) || []);
+    const lista = (b as any as Bloqueio[]) || [];
+    setBloqueios(lista);
     setLoading(false);
+    if (notify) {
+      toast({
+        title: 'Sincronizado',
+        description: `${horarioData ? 'Horário carregado' : 'Nenhum horário cadastrado'} · ${lista.length} bloqueio(s)`,
+      });
+    }
   };
 
   useEffect(() => {
@@ -106,12 +125,38 @@ export default function AdminHorarioComercial() {
     try {
       await saveHorarioConfig(cfgUrl, cfgKey);
       toast({ title: 'Conexão salva' });
-      await loadAll();
+      await loadAll(true);
     } catch (e: any) {
       toast({ title: 'Erro ao salvar conexão', description: e.message, variant: 'destructive' });
     } finally {
       setSavingCfg(false);
     }
+  };
+
+  const salvarEdicaoBloqueio = async () => {
+    if (!editing) return;
+    if (!editing.dia_todo && (!editing.hora_inicio || !editing.hora_fim)) {
+      toast({ title: 'Informe hora inicial e final', variant: 'destructive' });
+      return;
+    }
+    const client = await getHorarioSupabase();
+    if (!client) return;
+    setSavingEdit(true);
+    const { error } = await client.from('bloqueios').update({
+      data: editing.data,
+      dia_todo: editing.dia_todo,
+      hora_inicio: editing.dia_todo ? null : editing.hora_inicio,
+      hora_fim: editing.dia_todo ? null : editing.hora_fim,
+      motivo: editing.motivo || null,
+    }).eq('id', editing.id);
+    setSavingEdit(false);
+    if (error) {
+      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Bloqueio atualizado' });
+    setEditing(null);
+    loadAll();
   };
 
   const testarConexao = async () => {
@@ -275,12 +320,19 @@ export default function AdminHorarioComercial() {
             {/* Horário */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-amber-500" /> Horário de Funcionamento
-                </CardTitle>
-                <CardDescription>
-                  Domingo é considerado fechado automaticamente. Deixe sábado em branco para fechar.
-                </CardDescription>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-amber-500" /> Horário de Funcionamento
+                    </CardTitle>
+                    <CardDescription>
+                      Domingo é considerado fechado automaticamente. Deixe sábado em branco para fechar.
+                    </CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => loadAll(true)} className="gap-2">
+                    <RefreshCw className="h-4 w-4" /> Recarregar
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-5">
                 <div>
@@ -378,9 +430,14 @@ export default function AdminHorarioComercial() {
                           </div>
                           {b.motivo && <div className="text-xs text-muted-foreground">{b.motivo}</div>}
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => excluirBloqueio(b.id)}>
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => setEditing({ ...b })}>
+                            <Pencil className="h-4 w-4 text-blue-500" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => excluirBloqueio(b.id)}>
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
                       </div>
                     ))
                   )}
@@ -390,6 +447,56 @@ export default function AdminHorarioComercial() {
           </>
         )}
       </main>
+
+      {/* Dialog de edição de bloqueio */}
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-blue-500" /> Editar Bloqueio
+            </DialogTitle>
+          </DialogHeader>
+          {editing && (
+            <div className="space-y-4">
+              <div>
+                <Label className="text-xs">Data</Label>
+                <Input type="date" value={editing.data} onChange={(e) => setEditing({ ...editing, data: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs">Motivo (opcional)</Label>
+                <Input value={editing.motivo || ''} onChange={(e) => setEditing({ ...editing, motivo: e.target.value })} />
+              </div>
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={editing.dia_todo}
+                  onCheckedChange={(v) => setEditing({ ...editing, dia_todo: v, hora_inicio: v ? null : editing.hora_inicio, hora_fim: v ? null : editing.hora_fim })}
+                  id="edit-dia-todo"
+                />
+                <Label htmlFor="edit-dia-todo" className="text-sm cursor-pointer">Bloquear o dia todo</Label>
+              </div>
+              {!editing.dia_todo && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Hora inicial</Label>
+                    <Input type="time" value={trim(editing.hora_inicio)} onChange={(e) => setEditing({ ...editing, hora_inicio: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Hora final</Label>
+                    <Input type="time" value={trim(editing.hora_fim)} onChange={(e) => setEditing({ ...editing, hora_fim: e.target.value })} />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+            <Button onClick={salvarEdicaoBloqueio} disabled={savingEdit} className="gap-2">
+              {savingEdit ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Salvar alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
