@@ -672,6 +672,39 @@ export type Database = {
         }
         Relationships: []
       }
+      bloqueios: {
+        Row: {
+          created_at: string
+          data: string
+          dia_todo: boolean
+          hora_fim: string | null
+          hora_inicio: string | null
+          id: number
+          motivo: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          dia_todo?: boolean
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: number
+          motivo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          dia_todo?: boolean
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: number
+          motivo?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       calendar_config: {
         Row: {
           config_key: string
@@ -4395,6 +4428,36 @@ export type Database = {
           key?: string
           updated_at?: string
           value?: Json
+        }
+        Relationships: []
+      }
+      horario_comercial: {
+        Row: {
+          created_at: string
+          id: number
+          sabado_fim: string | null
+          sabado_inicio: string | null
+          semana_fim: string
+          semana_inicio: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          sabado_fim?: string | null
+          sabado_inicio?: string | null
+          semana_fim?: string
+          semana_inicio?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          sabado_fim?: string | null
+          sabado_inicio?: string | null
+          semana_fim?: string
+          semana_inicio?: string
+          updated_at?: string
         }
         Relationships: []
       }
