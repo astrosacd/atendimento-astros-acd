@@ -453,7 +453,7 @@ export default function AdminHorarioComercial() {
                       <Input type="date" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
                     </div>
                     <div>
-                      <Label className="text-xs">Motivo (opcional)</Label>
+                      <Label className="text-xs">Motivo (opcional) — salvo como <code className="text-[10px]">Motivo: (texto)</code></Label>
                       <Input value={novoMotivo} onChange={(e) => setNovoMotivo(e.target.value)} placeholder="Ex.: Feriado nacional" />
                     </div>
                   </div>
