@@ -496,10 +496,10 @@ export default function AdminHorarioComercial() {
                           {b.motivo && <div className="text-xs text-muted-foreground">{b.motivo}</div>}
                         </div>
                         <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => setEditing({ ...b })}>
+                          <Button variant="ghost" size="icon" onClick={() => setEditing({ ...b, motivo: unwrapMotivo(b.motivo) })}>
                             <Pencil className="h-4 w-4 text-blue-500" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => excluirBloqueio(b.id)}>
+                          <Button variant="ghost" size="icon" onClick={() => setConfirmDelete(b)}>
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
                         </div>
