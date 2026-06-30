@@ -62,7 +62,11 @@ export default function AdminHorarioComercial() {
   const [horaFim, setHoraFim] = useState('');
   const [adding, setAdding] = useState(false);
 
-  const loadAll = async () => {
+  // Edição de bloqueio
+  const [editing, setEditing] = useState<Bloqueio | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const loadAll = async (notify = false) => {
     setLoading(true);
     const client = await getHorarioSupabase();
     if (!client) {
@@ -77,6 +81,8 @@ export default function AdminHorarioComercial() {
     ]);
     if (eh || eb) {
       toast({ title: 'Erro ao ler tabelas externas', description: (eh || eb)?.message, variant: 'destructive' });
+      setLoading(false);
+      return;
     }
     const horarioData = h as any as Horario | null;
     setHorario(horarioData);
@@ -85,9 +91,21 @@ export default function AdminHorarioComercial() {
       setSemanaFim(trim(horarioData.semana_fim));
       setSabadoInicio(trim(horarioData.sabado_inicio));
       setSabadoFim(trim(horarioData.sabado_fim));
+    } else {
+      setSemanaInicio('');
+      setSemanaFim('');
+      setSabadoInicio('');
+      setSabadoFim('');
     }
-    setBloqueios((b as any) || []);
+    const lista = (b as any as Bloqueio[]) || [];
+    setBloqueios(lista);
     setLoading(false);
+    if (notify) {
+      toast({
+        title: 'Sincronizado',
+        description: `${horarioData ? 'Horário carregado' : 'Nenhum horário cadastrado'} · ${lista.length} bloqueio(s)`,
+      });
+    }
   };
 
   useEffect(() => {
