@@ -100,7 +100,7 @@ export function useBusinessHoursStatus() {
     if (!connected) {
       return { isOpen: false, reason: 'no_connection', todayLabel: 'Supabase não configurado', loading: false };
     }
-    const now = new Date();
+    const { minutes: nowMin, dow } = spParts();
 
     // Bloqueio dia todo
     const blocoTotal = bloqueiosHoje.find((b) => b.dia_todo);
@@ -115,7 +115,7 @@ export function useBusinessHoursStatus() {
       };
     }
     // Bloqueio parcial ativo agora
-    const blocoParcial = bloqueiosHoje.find((b) => !b.dia_todo && b.hora_inicio && b.hora_fim && inRange(now, b.hora_inicio, b.hora_fim));
+    const blocoParcial = bloqueiosHoje.find((b) => !b.dia_todo && b.hora_inicio && b.hora_fim && inRange(nowMin, b.hora_inicio, b.hora_fim));
     if (blocoParcial) {
       return {
         isOpen: false,
@@ -128,7 +128,6 @@ export function useBusinessHoursStatus() {
     }
 
     if (!horario) return { isOpen: false, reason: 'no_config', todayLabel: 'Sem configuração', loading: false };
-    const dow = now.getDay();
     if (dow === 0) {
       return { isOpen: false, reason: 'closed_sunday', todayLabel: 'Fechado (domingo)', horario, loading: false };
     }
@@ -144,7 +143,7 @@ export function useBusinessHoursStatus() {
     if (!start || !end) {
       return { isOpen: false, reason: 'closed_hours', todayLabel: 'Fechado hoje', horario, loading: false };
     }
-    const open = inRange(now, start, end);
+    const open = inRange(nowMin, start, end);
     return {
       isOpen: open,
       reason: open ? 'open' : 'closed_hours',
