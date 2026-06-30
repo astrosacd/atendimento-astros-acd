@@ -561,6 +561,35 @@ export default function AdminHorarioComercial() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmação de exclusão (modal interno) */}
+      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && !deleting && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-red-500" /> Excluir bloqueio?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDelete && (
+                <>
+                  <strong>{format(parseISO(confirmDelete.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</strong>
+                  {' · '}
+                  {confirmDelete.dia_todo ? 'Dia todo' : `${trim(confirmDelete.hora_inicio)}–${trim(confirmDelete.hora_fim)}`}
+                  {confirmDelete.motivo && <div className="mt-1 text-xs">{confirmDelete.motivo}</div>}
+                  <div className="mt-2">Esta ação não pode ser desfeita.</div>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarExclusao} disabled={deleting} className="bg-red-600 hover:bg-red-700 gap-2">
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
