@@ -8,11 +8,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ArrowLeft, Clock, CalendarX, Trash2, Plus, Save, Loader2, Link2, KeyRound, CheckCircle2, AlertTriangle, RefreshCw, Pencil, ChevronDown, ChevronRight } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getHorarioSupabase, getCachedHorarioConfig, saveHorarioConfig } from '@/integrations/horario-supabase/client';
+
+// Padrão do motivo no banco: "Motivo: (texto)" — wrap/unwrap entre input e DB
+const wrapMotivo = (raw: string | null | undefined): string | null => {
+  const t = (raw || '').trim();
+  if (!t) return null;
+  // se já vem com o prefixo, não duplica
+  if (/^Motivo:\s*\(.*\)\s*$/.test(t)) return t;
+  return `Motivo: (${t})`;
+};
+const unwrapMotivo = (stored: string | null | undefined): string => {
+  if (!stored) return '';
+  const m = stored.match(/^Motivo:\s*\((.*)\)\s*$/);
+  return m ? m[1] : stored;
+};
 
 interface Horario {
   id: number;
