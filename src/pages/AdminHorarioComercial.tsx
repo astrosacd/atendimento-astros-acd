@@ -51,6 +51,8 @@ const trim = (t: string | null | undefined) => (t ? t.slice(0, 5) : '');
 export default function AdminHorarioComercial() {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
+  const { canManageHorarioComercial } = usePermissions();
+  const canAccess = isAdmin || canManageHorarioComercial();
   const { toast } = useToast();
 
   const initial = getCachedHorarioConfig();
@@ -123,12 +125,12 @@ export default function AdminHorarioComercial() {
   };
 
   useEffect(() => {
-    if (!isAdmin) {
+    if (!canAccess) {
       navigate('/');
       return;
     }
     loadAll();
-  }, [isAdmin, navigate]);
+  }, [canAccess, navigate]);
 
   // Realtime: sincroniza bloqueios entre abas quando o Supabase externo suportar
   useEffect(() => {
