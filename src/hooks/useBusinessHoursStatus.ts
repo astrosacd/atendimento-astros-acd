@@ -28,8 +28,8 @@ export interface BusinessHoursStatus {
   loading: boolean;
 }
 
-// Formata motivo no padrão: "Motivo: (texto)"
-const fmtMotivo = (m?: string | null) => (m && m.trim() ? ` Motivo: (${m.trim()})` : '');
+// O motivo já é gravado no banco no padrão "Motivo: (texto)" — aqui apenas anexa
+const fmtMotivo = (m?: string | null) => (m && m.trim() ? ` ${m.trim()}` : '');
 
 // Sempre considera o fuso horário de São Paulo (Brasília)
 const SP_TZ = 'America/Sao_Paulo';
