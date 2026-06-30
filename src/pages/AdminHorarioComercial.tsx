@@ -320,12 +320,19 @@ export default function AdminHorarioComercial() {
             {/* Horário */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-amber-500" /> Horário de Funcionamento
-                </CardTitle>
-                <CardDescription>
-                  Domingo é considerado fechado automaticamente. Deixe sábado em branco para fechar.
-                </CardDescription>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-amber-500" /> Horário de Funcionamento
+                    </CardTitle>
+                    <CardDescription>
+                      Domingo é considerado fechado automaticamente. Deixe sábado em branco para fechar.
+                    </CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => loadAll(true)} className="gap-2">
+                    <RefreshCw className="h-4 w-4" /> Recarregar
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-5">
                 <div>
