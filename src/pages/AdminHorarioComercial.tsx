@@ -236,7 +236,7 @@ export default function AdminHorarioComercial() {
       dia_todo: diaTodo,
       hora_inicio: diaTodo ? null : horaInicio,
       hora_fim: diaTodo ? null : horaFim,
-      motivo: novoMotivo || null,
+      motivo: wrapMotivo(novoMotivo),
     };
     const { data, error } = await client.from('bloqueios').insert(payload).select().single();
     setAdding(false);
@@ -269,7 +269,7 @@ export default function AdminHorarioComercial() {
       dia_todo: editing.dia_todo,
       hora_inicio: editing.dia_todo ? null : editing.hora_inicio,
       hora_fim: editing.dia_todo ? null : editing.hora_fim,
-      motivo: editing.motivo || null,
+      motivo: wrapMotivo(editing.motivo),
     };
     const { error } = await client.from('bloqueios').update(payload).eq('id', editing.id);
     setSavingEdit(false);
