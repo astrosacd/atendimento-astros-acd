@@ -11,16 +11,17 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ArrowLeft, Clock, CalendarX, Trash2, Plus, Save, Loader2, Link2, KeyRound, CheckCircle2, AlertTriangle, RefreshCw, Pencil, ChevronDown, ChevronRight } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, Clock, CalendarX, Trash2, Plus, Save, Loader2, Link2, KeyRound, CheckCircle2, AlertTriangle, RefreshCw, Pencil, ChevronDown, ChevronRight, History, PlayCircle, Timer, User as UserIcon, Bot } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getHorarioSupabase, getCachedHorarioConfig, saveHorarioConfig } from '@/integrations/horario-supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
-// Padrão do motivo no banco: "Motivo: (texto)" — wrap/unwrap entre input e DB
 const wrapMotivo = (raw: string | null | undefined): string | null => {
   const t = (raw || '').trim();
   if (!t) return null;
-  // se já vem com o prefixo, não duplica
   if (/^Motivo:\s*\(.*\)\s*$/.test(t)) return t;
   return `Motivo: (${t})`;
 };
@@ -47,11 +48,26 @@ interface Bloqueio {
   motivo: string | null;
 }
 
+interface HistoricoItem {
+  id: number;
+  bloqueio_id: number | null;
+  acao: 'criado' | 'editado' | 'excluido';
+  origem: 'manual' | 'cron';
+  user_nome: string | null;
+  user_email: string | null;
+  data_bloqueio: string | null;
+  dia_todo: boolean | null;
+  hora_inicio: string | null;
+  hora_fim: string | null;
+  motivo: string | null;
+  created_at: string;
+}
+
 const trim = (t: string | null | undefined) => (t ? t.slice(0, 5) : '');
 
 export default function AdminHorarioComercial() {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const { canManageHorarioComercial } = usePermissions();
   const canAccess = isAdmin || canManageHorarioComercial();
   const { toast } = useToast();
@@ -86,7 +102,74 @@ export default function AdminHorarioComercial() {
   const [confirmDelete, setConfirmDelete] = useState<Bloqueio | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // perfil do usuário (nome) para histórico
+  const [userNome, setUserNome] = useState<string>('');
+
+  // limpeza automática
+  const [cleanupHour, setCleanupHour] = useState(3);
+  const [cleanupMinute, setCleanupMinute] = useState(0);
+  const [cleanupEnabled, setCleanupEnabled] = useState(true);
+  const [cleanupLastRun, setCleanupLastRun] = useState<string | null>(null);
+  const [cleanupLastDeleted, setCleanupLastDeleted] = useState<number | null>(null);
+  const [savingCleanup, setSavingCleanup] = useState(false);
+  const [runningCleanup, setRunningCleanup] = useState(false);
+
+  // histórico
+  const [historico, setHistorico] = useState<HistoricoItem[]>([]);
+  const [filtroAcao, setFiltroAcao] = useState<string>('all');
+  const [filtroOrigem, setFiltroOrigem] = useState<string>('all');
+  const [loadingHist, setLoadingHist] = useState(false);
+
   const notifyChange = () => window.dispatchEvent(new CustomEvent('horario-config-changed'));
+
+  const logHist = async (
+    acao: 'criado' | 'editado' | 'excluido',
+    bloqueio: Partial<Bloqueio> & { id?: number },
+    dadosAntes?: any,
+    dadosDepois?: any
+  ) => {
+    try {
+      await supabase.from('bloqueios_historico').insert({
+        bloqueio_id: bloqueio.id ?? null,
+        acao,
+        origem: 'manual',
+        user_id: user?.id ?? null,
+        user_nome: userNome || user?.user_metadata?.name || user?.email || 'desconhecido',
+        user_email: user?.email ?? null,
+        data_bloqueio: bloqueio.data ?? null,
+        dia_todo: bloqueio.dia_todo ?? null,
+        hora_inicio: bloqueio.hora_inicio ?? null,
+        hora_fim: bloqueio.hora_fim ?? null,
+        motivo: bloqueio.motivo ?? null,
+        dados_antes: dadosAntes ?? null,
+        dados_depois: dadosDepois ?? null,
+      });
+      loadHistorico();
+    } catch (e) {
+      console.error('logHist falhou', e);
+    }
+  };
+
+  const loadHistorico = async () => {
+    setLoadingHist(true);
+    let q = supabase.from('bloqueios_historico').select('*').order('created_at', { ascending: false }).limit(100);
+    if (filtroAcao !== 'all') q = q.eq('acao', filtroAcao);
+    if (filtroOrigem !== 'all') q = q.eq('origem', filtroOrigem);
+    const { data, error } = await q;
+    setLoadingHist(false);
+    if (!error) setHistorico((data as any) || []);
+  };
+
+  const loadCleanupCfg = async () => {
+    const { data, error } = await supabase.rpc('get_horario_cleanup_config');
+    if (error || !data) return;
+    const c: any = data;
+    setCleanupHour(c.cleanup_hour ?? 3);
+    setCleanupMinute(c.cleanup_minute ?? 0);
+    setCleanupEnabled(c.enabled ?? true);
+    setCleanupLastRun(c.last_run_at ?? null);
+    setCleanupLastDeleted(c.last_run_deleted ?? null);
+  };
 
   const loadAll = async (notify = false) => {
     setLoading(true);
@@ -114,15 +197,9 @@ export default function AdminHorarioComercial() {
       setSabadoInicio(trim(horarioData.sabado_inicio));
       setSabadoFim(trim(horarioData.sabado_fim));
     }
-    const lista = (b as any as Bloqueio[]) || [];
-    setBloqueios(lista);
+    setBloqueios((b as any as Bloqueio[]) || []);
     setLoading(false);
-    if (notify) {
-      toast({
-        title: 'Sincronizado',
-        description: `${horarioData ? 'Horário carregado' : 'Nenhum horário cadastrado'} · ${lista.length} bloqueio(s)`,
-      });
-    }
+    if (notify) toast({ title: 'Sincronizado' });
   };
 
   useEffect(() => {
@@ -131,9 +208,18 @@ export default function AdminHorarioComercial() {
       return;
     }
     loadAll();
+    loadCleanupCfg();
+    loadHistorico();
+    // carrega nome do perfil
+    (async () => {
+      if (!user?.id) return;
+      const { data } = await supabase.from('profiles').select('name').eq('user_id', user.id).maybeSingle();
+      if (data?.name) setUserNome(data.name);
+    })();
   }, [canAccess, navigate]);
 
-  // Realtime: sincroniza bloqueios entre abas quando o Supabase externo suportar
+  useEffect(() => { loadHistorico(); /* eslint-disable-next-line */ }, [filtroAcao, filtroOrigem]);
+
   useEffect(() => {
     let channel: any;
     let cancelled = false;
@@ -142,148 +228,115 @@ export default function AdminHorarioComercial() {
       if (!client || cancelled) return;
       channel = client
         .channel('bloqueios-admin')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'bloqueios' }, () => {
-          loadAll();
-        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'bloqueios' }, () => loadAll())
         .subscribe();
     })();
-    return () => {
-      cancelled = true;
-      if (channel) channel.unsubscribe();
-    };
+    return () => { cancelled = true; if (channel) channel.unsubscribe(); };
   }, [connected]);
 
+  // Realtime no histórico local — pega exclusões do cron
+  useEffect(() => {
+    const ch = supabase
+      .channel('bloqueios-historico-rt')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bloqueios_historico' }, () => {
+        loadHistorico();
+        loadCleanupCfg();
+        loadAll();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
+
   const salvarConfig = async () => {
-    if (!cfgUrl || !cfgKey) {
-      toast({ title: 'Preencha URL e Anon Key', variant: 'destructive' });
-      return;
-    }
+    if (!cfgUrl || !cfgKey) { toast({ title: 'Preencha URL e Anon Key', variant: 'destructive' }); return; }
     setSavingCfg(true);
     try {
       await saveHorarioConfig(cfgUrl, cfgKey);
+      // Também grava no Lovable Cloud pra o cron usar
+      await supabase.rpc('set_horario_external_connection', { p_url: cfgUrl, p_anon_key: cfgKey });
       toast({ title: 'Conexão salva' });
       await loadAll(true);
+      await loadCleanupCfg();
       setCfgOpen(false);
     } catch (e: any) {
       toast({ title: 'Erro ao salvar conexão', description: e.message, variant: 'destructive' });
-    } finally {
-      setSavingCfg(false);
-    }
+    } finally { setSavingCfg(false); }
   };
 
   const testarConexao = async () => {
-    if (!cfgUrl || !cfgKey) {
-      toast({ title: 'Preencha URL e Anon Key antes de testar', variant: 'destructive' });
-      return;
-    }
+    if (!cfgUrl || !cfgKey) { toast({ title: 'Preencha URL e Anon Key antes de testar', variant: 'destructive' }); return; }
     setTesting(true);
     try {
       const { createClient } = await import('@supabase/supabase-js');
-      const testClient = createClient(cfgUrl.trim().replace(/\/$/, ''), cfgKey.trim(), {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
+      const testClient = createClient(cfgUrl.trim().replace(/\/$/, ''), cfgKey.trim(), { auth: { persistSession: false, autoRefreshToken: false } });
       const { error } = await testClient.from('horario_comercial').select('id').limit(1);
       if (error) throw error;
       setConnected(true);
-      toast({ title: 'Conexão OK', description: 'Clique em "Salvar conexão" para persistir.' });
+      toast({ title: 'Conexão OK' });
     } catch (e: any) {
       setConnected(false);
       toast({ title: 'Falha na conexão', description: e.message, variant: 'destructive' });
-    } finally {
-      setTesting(false);
-    }
+    } finally { setTesting(false); }
   };
 
   const salvarHorario = async () => {
-    if (!semanaInicio || !semanaFim) {
-      toast({ title: 'Preencha o horário de segunda a sexta', variant: 'destructive' });
-      return;
-    }
+    if (!semanaInicio || !semanaFim) { toast({ title: 'Preencha o horário de segunda a sexta', variant: 'destructive' }); return; }
     const client = await getHorarioSupabase();
     if (!client) return;
     setSaving(true);
     const payload = {
-      semana_inicio: semanaInicio,
-      semana_fim: semanaFim,
-      sabado_inicio: sabadoInicio || null,
-      sabado_fim: sabadoFim || null,
+      semana_inicio: semanaInicio, semana_fim: semanaFim,
+      sabado_inicio: sabadoInicio || null, sabado_fim: sabadoFim || null,
     };
-    const op = horario
-      ? client.from('horario_comercial').update(payload).eq('id', horario.id)
-      : client.from('horario_comercial').insert(payload);
+    const op = horario ? client.from('horario_comercial').update(payload).eq('id', horario.id) : client.from('horario_comercial').insert(payload);
     const { error } = await op;
     setSaving(false);
-    if (error) {
-      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
-      return;
-    }
+    if (error) { toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' }); return; }
     toast({ title: 'Horário salvo com sucesso' });
-    notifyChange();
-    loadAll();
+    notifyChange(); loadAll();
   };
 
   const adicionarBloqueio = async () => {
-    if (!novaData) {
-      toast({ title: 'Informe a data do bloqueio', variant: 'destructive' });
-      return;
-    }
-    if (!diaTodo && (!horaInicio || !horaFim)) {
-      toast({ title: 'Informe hora inicial e final do bloqueio parcial', variant: 'destructive' });
-      return;
-    }
+    if (!novaData) { toast({ title: 'Informe a data do bloqueio', variant: 'destructive' }); return; }
+    if (!diaTodo && (!horaInicio || !horaFim)) { toast({ title: 'Informe hora inicial e final do bloqueio parcial', variant: 'destructive' }); return; }
     const client = await getHorarioSupabase();
     if (!client) return;
     setAdding(true);
     const payload = {
-      data: novaData,
-      dia_todo: diaTodo,
+      data: novaData, dia_todo: diaTodo,
       hora_inicio: diaTodo ? null : horaInicio,
       hora_fim: diaTodo ? null : horaFim,
       motivo: wrapMotivo(novoMotivo),
     };
     const { data, error } = await client.from('bloqueios').insert(payload).select().single();
     setAdding(false);
-    if (error) {
-      toast({ title: 'Erro ao adicionar bloqueio', description: error.message, variant: 'destructive' });
-      return;
-    }
-    // Atualização otimista — aparece instantâneo na lista
+    if (error) { toast({ title: 'Erro ao adicionar bloqueio', description: error.message, variant: 'destructive' }); return; }
     setBloqueios((prev) => [...prev, data as Bloqueio].sort((a, b) => a.data.localeCompare(b.data)));
+    await logHist('criado', data as Bloqueio, null, data);
     toast({ title: 'Bloqueio adicionado' });
-    setNovaData('');
-    setNovoMotivo('');
-    setHoraInicio('');
-    setHoraFim('');
-    setDiaTodo(true);
+    setNovaData(''); setNovoMotivo(''); setHoraInicio(''); setHoraFim(''); setDiaTodo(true);
     notifyChange();
   };
 
   const salvarEdicaoBloqueio = async () => {
     if (!editing) return;
-    if (!editing.dia_todo && (!editing.hora_inicio || !editing.hora_fim)) {
-      toast({ title: 'Informe hora inicial e final', variant: 'destructive' });
-      return;
-    }
+    if (!editing.dia_todo && (!editing.hora_inicio || !editing.hora_fim)) { toast({ title: 'Informe hora inicial e final', variant: 'destructive' }); return; }
     const client = await getHorarioSupabase();
     if (!client) return;
     setSavingEdit(true);
+    const antes = bloqueios.find((x) => x.id === editing.id);
     const payload = {
-      data: editing.data,
-      dia_todo: editing.dia_todo,
+      data: editing.data, dia_todo: editing.dia_todo,
       hora_inicio: editing.dia_todo ? null : editing.hora_inicio,
       hora_fim: editing.dia_todo ? null : editing.hora_fim,
       motivo: wrapMotivo(editing.motivo),
     };
     const { error } = await client.from('bloqueios').update(payload).eq('id', editing.id);
     setSavingEdit(false);
-    if (error) {
-      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
-      return;
-    }
-    // Atualização otimista
-    setBloqueios((prev) =>
-      prev.map((b) => (b.id === editing.id ? { ...editing, ...payload } : b)).sort((a, b) => a.data.localeCompare(b.data))
-    );
+    if (error) { toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' }); return; }
+    const novo = { ...editing, ...payload } as Bloqueio;
+    setBloqueios((prev) => prev.map((b) => (b.id === editing.id ? novo : b)).sort((a, b) => a.data.localeCompare(b.data)));
+    await logHist('editado', novo, antes, novo);
     toast({ title: 'Bloqueio atualizado' });
     setEditing(null);
     notifyChange();
@@ -295,18 +348,45 @@ export default function AdminHorarioComercial() {
     if (!client) return;
     setDeleting(true);
     const prev = bloqueios;
-    const id = confirmDelete.id;
-    setBloqueios((p) => p.filter((b) => b.id !== id)); // otimista
-    const { error } = await client.from('bloqueios').delete().eq('id', id);
+    const alvo = confirmDelete;
+    setBloqueios((p) => p.filter((b) => b.id !== alvo.id));
+    const { error } = await client.from('bloqueios').delete().eq('id', alvo.id);
     setDeleting(false);
-    if (error) {
-      setBloqueios(prev); // rollback
-      toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
-      return;
-    }
+    if (error) { setBloqueios(prev); toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' }); return; }
+    await logHist('excluido', alvo, alvo, null);
     toast({ title: 'Bloqueio removido' });
     setConfirmDelete(null);
     notifyChange();
+  };
+
+  const salvarCleanup = async () => {
+    setSavingCleanup(true);
+    const { data, error } = await supabase.rpc('set_horario_cleanup_schedule', {
+      p_hour: cleanupHour, p_minute: cleanupMinute, p_enabled: cleanupEnabled,
+    });
+    setSavingCleanup(false);
+    if (error) { toast({ title: 'Erro ao salvar agendamento', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Agendamento atualizado', description: cleanupEnabled ? `Rodará todo dia às ${String(cleanupHour).padStart(2,'0')}:${String(cleanupMinute).padStart(2,'0')} (Brasília)` : 'Cron desativado' });
+    loadCleanupCfg();
+  };
+
+  const executarLimpezaAgora = async () => {
+    setRunningCleanup(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('horario-bloqueios-cleanup', { body: { source: 'manual' } });
+      if (error) throw error;
+      const d: any = data;
+      toast({
+        title: d?.ok ? `Limpeza concluída: ${d.deleted} excluído(s)` : 'Falha na limpeza',
+        description: d?.error || `Total vencidos: ${d?.total_vencidos ?? 0}`,
+        variant: d?.ok ? 'default' : 'destructive',
+      });
+      loadAll();
+      loadHistorico();
+      loadCleanupCfg();
+    } catch (e: any) {
+      toast({ title: 'Erro ao executar limpeza', description: e.message, variant: 'destructive' });
+    } finally { setRunningCleanup(false); }
   };
 
   const hasCfg = !!cfgUrl && !!cfgKey;
@@ -321,13 +401,12 @@ export default function AdminHorarioComercial() {
           <Clock className="h-6 w-6 text-amber-500" />
           <div>
             <h1 className="text-xl font-bold">Horário Comercial</h1>
-            <p className="text-xs text-muted-foreground">Configure o expediente e bloqueios de datas</p>
+            <p className="text-xs text-muted-foreground">Configure o expediente, bloqueios, limpeza automática e veja o histórico</p>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6 max-w-3xl space-y-6">
-        {/* Conexão Supabase externo — colapsa quando conectado */}
         <Collapsible open={cfgOpen} onOpenChange={setCfgOpen}>
           <Card>
             <CollapsibleTrigger asChild>
@@ -349,17 +428,13 @@ export default function AdminHorarioComercial() {
                     </span>
                     {cfgOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                   </CardTitle>
-                  {!cfgOpen && hasCfg && (
-                    <CardDescription className="truncate">{cfgUrl}</CardDescription>
-                  )}
+                  {!cfgOpen && hasCfg && <CardDescription className="truncate">{cfgUrl}</CardDescription>}
                 </CardHeader>
               </button>
             </CollapsibleTrigger>
             <CollapsibleContent>
               <CardContent className="space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  URL: <strong>Settings → API</strong> (<code>https://SEU-REF.supabase.co</code>). Anon Key: <strong>Settings → API Keys → anon public</strong>.
-                </p>
+                <p className="text-xs text-muted-foreground">URL e Anon Key do projeto Supabase externo.</p>
                 <div>
                   <Label className="text-xs">Project URL</Label>
                   <Input value={cfgUrl} onChange={(e) => setCfgUrl(e.target.value)} placeholder="https://xxxxxx.supabase.co" />
@@ -411,27 +486,15 @@ export default function AdminHorarioComercial() {
                 <div>
                   <h3 className="text-sm font-semibold mb-2">Segunda a Sexta</h3>
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label className="text-xs">Hora inicial</Label>
-                      <Input type="time" value={semanaInicio} onChange={(e) => setSemanaInicio(e.target.value)} />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Hora final</Label>
-                      <Input type="time" value={semanaFim} onChange={(e) => setSemanaFim(e.target.value)} />
-                    </div>
+                    <div><Label className="text-xs">Hora inicial</Label><Input type="time" value={semanaInicio} onChange={(e) => setSemanaInicio(e.target.value)} /></div>
+                    <div><Label className="text-xs">Hora final</Label><Input type="time" value={semanaFim} onChange={(e) => setSemanaFim(e.target.value)} /></div>
                   </div>
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold mb-2">Sábado</h3>
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label className="text-xs">Hora inicial</Label>
-                      <Input type="time" value={sabadoInicio} onChange={(e) => setSabadoInicio(e.target.value)} />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Hora final</Label>
-                      <Input type="time" value={sabadoFim} onChange={(e) => setSabadoFim(e.target.value)} />
-                    </div>
+                    <div><Label className="text-xs">Hora inicial</Label><Input type="time" value={sabadoInicio} onChange={(e) => setSabadoInicio(e.target.value)} /></div>
+                    <div><Label className="text-xs">Hora final</Label><Input type="time" value={sabadoFim} onChange={(e) => setSabadoFim(e.target.value)} /></div>
                   </div>
                 </div>
                 <Button onClick={salvarHorario} disabled={saving} className="gap-2">
@@ -451,10 +514,7 @@ export default function AdminHorarioComercial() {
               <CardContent className="space-y-5">
                 <div className="space-y-3 p-3 rounded-lg border bg-muted/20">
                   <div className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-3">
-                    <div>
-                      <Label className="text-xs">Data</Label>
-                      <Input type="date" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
-                    </div>
+                    <div><Label className="text-xs">Data</Label><Input type="date" value={novaData} onChange={(e) => setNovaData(e.target.value)} /></div>
                     <div>
                       <Label className="text-xs">Motivo (opcional) — salvo como <code className="text-[10px]">Motivo: (texto)</code></Label>
                       <Input value={novoMotivo} onChange={(e) => setNovoMotivo(e.target.value)} placeholder="Ex.: Feriado nacional" />
@@ -466,14 +526,8 @@ export default function AdminHorarioComercial() {
                   </div>
                   {!diaTodo && (
                     <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-xs">Hora inicial</Label>
-                        <Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Hora final</Label>
-                        <Input type="time" value={horaFim} onChange={(e) => setHoraFim(e.target.value)} />
-                      </div>
+                      <div><Label className="text-xs">Hora inicial</Label><Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} /></div>
+                      <div><Label className="text-xs">Hora final</Label><Input type="time" value={horaFim} onChange={(e) => setHoraFim(e.target.value)} /></div>
                     </div>
                   )}
                   <Button onClick={adicionarBloqueio} disabled={adding} className="gap-2">
@@ -488,7 +542,7 @@ export default function AdminHorarioComercial() {
                   ) : (
                     bloqueios.map((b) => (
                       <div key={b.id} className="flex items-center justify-between p-3 hover:bg-muted/40">
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <div className="font-medium text-sm">
                             {format(parseISO(b.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                             {' · '}
@@ -496,9 +550,9 @@ export default function AdminHorarioComercial() {
                               {b.dia_todo ? 'Dia todo' : `${trim(b.hora_inicio)} – ${trim(b.hora_fim)}`}
                             </span>
                           </div>
-                          {b.motivo && <div className="text-xs text-muted-foreground">{b.motivo}</div>}
+                          {b.motivo && <div className="text-xs text-muted-foreground break-words">{b.motivo}</div>}
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 shrink-0">
                           <Button variant="ghost" size="icon" onClick={() => setEditing({ ...b, motivo: unwrapMotivo(b.motivo) })}>
                             <Pencil className="h-4 w-4 text-blue-500" />
                           </Button>
@@ -512,6 +566,122 @@ export default function AdminHorarioComercial() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Limpeza automática */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Timer className="h-5 w-5 text-purple-500" /> Limpeza Automática
+                </CardTitle>
+                <CardDescription>
+                  Cron diário que apaga bloqueios vencidos no Supabase externo e registra cada exclusão no histórico aqui.
+                  Dia todo: apaga no dia seguinte. Parcial: apaga após a hora final passar.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Switch id="cleanup-on" checked={cleanupEnabled} onCheckedChange={setCleanupEnabled} />
+                  <Label htmlFor="cleanup-on" className="text-sm cursor-pointer">Cron ativo</Label>
+                </div>
+                <div className="grid grid-cols-2 gap-3 max-w-xs">
+                  <div>
+                    <Label className="text-xs">Hora (Brasília)</Label>
+                    <Input type="number" min={0} max={23} value={cleanupHour} onChange={(e) => setCleanupHour(Math.min(23, Math.max(0, +e.target.value || 0)))} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Minuto</Label>
+                    <Input type="number" min={0} max={59} value={cleanupMinute} onChange={(e) => setCleanupMinute(Math.min(59, Math.max(0, +e.target.value || 0)))} />
+                  </div>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <Button onClick={salvarCleanup} disabled={savingCleanup} className="gap-2">
+                    {savingCleanup ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Salvar agendamento
+                  </Button>
+                  <Button variant="outline" onClick={executarLimpezaAgora} disabled={runningCleanup} className="gap-2">
+                    {runningCleanup ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
+                    Executar agora
+                  </Button>
+                </div>
+                {cleanupLastRun && (
+                  <div className="text-xs text-muted-foreground">
+                    Última execução: {format(parseISO(cleanupLastRun), "dd/MM/yyyy HH:mm:ss")} · {cleanupLastDeleted ?? 0} bloqueio(s) excluído(s)
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Histórico */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-start justify-between gap-2 flex-wrap">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <History className="h-5 w-5 text-indigo-500" /> Histórico
+                    </CardTitle>
+                    <CardDescription>Quem criou, editou ou excluiu cada bloqueio (e o que o cron apagou).</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Select value={filtroAcao} onValueChange={setFiltroAcao}>
+                      <SelectTrigger className="h-8 w-[130px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas ações</SelectItem>
+                        <SelectItem value="criado">Criado</SelectItem>
+                        <SelectItem value="editado">Editado</SelectItem>
+                        <SelectItem value="excluido">Excluído</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={filtroOrigem} onValueChange={setFiltroOrigem}>
+                      <SelectTrigger className="h-8 w-[130px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas origens</SelectItem>
+                        <SelectItem value="manual">Manual</SelectItem>
+                        <SelectItem value="cron">Cron</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button variant="outline" size="sm" onClick={loadHistorico} className="gap-2">
+                      <RefreshCw className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loadingHist ? (
+                  <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+                ) : historico.length === 0 ? (
+                  <div className="p-6 text-center text-sm text-muted-foreground">Nenhum registro ainda.</div>
+                ) : (
+                  <div className="border rounded-lg divide-y max-h-[480px] overflow-y-auto">
+                    {historico.map((h) => {
+                      const cor = h.acao === 'criado' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : h.acao === 'editado' ? 'bg-blue-500/10 text-blue-700 dark:text-blue-400' : 'bg-red-500/10 text-red-700 dark:text-red-400';
+                      return (
+                        <div key={h.id} className="p-3 text-sm hover:bg-muted/30">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline" className={cor}>{h.acao}</Badge>
+                            <Badge variant="outline" className="gap-1">
+                              {h.origem === 'cron' ? <Bot className="h-3 w-3" /> : <UserIcon className="h-3 w-3" />}
+                              {h.origem}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">{format(parseISO(h.created_at), "dd/MM/yyyy HH:mm:ss")}</span>
+                          </div>
+                          <div className="mt-1 text-xs">
+                            <span className="font-medium">{h.user_nome || '—'}</span>
+                            {h.user_email && <span className="text-muted-foreground"> ({h.user_email})</span>}
+                          </div>
+                          {h.data_bloqueio && (
+                            <div className="mt-1 text-xs text-muted-foreground break-words">
+                              Bloqueio: {format(parseISO(h.data_bloqueio), "dd/MM/yyyy")}
+                              {' · '}{h.dia_todo ? 'Dia todo' : `${trim(h.hora_inicio)}–${trim(h.hora_fim)}`}
+                              {h.motivo && <> · {h.motivo}</>}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </>
         )}
       </main>
@@ -519,38 +689,20 @@ export default function AdminHorarioComercial() {
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Pencil className="h-5 w-5 text-blue-500" /> Editar Bloqueio
-            </DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Pencil className="h-5 w-5 text-blue-500" /> Editar Bloqueio</DialogTitle>
           </DialogHeader>
           {editing && (
             <div className="space-y-4">
-              <div>
-                <Label className="text-xs">Data</Label>
-                <Input type="date" value={editing.data} onChange={(e) => setEditing({ ...editing, data: e.target.value })} />
-              </div>
-              <div>
-                <Label className="text-xs">Motivo (opcional)</Label>
-                <Input value={editing.motivo || ''} onChange={(e) => setEditing({ ...editing, motivo: e.target.value })} />
-              </div>
+              <div><Label className="text-xs">Data</Label><Input type="date" value={editing.data} onChange={(e) => setEditing({ ...editing, data: e.target.value })} /></div>
+              <div><Label className="text-xs">Motivo (opcional)</Label><Input value={editing.motivo || ''} onChange={(e) => setEditing({ ...editing, motivo: e.target.value })} /></div>
               <div className="flex items-center gap-3">
-                <Switch
-                  checked={editing.dia_todo}
-                  onCheckedChange={(v) => setEditing({ ...editing, dia_todo: v, hora_inicio: v ? null : editing.hora_inicio, hora_fim: v ? null : editing.hora_fim })}
-                  id="edit-dia-todo"
-                />
+                <Switch checked={editing.dia_todo} onCheckedChange={(v) => setEditing({ ...editing, dia_todo: v, hora_inicio: v ? null : editing.hora_inicio, hora_fim: v ? null : editing.hora_fim })} id="edit-dia-todo" />
                 <Label htmlFor="edit-dia-todo" className="text-sm cursor-pointer">Bloquear o dia todo</Label>
               </div>
               {!editing.dia_todo && (
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Hora inicial</Label>
-                    <Input type="time" value={trim(editing.hora_inicio)} onChange={(e) => setEditing({ ...editing, hora_inicio: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Hora final</Label>
-                    <Input type="time" value={trim(editing.hora_fim)} onChange={(e) => setEditing({ ...editing, hora_fim: e.target.value })} />
-                  </div>
+                  <div><Label className="text-xs">Hora inicial</Label><Input type="time" value={trim(editing.hora_inicio)} onChange={(e) => setEditing({ ...editing, hora_inicio: e.target.value })} /></div>
+                  <div><Label className="text-xs">Hora final</Label><Input type="time" value={trim(editing.hora_fim)} onChange={(e) => setEditing({ ...editing, hora_fim: e.target.value })} /></div>
                 </div>
               )}
             </div>
@@ -565,13 +717,10 @@ export default function AdminHorarioComercial() {
         </DialogContent>
       </Dialog>
 
-      {/* Confirmação de exclusão (modal interno) */}
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && !deleting && setConfirmDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Trash2 className="h-5 w-5 text-red-500" /> Excluir bloqueio?
-            </AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center gap-2"><Trash2 className="h-5 w-5 text-red-500" /> Excluir bloqueio?</AlertDialogTitle>
             <AlertDialogDescription>
               {confirmDelete && (
                 <>
