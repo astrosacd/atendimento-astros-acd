@@ -500,13 +500,3 @@ export default function AdminHorarioComercial() {
     </div>
   );
 }
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </main>
-    </div>
-  );
-}
