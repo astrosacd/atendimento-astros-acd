@@ -4,7 +4,8 @@ import { Clock, CalendarX } from 'lucide-react';
 import { useBusinessHoursStatus } from '@/hooks/useBusinessHoursStatus';
 
 const trim = (t: string | null | undefined) => (t ? t.slice(0, 5) : '');
-const fmtMotivo = (m?: string | null) => (m && m.trim() ? ` Motivo: (${m.trim()})` : '');
+// Motivo já vem do banco no padrão "Motivo: (texto)" — só exibe
+const showMotivo = (m?: string | null) => (m && m.trim() ? m.trim() : '');
 
 export const BusinessHoursStatusCard = () => {
   const status = useBusinessHoursStatus();
@@ -64,7 +65,7 @@ export const BusinessHoursStatusCard = () => {
                 <span className="font-medium text-foreground/80">
                   {trim(b.hora_inicio)}–{trim(b.hora_fim)}
                 </span>
-                <span>{fmtMotivo(b.motivo).trim() || '—'}</span>
+                <span>{showMotivo(b.motivo) || '—'}</span>
               </div>
             ))}
           </div>

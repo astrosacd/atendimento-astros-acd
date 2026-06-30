@@ -8,11 +8,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ArrowLeft, Clock, CalendarX, Trash2, Plus, Save, Loader2, Link2, KeyRound, CheckCircle2, AlertTriangle, RefreshCw, Pencil, ChevronDown, ChevronRight } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getHorarioSupabase, getCachedHorarioConfig, saveHorarioConfig } from '@/integrations/horario-supabase/client';
+
+// Padrão do motivo no banco: "Motivo: (texto)" — wrap/unwrap entre input e DB
+const wrapMotivo = (raw: string | null | undefined): string | null => {
+  const t = (raw || '').trim();
+  if (!t) return null;
+  // se já vem com o prefixo, não duplica
+  if (/^Motivo:\s*\(.*\)\s*$/.test(t)) return t;
+  return `Motivo: (${t})`;
+};
+const unwrapMotivo = (stored: string | null | undefined): string => {
+  if (!stored) return '';
+  const m = stored.match(/^Motivo:\s*\((.*)\)\s*$/);
+  return m ? m[1] : stored;
+};
 
 interface Horario {
   id: number;
@@ -65,6 +80,8 @@ export default function AdminHorarioComercial() {
 
   const [editing, setEditing] = useState<Bloqueio | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<Bloqueio | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const notifyChange = () => window.dispatchEvent(new CustomEvent('horario-config-changed'));
 
@@ -219,7 +236,7 @@ export default function AdminHorarioComercial() {
       dia_todo: diaTodo,
       hora_inicio: diaTodo ? null : horaInicio,
       hora_fim: diaTodo ? null : horaFim,
-      motivo: novoMotivo || null,
+      motivo: wrapMotivo(novoMotivo),
     };
     const { data, error } = await client.from('bloqueios').insert(payload).select().single();
     setAdding(false);
@@ -252,7 +269,7 @@ export default function AdminHorarioComercial() {
       dia_todo: editing.dia_todo,
       hora_inicio: editing.dia_todo ? null : editing.hora_inicio,
       hora_fim: editing.dia_todo ? null : editing.hora_fim,
-      motivo: editing.motivo || null,
+      motivo: wrapMotivo(editing.motivo),
     };
     const { error } = await client.from('bloqueios').update(payload).eq('id', editing.id);
     setSavingEdit(false);
@@ -269,19 +286,23 @@ export default function AdminHorarioComercial() {
     notifyChange();
   };
 
-  const excluirBloqueio = async (id: number) => {
-    if (!confirm('Excluir este bloqueio?')) return;
+  const confirmarExclusao = async () => {
+    if (!confirmDelete) return;
     const client = await getHorarioSupabase();
     if (!client) return;
+    setDeleting(true);
     const prev = bloqueios;
+    const id = confirmDelete.id;
     setBloqueios((p) => p.filter((b) => b.id !== id)); // otimista
     const { error } = await client.from('bloqueios').delete().eq('id', id);
+    setDeleting(false);
     if (error) {
       setBloqueios(prev); // rollback
       toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
       return;
     }
     toast({ title: 'Bloqueio removido' });
+    setConfirmDelete(null);
     notifyChange();
   };
 
@@ -432,7 +453,7 @@ export default function AdminHorarioComercial() {
                       <Input type="date" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
                     </div>
                     <div>
-                      <Label className="text-xs">Motivo (opcional)</Label>
+                      <Label className="text-xs">Motivo (opcional) — salvo como <code className="text-[10px]">Motivo: (texto)</code></Label>
                       <Input value={novoMotivo} onChange={(e) => setNovoMotivo(e.target.value)} placeholder="Ex.: Feriado nacional" />
                     </div>
                   </div>
@@ -475,10 +496,10 @@ export default function AdminHorarioComercial() {
                           {b.motivo && <div className="text-xs text-muted-foreground">{b.motivo}</div>}
                         </div>
                         <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => setEditing({ ...b })}>
+                          <Button variant="ghost" size="icon" onClick={() => setEditing({ ...b, motivo: unwrapMotivo(b.motivo) })}>
                             <Pencil className="h-4 w-4 text-blue-500" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => excluirBloqueio(b.id)}>
+                          <Button variant="ghost" size="icon" onClick={() => setConfirmDelete(b)}>
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
                         </div>
@@ -540,6 +561,35 @@ export default function AdminHorarioComercial() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmação de exclusão (modal interno) */}
+      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && !deleting && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-red-500" /> Excluir bloqueio?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDelete && (
+                <>
+                  <strong>{format(parseISO(confirmDelete.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</strong>
+                  {' · '}
+                  {confirmDelete.dia_todo ? 'Dia todo' : `${trim(confirmDelete.hora_inicio)}–${trim(confirmDelete.hora_fim)}`}
+                  {confirmDelete.motivo && <div className="mt-1 text-xs">{confirmDelete.motivo}</div>}
+                  <div className="mt-2">Esta ação não pode ser desfeita.</div>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarExclusao} disabled={deleting} className="bg-red-600 hover:bg-red-700 gap-2">
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
