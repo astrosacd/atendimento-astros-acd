@@ -6,7 +6,7 @@ import {
   UserPlus, Search, Edit, Trash2, Users, Settings, 
   LayoutDashboard, Webhook, LogOut, ChevronLeft, ChevronRight, 
   Key, FileText, CreditCard, MessageCircle, MessageSquare, ShieldCheck, Tag, Megaphone, Smartphone, Database, HelpCircle, ShoppingBag, Ticket, Sparkles, Store, BarChart3, ListTodo, FileSignature, Receipt, CalendarClock, Columns3, Crosshair, CalendarDays, Link2, Brain, Network, Package, UserCircle, Bot,
-  Instagram, History, Activity, PhoneCall
+  Instagram, History, Activity, PhoneCall, Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
