@@ -115,14 +115,20 @@ export default function AdminHorarioComercial() {
   };
 
   const testarConexao = async () => {
+    if (!cfgUrl || !cfgKey) {
+      toast({ title: 'Preencha URL e Anon Key antes de testar', variant: 'destructive' });
+      return;
+    }
     setTesting(true);
     try {
-      const client = await getHorarioSupabase(true);
-      if (!client) throw new Error('Configuração ausente');
-      const { error } = await client.from('horario_comercial').select('id').limit(1);
+      const { createClient } = await import('@supabase/supabase-js');
+      const testClient = createClient(cfgUrl.trim().replace(/\/$/, ''), cfgKey.trim(), {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { error } = await testClient.from('horario_comercial').select('id').limit(1);
       if (error) throw error;
       setConnected(true);
-      toast({ title: 'Conexão OK' });
+      toast({ title: 'Conexão OK', description: 'Clique em "Salvar conexão" para persistir.' });
     } catch (e: any) {
       setConnected(false);
       toast({ title: 'Falha na conexão', description: e.message, variant: 'destructive' });
