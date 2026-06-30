@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { getHorarioSupabase } from '@/integrations/horario-supabase/client';
 
 export interface BusinessHours {
   id: number;
@@ -20,7 +20,7 @@ export interface Bloqueio {
 
 export interface BusinessHoursStatus {
   isOpen: boolean;
-  reason: 'open' | 'closed_hours' | 'closed_sunday' | 'blocked' | 'no_config';
+  reason: 'open' | 'closed_hours' | 'closed_sunday' | 'blocked' | 'no_config' | 'no_connection';
   todayLabel: string;
   bloqueio?: Bloqueio;
   horario?: BusinessHours;
@@ -43,49 +43,76 @@ const inRange = (now: Date, start: string, end: string) => {
 
 export function useBusinessHoursStatus() {
   const [horario, setHorario] = useState<BusinessHours | null>(null);
-  const [bloqueioHoje, setBloqueioHoje] = useState<Bloqueio | null>(null);
+  const [bloqueiosHoje, setBloqueiosHoje] = useState<Bloqueio[]>([]);
   const [loading, setLoading] = useState(true);
+  const [connected, setConnected] = useState<boolean>(true);
   const [, setTick] = useState(0);
 
   const load = async () => {
+    const client = await getHorarioSupabase();
+    if (!client) {
+      setConnected(false);
+      setLoading(false);
+      return;
+    }
+    setConnected(true);
     const [{ data: h }, { data: b }] = await Promise.all([
-      supabase.from('horario_comercial' as any).select('*').order('id').limit(1).maybeSingle(),
-      supabase.from('bloqueios' as any).select('*').eq('data', todayStr()).maybeSingle(),
+      client.from('horario_comercial').select('*').order('id').limit(1).maybeSingle(),
+      client.from('bloqueios').select('*').eq('data', todayStr()),
     ]);
     setHorario((h as any) || null);
-    setBloqueioHoje((b as any) || null);
+    setBloqueiosHoje((b as any) || []);
     setLoading(false);
   };
 
   useEffect(() => {
     load();
-    const ch = supabase
-      .channel('business-hours-rt')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'horario_comercial' }, load)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bloqueios' }, load)
-      .subscribe();
-    const interval = setInterval(() => setTick((t) => t + 1), 60_000);
+    const onCfg = () => load();
+    window.addEventListener('horario-config-changed', onCfg);
+    const interval = setInterval(() => {
+      setTick((t) => t + 1);
+      load();
+    }, 60_000);
     return () => {
-      supabase.removeChannel(ch);
+      window.removeEventListener('horario-config-changed', onCfg);
       clearInterval(interval);
     };
   }, []);
 
   const compute = (): BusinessHoursStatus => {
     if (loading) return { isOpen: false, reason: 'no_config', todayLabel: '...', loading: true };
-    if (bloqueioHoje) {
+    if (!connected) {
+      return { isOpen: false, reason: 'no_connection', todayLabel: 'Supabase não configurado', loading: false };
+    }
+    const now = new Date();
+
+    // Bloqueio dia todo
+    const blocoTotal = bloqueiosHoje.find((b) => b.dia_todo);
+    if (blocoTotal) {
       return {
         isOpen: false,
         reason: 'blocked',
-        todayLabel: bloqueioHoje.motivo ? `Bloqueio: ${bloqueioHoje.motivo}` : 'Fechado por bloqueio',
-        bloqueio: bloqueioHoje,
+        todayLabel: blocoTotal.motivo ? `Bloqueio: ${blocoTotal.motivo}` : 'Fechado por bloqueio',
+        bloqueio: blocoTotal,
         horario: horario || undefined,
         loading: false,
       };
     }
+    // Bloqueio parcial ativo agora
+    const blocoParcial = bloqueiosHoje.find((b) => !b.dia_todo && b.hora_inicio && b.hora_fim && inRange(now, b.hora_inicio, b.hora_fim));
+    if (blocoParcial) {
+      return {
+        isOpen: false,
+        reason: 'blocked',
+        todayLabel: `Bloqueio ${formatTime(blocoParcial.hora_inicio)}–${formatTime(blocoParcial.hora_fim)}${blocoParcial.motivo ? `: ${blocoParcial.motivo}` : ''}`,
+        bloqueio: blocoParcial,
+        horario: horario || undefined,
+        loading: false,
+      };
+    }
+
     if (!horario) return { isOpen: false, reason: 'no_config', todayLabel: 'Sem configuração', loading: false };
-    const now = new Date();
-    const dow = now.getDay(); // 0=dom
+    const dow = now.getDay();
     if (dow === 0) {
       return { isOpen: false, reason: 'closed_sunday', todayLabel: 'Fechado (domingo)', horario, loading: false };
     }
