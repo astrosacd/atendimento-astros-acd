@@ -80,6 +80,8 @@ export default function AdminHorarioComercial() {
 
   const [editing, setEditing] = useState<Bloqueio | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<Bloqueio | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const notifyChange = () => window.dispatchEvent(new CustomEvent('horario-config-changed'));
 
