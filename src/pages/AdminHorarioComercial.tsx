@@ -430,11 +430,76 @@ export default function AdminHorarioComercial() {
                           </div>
                           {b.motivo && <div className="text-xs text-muted-foreground">{b.motivo}</div>}
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => excluirBloqueio(b.id)}>
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => setEditing({ ...b })}>
+                            <Pencil className="h-4 w-4 text-blue-500" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => excluirBloqueio(b.id)}>
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
                       </div>
                     ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </main>
+
+      {/* Dialog de edição de bloqueio */}
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-blue-500" /> Editar Bloqueio
+            </DialogTitle>
+          </DialogHeader>
+          {editing && (
+            <div className="space-y-4">
+              <div>
+                <Label className="text-xs">Data</Label>
+                <Input type="date" value={editing.data} onChange={(e) => setEditing({ ...editing, data: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs">Motivo (opcional)</Label>
+                <Input value={editing.motivo || ''} onChange={(e) => setEditing({ ...editing, motivo: e.target.value })} />
+              </div>
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={editing.dia_todo}
+                  onCheckedChange={(v) => setEditing({ ...editing, dia_todo: v, hora_inicio: v ? null : editing.hora_inicio, hora_fim: v ? null : editing.hora_fim })}
+                  id="edit-dia-todo"
+                />
+                <Label htmlFor="edit-dia-todo" className="text-sm cursor-pointer">Bloquear o dia todo</Label>
+              </div>
+              {!editing.dia_todo && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Hora inicial</Label>
+                    <Input type="time" value={trim(editing.hora_inicio)} onChange={(e) => setEditing({ ...editing, hora_inicio: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Hora final</Label>
+                    <Input type="time" value={trim(editing.hora_fim)} onChange={(e) => setEditing({ ...editing, hora_fim: e.target.value })} />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+            <Button onClick={salvarEdicaoBloqueio} disabled={savingEdit} className="gap-2">
+              {savingEdit ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Salvar alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
                   )}
                 </div>
               </CardContent>
