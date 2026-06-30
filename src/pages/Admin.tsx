@@ -19,6 +19,7 @@ import {
   Package,
   Activity,
   Server,
+  Clock,
 } from 'lucide-react';
 
 const Admin = () => {
@@ -99,6 +100,14 @@ const Admin = () => {
       icon: Server,
       path: '/admin/mcp',
       color: 'from-orange-500/20 to-orange-600/10',
+    },
+    {
+      key: 'horarioComercial',
+      title: 'Horário Comercial',
+      description: 'Configure o expediente, bloqueios de datas e a exibição do status no Dashboard.',
+      icon: Clock,
+      path: '/admin/horario-comercial',
+      color: 'from-amber-500/20 to-amber-600/10',
     },
   ];
 
@@ -188,6 +197,7 @@ const Admin = () => {
               if (module.key === 'systemPermissions') return hasPermission('manage_permissions');
               if (module.key === 'systemHealth') return hasPermission('manage_system_health');
               if (module.key === 'mcp') return hasPermission('view_mcp_config');
+              if (module.key === 'horarioComercial') return hasPermission('manage_settings');
               return true;
             })
             .map((module) => (
