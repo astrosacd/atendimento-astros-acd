@@ -9706,6 +9706,7 @@ export type Database = {
         }[]
       }
       get_horario_cleanup_config: { Args: never; Returns: Json }
+      get_horario_cleanup_last_run: { Args: never; Returns: Json }
       get_instagram_spy_cron_schedule: {
         Args: never
         Returns: {
