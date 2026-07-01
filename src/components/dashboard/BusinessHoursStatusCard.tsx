@@ -25,7 +25,7 @@ export const BusinessHoursStatusCard = () => {
   const [dismissedAt, setDismissedAt] = useState<string | null>(() => localStorage.getItem(DISMISS_KEY));
 
   const loadCleanup = async () => {
-    const { data } = await supabase.rpc('get_horario_cleanup_last_run');
+    const { data } = await (supabase as any).rpc('get_horario_cleanup_last_run');
     if (!data) return;
     const c: any = data;
     setCronLastRun(c.last_run_at ?? null);
