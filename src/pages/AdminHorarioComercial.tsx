@@ -763,7 +763,7 @@ export default function AdminHorarioComercial() {
           {editing && (
             <div className="space-y-4">
               <div><Label className="text-xs">Data</Label><Input type="date" value={editing.data} onChange={(e) => setEditing({ ...editing, data: e.target.value })} /></div>
-              <div><Label className="text-xs">Motivo (opcional)</Label><Input value={editing.motivo || ''} onChange={(e) => setEditing({ ...editing, motivo: e.target.value })} /></div>
+              <div><Label className="text-xs">Motivo <span className="text-red-500">*</span></Label><Input value={editing.motivo || ''} onChange={(e) => setEditing({ ...editing, motivo: e.target.value })} required /></div>
               <div className="flex items-center gap-3">
                 <Switch checked={editing.dia_todo} onCheckedChange={(v) => setEditing({ ...editing, dia_todo: v, hora_inicio: v ? null : editing.hora_inicio, hora_fim: v ? null : editing.hora_fim })} id="edit-dia-todo" />
                 <Label htmlFor="edit-dia-todo" className="text-sm cursor-pointer">Bloquear o dia todo</Label>
