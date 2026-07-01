@@ -156,14 +156,54 @@ export default function AdminHorarioComercial() {
     }
   };
 
-  const loadHistorico = async () => {
-    setLoadingHist(true);
-    let q = supabase.from('bloqueios_historico').select('*').order('created_at', { ascending: false }).limit(100);
+  const buildHistQuery = (from: number, to: number) => {
+    let q = supabase
+      .from('bloqueios_historico')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, to);
     if (filtroAcao !== 'all') q = q.eq('acao', filtroAcao);
     if (filtroOrigem !== 'all') q = q.eq('origem', filtroOrigem);
-    const { data, error } = await q;
+    return q;
+  };
+
+  const loadHistorico = async () => {
+    setLoadingHist(true);
+    const { data, error, count } = await buildHistQuery(0, HIST_PAGE - 1);
     setLoadingHist(false);
-    if (!error) setHistorico((data as any) || []);
+    if (error) return;
+    const rows = (data as any) || [];
+    setHistorico(rows);
+    setHistTotal(count || 0);
+    setHistHasMore((count || 0) > rows.length);
+  };
+
+  const loadMoreHistorico = async () => {
+    setLoadingMoreHist(true);
+    const from = historico.length;
+    const to = from + HIST_PAGE - 1;
+    const { data, error, count } = await buildHistQuery(from, to);
+    setLoadingMoreHist(false);
+    if (error) return;
+    const novos = (data as any) || [];
+    const merged = [...historico, ...novos];
+    setHistorico(merged);
+    setHistTotal(count || merged.length);
+    setHistHasMore((count || merged.length) > merged.length);
+  };
+
+  const limparHistoricoAntigo = async () => {
+    setPurging(true);
+    const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    const { error, count } = await supabase
+      .from('bloqueios_historico')
+      .delete({ count: 'exact' })
+      .lt('created_at', cutoff);
+    setPurging(false);
+    setConfirmPurge(false);
+    if (error) { toast({ title: 'Erro ao limpar histórico', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Histórico limpo', description: `${count ?? 0} registro(s) com mais de 90 dias removido(s).` });
+    loadHistorico();
   };
 
   const loadCleanupCfg = async () => {
