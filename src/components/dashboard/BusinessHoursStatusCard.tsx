@@ -103,6 +103,23 @@ export const BusinessHoursStatusCard = () => {
           </span>
         </div>
 
+        {showCronNotif && cronLastRun && (
+          <div className="mt-3 flex items-start gap-2 rounded-md border border-indigo-500/30 bg-indigo-500/10 p-2 pr-1">
+            <Bot className="h-4 w-4 mt-0.5 text-indigo-500 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                Limpeza automática executada
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                {cronLastDeleted} bloqueio(s) removido(s) · {format(parseISO(cronLastRun), "dd/MM 'às' HH:mm")}
+              </div>
+            </div>
+            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={dismissCronNotif} title="Dispensar">
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
+
         {/* Bloqueios parciais agendados para hoje */}
         {parciaisFuturos.length > 0 && (
           <div className="mt-3 space-y-1.5 border-t border-amber-500/20 pt-2">
