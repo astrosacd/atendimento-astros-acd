@@ -811,6 +811,24 @@ export default function AdminHorarioComercial() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={confirmPurge} onOpenChange={(o) => !o && !purging && setConfirmPurge(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><Trash2 className="h-5 w-5 text-red-500" /> Limpar histórico antigo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todos os registros do histórico com mais de <strong>90 dias</strong> serão apagados permanentemente. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={purging}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={limparHistoricoAntigo} disabled={purging} className="bg-red-600 hover:bg-red-700 gap-2">
+              {purging ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Confirmar limpeza
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
