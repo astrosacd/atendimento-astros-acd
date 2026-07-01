@@ -687,8 +687,18 @@ export default function AdminHorarioComercial() {
                         <SelectItem value="cron">Cron</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button variant="outline" size="sm" onClick={loadHistorico} className="gap-2">
+                    <Button variant="outline" size="sm" onClick={loadHistorico} className="gap-2" title="Recarregar">
                       <RefreshCw className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setConfirmPurge(true)}
+                      className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-500/10 border-red-500/30"
+                      title="Limpar registros com mais de 90 dias"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      Limpar &gt; 90d
                     </Button>
                   </div>
                 </div>
@@ -699,34 +709,45 @@ export default function AdminHorarioComercial() {
                 ) : historico.length === 0 ? (
                   <div className="p-6 text-center text-sm text-muted-foreground">Nenhum registro ainda.</div>
                 ) : (
-                  <div className="border rounded-lg divide-y max-h-[480px] overflow-y-auto">
-                    {historico.map((h) => {
-                      const cor = h.acao === 'criado' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : h.acao === 'editado' ? 'bg-blue-500/10 text-blue-700 dark:text-blue-400' : 'bg-red-500/10 text-red-700 dark:text-red-400';
-                      return (
-                        <div key={h.id} className="p-3 text-sm hover:bg-muted/30">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="outline" className={cor}>{h.acao}</Badge>
-                            <Badge variant="outline" className="gap-1">
-                              {h.origem === 'cron' ? <Bot className="h-3 w-3" /> : <UserIcon className="h-3 w-3" />}
-                              {h.origem}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">{format(parseISO(h.created_at), "dd/MM/yyyy HH:mm:ss")}</span>
-                          </div>
-                          <div className="mt-1 text-xs">
-                            <span className="font-medium">{h.user_nome || '—'}</span>
-                            {h.user_email && <span className="text-muted-foreground"> ({h.user_email})</span>}
-                          </div>
-                          {h.data_bloqueio && (
-                            <div className="mt-1 text-xs text-muted-foreground break-words">
-                              Bloqueio: {format(parseISO(h.data_bloqueio), "dd/MM/yyyy")}
-                              {' · '}{h.dia_todo ? 'Dia todo' : `${trim(h.hora_inicio)}–${trim(h.hora_fim)}`}
-                              {h.motivo && <> · {h.motivo}</>}
+                  <>
+                    <div className="border rounded-lg divide-y max-h-[480px] overflow-y-auto">
+                      {historico.map((h) => {
+                        const cor = h.acao === 'criado' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : h.acao === 'editado' ? 'bg-blue-500/10 text-blue-700 dark:text-blue-400' : 'bg-red-500/10 text-red-700 dark:text-red-400';
+                        return (
+                          <div key={h.id} className="p-3 text-sm hover:bg-muted/30">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge variant="outline" className={cor}>{h.acao}</Badge>
+                              <Badge variant="outline" className="gap-1">
+                                {h.origem === 'cron' ? <Bot className="h-3 w-3" /> : <UserIcon className="h-3 w-3" />}
+                                {h.origem}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">{format(parseISO(h.created_at), "dd/MM/yyyy HH:mm:ss")}</span>
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                            <div className="mt-1 text-xs">
+                              <span className="font-medium">{h.user_nome || '—'}</span>
+                              {h.user_email && <span className="text-muted-foreground"> ({h.user_email})</span>}
+                            </div>
+                            {h.data_bloqueio && (
+                              <div className="mt-1 text-xs text-muted-foreground break-words">
+                                Bloqueio: {format(parseISO(h.data_bloqueio), "dd/MM/yyyy")}
+                                {' · '}{h.dia_todo ? 'Dia todo' : `${trim(h.hora_inicio)}–${trim(h.hora_fim)}`}
+                                {h.motivo && <> · {h.motivo}</>}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                      <span>Mostrando {historico.length} de {histTotal}</span>
+                      {histHasMore && (
+                        <Button variant="outline" size="sm" onClick={loadMoreHistorico} disabled={loadingMoreHist} className="gap-2">
+                          {loadingMoreHist ? <Loader2 className="h-3 w-3 animate-spin" /> : <ChevronDown className="h-3 w-3" />}
+                          Carregar mais
+                        </Button>
+                      )}
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
