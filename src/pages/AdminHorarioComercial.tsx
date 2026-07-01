@@ -564,8 +564,8 @@ export default function AdminHorarioComercial() {
                   <div className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-3">
                     <div><Label className="text-xs">Data</Label><Input type="date" value={novaData} onChange={(e) => setNovaData(e.target.value)} /></div>
                     <div>
-                      <Label className="text-xs">Motivo (opcional) — salvo como <code className="text-[10px]">Motivo: (texto)</code></Label>
-                      <Input value={novoMotivo} onChange={(e) => setNovoMotivo(e.target.value)} placeholder="Ex.: Feriado nacional" />
+                      <Label className="text-xs">Motivo <span className="text-red-500">*</span> — salvo como <code className="text-[10px]">Motivo: (texto)</code></Label>
+                      <Input value={novoMotivo} onChange={(e) => setNovoMotivo(e.target.value)} placeholder="Ex.: Feriado nacional" required />
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
