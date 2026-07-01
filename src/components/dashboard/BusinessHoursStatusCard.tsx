@@ -1,14 +1,61 @@
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CalendarX } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Clock, CalendarX, Bot, X } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import { useBusinessHoursStatus } from '@/hooks/useBusinessHoursStatus';
+import { supabase } from '@/integrations/supabase/client';
 
 const trim = (t: string | null | undefined) => (t ? t.slice(0, 5) : '');
 // Motivo já vem do banco no padrão "Motivo: (texto)" — só exibe
 const showMotivo = (m?: string | null) => (m && m.trim() ? m.trim() : '');
 
+// Notificação: mostrar quando cron apagou pelo menos N nas últimas 24h
+const CRON_MIN_DELETED = 1;
+const CRON_WINDOW_MS = 24 * 60 * 60 * 1000;
+const DISMISS_KEY = 'bh_cron_notif_dismissed_at';
+
 export const BusinessHoursStatusCard = () => {
   const status = useBusinessHoursStatus();
+
+  // Notificação da última execução do cron de limpeza
+  const [cronLastRun, setCronLastRun] = useState<string | null>(null);
+  const [cronLastDeleted, setCronLastDeleted] = useState<number>(0);
+  const [dismissedAt, setDismissedAt] = useState<string | null>(() => localStorage.getItem(DISMISS_KEY));
+
+  const loadCleanup = async () => {
+    const { data } = await (supabase as any).rpc('get_horario_cleanup_last_run');
+    if (!data) return;
+    const c: any = data;
+    setCronLastRun(c.last_run_at ?? null);
+    setCronLastDeleted(c.last_run_deleted ?? 0);
+  };
+
+  useEffect(() => {
+    loadCleanup();
+    // realtime: recarrega quando o cron insere no histórico
+    const ch = supabase
+      .channel('bh-cron-notif')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bloqueios_historico', filter: 'origem=eq.cron' }, () => loadCleanup())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
+
+  const showCronNotif = (() => {
+    if (!cronLastRun) return false;
+    if (cronLastDeleted < CRON_MIN_DELETED) return false;
+    const runMs = new Date(cronLastRun).getTime();
+    if (Date.now() - runMs > CRON_WINDOW_MS) return false;
+    if (dismissedAt && new Date(dismissedAt).getTime() >= runMs) return false;
+    return true;
+  })();
+
+  const dismissCronNotif = () => {
+    const now = new Date().toISOString();
+    localStorage.setItem(DISMISS_KEY, now);
+    setDismissedAt(now);
+  };
 
   const dotColor = status.isOpen ? 'bg-emerald-500' : 'bg-red-500';
   const dotRing = status.isOpen ? 'bg-emerald-500/30' : 'bg-red-500/30';
@@ -55,6 +102,23 @@ export const BusinessHoursStatusCard = () => {
             {status.loading ? 'Carregando...' : status.todayLabel}
           </span>
         </div>
+
+        {showCronNotif && cronLastRun && (
+          <div className="mt-3 flex items-start gap-2 rounded-md border border-indigo-500/30 bg-indigo-500/10 p-2 pr-1">
+            <Bot className="h-4 w-4 mt-0.5 text-indigo-500 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                Limpeza automática executada
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                {cronLastDeleted} bloqueio(s) removido(s) · {format(parseISO(cronLastRun), "dd/MM 'às' HH:mm")}
+              </div>
+            </div>
+            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={dismissCronNotif} title="Dispensar">
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
 
         {/* Bloqueios parciais agendados para hoje */}
         {parciaisFuturos.length > 0 && (

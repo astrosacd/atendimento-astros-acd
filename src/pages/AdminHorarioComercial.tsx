@@ -114,11 +114,17 @@ export default function AdminHorarioComercial() {
   const [savingCleanup, setSavingCleanup] = useState(false);
   const [runningCleanup, setRunningCleanup] = useState(false);
 
-  // histórico
+  // histórico (paginação real)
+  const HIST_PAGE = 50;
   const [historico, setHistorico] = useState<HistoricoItem[]>([]);
   const [filtroAcao, setFiltroAcao] = useState<string>('all');
   const [filtroOrigem, setFiltroOrigem] = useState<string>('all');
   const [loadingHist, setLoadingHist] = useState(false);
+  const [loadingMoreHist, setLoadingMoreHist] = useState(false);
+  const [histHasMore, setHistHasMore] = useState(false);
+  const [histTotal, setHistTotal] = useState<number>(0);
+  const [purging, setPurging] = useState(false);
+  const [confirmPurge, setConfirmPurge] = useState(false);
 
   const notifyChange = () => window.dispatchEvent(new CustomEvent('horario-config-changed'));
 
@@ -150,14 +156,54 @@ export default function AdminHorarioComercial() {
     }
   };
 
-  const loadHistorico = async () => {
-    setLoadingHist(true);
-    let q = supabase.from('bloqueios_historico').select('*').order('created_at', { ascending: false }).limit(100);
+  const buildHistQuery = (from: number, to: number) => {
+    let q = supabase
+      .from('bloqueios_historico')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, to);
     if (filtroAcao !== 'all') q = q.eq('acao', filtroAcao);
     if (filtroOrigem !== 'all') q = q.eq('origem', filtroOrigem);
-    const { data, error } = await q;
+    return q;
+  };
+
+  const loadHistorico = async () => {
+    setLoadingHist(true);
+    const { data, error, count } = await buildHistQuery(0, HIST_PAGE - 1);
     setLoadingHist(false);
-    if (!error) setHistorico((data as any) || []);
+    if (error) return;
+    const rows = (data as any) || [];
+    setHistorico(rows);
+    setHistTotal(count || 0);
+    setHistHasMore((count || 0) > rows.length);
+  };
+
+  const loadMoreHistorico = async () => {
+    setLoadingMoreHist(true);
+    const from = historico.length;
+    const to = from + HIST_PAGE - 1;
+    const { data, error, count } = await buildHistQuery(from, to);
+    setLoadingMoreHist(false);
+    if (error) return;
+    const novos = (data as any) || [];
+    const merged = [...historico, ...novos];
+    setHistorico(merged);
+    setHistTotal(count || merged.length);
+    setHistHasMore((count || merged.length) > merged.length);
+  };
+
+  const limparHistoricoAntigo = async () => {
+    setPurging(true);
+    const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    const { error, count } = await supabase
+      .from('bloqueios_historico')
+      .delete({ count: 'exact' })
+      .lt('created_at', cutoff);
+    setPurging(false);
+    setConfirmPurge(false);
+    if (error) { toast({ title: 'Erro ao limpar histórico', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Histórico limpo', description: `${count ?? 0} registro(s) com mais de 90 dias removido(s).` });
+    loadHistorico();
   };
 
   const loadCleanupCfg = async () => {
@@ -298,6 +344,7 @@ export default function AdminHorarioComercial() {
 
   const adicionarBloqueio = async () => {
     if (!novaData) { toast({ title: 'Informe a data do bloqueio', variant: 'destructive' }); return; }
+    if (!novoMotivo.trim()) { toast({ title: 'Motivo obrigatório', description: 'Informe o motivo do bloqueio.', variant: 'destructive' }); return; }
     if (!diaTodo && (!horaInicio || !horaFim)) { toast({ title: 'Informe hora inicial e final do bloqueio parcial', variant: 'destructive' }); return; }
     const client = await getHorarioSupabase();
     if (!client) return;
@@ -320,6 +367,7 @@ export default function AdminHorarioComercial() {
 
   const salvarEdicaoBloqueio = async () => {
     if (!editing) return;
+    if (!editing.motivo || !editing.motivo.trim()) { toast({ title: 'Motivo obrigatório', description: 'Informe o motivo do bloqueio.', variant: 'destructive' }); return; }
     if (!editing.dia_todo && (!editing.hora_inicio || !editing.hora_fim)) { toast({ title: 'Informe hora inicial e final', variant: 'destructive' }); return; }
     const client = await getHorarioSupabase();
     if (!client) return;
@@ -516,8 +564,8 @@ export default function AdminHorarioComercial() {
                   <div className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-3">
                     <div><Label className="text-xs">Data</Label><Input type="date" value={novaData} onChange={(e) => setNovaData(e.target.value)} /></div>
                     <div>
-                      <Label className="text-xs">Motivo (opcional) — salvo como <code className="text-[10px]">Motivo: (texto)</code></Label>
-                      <Input value={novoMotivo} onChange={(e) => setNovoMotivo(e.target.value)} placeholder="Ex.: Feriado nacional" />
+                      <Label className="text-xs">Motivo <span className="text-red-500">*</span> — salvo como <code className="text-[10px]">Motivo: (texto)</code></Label>
+                      <Input value={novoMotivo} onChange={(e) => setNovoMotivo(e.target.value)} placeholder="Ex.: Feriado nacional" required />
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -639,8 +687,18 @@ export default function AdminHorarioComercial() {
                         <SelectItem value="cron">Cron</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button variant="outline" size="sm" onClick={loadHistorico} className="gap-2">
+                    <Button variant="outline" size="sm" onClick={loadHistorico} className="gap-2" title="Recarregar">
                       <RefreshCw className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setConfirmPurge(true)}
+                      className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-500/10 border-red-500/30"
+                      title="Limpar registros com mais de 90 dias"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      Limpar &gt; 90d
                     </Button>
                   </div>
                 </div>
@@ -651,34 +709,45 @@ export default function AdminHorarioComercial() {
                 ) : historico.length === 0 ? (
                   <div className="p-6 text-center text-sm text-muted-foreground">Nenhum registro ainda.</div>
                 ) : (
-                  <div className="border rounded-lg divide-y max-h-[480px] overflow-y-auto">
-                    {historico.map((h) => {
-                      const cor = h.acao === 'criado' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : h.acao === 'editado' ? 'bg-blue-500/10 text-blue-700 dark:text-blue-400' : 'bg-red-500/10 text-red-700 dark:text-red-400';
-                      return (
-                        <div key={h.id} className="p-3 text-sm hover:bg-muted/30">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="outline" className={cor}>{h.acao}</Badge>
-                            <Badge variant="outline" className="gap-1">
-                              {h.origem === 'cron' ? <Bot className="h-3 w-3" /> : <UserIcon className="h-3 w-3" />}
-                              {h.origem}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">{format(parseISO(h.created_at), "dd/MM/yyyy HH:mm:ss")}</span>
-                          </div>
-                          <div className="mt-1 text-xs">
-                            <span className="font-medium">{h.user_nome || '—'}</span>
-                            {h.user_email && <span className="text-muted-foreground"> ({h.user_email})</span>}
-                          </div>
-                          {h.data_bloqueio && (
-                            <div className="mt-1 text-xs text-muted-foreground break-words">
-                              Bloqueio: {format(parseISO(h.data_bloqueio), "dd/MM/yyyy")}
-                              {' · '}{h.dia_todo ? 'Dia todo' : `${trim(h.hora_inicio)}–${trim(h.hora_fim)}`}
-                              {h.motivo && <> · {h.motivo}</>}
+                  <>
+                    <div className="border rounded-lg divide-y max-h-[480px] overflow-y-auto">
+                      {historico.map((h) => {
+                        const cor = h.acao === 'criado' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : h.acao === 'editado' ? 'bg-blue-500/10 text-blue-700 dark:text-blue-400' : 'bg-red-500/10 text-red-700 dark:text-red-400';
+                        return (
+                          <div key={h.id} className="p-3 text-sm hover:bg-muted/30">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge variant="outline" className={cor}>{h.acao}</Badge>
+                              <Badge variant="outline" className="gap-1">
+                                {h.origem === 'cron' ? <Bot className="h-3 w-3" /> : <UserIcon className="h-3 w-3" />}
+                                {h.origem}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">{format(parseISO(h.created_at), "dd/MM/yyyy HH:mm:ss")}</span>
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                            <div className="mt-1 text-xs">
+                              <span className="font-medium">{h.user_nome || '—'}</span>
+                              {h.user_email && <span className="text-muted-foreground"> ({h.user_email})</span>}
+                            </div>
+                            {h.data_bloqueio && (
+                              <div className="mt-1 text-xs text-muted-foreground break-words">
+                                Bloqueio: {format(parseISO(h.data_bloqueio), "dd/MM/yyyy")}
+                                {' · '}{h.dia_todo ? 'Dia todo' : `${trim(h.hora_inicio)}–${trim(h.hora_fim)}`}
+                                {h.motivo && <> · {h.motivo}</>}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                      <span>Mostrando {historico.length} de {histTotal}</span>
+                      {histHasMore && (
+                        <Button variant="outline" size="sm" onClick={loadMoreHistorico} disabled={loadingMoreHist} className="gap-2">
+                          {loadingMoreHist ? <Loader2 className="h-3 w-3 animate-spin" /> : <ChevronDown className="h-3 w-3" />}
+                          Carregar mais
+                        </Button>
+                      )}
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -694,7 +763,7 @@ export default function AdminHorarioComercial() {
           {editing && (
             <div className="space-y-4">
               <div><Label className="text-xs">Data</Label><Input type="date" value={editing.data} onChange={(e) => setEditing({ ...editing, data: e.target.value })} /></div>
-              <div><Label className="text-xs">Motivo (opcional)</Label><Input value={editing.motivo || ''} onChange={(e) => setEditing({ ...editing, motivo: e.target.value })} /></div>
+              <div><Label className="text-xs">Motivo <span className="text-red-500">*</span></Label><Input value={editing.motivo || ''} onChange={(e) => setEditing({ ...editing, motivo: e.target.value })} required /></div>
               <div className="flex items-center gap-3">
                 <Switch checked={editing.dia_todo} onCheckedChange={(v) => setEditing({ ...editing, dia_todo: v, hora_inicio: v ? null : editing.hora_inicio, hora_fim: v ? null : editing.hora_fim })} id="edit-dia-todo" />
                 <Label htmlFor="edit-dia-todo" className="text-sm cursor-pointer">Bloquear o dia todo</Label>
@@ -738,6 +807,24 @@ export default function AdminHorarioComercial() {
             <AlertDialogAction onClick={confirmarExclusao} disabled={deleting} className="bg-red-600 hover:bg-red-700 gap-2">
               {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmPurge} onOpenChange={(o) => !o && !purging && setConfirmPurge(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><Trash2 className="h-5 w-5 text-red-500" /> Limpar histórico antigo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todos os registros do histórico com mais de <strong>90 dias</strong> serão apagados permanentemente. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={purging}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={limparHistoricoAntigo} disabled={purging} className="bg-red-600 hover:bg-red-700 gap-2">
+              {purging ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Confirmar limpeza
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
