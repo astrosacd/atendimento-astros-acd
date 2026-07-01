@@ -19,6 +19,44 @@ const DISMISS_KEY = 'bh_cron_notif_dismissed_at';
 export const BusinessHoursStatusCard = () => {
   const status = useBusinessHoursStatus();
 
+  // Notificação da última execução do cron de limpeza
+  const [cronLastRun, setCronLastRun] = useState<string | null>(null);
+  const [cronLastDeleted, setCronLastDeleted] = useState<number>(0);
+  const [dismissedAt, setDismissedAt] = useState<string | null>(() => localStorage.getItem(DISMISS_KEY));
+
+  const loadCleanup = async () => {
+    const { data } = await supabase.rpc('get_horario_cleanup_config');
+    if (!data) return;
+    const c: any = data;
+    setCronLastRun(c.last_run_at ?? null);
+    setCronLastDeleted(c.last_run_deleted ?? 0);
+  };
+
+  useEffect(() => {
+    loadCleanup();
+    // realtime: recarrega quando o cron insere no histórico
+    const ch = supabase
+      .channel('bh-cron-notif')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bloqueios_historico', filter: 'origem=eq.cron' }, () => loadCleanup())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
+
+  const showCronNotif = (() => {
+    if (!cronLastRun) return false;
+    if (cronLastDeleted < CRON_MIN_DELETED) return false;
+    const runMs = new Date(cronLastRun).getTime();
+    if (Date.now() - runMs > CRON_WINDOW_MS) return false;
+    if (dismissedAt && new Date(dismissedAt).getTime() >= runMs) return false;
+    return true;
+  })();
+
+  const dismissCronNotif = () => {
+    const now = new Date().toISOString();
+    localStorage.setItem(DISMISS_KEY, now);
+    setDismissedAt(now);
+  };
+
   const dotColor = status.isOpen ? 'bg-emerald-500' : 'bg-red-500';
   const dotRing = status.isOpen ? 'bg-emerald-500/30' : 'bg-red-500/30';
   const label = status.isOpen ? 'Aberto' : 'Fechado';
