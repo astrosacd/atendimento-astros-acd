@@ -344,6 +344,7 @@ export default function AdminHorarioComercial() {
 
   const adicionarBloqueio = async () => {
     if (!novaData) { toast({ title: 'Informe a data do bloqueio', variant: 'destructive' }); return; }
+    if (!novoMotivo.trim()) { toast({ title: 'Motivo obrigatório', description: 'Informe o motivo do bloqueio.', variant: 'destructive' }); return; }
     if (!diaTodo && (!horaInicio || !horaFim)) { toast({ title: 'Informe hora inicial e final do bloqueio parcial', variant: 'destructive' }); return; }
     const client = await getHorarioSupabase();
     if (!client) return;
