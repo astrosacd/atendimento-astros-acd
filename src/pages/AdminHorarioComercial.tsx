@@ -114,11 +114,17 @@ export default function AdminHorarioComercial() {
   const [savingCleanup, setSavingCleanup] = useState(false);
   const [runningCleanup, setRunningCleanup] = useState(false);
 
-  // histórico
+  // histórico (paginação real)
+  const HIST_PAGE = 50;
   const [historico, setHistorico] = useState<HistoricoItem[]>([]);
   const [filtroAcao, setFiltroAcao] = useState<string>('all');
   const [filtroOrigem, setFiltroOrigem] = useState<string>('all');
   const [loadingHist, setLoadingHist] = useState(false);
+  const [loadingMoreHist, setLoadingMoreHist] = useState(false);
+  const [histHasMore, setHistHasMore] = useState(false);
+  const [histTotal, setHistTotal] = useState<number>(0);
+  const [purging, setPurging] = useState(false);
+  const [confirmPurge, setConfirmPurge] = useState(false);
 
   const notifyChange = () => window.dispatchEvent(new CustomEvent('horario-config-changed'));
 
