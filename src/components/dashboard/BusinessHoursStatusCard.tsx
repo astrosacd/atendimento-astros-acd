@@ -1,11 +1,20 @@
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CalendarX } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Clock, CalendarX, Bot, X } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import { useBusinessHoursStatus } from '@/hooks/useBusinessHoursStatus';
+import { supabase } from '@/integrations/supabase/client';
 
 const trim = (t: string | null | undefined) => (t ? t.slice(0, 5) : '');
 // Motivo já vem do banco no padrão "Motivo: (texto)" — só exibe
 const showMotivo = (m?: string | null) => (m && m.trim() ? m.trim() : '');
+
+// Notificação: mostrar quando cron apagou pelo menos N nas últimas 24h
+const CRON_MIN_DELETED = 1;
+const CRON_WINDOW_MS = 24 * 60 * 60 * 1000;
+const DISMISS_KEY = 'bh_cron_notif_dismissed_at';
 
 export const BusinessHoursStatusCard = () => {
   const status = useBusinessHoursStatus();
