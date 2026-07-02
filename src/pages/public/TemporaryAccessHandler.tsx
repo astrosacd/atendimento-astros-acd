@@ -20,47 +20,35 @@ const TemporaryAccessHandler = () => {
       }
 
       try {
-        const { data, error: fetchError } = await supabase
-          .from("temporary_access_tokens")
-          .select("*")
-          .eq("token", token)
-          .eq("is_active", true)
-          .gt("expires_at", new Date().toISOString())
-          .maybeSingle();
+        const usageKey = `temp_access_counted_${token}`;
+        const alreadyCounted = !!localStorage.getItem(usageKey);
+
+        const { data, error: fetchError } = await supabase.rpc(
+          "validate_temporary_access_token" as any,
+          { p_token: token }
+        );
 
         if (fetchError) throw fetchError;
-        
-        if (!data) {
-          setError("Link inválido ou expirado");
+
+        const result: any = data;
+        if (!result || result.valid !== true) {
+          const code = result?.error;
+          if (code === "max_uses_reached") {
+            setError("Este link atingiu o limite máximo de usos");
+          } else {
+            setError("Link inválido ou expirado");
+          }
           setLoading(false);
           return;
         }
 
-        if (data.max_uses !== null && data.uses >= data.max_uses) {
-          setError("Este link atingiu o limite máximo de usos");
-          setLoading(false);
-          return;
-        }
-
-        // Conta como 1 uso por dispositivo/navegador (evita contar múltiplas abas)
-        const usageKey = `temp_access_counted_${token}`;
-        if (!localStorage.getItem(usageKey)) {
-          await supabase
-            .from("temporary_access_tokens")
-            .update({ uses: data.uses + 1 })
-            .eq("id", data.id);
+        if (!alreadyCounted) {
           localStorage.setItem(usageKey, "1");
         }
 
-        // Store the temporary bypass in session storage or similar
-        // For now, since RLS is handled by service role in specific logic or public read,
-        // we'll redirect to the target path with the token in state or similar.
-        // A better approach would be to sign in as a specific guest user or use a specific header.
-        // But the user asked for a "provisional link", so we'll redirect them.
-        
         localStorage.setItem("temp_access_token", token);
-        localStorage.setItem("temp_access_target", data.target_path);
-        navigate(data.target_path);
+        localStorage.setItem("temp_access_target", result.target_path);
+        navigate(result.target_path);
         
       } catch (err: any) {
         console.error("Error validating token:", err);
