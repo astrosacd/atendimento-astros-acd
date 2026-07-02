@@ -195,15 +195,42 @@ export default function AdminHorarioComercial() {
   const limparHistoricoAntigo = async () => {
     setPurging(true);
     const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-    const { error, count } = await supabase
-      .from('bloqueios_historico')
-      .delete({ count: 'exact' })
-      .lt('created_at', cutoff);
-    setPurging(false);
-    setConfirmPurge(false);
-    if (error) { toast({ title: 'Erro ao limpar histórico', description: error.message, variant: 'destructive' }); return; }
-    toast({ title: 'Histórico limpo', description: `${count ?? 0} registro(s) com mais de 90 dias removido(s).` });
-    loadHistorico();
+    try {
+      // Conta antes (delete().count nem sempre retorna com RLS)
+      const { count: preCount, error: countErr } = await supabase
+        .from('bloqueios_historico')
+        .select('id', { count: 'exact', head: true })
+        .lt('created_at', cutoff);
+      if (countErr) throw countErr;
+
+      if (!preCount || preCount === 0) {
+        setConfirmPurge(false);
+        toast({ title: 'Nada para limpar', description: 'Nenhum registro com mais de 90 dias foi encontrado.' });
+        return;
+      }
+
+      const { error: delErr, count: delCount } = await supabase
+        .from('bloqueios_historico')
+        .delete({ count: 'exact' })
+        .lt('created_at', cutoff);
+      if (delErr) throw delErr;
+
+      const removed = delCount ?? preCount;
+      toast({
+        title: '✅ Histórico limpo',
+        description: `${removed} registro(s) com mais de 90 dias removido(s) com sucesso.`,
+      });
+      loadHistorico();
+    } catch (e: any) {
+      toast({
+        title: '❌ Erro ao limpar histórico',
+        description: e?.message || 'Falha inesperada ao remover registros antigos.',
+        variant: 'destructive',
+      });
+    } finally {
+      setPurging(false);
+      setConfirmPurge(false);
+    }
   };
 
   const loadCleanupCfg = async () => {
