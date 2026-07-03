@@ -797,6 +797,33 @@ export default function ConsultarCliente() {
                               />
                             )}
 
+                            {/* Cancelar cliente (apenas se cobrança ativa) */}
+                            {isAdmin && cliente.cobranca_ativa !== false && !isNonClientType(cliente) && (
+                              <Button
+                                onClick={() => setCancelTarget(cliente)}
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                title="Cancelar cliente (para cobrança recorrente)"
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            )}
+
+                            {/* Reativar cliente (apenas se cancelado) */}
+                            {isAdmin && cliente.cobranca_ativa === false && !isNonClientType(cliente) && (
+                              <Button
+                                onClick={() => setReactivateTarget(cliente)}
+                                variant="ghost"
+                                size="sm"
+                                className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 gap-1.5 h-8 px-2.5"
+                                title="Reativar cliente (retomar cobrança recorrente)"
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                                <span className="text-xs font-medium hidden sm:inline">Reativar</span>
+                              </Button>
+                            )}
+
                             {/* Histórico - sempre visível */}
                             <Button
                               onClick={() => handleViewHistory(cliente)}
