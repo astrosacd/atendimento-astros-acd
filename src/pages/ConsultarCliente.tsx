@@ -1586,6 +1586,44 @@ export default function ConsultarCliente() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Cancelar cliente */}
+        <CancelClientDialog
+          cliente={cancelTarget}
+          open={!!cancelTarget}
+          onOpenChange={(o) => !o && setCancelTarget(null)}
+          onSuccess={async () => {
+            const fresh = await fetchClientes();
+            setAllClientes(fresh);
+            const base = query.trim()
+              ? fresh.filter((c) =>
+                  [c.nome, c.numero, c.email, c.cpf]
+                    .filter(Boolean)
+                    .some((v) => String(v).toLowerCase().includes(query.toLowerCase())),
+                )
+              : fresh;
+            setResults(applyFilters(base));
+          }}
+        />
+
+        {/* Reativar cliente */}
+        <ReactivateClientDialog
+          cliente={reactivateTarget}
+          open={!!reactivateTarget}
+          onOpenChange={(o) => !o && setReactivateTarget(null)}
+          onSuccess={async () => {
+            const fresh = await fetchClientes();
+            setAllClientes(fresh);
+            const base = query.trim()
+              ? fresh.filter((c) =>
+                  [c.nome, c.numero, c.email, c.cpf]
+                    .filter(Boolean)
+                    .some((v) => String(v).toLowerCase().includes(query.toLowerCase())),
+                )
+              : fresh;
+            setResults(applyFilters(base));
+          }}
+        />
       </div>
     </DashboardLayout>
   );
