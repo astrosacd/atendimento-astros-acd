@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server, ShieldCheck, MoreHorizontal, TrendingUp, Copy, PhoneCall, MessageSquare, Gift } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server, ShieldCheck, MoreHorizontal, TrendingUp, Copy, PhoneCall, MessageSquare, Gift, XCircle, RotateCcw } from 'lucide-react';
+import { CancelClientDialog, ReactivateClientDialog } from '@/components/ClientCancelReactivateDialogs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -120,6 +121,8 @@ export default function ConsultarCliente() {
   const [filterInadimplente, setFilterInadimplente] = useState(false);
   const [filterRenovacaoProxima, setFilterRenovacaoProxima] = useState(false);
   const [duplicateTarget, setDuplicateTarget] = useState<Cliente | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<Cliente | null>(null);
+  const [reactivateTarget, setReactivateTarget] = useState<Cliente | null>(null);
   
   // Quick edit state
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
@@ -794,6 +797,33 @@ export default function ConsultarCliente() {
                               />
                             )}
 
+                            {/* Cancelar cliente (apenas se cobrança ativa) */}
+                            {isAdmin && cliente.cobranca_ativa !== false && !isNonClientType(cliente) && (
+                              <Button
+                                onClick={() => setCancelTarget(cliente)}
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                title="Cancelar cliente (para cobrança recorrente)"
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            )}
+
+                            {/* Reativar cliente (apenas se cancelado) */}
+                            {isAdmin && cliente.cobranca_ativa === false && !isNonClientType(cliente) && (
+                              <Button
+                                onClick={() => setReactivateTarget(cliente)}
+                                variant="ghost"
+                                size="sm"
+                                className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 gap-1.5 h-8 px-2.5"
+                                title="Reativar cliente (retomar cobrança recorrente)"
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                                <span className="text-xs font-medium hidden sm:inline">Reativar</span>
+                              </Button>
+                            )}
+
                             {/* Histórico - sempre visível */}
                             <Button
                               onClick={() => handleViewHistory(cliente)}
@@ -1356,6 +1386,42 @@ export default function ConsultarCliente() {
                   Cancelar
                 </Button>
               </div>
+
+              {/* Ações de ciclo de vida do cliente */}
+              {editingCliente && !isNonClientType(editingCliente) && (
+                <div className="pt-3 mt-2 border-t border-border/60">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold mb-2">
+                    Ciclo de vida
+                  </p>
+                  {editingCliente.cobranca_ativa !== false ? (
+                    <Button
+                      onClick={() => {
+                        const target = editingCliente;
+                        setEditingCliente(null);
+                        setCancelTarget(target);
+                      }}
+                      variant="outline"
+                      className="w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive gap-2"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      Cancelar cliente (parar cobrança recorrente)
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        const target = editingCliente;
+                        setEditingCliente(null);
+                        setReactivateTarget(target);
+                      }}
+                      variant="outline"
+                      className="w-full border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-600 gap-2"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Reativar cliente (retomar cobrança)
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>
@@ -1520,6 +1586,44 @@ export default function ConsultarCliente() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Cancelar cliente */}
+        <CancelClientDialog
+          cliente={cancelTarget}
+          open={!!cancelTarget}
+          onOpenChange={(o) => !o && setCancelTarget(null)}
+          onSuccess={async () => {
+            const fresh = await fetchClientes();
+            setAllClientes(fresh);
+            const base = query.trim()
+              ? fresh.filter((c) =>
+                  [c.nome, c.numero, c.email, c.cpf]
+                    .filter(Boolean)
+                    .some((v) => String(v).toLowerCase().includes(query.toLowerCase())),
+                )
+              : fresh;
+            setResults(applyFilters(base));
+          }}
+        />
+
+        {/* Reativar cliente */}
+        <ReactivateClientDialog
+          cliente={reactivateTarget}
+          open={!!reactivateTarget}
+          onOpenChange={(o) => !o && setReactivateTarget(null)}
+          onSuccess={async () => {
+            const fresh = await fetchClientes();
+            setAllClientes(fresh);
+            const base = query.trim()
+              ? fresh.filter((c) =>
+                  [c.nome, c.numero, c.email, c.cpf]
+                    .filter(Boolean)
+                    .some((v) => String(v).toLowerCase().includes(query.toLowerCase())),
+                )
+              : fresh;
+            setResults(applyFilters(base));
+          }}
+        />
       </div>
     </DashboardLayout>
   );
