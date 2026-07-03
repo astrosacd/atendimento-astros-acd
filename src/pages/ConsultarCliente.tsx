@@ -1386,6 +1386,42 @@ export default function ConsultarCliente() {
                   Cancelar
                 </Button>
               </div>
+
+              {/* Ações de ciclo de vida do cliente */}
+              {editingCliente && !isNonClientType(editingCliente) && (
+                <div className="pt-3 mt-2 border-t border-border/60">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold mb-2">
+                    Ciclo de vida
+                  </p>
+                  {editingCliente.cobranca_ativa !== false ? (
+                    <Button
+                      onClick={() => {
+                        const target = editingCliente;
+                        setEditingCliente(null);
+                        setCancelTarget(target);
+                      }}
+                      variant="outline"
+                      className="w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive gap-2"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      Cancelar cliente (parar cobrança recorrente)
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        const target = editingCliente;
+                        setEditingCliente(null);
+                        setReactivateTarget(target);
+                      }}
+                      variant="outline"
+                      className="w-full border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-600 gap-2"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Reativar cliente (retomar cobrança)
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>
