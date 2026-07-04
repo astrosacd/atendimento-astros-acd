@@ -1140,7 +1140,8 @@ export default function ConsultarCliente() {
                           </div>
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-center text-destructive">
