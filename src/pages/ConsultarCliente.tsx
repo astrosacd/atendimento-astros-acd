@@ -621,8 +621,8 @@ export default function ConsultarCliente() {
                             <SelectItem value="all">{t('clients.allTypes')}</SelectItem>
                             <SelectItem value="mensal">{t('clients.monthly')}</SelectItem>
                             <SelectItem value="registro">{t('clients.registrationOnly')}</SelectItem>
+                            <SelectItem value="cancelado" className="text-rose-500">🚫 Cancelados</SelectItem>
                             <SelectItem value="inadimplente" className="text-destructive">{t('dashboard.overduedClients')}</SelectItem>
-                          </SelectContent>
                         </Select>
                       </div>
                       
