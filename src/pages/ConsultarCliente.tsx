@@ -713,20 +713,29 @@ export default function ConsultarCliente() {
                 
                 {results.length > 0 ? (
                   <div className="grid gap-4 max-h-[500px] overflow-y-auto pr-2">
-                    {results.map((cliente) => (
+                    {results.map((cliente) => {
+                      const isCancelado = cliente.cobranca_ativa === false
+                        && Array.isArray(cliente.tags)
+                        && cliente.tags.some(tag => String(tag).toLowerCase() === 'cancelado');
+                      const isRegistroPuro = cliente.cobranca_ativa === false && !isCancelado;
+                      const rowClass = isCancelado
+                        ? 'bg-rose-500/5 border-rose-500/25 hover:border-rose-500/50'
+                        : isRegistroPuro
+                          ? 'bg-amber-500/5 border-amber-500/20 hover:border-amber-500/40'
+                          : 'bg-info/5 border-info/20 hover:border-info/40';
+                      const nameClass = isCancelado
+                        ? 'text-rose-400'
+                        : isRegistroPuro
+                          ? 'text-amber-500'
+                          : 'text-info';
+                      return (
                       <div 
                         key={cliente.id}
-                        className={`border rounded-xl p-5 space-y-3 animate-fade-in transition-colors ${
-                          cliente.cobranca_ativa === false 
-                            ? 'bg-amber-500/5 border-amber-500/20 hover:border-amber-500/40' 
-                            : 'bg-info/5 border-info/20 hover:border-info/40'
-                        }`}
+                        className={`border rounded-xl p-5 space-y-3 animate-fade-in transition-colors ${rowClass}`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3 flex-wrap">
-                            <h3 className={`text-lg font-semibold capitalize font-display ${
-                              cliente.cobranca_ativa === false ? 'text-amber-500' : 'text-info'
-                            }`}>{cliente.nome}</h3>
+                            <h3 className={`text-lg font-semibold capitalize font-display ${nameClass}`}>{cliente.nome}</h3>
                             {(() => {
                               const badge = getTipoBadge(cliente.tipo);
                               return (
@@ -735,7 +744,13 @@ export default function ConsultarCliente() {
                                 </Badge>
                               );
                             })()}
-                            {cliente.cobranca_ativa === false && (
+                            {isCancelado && (
+                              <Badge variant="outline" className="bg-rose-500/10 text-rose-400 border-rose-500/30 text-xs gap-1">
+                                <XCircle className="h-3 w-3" />
+                                Cancelado
+                              </Badge>
+                            )}
+                            {isRegistroPuro && (
                               <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30 text-xs">
                                 {t('clients.registrationOnly')}
                               </Badge>
