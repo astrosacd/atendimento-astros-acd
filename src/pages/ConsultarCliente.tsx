@@ -248,8 +248,12 @@ export default function ConsultarCliente() {
       
       // Client type filter
       if (filters.tipoCliente && filters.tipoCliente !== 'all') {
+        const hasCanceladoTag = Array.isArray(cliente.tags) && cliente.tags.some(t => String(t).toLowerCase() === 'cancelado');
+        const isCancelado = cliente.cobranca_ativa === false && hasCanceladoTag;
+        const isRegistroPuro = cliente.cobranca_ativa === false && !hasCanceladoTag;
         if (filters.tipoCliente === 'mensal' && cliente.cobranca_ativa === false) return false;
-        if (filters.tipoCliente === 'registro' && cliente.cobranca_ativa !== false) return false;
+        if (filters.tipoCliente === 'registro' && !isRegistroPuro) return false;
+        if (filters.tipoCliente === 'cancelado' && !isCancelado) return false;
       }
       
       // Date filter
