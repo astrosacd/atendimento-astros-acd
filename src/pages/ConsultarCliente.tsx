@@ -160,6 +160,8 @@ export default function ConsultarCliente() {
     } else if (filter === 'renovacao-proxima') {
       setFilterRenovacaoProxima(true);
       setFilters(prev => ({ ...prev, tipoCliente: 'renovacao-proxima' }));
+    } else if (filter === 'cancelados') {
+      setFilters(prev => ({ ...prev, tipoCliente: 'cancelado' }));
     }
   }, [searchParams]);
 
@@ -194,6 +196,12 @@ export default function ConsultarCliente() {
         if (!cliente.data_renovacao || cliente.cobranca_ativa !== true) return false;
         const renovacaoStr = String(cliente.data_renovacao).slice(0, 10);
         return renovacaoStr >= todayStr && renovacaoStr <= nextWeekStr;
+      });
+      setResults(filtered);
+    } else if (filter === 'cancelados') {
+      const filtered = data.filter(cliente => {
+        const tags = Array.isArray(cliente.tags) ? cliente.tags : [];
+        return cliente.cobranca_ativa === false && tags.some((t: string) => t?.toLowerCase() === 'cancelado');
       });
       setResults(filtered);
     }

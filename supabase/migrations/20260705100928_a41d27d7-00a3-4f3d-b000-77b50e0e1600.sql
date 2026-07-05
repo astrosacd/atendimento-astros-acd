@@ -1,0 +1,2 @@
+ALTER TABLE public.client_payments ADD COLUMN IF NOT EXISTS is_reactivation boolean NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS idx_client_payments_is_reactivation ON public.client_payments (is_reactivation) WHERE is_reactivation = true;

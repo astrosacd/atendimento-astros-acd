@@ -285,7 +285,7 @@ export function usePaymentStatus() {
   // Register early payment (before billing date)
   // ⚠️ NEW FLOW: Always requires proof + admin approval. Does NOT auto-renew or auto-send receipt.
   // Renewal + receipt happen later via "approve-pixpague-payment" edge function (Segurança de Pagamento module).
-  const registerEarlyPayment = async (clienteId: string, amount: number, comprovante?: File): Promise<boolean> => {
+  const registerEarlyPayment = async (clienteId: string, amount: number, comprovante?: File, isReactivation = false): Promise<boolean> => {
     try {
       // Enforce proof requirement
       if (!comprovante) {
@@ -350,6 +350,7 @@ export function usePaymentStatus() {
           submitted_by: submitter?.id ?? null,
           submitted_by_email: submitter?.email ?? null,
           submitted_by_name: submittedByName,
+          is_reactivation: isReactivation,
         })
         .select('id')
         .single();
@@ -400,11 +401,13 @@ export function usePaymentStatus() {
     provider?: 'mercadopago' | 'stripe';
     mpPaymentId?: string;          // when already known (from dropdown)
     stripePaymentId?: string;      // when already known (from dropdown)
+    isReactivation?: boolean;
   }): Promise<{ ok: boolean; ocrStatus?: string; gatewayAmount?: number; transactionId?: string; }> => {
     try {
       const {
         clienteId, declaredAmount, paymentLinkUrl, paymentLinkId,
         provider, mpPaymentId: providedMp, stripePaymentId: providedStripe,
+        isReactivation = false,
       } = params;
 
       // 1) Resolve which gateway/IDs to query
@@ -528,6 +531,7 @@ export function usePaymentStatus() {
           submitted_by: submitter?.id ?? null,
           submitted_by_email: submitter?.email ?? null,
           submitted_by_name: submittedByName,
+          is_reactivation: isReactivation,
         })
         .select('id')
         .single();
@@ -580,9 +584,10 @@ export function usePaymentStatus() {
     declaredAmount: number;
     observation: string;
     proof?: File | null;
+    isReactivation?: boolean;
   }): Promise<boolean> => {
     try {
-      const { clienteId, declaredAmount, observation, proof } = params;
+      const { clienteId, declaredAmount, observation, proof, isReactivation = false } = params;
 
       if (!observation || !observation.trim()) {
         toast({
@@ -638,6 +643,7 @@ export function usePaymentStatus() {
           submitted_by: submitter?.id ?? null,
           submitted_by_email: submitter?.email ?? null,
           submitted_by_name: submittedByName,
+          is_reactivation: isReactivation,
         })
         .select('id')
         .single();

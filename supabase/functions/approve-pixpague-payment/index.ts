@@ -88,7 +88,7 @@ serve(async (req) => {
     // Load payment
     const { data: payment, error: paymentError } = await supabase
       .from("client_payments")
-      .select("*, cliente:clientes(id, data_renovacao, ciclo_cobranca, nome, cobranca_ativa)")
+      .select("*, cliente:clientes(id, data_renovacao, ciclo_cobranca, nome, cobranca_ativa, tags)")
       .eq("id", paymentId)
       .single();
 
@@ -163,6 +163,33 @@ serve(async (req) => {
 
     const cliente: any = payment.cliente;
 
+    // 1.5) REATIVAÇÃO: se este pagamento foi enviado como reativação, ao aprovar reativamos o cliente
+    // (cobranca_ativa = true, remove tag 'cancelado' e 'reativacao-pendente') ANTES de calcular renovação/recibo.
+    let reactivatedNow = false;
+    if (payment.is_reactivation && cliente?.id) {
+      try {
+        const existingTags: string[] = Array.isArray(cliente.tags) ? cliente.tags : [];
+        const cleanedTags = existingTags.filter(
+          (t: string) => t?.toLowerCase() !== "cancelado" && t?.toLowerCase() !== "reativacao-pendente"
+        );
+        const { error: reactErr } = await supabase
+          .from("clientes")
+          .update({ cobranca_ativa: true, tags: cleanedTags })
+          .eq("id", cliente.id);
+        if (reactErr) {
+          console.error("[approve-pixpague] Erro ao reativar cliente:", reactErr);
+        } else {
+          reactivatedNow = true;
+          cliente.cobranca_ativa = true;
+          cliente.tags = cleanedTags;
+          console.log(`[approve-pixpague] Cliente ${cliente.id} REATIVADO após aprovação do pagamento ${paymentId}`);
+        }
+      } catch (e) {
+        console.error("[approve-pixpague] Exceção ao reativar cliente:", e);
+      }
+    }
+
+
     // 2) Auto-cancelar TODAS as outras cobranças pendentes do cliente (D-3, D+1, etc.)
     if (cliente?.id) {
       try {
@@ -229,8 +256,10 @@ serve(async (req) => {
         
         // Regra padrão (anchor): mantém a âncora do cliente (data_renovacao + N meses),
         // independente de pagamento atrasado/antecipado. Isso preserva MRR/churn.
-        // Quando operador escolhe "from_today", conta a partir de hoje (serviço pausado).
-        const baseDate = effectiveRenewalMode === "from_today" ? today : currentVenc;
+        // Quando operador escolhe "from_today", ou é REATIVAÇÃO (serviço estava pausado),
+        // conta a partir de hoje.
+        const useFromToday = effectiveRenewalMode === "from_today" || reactivatedNow;
+        const baseDate = useFromToday ? today : currentVenc;
         
         const renewalDate = new Date(baseDate);
         renewalDate.setMonth(renewalDate.getMonth() + months);

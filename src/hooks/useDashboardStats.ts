@@ -53,6 +53,7 @@ export interface DashboardStats {
   offlineIntegrations: number;
   criticalQuotas: number;
   divulgadorErrors: number;
+  canceladosUltimos30d: number;
 }
 
 export interface UrgentTasksState {
@@ -99,6 +100,7 @@ const INITIAL_STATS: DashboardStats = {
   offlineIntegrations: 0,
   criticalQuotas: 0,
   divulgadorErrors: 0,
+  canceladosUltimos30d: 0,
 };
 
 function getClientesPorMes(clientes: any[]) {
@@ -192,6 +194,32 @@ export function useDashboardStats() {
       const clientesRegistroComValor = clientes?.filter(c => c.cobranca_ativa === false && (c.valor || 0) > 0) || [];
       const clientesRegistroSemValor = clientes?.filter(c => c.cobranca_ativa === false && (c.valor || 0) === 0).length || 0;
       const clientesRegistro = clientesRegistroComValor.length;
+
+      // Cancelados nos últimos 30 dias: cliente com tag 'cancelado' + cobranca_ativa=false,
+      // cuja última transição de cobranca_ativa (via client_history) ocorreu na janela.
+      let canceladosUltimos30d = 0;
+      try {
+        const canceladosAtuais = (clientes || []).filter(
+          (c: any) =>
+            c.cobranca_ativa === false &&
+            Array.isArray(c.tags) &&
+            c.tags.some((t: string) => t?.toLowerCase() === 'cancelado')
+        );
+        if (canceladosAtuais.length > 0) {
+          const ids = canceladosAtuais.map((c: any) => c.id);
+          const { data: histRows } = await supabase
+            .from('client_history')
+            .select('cliente_id, created_at')
+            .in('cliente_id', ids)
+            .eq('action', 'update')
+            .contains('changed_fields', ['cobranca_ativa'])
+            .gte('created_at', thirtyDaysAgo.toISOString());
+          const setIds = new Set((histRows || []).map((h: any) => h.cliente_id));
+          canceladosUltimos30d = setIds.size;
+        }
+      } catch (e) {
+        console.error('[Dashboard] Erro ao calcular cancelados 30d:', e);
+      }
 
       const vendasClientesBrl = clientesRegistroComValor
         .filter(c => (c.moeda || 'BRL') === 'BRL')
@@ -472,6 +500,7 @@ export function useDashboardStats() {
         offlineIntegrations,
         criticalQuotas: criticalQuotasCount,
         divulgadorErrors: divulgadorErrorsCount,
+        canceladosUltimos30d,
       });
     };
 
