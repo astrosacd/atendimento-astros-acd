@@ -47,7 +47,7 @@ import { BackupDialog } from '@/components/dashboard/BackupDialog';
 import { QuickNumberSearch } from '@/components/dashboard/QuickNumberSearch';
 import { ElevenLabsCreditsCard } from '@/components/dashboard/ElevenLabsCreditsCard';
 import { useElevenLabsCreditsMulti } from '@/hooks/useElevenLabsCreditsMulti';
-import { Mic } from 'lucide-react';
+import { Mic, XCircle } from 'lucide-react';
 
 export default function Dashboard() {
   const navigate = useNavigate();
