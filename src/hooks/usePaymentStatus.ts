@@ -401,11 +401,13 @@ export function usePaymentStatus() {
     provider?: 'mercadopago' | 'stripe';
     mpPaymentId?: string;          // when already known (from dropdown)
     stripePaymentId?: string;      // when already known (from dropdown)
+    isReactivation?: boolean;
   }): Promise<{ ok: boolean; ocrStatus?: string; gatewayAmount?: number; transactionId?: string; }> => {
     try {
       const {
         clienteId, declaredAmount, paymentLinkUrl, paymentLinkId,
         provider, mpPaymentId: providedMp, stripePaymentId: providedStripe,
+        isReactivation = false,
       } = params;
 
       // 1) Resolve which gateway/IDs to query
