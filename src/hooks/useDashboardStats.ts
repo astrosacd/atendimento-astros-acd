@@ -500,6 +500,7 @@ export function useDashboardStats() {
         offlineIntegrations,
         criticalQuotas: criticalQuotasCount,
         divulgadorErrors: divulgadorErrorsCount,
+        canceladosUltimos30d,
       });
     };
 
