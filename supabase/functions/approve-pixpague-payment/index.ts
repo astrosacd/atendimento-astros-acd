@@ -256,8 +256,10 @@ serve(async (req) => {
         
         // Regra padrão (anchor): mantém a âncora do cliente (data_renovacao + N meses),
         // independente de pagamento atrasado/antecipado. Isso preserva MRR/churn.
-        // Quando operador escolhe "from_today", conta a partir de hoje (serviço pausado).
-        const baseDate = effectiveRenewalMode === "from_today" ? today : currentVenc;
+        // Quando operador escolhe "from_today", ou é REATIVAÇÃO (serviço estava pausado),
+        // conta a partir de hoje.
+        const useFromToday = effectiveRenewalMode === "from_today" || reactivatedNow;
+        const baseDate = useFromToday ? today : currentVenc;
         
         const renewalDate = new Date(baseDate);
         renewalDate.setMonth(renewalDate.getMonth() + months);
