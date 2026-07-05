@@ -53,6 +53,7 @@ export interface DashboardStats {
   offlineIntegrations: number;
   criticalQuotas: number;
   divulgadorErrors: number;
+  canceladosUltimos30d: number;
 }
 
 export interface UrgentTasksState {
