@@ -160,6 +160,8 @@ export default function ConsultarCliente() {
     } else if (filter === 'renovacao-proxima') {
       setFilterRenovacaoProxima(true);
       setFilters(prev => ({ ...prev, tipoCliente: 'renovacao-proxima' }));
+    } else if (filter === 'cancelados') {
+      setFilters(prev => ({ ...prev, tipoCliente: 'cancelado' }));
     }
   }, [searchParams]);
 
