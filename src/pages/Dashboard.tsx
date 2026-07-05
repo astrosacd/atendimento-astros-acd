@@ -422,6 +422,24 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card
+              className="bg-gradient-to-br from-rose-500/10 to-rose-500/5 border-rose-500/20 hover:border-rose-500/40 transition-colors cursor-pointer group"
+              onClick={() => navigate('/consultar?filter=cancelados')}
+              title="Clientes cancelados nos últimos 30 dias (tag 'cancelado' + cobranca_ativa=false)"
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-xl bg-rose-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <XCircle className="h-6 w-6 text-rose-500" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-3xl font-bold text-foreground font-display">{stats.canceladosUltimos30d}</p>
+                    <p className="text-xs text-muted-foreground">Cancelados (30d)</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {canViewCharts && (
