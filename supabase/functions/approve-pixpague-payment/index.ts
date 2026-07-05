@@ -163,6 +163,33 @@ serve(async (req) => {
 
     const cliente: any = payment.cliente;
 
+    // 1.5) REATIVAÇÃO: se este pagamento foi enviado como reativação, ao aprovar reativamos o cliente
+    // (cobranca_ativa = true, remove tag 'cancelado' e 'reativacao-pendente') ANTES de calcular renovação/recibo.
+    let reactivatedNow = false;
+    if (payment.is_reactivation && cliente?.id) {
+      try {
+        const existingTags: string[] = Array.isArray(cliente.tags) ? cliente.tags : [];
+        const cleanedTags = existingTags.filter(
+          (t: string) => t?.toLowerCase() !== "cancelado" && t?.toLowerCase() !== "reativacao-pendente"
+        );
+        const { error: reactErr } = await supabase
+          .from("clientes")
+          .update({ cobranca_ativa: true, tags: cleanedTags })
+          .eq("id", cliente.id);
+        if (reactErr) {
+          console.error("[approve-pixpague] Erro ao reativar cliente:", reactErr);
+        } else {
+          reactivatedNow = true;
+          cliente.cobranca_ativa = true;
+          cliente.tags = cleanedTags;
+          console.log(`[approve-pixpague] Cliente ${cliente.id} REATIVADO após aprovação do pagamento ${paymentId}`);
+        }
+      } catch (e) {
+        console.error("[approve-pixpague] Exceção ao reativar cliente:", e);
+      }
+    }
+
+
     // 2) Auto-cancelar TODAS as outras cobranças pendentes do cliente (D-3, D+1, etc.)
     if (cliente?.id) {
       try {
