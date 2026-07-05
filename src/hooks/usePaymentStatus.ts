@@ -285,7 +285,7 @@ export function usePaymentStatus() {
   // Register early payment (before billing date)
   // ⚠️ NEW FLOW: Always requires proof + admin approval. Does NOT auto-renew or auto-send receipt.
   // Renewal + receipt happen later via "approve-pixpague-payment" edge function (Segurança de Pagamento module).
-  const registerEarlyPayment = async (clienteId: string, amount: number, comprovante?: File): Promise<boolean> => {
+  const registerEarlyPayment = async (clienteId: string, amount: number, comprovante?: File, isReactivation = false): Promise<boolean> => {
     try {
       // Enforce proof requirement
       if (!comprovante) {
