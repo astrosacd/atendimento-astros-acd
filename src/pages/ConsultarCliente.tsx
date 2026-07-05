@@ -198,6 +198,12 @@ export default function ConsultarCliente() {
         return renovacaoStr >= todayStr && renovacaoStr <= nextWeekStr;
       });
       setResults(filtered);
+    } else if (filter === 'cancelados') {
+      const filtered = data.filter(cliente => {
+        const tags = Array.isArray(cliente.tags) ? cliente.tags : [];
+        return cliente.cobranca_ativa === false && tags.some((t: string) => t?.toLowerCase() === 'cancelado');
+      });
+      setResults(filtered);
     }
   };
 
