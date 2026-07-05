@@ -350,6 +350,7 @@ export function usePaymentStatus() {
           submitted_by: submitter?.id ?? null,
           submitted_by_email: submitter?.email ?? null,
           submitted_by_name: submittedByName,
+          is_reactivation: isReactivation,
         })
         .select('id')
         .single();
