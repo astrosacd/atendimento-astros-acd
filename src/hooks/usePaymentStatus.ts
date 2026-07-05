@@ -584,9 +584,10 @@ export function usePaymentStatus() {
     declaredAmount: number;
     observation: string;
     proof?: File | null;
+    isReactivation?: boolean;
   }): Promise<boolean> => {
     try {
-      const { clienteId, declaredAmount, observation, proof } = params;
+      const { clienteId, declaredAmount, observation, proof, isReactivation = false } = params;
 
       if (!observation || !observation.trim()) {
         toast({
