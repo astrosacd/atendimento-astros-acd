@@ -100,6 +100,7 @@ const INITIAL_STATS: DashboardStats = {
   offlineIntegrations: 0,
   criticalQuotas: 0,
   divulgadorErrors: 0,
+  canceladosUltimos30d: 0,
 };
 
 function getClientesPorMes(clientes: any[]) {
