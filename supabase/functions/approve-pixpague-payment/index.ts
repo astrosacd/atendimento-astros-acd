@@ -88,7 +88,7 @@ serve(async (req) => {
     // Load payment
     const { data: payment, error: paymentError } = await supabase
       .from("client_payments")
-      .select("*, cliente:clientes(id, data_renovacao, ciclo_cobranca, nome, cobranca_ativa)")
+      .select("*, cliente:clientes(id, data_renovacao, ciclo_cobranca, nome, cobranca_ativa, tags)")
       .eq("id", paymentId)
       .single();
 
