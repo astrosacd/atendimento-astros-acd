@@ -1716,6 +1716,7 @@ export type Database = {
           comprovante_url: string | null
           created_at: string
           id: string
+          is_reactivation: boolean
           ocr_amount: number | null
           ocr_status: string | null
           paid_at: string | null
@@ -1741,6 +1742,7 @@ export type Database = {
           comprovante_url?: string | null
           created_at?: string
           id?: string
+          is_reactivation?: boolean
           ocr_amount?: number | null
           ocr_status?: string | null
           paid_at?: string | null
@@ -1766,6 +1768,7 @@ export type Database = {
           comprovante_url?: string | null
           created_at?: string
           id?: string
+          is_reactivation?: boolean
           ocr_amount?: number | null
           ocr_status?: string | null
           paid_at?: string | null
