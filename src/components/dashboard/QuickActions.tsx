@@ -36,7 +36,7 @@ export function QuickActions() {
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const [clientSearchTerm, setClientSearchTerm] = useState("");
-  const [clientSearchHistory, setClientSearchHistory] = useState<any[]>([]);
+  const [clientSearchHistory, setClientSearchHistory] = useState<BillingLogRow[]>([]);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
 
   const canViewHistory = hasPermission('view_billing_history_quick');
@@ -49,13 +49,13 @@ export function QuickActions() {
     try {
       const { data, error } = await supabase
         .from('billing_logs')
-        .select('*')
+        .select('*, clientes(valor, produto, cobranca_ativa, data_renovacao)')
         .or(`cliente_nome.ilike.%${clientSearchTerm}%,cliente_email.ilike.%${clientSearchTerm}%,cliente_numero.ilike.%${clientSearchTerm}%`)
         .order('sent_at', { ascending: false })
-        .limit(20);
+        .limit(30);
 
       if (error) throw error;
-      setClientSearchHistory(data || []);
+      setClientSearchHistory((data as BillingLogRow[]) || []);
     } catch (err: any) {
       toast({
         title: "Erro na busca",
