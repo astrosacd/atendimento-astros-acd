@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Search, CreditCard, PlusCircle, History, Info, Loader2 } from "lucide-react";
+import { Search, CreditCard, PlusCircle, History, Info, Loader2, MessageCircle, Mail, CheckCircle2, XCircle, ExternalLink, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,27 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
+
+type BillingLogRow = {
+  id: string;
+  cliente_id: string | null;
+  cliente_nome: string;
+  cliente_email: string | null;
+  cliente_numero: string | null;
+  cliente_produto: string | null;
+  cliente_observacoes: string | null;
+  message_type: string;
+  channel: string;
+  status: string;
+  error_message: string | null;
+  sent_at: string;
+  clientes?: { valor: number | null; produto: string | null; cobranca_ativa: boolean | null; data_renovacao: string | null } | null;
+};
+
+const formatCurrency = (value: number | null | undefined) => {
+  if (value == null) return "-";
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value));
+};
 
 export function QuickActions() {
   const navigate = useNavigate();
