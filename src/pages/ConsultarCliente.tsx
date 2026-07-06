@@ -163,6 +163,13 @@ export default function ConsultarCliente() {
     } else if (filter === 'cancelados') {
       setFilters(prev => ({ ...prev, tipoCliente: 'cancelado' }));
     }
+
+    // Auto-search from ?q=
+    const q = searchParams.get('q');
+    if (q) {
+      setQuery(q);
+      searchCliente(q).then(data => setResults(data));
+    }
   }, [searchParams]);
 
   const loadAllClientes = async () => {
