@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Search, CreditCard, PlusCircle, History, Info, Loader2 } from "lucide-react";
+import { Search, CreditCard, PlusCircle, History, Info, Loader2, MessageCircle, Mail, CheckCircle2, XCircle, ExternalLink, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -10,12 +10,33 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
 
+type BillingLogRow = {
+  id: string;
+  cliente_id: string | null;
+  cliente_nome: string;
+  cliente_email: string | null;
+  cliente_numero: string | null;
+  cliente_produto: string | null;
+  cliente_observacoes: string | null;
+  message_type: string;
+  channel: string;
+  status: string;
+  error_message: string | null;
+  sent_at: string;
+  clientes?: { valor: number | null; produto: string | null; cobranca_ativa: boolean | null; data_renovacao: string | null } | null;
+};
+
+const formatCurrency = (value: number | null | undefined) => {
+  if (value == null) return "-";
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value));
+};
+
 export function QuickActions() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const [clientSearchTerm, setClientSearchTerm] = useState("");
-  const [clientSearchHistory, setClientSearchHistory] = useState<any[]>([]);
+  const [clientSearchHistory, setClientSearchHistory] = useState<BillingLogRow[]>([]);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
 
   const canViewHistory = hasPermission('view_billing_history_quick');
@@ -28,13 +49,13 @@ export function QuickActions() {
     try {
       const { data, error } = await supabase
         .from('billing_logs')
-        .select('*')
+        .select('*, clientes(valor, produto, cobranca_ativa, data_renovacao)')
         .or(`cliente_nome.ilike.%${clientSearchTerm}%,cliente_email.ilike.%${clientSearchTerm}%,cliente_numero.ilike.%${clientSearchTerm}%`)
         .order('sent_at', { ascending: false })
-        .limit(20);
+        .limit(30);
 
       if (error) throw error;
-      setClientSearchHistory(data || []);
+      setClientSearchHistory((data as BillingLogRow[]) || []);
     } catch (err: any) {
       toast({
         title: "Erro na busca",
@@ -102,14 +123,14 @@ export function QuickActions() {
               <span className="font-medium">Consultar Histórico</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogContent className="max-w-5xl max-h-[85vh] flex flex-col">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <History className="w-5 h-5 text-amber-500" />
                 Consulta Rápida de Histórico
               </DialogTitle>
               <DialogDescription>
-                Busque por nome, e-mail ou telefone para ver o que foi enviado para o cliente.
+                Busque por nome, e-mail ou telefone para ver o que foi enviado (WhatsApp/Email), valores e status.
               </DialogDescription>
             </DialogHeader>
             
@@ -127,69 +148,125 @@ export function QuickActions() {
 
             <div className="flex-1 overflow-y-auto rounded-lg border">
               <Table>
-                <TableHeader className="sticky top-0 bg-card">
+                <TableHeader className="sticky top-0 bg-card z-10">
                   <TableRow>
-                    <TableHead>Data</TableHead>
+                    <TableHead className="whitespace-nowrap">Data</TableHead>
+                    <TableHead>Cliente</TableHead>
                     <TableHead>Produto</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Valor</TableHead>
+                    <TableHead>Canal</TableHead>
                     <TableHead>Tipo</TableHead>
-                    <TableHead className="w-[40px]"></TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[110px] text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {clientSearchHistory.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
                         {clientSearchTerm ? "Nenhum histórico encontrado para este termo." : "Digite um termo e clique em buscar."}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    clientSearchHistory.map((log) => (
-                      <TableRow key={log.id}>
-                        <TableCell className="text-xs">
-                          {new Date(log.sent_at).toLocaleString('pt-BR', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </TableCell>
-                        <TableCell className="text-sm font-medium">
-                          {log.cliente_produto || '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-[10px] h-5">
-                            {getMessageTypeLabel(log.message_type)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {log.cliente_observacoes && (
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-primary">
-                                  <Search className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="bg-card border-border">
-                                <DialogHeader>
-                                  <DialogTitle className="flex items-center gap-2">
-                                    <Info className="h-5 w-5 text-primary" />
-                                    Observações do Cliente
-                                  </DialogTitle>
-                                  <DialogDescription>
-                                    {log.cliente_nome}
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="mt-4 p-4 rounded-lg bg-muted/50 border border-border">
-                                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                                    {log.cliente_observacoes}
-                                  </p>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    clientSearchHistory.map((log) => {
+                      const isEmail = log.channel === 'email';
+                      const isSuccess = log.status === 'sent' || log.status === 'success' || log.status === 'delivered';
+                      const isFailed = log.status === 'failed' || log.status === 'error';
+                      const valor = log.clientes?.valor;
+                      const produto = log.cliente_produto || log.clientes?.produto || '-';
+                      return (
+                        <TableRow key={log.id}>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {new Date(log.sent_at).toLocaleString('pt-BR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </TableCell>
+                          <TableCell className="text-sm font-medium max-w-[180px] truncate" title={log.cliente_nome}>
+                            {log.cliente_nome}
+                          </TableCell>
+                          <TableCell className="text-sm max-w-[200px] truncate" title={produto}>
+                            {produto}
+                          </TableCell>
+                          <TableCell className="text-sm font-semibold text-right whitespace-nowrap">
+                            {formatCurrency(valor)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={`text-[10px] h-5 gap-1 ${isEmail ? 'text-blue-500 border-blue-500/30' : 'text-emerald-500 border-emerald-500/30'}`}>
+                              {isEmail ? <Mail className="h-3 w-3" /> : <MessageCircle className="h-3 w-3" />}
+                              {isEmail ? 'Email' : 'WhatsApp'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-[10px] h-5">
+                              {getMessageTypeLabel(log.message_type)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {isSuccess ? (
+                              <Badge variant="outline" className="text-[10px] h-5 gap-1 text-emerald-500 border-emerald-500/30">
+                                <CheckCircle2 className="h-3 w-3" /> Enviado
+                              </Badge>
+                            ) : isFailed ? (
+                              <Badge variant="outline" className="text-[10px] h-5 gap-1 text-destructive border-destructive/30" title={log.error_message || ''}>
+                                <XCircle className="h-3 w-3" /> Falhou
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] h-5">{log.status}</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              {log.cliente_observacoes && (
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-primary" title="Ver observações">
+                                      <Info className="h-4 w-4" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="bg-card border-border">
+                                    <DialogHeader>
+                                      <DialogTitle className="flex items-center gap-2">
+                                        <Info className="h-5 w-5 text-primary" />
+                                        Observações do Cliente
+                                      </DialogTitle>
+                                      <DialogDescription>
+                                        {log.cliente_nome}
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="mt-4 p-4 rounded-lg bg-muted/50 border border-border">
+                                      <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                                        {log.cliente_observacoes}
+                                      </p>
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-amber-500"
+                                title="Abrir cliente em Consultar"
+                                onClick={() => navigate(`/consultar?q=${encodeURIComponent(log.cliente_nome)}`)}
+                              >
+                                <User className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-update"
+                                title="Ver histórico de cobranças"
+                                onClick={() => navigate(`/admin/cobranca?q=${encodeURIComponent(log.cliente_nome)}`)}
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
