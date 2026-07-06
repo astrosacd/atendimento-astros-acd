@@ -117,6 +117,24 @@ serve(async (req) => {
         })
         .eq("id", paymentId);
 
+      // Se era pagamento de reativação: remove tag 'reativacao-pendente' do cliente
+      // (mantém 'cancelado' — cliente volta ao estado cancelado padrão).
+      const clienteRej: any = payment.cliente;
+      if (payment.is_reactivation && clienteRej?.id) {
+        try {
+          const existingTags: string[] = Array.isArray(clienteRej.tags) ? clienteRej.tags : [];
+          const cleanedTags = existingTags.filter(
+            (t: string) => t?.toLowerCase() !== "reativacao-pendente"
+          );
+          await supabase
+            .from("clientes")
+            .update({ tags: cleanedTags })
+            .eq("id", clienteRej.id);
+        } catch (e) {
+          console.error("[approve-pixpague] Erro ao limpar tag reativacao-pendente:", e);
+        }
+      }
+
       return new Response(JSON.stringify({ success: true, action: "rejected" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

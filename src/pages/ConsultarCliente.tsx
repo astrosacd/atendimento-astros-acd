@@ -722,20 +722,31 @@ export default function ConsultarCliente() {
                 {results.length > 0 ? (
                   <div className="grid gap-4 max-h-[500px] overflow-y-auto pr-2">
                     {results.map((cliente) => {
+                      const tagsLower = Array.isArray(cliente.tags)
+                        ? cliente.tags.map(tag => String(tag).toLowerCase())
+                        : [];
+                      const isReativacaoPendente = cliente.cobranca_ativa === false
+                        && tagsLower.includes('reativacao-pendente');
                       const isCancelado = cliente.cobranca_ativa === false
-                        && Array.isArray(cliente.tags)
-                        && cliente.tags.some(tag => String(tag).toLowerCase() === 'cancelado');
-                      const isRegistroPuro = cliente.cobranca_ativa === false && !isCancelado;
-                      const rowClass = isCancelado
-                        ? 'bg-rose-500/5 border-rose-500/25 hover:border-rose-500/50'
-                        : isRegistroPuro
-                          ? 'bg-amber-500/5 border-amber-500/20 hover:border-amber-500/40'
-                          : 'bg-info/5 border-info/20 hover:border-info/40';
-                      const nameClass = isCancelado
-                        ? 'text-rose-400'
-                        : isRegistroPuro
-                          ? 'text-amber-500'
-                          : 'text-info';
+                        && !isReativacaoPendente
+                        && tagsLower.includes('cancelado');
+                      const isRegistroPuro = cliente.cobranca_ativa === false
+                        && !isCancelado
+                        && !isReativacaoPendente;
+                      const rowClass = isReativacaoPendente
+                        ? 'bg-violet-500/5 border-violet-500/25 hover:border-violet-500/50'
+                        : isCancelado
+                          ? 'bg-rose-500/5 border-rose-500/25 hover:border-rose-500/50'
+                          : isRegistroPuro
+                            ? 'bg-amber-500/5 border-amber-500/20 hover:border-amber-500/40'
+                            : 'bg-info/5 border-info/20 hover:border-info/40';
+                      const nameClass = isReativacaoPendente
+                        ? 'text-violet-400'
+                        : isCancelado
+                          ? 'text-rose-400'
+                          : isRegistroPuro
+                            ? 'text-amber-500'
+                            : 'text-info';
                       return (
                       <div 
                         key={cliente.id}
@@ -752,6 +763,11 @@ export default function ConsultarCliente() {
                                 </Badge>
                               );
                             })()}
+                            {isReativacaoPendente && (
+                              <Badge variant="outline" className="bg-violet-500/10 text-violet-400 border-violet-500/30 text-xs gap-1" title="Aguardando aprovação do pagamento em Segurança de Pagamento">
+                                ⏳ Reativação pendente
+                              </Badge>
+                            )}
                             {isCancelado && (
                               <Badge variant="outline" className="bg-rose-500/10 text-rose-400 border-rose-500/30 text-xs gap-1">
                                 <XCircle className="h-3 w-3" />
