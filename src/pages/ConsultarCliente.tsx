@@ -861,8 +861,8 @@ export default function ConsultarCliente() {
                               </Button>
                             )}
 
-                            {/* Reativar cliente (apenas se cancelado) */}
-                            {isAdmin && cliente.cobranca_ativa === false && !isNonClientType(cliente) && (
+                            {/* Reativar cliente (apenas se realmente cancelado, não em "apenas registro") */}
+                            {isAdmin && isCancelado && !isNonClientType(cliente) && (
                               <Button
                                 onClick={() => setReactivateTarget(cliente)}
                                 variant="ghost"
