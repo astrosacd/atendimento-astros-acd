@@ -444,7 +444,7 @@ export function QuickActions() {
                                   size="sm"
                                   className="h-8 w-8 p-0 text-muted-foreground"
                                   title="Abrir no módulo de Cobrança"
-                                  onClick={() => navigate(`/admin/cobranca?q=${encodeURIComponent(log.cliente_nome)}`)}
+                                  onClick={() => navigate(`/admin/cobranca?tab=logs&q=${encodeURIComponent(log.cliente_nome)}`)}
                                 >
                                   <ExternalLink className="h-4 w-4" />
                                 </Button>
