@@ -377,7 +377,22 @@ const AdminCobranca = () => {
       setLogStatusFilter('error');
       setLogDateFilter('all');
     }
+
+    // Auto-populate client search when arriving with ?q= from dashboard "Consulta Rápida"
+    const q = searchParams.get('q');
+    if (q && q.trim()) {
+      setClientSearchTerm(q);
+    }
   }, [searchParams]);
+
+  // Auto-fire the search once when clientSearchTerm was set via ?q=
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q && clientSearchTerm === q) {
+      handleSearchClientHistory();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientSearchTerm]);
 
   const handleResolveSkipped = async () => {
     if (!resolvingLogId) return;

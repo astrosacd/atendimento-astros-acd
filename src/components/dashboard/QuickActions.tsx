@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -121,6 +121,16 @@ function ClientBillingInlineDialog({ clienteId, clienteNome, open, onOpenChange 
     }
   };
 
+  // Trigger fetch whenever dialog opens for a new client (Radix não emite onOpenChange
+  // quando o open é controlado externamente, então precisamos deste effect).
+  useEffect(() => {
+    if (open) {
+      setRows([]);
+      fetchHistory();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, clienteId, clienteNome]);
+
   const summary = useMemo(() => {
     const total = rows.length;
     const enviados = rows.filter(r => ['sent', 'success', 'delivered'].includes(r.status)).length;
@@ -131,7 +141,7 @@ function ClientBillingInlineDialog({ clienteId, clienteNome, open, onOpenChange 
   }, [rows]);
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (o) fetchHistory(); }}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -434,7 +444,7 @@ export function QuickActions() {
                                   size="sm"
                                   className="h-8 w-8 p-0 text-muted-foreground"
                                   title="Abrir no módulo de Cobrança"
-                                  onClick={() => navigate(`/admin/cobranca?q=${encodeURIComponent(log.cliente_nome)}`)}
+                                  onClick={() => navigate(`/admin/cobranca?tab=logs&q=${encodeURIComponent(log.cliente_nome)}`)}
                                 >
                                   <ExternalLink className="h-4 w-4" />
                                 </Button>
