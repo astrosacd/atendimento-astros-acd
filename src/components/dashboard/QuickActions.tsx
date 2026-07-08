@@ -121,6 +121,16 @@ function ClientBillingInlineDialog({ clienteId, clienteNome, open, onOpenChange 
     }
   };
 
+  // Trigger fetch whenever dialog opens for a new client (Radix não emite onOpenChange
+  // quando o open é controlado externamente, então precisamos deste effect).
+  useEffect(() => {
+    if (open) {
+      setRows([]);
+      fetchHistory();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, clienteId, clienteNome]);
+
   const summary = useMemo(() => {
     const total = rows.length;
     const enviados = rows.filter(r => ['sent', 'success', 'delivered'].includes(r.status)).length;
@@ -131,7 +141,7 @@ function ClientBillingInlineDialog({ clienteId, clienteNome, open, onOpenChange 
   }, [rows]);
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (o) fetchHistory(); }}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
