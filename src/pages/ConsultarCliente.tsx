@@ -1445,33 +1445,49 @@ export default function ConsultarCliente() {
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold mb-2">
                     Ciclo de vida
                   </p>
-                  {editingCliente.cobranca_ativa !== false ? (
-                    <Button
-                      onClick={() => {
-                        const target = editingCliente;
-                        setEditingCliente(null);
-                        setCancelTarget(target);
-                      }}
-                      variant="outline"
-                      className="w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive gap-2"
-                    >
-                      <XCircle className="h-4 w-4" />
-                      Cancelar cliente (parar cobrança recorrente)
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={() => {
-                        const target = editingCliente;
-                        setEditingCliente(null);
-                        setReactivateTarget(target);
-                      }}
-                      variant="outline"
-                      className="w-full border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-600 gap-2"
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                      Reativar cliente (retomar cobrança)
-                    </Button>
-                  )}
+                  {(() => {
+                    const editTags = (editingCliente.tags || []).map(t => String(t).toLowerCase());
+                    const editIsCancelado = editingCliente.cobranca_ativa === false && editTags.includes('cancelado');
+                    const editIsRegistroPuro = editingCliente.cobranca_ativa === false && !editIsCancelado;
+                    if (editingCliente.cobranca_ativa !== false) {
+                      return (
+                        <Button
+                          onClick={() => {
+                            const target = editingCliente;
+                            setEditingCliente(null);
+                            setCancelTarget(target);
+                          }}
+                          variant="outline"
+                          className="w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive gap-2"
+                        >
+                          <XCircle className="h-4 w-4" />
+                          Cancelar cliente (parar cobrança recorrente)
+                        </Button>
+                      );
+                    }
+                    if (editIsCancelado) {
+                      return (
+                        <Button
+                          onClick={() => {
+                            const target = editingCliente;
+                            setEditingCliente(null);
+                            setReactivateTarget(target);
+                          }}
+                          variant="outline"
+                          className="w-full border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-600 gap-2"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                          Reativar cliente (retomar cobrança)
+                        </Button>
+                      );
+                    }
+                    // Registro puro: sem botão de reativar, apenas indicação
+                    return (
+                      <p className="text-xs text-muted-foreground italic">
+                        Cadastro apenas para registro (sem cobrança recorrente). Para iniciar cobrança, use "Renovar" ou edite o ciclo do cliente.
+                      </p>
+                    );
+                  })()}
                 </div>
               )}
             </div>
