@@ -93,11 +93,12 @@ function PaymentStatusPill({ cliente }: { cliente?: BillingLogRow['clientes'] })
 }
 
 // Inline dialog with cobrança history for a single client (no navigation needed)
-function ClientBillingInlineDialog({ clienteId, clienteNome, open, onOpenChange }: {
+function ClientBillingInlineDialog({ clienteId, clienteNome, open, onOpenChange, onPreview }: {
   clienteId: string | null;
   clienteNome: string;
   open: boolean;
   onOpenChange: (o: boolean) => void;
+  onPreview?: (row: BillingLogRow) => void;
 }) {
   const [rows, setRows] = useState<BillingLogRow[]>([]);
   const [loading, setLoading] = useState(false);
