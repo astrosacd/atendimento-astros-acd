@@ -426,6 +426,15 @@ export function QuickActions() {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className="h-8 w-8 p-0 text-primary"
+                                title="Ver prévia da mensagem enviada"
+                                onClick={() => setPreviewLog(log)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 className="h-8 w-8 p-0 text-amber-500"
                                 title="Abrir cliente em Consultar"
                                 onClick={() => navigate(`/consultar?q=${encodeURIComponent(log.cliente_nome)}`)}
