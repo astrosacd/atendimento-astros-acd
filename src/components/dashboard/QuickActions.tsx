@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Search, CreditCard, PlusCircle, History, Info, Loader2, MessageCircle, Mail, CheckCircle2, XCircle, ExternalLink, User, Receipt, CircleDot, Clock, AlertTriangle } from "lucide-react";
+import { Search, CreditCard, PlusCircle, History, Info, Loader2, MessageCircle, Mail, CheckCircle2, XCircle, ExternalLink, User, Receipt, CircleDot, Clock, AlertTriangle, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
+import { MessagePreviewDialog } from "@/components/dashboard/MessagePreviewDialog";
 
 type BillingLogRow = {
   id: string;
@@ -23,6 +24,7 @@ type BillingLogRow = {
   status: string;
   error_message: string | null;
   sent_at: string;
+  message_body?: string | null;
   clientes?: { valor: number | null; produto: string | null; cobranca_ativa: boolean | null; data_renovacao: string | null } | null;
 };
 
