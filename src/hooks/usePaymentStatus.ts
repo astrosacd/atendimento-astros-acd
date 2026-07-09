@@ -684,14 +684,32 @@ export function usePaymentStatus() {
   // Submit a pending billing for approval (sends to "Segurança de Pagamento")
   // Used when the user clicks the green "Pago" button on a billing — instead of
   // marking it as paid directly, the billing is updated to pending_approval with
-  // the proof attached (PIX/Boleto = file required; Link/Stripe = link or proof).
+  // the proof attached.
+  //
+  // Modes:
+  //  - Default (PIX/Link/Boleto/Stripe): file OR transactionRef required.
+  //  - Cash TOTAL: cashMode='total' + cashDescription. No file. payment_type -> 'dinheiro'.
+  //  - Cash PARTIAL: cashMode='partial' + cashAmount + cashDescription + complement
+  //    (type + file OR transactionRef). Sum must equal payment.amount (±0.01).
+  //    Creates a linked complement record via parent_payment_id.
   const submitPendingForApproval = async (params: {
     paymentId: string;
     comprovante?: File | null;
     transactionRef?: string | null; // payment link URL or transaction ID
+    // Cash flow
+    cashMode?: 'total' | 'partial' | null;
+    cashAmount?: number;             // partial only
+    cashDescription?: string;        // required for cash (total or partial)
+    complementPaymentType?: string;  // partial only: 'pix' | 'link' | 'boleto' | 'stripe'
+    complementComprovante?: File | null; // partial complement proof
+    complementTransactionRef?: string | null; // partial complement link/id
   }): Promise<boolean> => {
     try {
-      const { paymentId, comprovante, transactionRef } = params;
+      const {
+        paymentId, comprovante, transactionRef,
+        cashMode, cashAmount, cashDescription,
+        complementPaymentType, complementComprovante, complementTransactionRef,
+      } = params;
 
       // Capture submitter for traceability
       const { data: { user: submitter } } = await supabase.auth.getUser();
@@ -705,15 +723,170 @@ export function usePaymentStatus() {
         submittedByName = profile?.name ?? null;
       }
 
-      // Get current payment to find cliente_id
+      // Get current payment (needed for cliente_id + amount validation)
       const { data: existing, error: fetchError } = await supabase
         .from('client_payments')
-        .select('cliente_id, amount')
+        .select('cliente_id, amount, billing_date')
         .eq('id', paymentId)
         .single();
       if (fetchError) throw fetchError;
 
-      // Upload proof if provided
+      // ============ CASH FLOW ============
+      if (cashMode) {
+        if (!cashDescription || !cashDescription.trim()) {
+          toast({
+            title: 'Descrição obrigatória',
+            description: 'Informe quem recebeu o dinheiro e onde (ex: "Recebido no balcão por João, 15/07").',
+            variant: 'destructive',
+          });
+          return false;
+        }
+
+        if (cashMode === 'total') {
+          // Convert current payment → dinheiro pending_approval
+          const { error: updateError } = await supabase
+            .from('client_payments')
+            .update({
+              status: 'pending_approval',
+              payment_type: 'dinheiro',
+              cash_description: cashDescription.trim(),
+              comprovante_url: null,
+              ocr_status: 'manual_review',
+              approval_reason: `Pagamento em dinheiro (total): ${cashDescription.trim()}`,
+              submitted_by: submitter?.id ?? null,
+              submitted_by_email: submitter?.email ?? null,
+              submitted_by_name: submittedByName,
+            })
+            .eq('id', paymentId);
+          if (updateError) throw updateError;
+
+          try {
+            await supabase.functions.invoke('pixpague-trigger-processing', {
+              body: { paymentId, proofUrl: 'cash-total', declaredAmount: existing.amount, manualReview: true },
+            });
+          } catch (err) { console.error('[cash-total] notify error:', err); }
+
+          toast({
+            title: '📨 Enviado para aprovação',
+            description: 'Pagamento em dinheiro (total) enviado para "Segurança de Pagamento".',
+          });
+          return true;
+        }
+
+        // PARTIAL
+        if (typeof cashAmount !== 'number' || cashAmount <= 0) {
+          toast({ title: 'Valor em dinheiro inválido', description: 'Informe o valor recebido em dinheiro.', variant: 'destructive' });
+          return false;
+        }
+        if (!complementPaymentType) {
+          toast({ title: 'Tipo do complemento obrigatório', description: 'Escolha PIX, Link Cartão, Boleto ou Stripe.', variant: 'destructive' });
+          return false;
+        }
+        if (!complementComprovante && !complementTransactionRef?.trim()) {
+          toast({
+            title: 'Comprovante do complemento obrigatório',
+            description: 'Anexe o comprovante ou informe o link/ID da transação do complemento.',
+            variant: 'destructive',
+          });
+          return false;
+        }
+        const complementAmount = Number((existing.amount - cashAmount).toFixed(2));
+        const sum = Number((cashAmount + complementAmount).toFixed(2));
+        if (Math.abs(sum - existing.amount) > 0.01 || complementAmount <= 0) {
+          toast({
+            title: 'Soma não confere',
+            description: `Dinheiro (${cashAmount.toFixed(2)}) + Complemento (${complementAmount.toFixed(2)}) deve ser exatamente ${existing.amount.toFixed(2)}.`,
+            variant: 'destructive',
+          });
+          return false;
+        }
+
+        // Upload complement proof if file
+        let complementProofUrl: string | null = null;
+        if (complementComprovante) {
+          const fileExt = complementComprovante.name.split('.').pop();
+          const fileName = `${existing.cliente_id}_cashpartial_${Date.now()}.${fileExt}`;
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('payment-proofs')
+            .upload(fileName, complementComprovante);
+          if (uploadError || !uploadData) {
+            toast({ title: 'Erro no upload', description: uploadError?.message || 'Falha ao enviar comprovante.', variant: 'destructive' });
+            return false;
+          }
+          const { data: { publicUrl } } = supabase.storage.from('payment-proofs').getPublicUrl(uploadData.path);
+          complementProofUrl = publicUrl;
+        } else {
+          complementProofUrl = complementTransactionRef!.trim();
+        }
+
+        // 1) Update main record → dinheiro (parcial) com o valor da parte em dinheiro
+        const { error: updateError } = await supabase
+          .from('client_payments')
+          .update({
+            status: 'pending_approval',
+            payment_type: 'dinheiro',
+            amount: cashAmount,
+            cash_description: cashDescription.trim(),
+            comprovante_url: null,
+            ocr_status: 'manual_review',
+            approval_reason: `Pagamento em dinheiro (parcial ${cashAmount.toFixed(2)} de ${existing.amount.toFixed(2)}): ${cashDescription.trim()}`,
+            submitted_by: submitter?.id ?? null,
+            submitted_by_email: submitter?.email ?? null,
+            submitted_by_name: submittedByName,
+          })
+          .eq('id', paymentId);
+        if (updateError) throw updateError;
+
+        // 2) Insert complement record vinculado
+        const { data: complementInserted, error: complementError } = await supabase
+          .from('client_payments')
+          .insert({
+            cliente_id: existing.cliente_id,
+            payment_id: `manual_cashcomp_${Date.now()}`,
+            payment_type: complementPaymentType,
+            amount: complementAmount,
+            status: 'pending_approval',
+            paid_at: null,
+            billing_date: existing.billing_date,
+            comprovante_url: complementProofUrl,
+            ocr_status: 'pending',
+            parent_payment_id: paymentId,
+            approval_reason: `Complemento do pagamento parcial em dinheiro (id principal: ${paymentId})`,
+            submitted_by: submitter?.id ?? null,
+            submitted_by_email: submitter?.email ?? null,
+            submitted_by_name: submittedByName,
+          })
+          .select('id')
+          .single();
+        if (complementError) throw complementError;
+
+        // Dispara análise do complemento (OCR ou manual)
+        try {
+          await supabase.functions.invoke('pixpague-trigger-processing', {
+            body: {
+              paymentId: complementInserted?.id,
+              proofUrl: complementProofUrl,
+              declaredAmount: complementAmount,
+              manualReview: !complementComprovante,
+            },
+          });
+        } catch (err) { console.error('[cash-partial complement] notify error:', err); }
+
+        // Notifica também o registro principal (dinheiro)
+        try {
+          await supabase.functions.invoke('pixpague-trigger-processing', {
+            body: { paymentId, proofUrl: 'cash-partial', declaredAmount: cashAmount, manualReview: true },
+          });
+        } catch (err) { console.error('[cash-partial main] notify error:', err); }
+
+        toast({
+          title: '📨 Enviado para aprovação',
+          description: `Parcial: R$ ${cashAmount.toFixed(2)} em dinheiro + R$ ${complementAmount.toFixed(2)} em ${complementPaymentType}.`,
+        });
+        return true;
+      }
+
+      // ============ DEFAULT FLOW (PIX/Link/Boleto/Stripe) — inalterado ============
       let comprovanteUrl: string | null = null;
       if (comprovante) {
         const fileExt = comprovante.name.split('.').pop();
@@ -734,7 +907,6 @@ export function usePaymentStatus() {
           .getPublicUrl(uploadData.path);
         comprovanteUrl = publicUrl;
       } else if (transactionRef) {
-        // Use the link/transaction reference as the "proof" pointer
         comprovanteUrl = transactionRef;
       } else {
         toast({
@@ -745,7 +917,6 @@ export function usePaymentStatus() {
         return false;
       }
 
-      // Update billing → pending_approval (do NOT mark as paid yet)
       const { error: updateError } = await supabase
         .from('client_payments')
         .update({
@@ -759,7 +930,6 @@ export function usePaymentStatus() {
         .eq('id', paymentId);
       if (updateError) throw updateError;
 
-      // Trigger background analysis (OCR / link validation) or simple notification
       if (comprovanteUrl) {
         try {
           await supabase.functions.invoke('pixpague-trigger-processing', {
@@ -767,8 +937,6 @@ export function usePaymentStatus() {
               paymentId,
               proofUrl: comprovanteUrl,
               declaredAmount: existing.amount,
-              // If it's just a text reference (link/ID) and not a file upload, 
-              // we treat it as manual review to skip OCR and send the notification.
               manualReview: !comprovante,
             },
           });
