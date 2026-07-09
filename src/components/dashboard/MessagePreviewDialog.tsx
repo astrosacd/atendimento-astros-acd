@@ -34,14 +34,14 @@ async function reconstructMessage(log: NonNullable<Props["log"]>): Promise<{ bod
 
   const [configRes, clienteRes] = await Promise.all([
     key
-      ? supabase.from("billing_config").select("key,value").eq("key", key).maybeSingle()
+      ? supabase.from("billing_config").select("config_key,config_value").eq("config_key", key).maybeSingle()
       : Promise.resolve({ data: null } as any),
     log.cliente_id
       ? supabase.from("clientes").select("nome,valor,produto,data_renovacao,plano,email,cpf,numero").eq("id", log.cliente_id).maybeSingle()
       : Promise.resolve({ data: null } as any),
   ]);
 
-  const template: string = (configRes?.data as any)?.value || "(Template não encontrado)";
+  const template: string = (configRes?.data as any)?.config_value || "(Template não encontrado)";
   const cli: any = clienteRes?.data || {};
 
   const formattedDate = cli.data_renovacao
