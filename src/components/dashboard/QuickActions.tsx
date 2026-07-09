@@ -182,6 +182,7 @@ function ClientBillingInlineDialog({ clienteId, clienteNome, open, onOpenChange,
                   <TableHead>Tipo</TableHead>
                   <TableHead>Canal</TableHead>
                   <TableHead>Status</TableHead>
+                  {onPreview && <TableHead className="w-[60px]"></TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -214,6 +215,13 @@ function ClientBillingInlineDialog({ clienteId, clienteNome, open, onOpenChange,
                           <Badge variant="outline" className="text-[10px] h-5 whitespace-nowrap">{r.status}</Badge>
                         )}
                       </TableCell>
+                      {onPreview && (
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary" title="Ver prévia da mensagem" onClick={() => onPreview(r)}>
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })}
