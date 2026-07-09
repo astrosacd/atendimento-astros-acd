@@ -1374,6 +1374,7 @@ const handler = async (req: Request): Promise<Response> => {
             channel: 'whatsapp',
             status: whatsappResult.success ? 'sent' : 'error',
             error_message: logError ? `${providerInfo} ${logError}` : providerInfo,
+            message_body: message,
           });
 
           if (whatsappResult.success) {
