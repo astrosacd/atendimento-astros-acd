@@ -479,6 +479,13 @@ export function QuickActions() {
         onOpenChange={(o) => setInlineDialog(s => ({ ...s, open: o }))}
         clienteId={inlineDialog.clienteId}
         clienteNome={inlineDialog.clienteNome}
+        onPreview={(row) => setPreviewLog(row)}
+      />
+
+      <MessagePreviewDialog
+        open={!!previewLog}
+        onOpenChange={(o) => { if (!o) setPreviewLog(null); }}
+        log={previewLog}
       />
     </div>
   );
