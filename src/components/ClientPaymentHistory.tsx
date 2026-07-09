@@ -246,6 +246,8 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
         return <LinkIcon className="w-4 h-4 text-blue-400" />;
       case 'boleto':
         return <FileText className="w-4 h-4 text-orange-400" />;
+      case 'dinheiro':
+        return <Banknote className="w-4 h-4 text-emerald-400" />;
       default:
         return <CreditCard className="w-4 h-4 text-primary" />;
     }
@@ -265,6 +267,8 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
         return 'Link Cartão';
       case 'boleto':
         return 'Boleto';
+      case 'dinheiro':
+        return 'Dinheiro';
       default:
         return type;
     }
@@ -284,6 +288,8 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
         return 'bg-blue-500/10 border-blue-500/30';
       case 'boleto':
         return 'bg-orange-500/10 border-orange-500/30';
+      case 'dinheiro':
+        return 'bg-emerald-500/10 border-emerald-500/30';
       default:
         return 'bg-primary/10 border-primary/30';
     }
