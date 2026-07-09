@@ -513,6 +513,7 @@ export type Database = {
           cliente_produto: string | null
           error_message: string | null
           id: string
+          message_body: string | null
           message_type: string
           resolution: string | null
           resolution_note: string | null
@@ -531,6 +532,7 @@ export type Database = {
           cliente_produto?: string | null
           error_message?: string | null
           id?: string
+          message_body?: string | null
           message_type: string
           resolution?: string | null
           resolution_note?: string | null
@@ -549,6 +551,7 @@ export type Database = {
           cliente_produto?: string | null
           error_message?: string | null
           id?: string
+          message_body?: string | null
           message_type?: string
           resolution?: string | null
           resolution_note?: string | null
@@ -1712,6 +1715,7 @@ export type Database = {
           approved_by: string | null
           approved_by_email: string | null
           billing_date: string
+          cash_description: string | null
           cliente_id: string | null
           comprovante_url: string | null
           created_at: string
@@ -1720,6 +1724,7 @@ export type Database = {
           ocr_amount: number | null
           ocr_status: string | null
           paid_at: string | null
+          parent_payment_id: string | null
           payment_id: string
           payment_type: string
           pix_transaction_id: string | null
@@ -1738,6 +1743,7 @@ export type Database = {
           approved_by?: string | null
           approved_by_email?: string | null
           billing_date: string
+          cash_description?: string | null
           cliente_id?: string | null
           comprovante_url?: string | null
           created_at?: string
@@ -1746,6 +1752,7 @@ export type Database = {
           ocr_amount?: number | null
           ocr_status?: string | null
           paid_at?: string | null
+          parent_payment_id?: string | null
           payment_id: string
           payment_type: string
           pix_transaction_id?: string | null
@@ -1764,6 +1771,7 @@ export type Database = {
           approved_by?: string | null
           approved_by_email?: string | null
           billing_date?: string
+          cash_description?: string | null
           cliente_id?: string | null
           comprovante_url?: string | null
           created_at?: string
@@ -1772,6 +1780,7 @@ export type Database = {
           ocr_amount?: number | null
           ocr_status?: string | null
           paid_at?: string | null
+          parent_payment_id?: string | null
           payment_id?: string
           payment_type?: string
           pix_transaction_id?: string | null
@@ -1789,6 +1798,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_payments_parent_payment_id_fkey"
+            columns: ["parent_payment_id"]
+            isOneToOne: false
+            referencedRelation: "client_payments"
             referencedColumns: ["id"]
           },
         ]
