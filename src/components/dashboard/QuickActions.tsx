@@ -233,6 +233,7 @@ export function QuickActions() {
   const [clientSearchHistory, setClientSearchHistory] = useState<BillingLogRow[]>([]);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [inlineDialog, setInlineDialog] = useState<{ open: boolean; clienteId: string | null; clienteNome: string }>({ open: false, clienteId: null, clienteNome: "" });
+  const [previewLog, setPreviewLog] = useState<BillingLogRow | null>(null);
 
   const canViewHistory = hasPermission('view_billing_history_quick');
   const canOpenCobrancaModule = hasPermission('view_admin_cobranca');
