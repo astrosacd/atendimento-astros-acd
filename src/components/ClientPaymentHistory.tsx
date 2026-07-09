@@ -9,18 +9,21 @@ import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { usePermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/integrations/supabase/client';
 import { openComprovante } from '@/utils/comprovanteUrl';
-import { 
-  CreditCard, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  CreditCard,
+  CheckCircle,
+  XCircle,
+  Clock,
   AlertCircle,
   Calendar,
   QrCode,
   Link as LinkIcon,
   FileText,
   Receipt,
-  Plus
+  Plus,
+  Banknote
 } from 'lucide-react';
 
 interface Payment {
@@ -36,6 +39,8 @@ interface Payment {
   created_at: string;
   receipt_number: string | null;
   comprovante_url?: string | null;
+  cash_description?: string | null;
+  parent_payment_id?: string | null;
 }
 
 interface ClientPaymentHistoryProps {
@@ -73,6 +78,15 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
   const [approvalProof, setApprovalProof] = useState<File | null>(null);
   const [approvalRef, setApprovalRef] = useState('');
   const [approvalLoading, setApprovalLoading] = useState(false);
+  // NEW: cash flow state
+  const [approvalMethod, setApprovalMethod] = useState<'default' | 'cash'>('default');
+  const [cashMode, setCashMode] = useState<'total' | 'partial'>('total');
+  const [cashDescription, setCashDescription] = useState('');
+  const [cashAmount, setCashAmount] = useState('');
+  const [complementType, setComplementType] = useState<'pix' | 'link' | 'boleto' | 'stripe'>('pix');
+  const [complementProof, setComplementProof] = useState<File | null>(null);
+  const [complementRef, setComplementRef] = useState('');
+
   const { fetchClientPayments, cancelPayment, registerEarlyPayment, submitPendingForApproval } = usePaymentStatus();
   const { canRegisterPixpaguePayment } = usePermissions();
 
@@ -94,7 +108,6 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
   };
 
   // Sacada 1: botão "Registrar pagamento antecipado" só fica habilitado até D-1.
-  // A partir de D0 (dia do vencimento) a cobrança automática do dia já existe abaixo.
   const isAntecipadoDisabled = (() => {
     if (!dataRenovacao) return false;
     const today = new Date();
@@ -103,14 +116,66 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
     return today.getTime() >= venc.getTime();
   })();
 
+  const resetApprovalState = () => {
+    setApprovalPayment(null);
+    setApprovalProof(null);
+    setApprovalRef('');
+    setApprovalMethod('default');
+    setCashMode('total');
+    setCashDescription('');
+    setCashAmount('');
+    setComplementType('pix');
+    setComplementProof(null);
+    setComplementRef('');
+  };
+
   const openApprovalDialog = (payment: Payment) => {
     setApprovalPayment(payment);
     setApprovalProof(null);
     setApprovalRef('');
+    setApprovalMethod('default');
+    setCashMode('total');
+    setCashDescription('');
+    setCashAmount('');
+    setComplementType('pix');
+    setComplementProof(null);
+    setComplementRef('');
   };
+
+  // Cash partial computed sum for live feedback
+  const cashPartialSum = (() => {
+    if (approvalMethod !== 'cash' || cashMode !== 'partial' || !approvalPayment) return null;
+    const cash = parseFloat(cashAmount) || 0;
+    const complement = Number((approvalPayment.amount - cash).toFixed(2));
+    const sum = Number((cash + complement).toFixed(2));
+    const valid = cash > 0 && complement > 0 && Math.abs(sum - approvalPayment.amount) <= 0.01;
+    return { cash, complement, sum, valid };
+  })();
 
   const handleSubmitForApproval = async () => {
     if (!approvalPayment) return;
+
+    if (approvalMethod === 'cash') {
+      setApprovalLoading(true);
+      const success = await submitPendingForApproval({
+        paymentId: approvalPayment.id,
+        cashMode,
+        cashDescription: cashDescription.trim(),
+        cashAmount: cashMode === 'partial' ? parseFloat(cashAmount) : undefined,
+        complementPaymentType: cashMode === 'partial' ? complementType : undefined,
+        complementComprovante: cashMode === 'partial' ? complementProof : undefined,
+        complementTransactionRef: cashMode === 'partial' ? (complementProof ? null : complementRef.trim() || null) : undefined,
+      });
+      setApprovalLoading(false);
+      if (success) {
+        resetApprovalState();
+        await loadPayments();
+        onPaymentUpdate?.();
+      }
+      return;
+    }
+
+    // Default flow
     const isLinkLike = isLinkPaymentType(approvalPayment.payment_type);
     if (!approvalProof && !(isLinkLike && approvalRef.trim())) {
       return;
@@ -123,9 +188,7 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
     });
     setApprovalLoading(false);
     if (success) {
-      setApprovalPayment(null);
-      setApprovalProof(null);
-      setApprovalRef('');
+      resetApprovalState();
       await loadPayments();
       onPaymentUpdate?.();
     }
@@ -185,6 +248,8 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
         return <LinkIcon className="w-4 h-4 text-blue-400" />;
       case 'boleto':
         return <FileText className="w-4 h-4 text-orange-400" />;
+      case 'dinheiro':
+        return <Banknote className="w-4 h-4 text-emerald-400" />;
       default:
         return <CreditCard className="w-4 h-4 text-primary" />;
     }
@@ -204,6 +269,8 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
         return 'Link Cartão';
       case 'boleto':
         return 'Boleto';
+      case 'dinheiro':
+        return 'Dinheiro';
       default:
         return type;
     }
@@ -223,6 +290,8 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
         return 'bg-blue-500/10 border-blue-500/30';
       case 'boleto':
         return 'bg-orange-500/10 border-orange-500/30';
+      case 'dinheiro':
+        return 'bg-emerald-500/10 border-emerald-500/30';
       default:
         return 'bg-primary/10 border-primary/30';
     }
@@ -487,6 +556,17 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
                                           Pago em {formatDateTime(payment.paid_at)}
                                         </p>
                                       )}
+                                      {payment.cash_description && (
+                                        <p className="text-xs text-emerald-300/80 flex items-start gap-1 mt-0.5">
+                                          <Banknote className="w-3 h-3 mt-0.5 shrink-0" />
+                                          <span className="italic">{payment.cash_description}</span>
+                                        </p>
+                                      )}
+                                      {payment.parent_payment_id && (
+                                        <p className="text-[10px] text-muted-foreground italic mt-0.5">
+                                          ↳ Complemento de pagamento parcial em dinheiro
+                                        </p>
+                                      )}
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -530,8 +610,8 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
       </DialogContent>
 
       {/* Dialog: enviar pagamento pendente para Segurança de Pagamento */}
-      <Dialog open={!!approvalPayment} onOpenChange={(open) => { if (!open) setApprovalPayment(null); }}>
-        <DialogContent className="max-w-md">
+      <Dialog open={!!approvalPayment} onOpenChange={(open) => { if (!open) resetApprovalState(); }}>
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Enviar para aprovação</DialogTitle>
             <DialogDescription>
@@ -539,38 +619,160 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
                 <>
                   {getPaymentTypeLabel(approvalPayment.payment_type)} •{' '}
                   {formatCurrency(approvalPayment.amount, getPaymentCurrency(approvalPayment.payment_type))}
-                  <br />
-                  Anexe o comprovante {isLinkPaymentType(approvalPayment.payment_type) ? 'ou cole o link/ID da transação' : 'do pagamento'} para enviar para "Segurança de Pagamento".
                 </>
               )}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3 py-2">
+            {/* Método: padrão vs dinheiro */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Comprovante (imagem ou PDF)</Label>
-              <Input
-                type="file"
-                accept="image/*,application/pdf"
-                onChange={(e) => setApprovalProof(e.target.files?.[0] || null)}
-                className="bg-secondary border-border h-10 text-xs"
-              />
+              <Label className="text-xs">Método</Label>
+              <RadioGroup
+                value={approvalMethod}
+                onValueChange={(v: 'default' | 'cash') => setApprovalMethod(v)}
+                className="grid grid-cols-2 gap-2"
+              >
+                <label className={`flex items-center gap-2 p-2 rounded border cursor-pointer text-xs ${approvalMethod === 'default' ? 'border-primary bg-primary/10' : 'border-border'}`}>
+                  <RadioGroupItem value="default" id="m-default" />
+                  <span>Comprovante ({approvalPayment ? getPaymentTypeLabel(approvalPayment.payment_type) : '—'})</span>
+                </label>
+                <label className={`flex items-center gap-2 p-2 rounded border cursor-pointer text-xs ${approvalMethod === 'cash' ? 'border-emerald-500 bg-emerald-500/10' : 'border-border'}`}>
+                  <RadioGroupItem value="cash" id="m-cash" />
+                  <Banknote className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Dinheiro</span>
+                </label>
+              </RadioGroup>
             </div>
 
-            {approvalPayment && isLinkPaymentType(approvalPayment.payment_type) && (
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">
-                  Ou cole o link / ID da transação (Mercado Pago / Stripe)
-                </Label>
-                <Input
-                  type="text"
-                  placeholder="https://... ou pi_... / ID numérico"
-                  value={approvalRef}
-                  onChange={(e) => setApprovalRef(e.target.value)}
-                  className="bg-secondary border-border h-10 text-xs"
-                  disabled={!!approvalProof}
-                />
-              </div>
+            {/* --- FLUXO PADRÃO --- */}
+            {approvalMethod === 'default' && (
+              <>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Comprovante (imagem ou PDF)</Label>
+                  <Input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => setApprovalProof(e.target.files?.[0] || null)}
+                    className="bg-secondary border-border h-10 text-xs"
+                  />
+                </div>
+                {approvalPayment && isLinkPaymentType(approvalPayment.payment_type) && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">
+                      Ou cole o link / ID da transação (Mercado Pago / Stripe)
+                    </Label>
+                    <Input
+                      type="text"
+                      placeholder="https://... ou pi_... / ID numérico"
+                      value={approvalRef}
+                      onChange={(e) => setApprovalRef(e.target.value)}
+                      className="bg-secondary border-border h-10 text-xs"
+                      disabled={!!approvalProof}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* --- FLUXO DINHEIRO --- */}
+            {approvalMethod === 'cash' && (
+              <>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Modalidade</Label>
+                  <RadioGroup
+                    value={cashMode}
+                    onValueChange={(v: 'total' | 'partial') => setCashMode(v)}
+                    className="grid grid-cols-2 gap-2"
+                  >
+                    <label className={`flex items-center gap-2 p-2 rounded border cursor-pointer text-xs ${cashMode === 'total' ? 'border-emerald-500 bg-emerald-500/10' : 'border-border'}`}>
+                      <RadioGroupItem value="total" id="c-total" />
+                      <span>Total</span>
+                    </label>
+                    <label className={`flex items-center gap-2 p-2 rounded border cursor-pointer text-xs ${cashMode === 'partial' ? 'border-emerald-500 bg-emerald-500/10' : 'border-border'}`}>
+                      <RadioGroupItem value="partial" id="c-partial" />
+                      <span>Parcial (dinheiro + outro)</span>
+                    </label>
+                  </RadioGroup>
+                </div>
+
+                {cashMode === 'partial' && approvalPayment && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Valor recebido em dinheiro</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      max={approvalPayment.amount}
+                      placeholder={`Ex: ${(approvalPayment.amount / 2).toFixed(2)}`}
+                      value={cashAmount}
+                      onChange={(e) => setCashAmount(e.target.value)}
+                      className="bg-secondary border-border h-10 text-xs"
+                    />
+                    {cashPartialSum && cashAmount && (
+                      <p className={`text-[11px] ${cashPartialSum.valid ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        Dinheiro: R$ {cashPartialSum.cash.toFixed(2)} + Complemento: R$ {cashPartialSum.complement.toFixed(2)} = R$ {cashPartialSum.sum.toFixed(2)}
+                        {cashPartialSum.valid ? ' ✓' : ` ✗ (deve ser R$ ${approvalPayment.amount.toFixed(2)})`}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Descrição do recebimento (obrigatório)</Label>
+                  <Textarea
+                    placeholder='Ex: "Recebido no balcão por João, 15/07/2026"'
+                    value={cashDescription}
+                    onChange={(e) => setCashDescription(e.target.value)}
+                    className="bg-secondary border-border text-xs min-h-[60px]"
+                    maxLength={500}
+                  />
+                </div>
+
+                {cashMode === 'partial' && (
+                  <div className="space-y-2 rounded border border-border/60 p-2 bg-secondary/30">
+                    <Label className="text-xs font-semibold">Complemento</Label>
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] text-muted-foreground">Tipo do complemento</Label>
+                      <RadioGroup
+                        value={complementType}
+                        onValueChange={(v: any) => setComplementType(v)}
+                        className="grid grid-cols-4 gap-1.5"
+                      >
+                        {(['pix', 'link', 'boleto', 'stripe'] as const).map(t => (
+                          <label key={t} className={`flex items-center justify-center gap-1 p-1.5 rounded border cursor-pointer text-[10px] uppercase ${complementType === t ? 'border-primary bg-primary/10' : 'border-border'}`}>
+                            <RadioGroupItem value={t} id={`comp-${t}`} className="h-3 w-3" />
+                            <span>{t}</span>
+                          </label>
+                        ))}
+                      </RadioGroup>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] text-muted-foreground">Comprovante do complemento (obrigatório)</Label>
+                      <Input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={(e) => setComplementProof(e.target.files?.[0] || null)}
+                        className="bg-background border-border h-9 text-xs"
+                      />
+                    </div>
+                    {(complementType === 'link' || complementType === 'stripe') && (
+                      <div className="space-y-1.5">
+                        <Label className="text-[11px] text-muted-foreground">Ou cole link/ID da transação</Label>
+                        <Input
+                          type="text"
+                          placeholder="https://... ou pi_..."
+                          value={complementRef}
+                          onChange={(e) => setComplementRef(e.target.value)}
+                          className="bg-background border-border h-9 text-xs"
+                          disabled={!!complementProof}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             )}
 
             <p className="text-[11px] text-muted-foreground bg-amber-500/5 border border-amber-500/20 rounded p-2">
@@ -579,15 +781,22 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
           </div>
 
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => setApprovalPayment(null)} disabled={approvalLoading}>
+            <Button variant="outline" onClick={resetApprovalState} disabled={approvalLoading}>
               Cancelar
             </Button>
             <Button
               onClick={handleSubmitForApproval}
               disabled={
                 approvalLoading ||
-                (!approvalProof &&
-                  !(approvalPayment && isLinkPaymentType(approvalPayment.payment_type) && approvalRef.trim()))
+                (approvalMethod === 'default' && !approvalProof &&
+                  !(approvalPayment && isLinkPaymentType(approvalPayment.payment_type) && approvalRef.trim())) ||
+                (approvalMethod === 'cash' && (
+                  !cashDescription.trim() ||
+                  (cashMode === 'partial' && (
+                    !cashPartialSum?.valid ||
+                    (!complementProof && !complementRef.trim())
+                  ))
+                ))
               }
             >
               {approvalLoading ? 'Enviando...' : 'Enviar para aprovação'}

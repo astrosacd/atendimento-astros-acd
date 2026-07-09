@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Search, CreditCard, PlusCircle, History, Info, Loader2, MessageCircle, Mail, CheckCircle2, XCircle, ExternalLink, User, Receipt, CircleDot, Clock, AlertTriangle } from "lucide-react";
+import { Search, CreditCard, PlusCircle, History, Info, Loader2, MessageCircle, Mail, CheckCircle2, XCircle, ExternalLink, User, Receipt, CircleDot, Clock, AlertTriangle, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
+import { MessagePreviewDialog } from "@/components/dashboard/MessagePreviewDialog";
 
 type BillingLogRow = {
   id: string;
@@ -23,6 +24,7 @@ type BillingLogRow = {
   status: string;
   error_message: string | null;
   sent_at: string;
+  message_body?: string | null;
   clientes?: { valor: number | null; produto: string | null; cobranca_ativa: boolean | null; data_renovacao: string | null } | null;
 };
 
@@ -91,11 +93,12 @@ function PaymentStatusPill({ cliente }: { cliente?: BillingLogRow['clientes'] })
 }
 
 // Inline dialog with cobrança history for a single client (no navigation needed)
-function ClientBillingInlineDialog({ clienteId, clienteNome, open, onOpenChange }: {
+function ClientBillingInlineDialog({ clienteId, clienteNome, open, onOpenChange, onPreview }: {
   clienteId: string | null;
   clienteNome: string;
   open: boolean;
   onOpenChange: (o: boolean) => void;
+  onPreview?: (row: BillingLogRow) => void;
 }) {
   const [rows, setRows] = useState<BillingLogRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -179,6 +182,7 @@ function ClientBillingInlineDialog({ clienteId, clienteNome, open, onOpenChange 
                   <TableHead>Tipo</TableHead>
                   <TableHead>Canal</TableHead>
                   <TableHead>Status</TableHead>
+                  {onPreview && <TableHead className="w-[60px]"></TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -211,6 +215,13 @@ function ClientBillingInlineDialog({ clienteId, clienteNome, open, onOpenChange 
                           <Badge variant="outline" className="text-[10px] h-5 whitespace-nowrap">{r.status}</Badge>
                         )}
                       </TableCell>
+                      {onPreview && (
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary" title="Ver prévia da mensagem" onClick={() => onPreview(r)}>
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })}
@@ -231,6 +242,7 @@ export function QuickActions() {
   const [clientSearchHistory, setClientSearchHistory] = useState<BillingLogRow[]>([]);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [inlineDialog, setInlineDialog] = useState<{ open: boolean; clienteId: string | null; clienteNome: string }>({ open: false, clienteId: null, clienteNome: "" });
+  const [previewLog, setPreviewLog] = useState<BillingLogRow | null>(null);
 
   const canViewHistory = hasPermission('view_billing_history_quick');
   const canOpenCobrancaModule = hasPermission('view_admin_cobranca');
@@ -423,6 +435,15 @@ export function QuickActions() {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className="h-8 w-8 p-0 text-primary"
+                                title="Ver prévia da mensagem enviada"
+                                onClick={() => setPreviewLog(log)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 className="h-8 w-8 p-0 text-amber-500"
                                 title="Abrir cliente em Consultar"
                                 onClick={() => navigate(`/consultar?q=${encodeURIComponent(log.cliente_nome)}`)}
@@ -467,6 +488,13 @@ export function QuickActions() {
         onOpenChange={(o) => setInlineDialog(s => ({ ...s, open: o }))}
         clienteId={inlineDialog.clienteId}
         clienteNome={inlineDialog.clienteNome}
+        onPreview={(row) => setPreviewLog(row)}
+      />
+
+      <MessagePreviewDialog
+        open={!!previewLog}
+        onOpenChange={(o) => { if (!o) setPreviewLog(null); }}
+        log={previewLog}
       />
     </div>
   );
