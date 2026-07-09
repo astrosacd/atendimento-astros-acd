@@ -9,18 +9,21 @@ import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { usePermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/integrations/supabase/client';
 import { openComprovante } from '@/utils/comprovanteUrl';
-import { 
-  CreditCard, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  CreditCard,
+  CheckCircle,
+  XCircle,
+  Clock,
   AlertCircle,
   Calendar,
   QrCode,
   Link as LinkIcon,
   FileText,
   Receipt,
-  Plus
+  Plus,
+  Banknote
 } from 'lucide-react';
 
 interface Payment {
