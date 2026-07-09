@@ -461,6 +461,7 @@ serve(async (req) => {
           channel: 'email',
           status: emailResult.success ? 'sent' : 'error',
           error_message: emailResult.error,
+          message_body: emailHtml,
         });
       } else {
         console.log(`⚠️ Email não enviado - credenciais ou email do cliente ausentes`);
