@@ -556,6 +556,17 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
                                           Pago em {formatDateTime(payment.paid_at)}
                                         </p>
                                       )}
+                                      {payment.cash_description && (
+                                        <p className="text-xs text-emerald-300/80 flex items-start gap-1 mt-0.5">
+                                          <Banknote className="w-3 h-3 mt-0.5 shrink-0" />
+                                          <span className="italic">{payment.cash_description}</span>
+                                        </p>
+                                      )}
+                                      {payment.parent_payment_id && (
+                                        <p className="text-[10px] text-muted-foreground italic mt-0.5">
+                                          ↳ Complemento de pagamento parcial em dinheiro
+                                        </p>
+                                      )}
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
