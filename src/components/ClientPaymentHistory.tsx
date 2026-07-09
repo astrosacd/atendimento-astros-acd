@@ -76,6 +76,15 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
   const [approvalProof, setApprovalProof] = useState<File | null>(null);
   const [approvalRef, setApprovalRef] = useState('');
   const [approvalLoading, setApprovalLoading] = useState(false);
+  // NEW: cash flow state
+  const [approvalMethod, setApprovalMethod] = useState<'default' | 'cash'>('default');
+  const [cashMode, setCashMode] = useState<'total' | 'partial'>('total');
+  const [cashDescription, setCashDescription] = useState('');
+  const [cashAmount, setCashAmount] = useState('');
+  const [complementType, setComplementType] = useState<'pix' | 'link' | 'boleto' | 'stripe'>('pix');
+  const [complementProof, setComplementProof] = useState<File | null>(null);
+  const [complementRef, setComplementRef] = useState('');
+
   const { fetchClientPayments, cancelPayment, registerEarlyPayment, submitPendingForApproval } = usePaymentStatus();
   const { canRegisterPixpaguePayment } = usePermissions();
 
@@ -97,7 +106,6 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
   };
 
   // Sacada 1: botão "Registrar pagamento antecipado" só fica habilitado até D-1.
-  // A partir de D0 (dia do vencimento) a cobrança automática do dia já existe abaixo.
   const isAntecipadoDisabled = (() => {
     if (!dataRenovacao) return false;
     const today = new Date();
@@ -106,14 +114,66 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
     return today.getTime() >= venc.getTime();
   })();
 
+  const resetApprovalState = () => {
+    setApprovalPayment(null);
+    setApprovalProof(null);
+    setApprovalRef('');
+    setApprovalMethod('default');
+    setCashMode('total');
+    setCashDescription('');
+    setCashAmount('');
+    setComplementType('pix');
+    setComplementProof(null);
+    setComplementRef('');
+  };
+
   const openApprovalDialog = (payment: Payment) => {
     setApprovalPayment(payment);
     setApprovalProof(null);
     setApprovalRef('');
+    setApprovalMethod('default');
+    setCashMode('total');
+    setCashDescription('');
+    setCashAmount('');
+    setComplementType('pix');
+    setComplementProof(null);
+    setComplementRef('');
   };
+
+  // Cash partial computed sum for live feedback
+  const cashPartialSum = (() => {
+    if (approvalMethod !== 'cash' || cashMode !== 'partial' || !approvalPayment) return null;
+    const cash = parseFloat(cashAmount) || 0;
+    const complement = Number((approvalPayment.amount - cash).toFixed(2));
+    const sum = Number((cash + complement).toFixed(2));
+    const valid = cash > 0 && complement > 0 && Math.abs(sum - approvalPayment.amount) <= 0.01;
+    return { cash, complement, sum, valid };
+  })();
 
   const handleSubmitForApproval = async () => {
     if (!approvalPayment) return;
+
+    if (approvalMethod === 'cash') {
+      setApprovalLoading(true);
+      const success = await submitPendingForApproval({
+        paymentId: approvalPayment.id,
+        cashMode,
+        cashDescription: cashDescription.trim(),
+        cashAmount: cashMode === 'partial' ? parseFloat(cashAmount) : undefined,
+        complementPaymentType: cashMode === 'partial' ? complementType : undefined,
+        complementComprovante: cashMode === 'partial' ? complementProof : undefined,
+        complementTransactionRef: cashMode === 'partial' ? (complementProof ? null : complementRef.trim() || null) : undefined,
+      });
+      setApprovalLoading(false);
+      if (success) {
+        resetApprovalState();
+        await loadPayments();
+        onPaymentUpdate?.();
+      }
+      return;
+    }
+
+    // Default flow
     const isLinkLike = isLinkPaymentType(approvalPayment.payment_type);
     if (!approvalProof && !(isLinkLike && approvalRef.trim())) {
       return;
@@ -126,9 +186,7 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
     });
     setApprovalLoading(false);
     if (success) {
-      setApprovalPayment(null);
-      setApprovalProof(null);
-      setApprovalRef('');
+      resetApprovalState();
       await loadPayments();
       onPaymentUpdate?.();
     }
