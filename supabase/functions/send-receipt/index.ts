@@ -513,6 +513,7 @@ serve(async (req) => {
           channel: 'whatsapp',
           status: whatsappResult.success ? 'sent' : 'error',
           error_message: whatsappResult.error,
+          message_body: whatsappMessage,
         });
       } else {
         console.log(`⚠️ WhatsApp não enviado - instância ou número do cliente ausentes`);
