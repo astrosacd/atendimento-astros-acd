@@ -39,6 +39,8 @@ interface Payment {
   created_at: string;
   receipt_number: string | null;
   comprovante_url?: string | null;
+  cash_description?: string | null;
+  parent_payment_id?: string | null;
 }
 
 interface ClientPaymentHistoryProps {
