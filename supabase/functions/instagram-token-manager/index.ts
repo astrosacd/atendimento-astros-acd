@@ -257,26 +257,40 @@ serve(async (req) => {
         }
       }
 
-      // 2. WhatsApp Notification — usa mesma fonte do auto-refresh (billing_whatsapp_instances)
+      // 2. WhatsApp Notification — usa credenciais dedicadas do módulo Instagram,
+      // com fallback para a instância ativa do sistema (billing_whatsapp_instances).
       let waSummary: any = { attempted: false };
       if (notify_whatsapp && Array.isArray(manager_numbers) && manager_numbers.length > 0) {
-        const { data: instance, error: instErr } = await supabase
-          .from("billing_whatsapp_instances")
-          .select("api_url, api_key, instance_name")
-          .eq("is_active", true)
-          .order("last_used_at", { ascending: false, nullsFirst: false })
-          .limit(1)
-          .maybeSingle();
+        let waUrl = optionalString(settings?.evolution_api_url);
+        let waKey = optionalString(settings?.evolution_api_key);
+        let waInstance = optionalString(settings?.evolution_instance_name);
+        let waSource: "instagram_settings" | "billing_whatsapp_instances" = "instagram_settings";
 
-        if (instErr || !instance?.api_url || !instance?.api_key || !instance?.instance_name) {
+        if (!waUrl || !waKey || !waInstance) {
+          const { data: instance } = await supabase
+            .from("billing_whatsapp_instances")
+            .select("api_url, api_key, instance_name")
+            .eq("is_active", true)
+            .order("last_used_at", { ascending: false, nullsFirst: false })
+            .limit(1)
+            .maybeSingle();
+          if (instance?.api_url && instance?.api_key && instance?.instance_name) {
+            waUrl = instance.api_url;
+            waKey = instance.api_key;
+            waInstance = instance.instance_name;
+            waSource = "billing_whatsapp_instances";
+          }
+        }
+
+        if (!waUrl || !waKey || !waInstance) {
           await logEvent(
             "whatsapp_alert",
             "failed",
-            "Nenhuma instância Evolution ativa em billing_whatsapp_instances",
-            { error: instErr?.message },
+            "Nenhuma credencial Evolution configurada (Instagram nem instância ativa do sistema)",
+            {},
             "whatsapp",
           );
-          waSummary = { attempted: true, sent: 0, failed: manager_numbers.length, reason: "no_active_instance" };
+          waSummary = { attempted: true, sent: 0, failed: manager_numbers.length, reason: "no_credentials" };
         } else {
           const message = `*🔄 Token Instagram Renovado (manual)*\n\nSeu Meta Access Token foi renovado com sucesso!\n\n📅 *Nova Validade:* ${dateStr}\n👤 *Usuário:* ${user.email}\n\nO novo token já está ativo no CRM${webhookUrl ? " e foi enviado para o n8n" : ""}.`;
           let sent = 0, failed = 0;
@@ -284,26 +298,26 @@ serve(async (req) => {
             const cleanNumber = (number || "").replace(/\D/g, '');
             if (!cleanNumber) continue;
             try {
-              const res = await fetch(`${instance.api_url}/message/sendText/${instance.instance_name}`, {
+              const res = await fetch(`${waUrl}/message/sendText/${waInstance}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'apikey': instance.api_key },
+                headers: { 'Content-Type': 'application/json', 'apikey': waKey },
                 body: JSON.stringify({ number: cleanNumber, text: message, delay: 1200 })
               });
               if (res.ok) {
                 sent++;
-                await logEvent("whatsapp_alert", "sent", `Notificação de renovação enviada para ${cleanNumber}`, { instance: instance.instance_name }, "whatsapp", cleanNumber);
+                await logEvent("whatsapp_alert", "sent", `Notificação de renovação enviada para ${cleanNumber}`, { instance: waInstance, source: waSource }, "whatsapp", cleanNumber);
               } else {
                 failed++;
                 const body = await res.text().catch(() => "");
-                await logEvent("whatsapp_alert", "failed", `Falha WA [${res.status}] para ${cleanNumber}`, { body: body.slice(0, 300) }, "whatsapp", cleanNumber);
+                await logEvent("whatsapp_alert", "failed", `Falha WA [${res.status}] para ${cleanNumber}`, { body: body.slice(0, 300), source: waSource }, "whatsapp", cleanNumber);
               }
             } catch (waErr: any) {
               failed++;
               console.error(`Error sending WA notification to ${number}:`, waErr);
-              await logEvent("whatsapp_alert", "failed", `Erro WA para ${cleanNumber}: ${waErr?.message || waErr}`, {}, "whatsapp", cleanNumber);
+              await logEvent("whatsapp_alert", "failed", `Erro WA para ${cleanNumber}: ${waErr?.message || waErr}`, { source: waSource }, "whatsapp", cleanNumber);
             }
           }
-          waSummary = { attempted: true, sent, failed, instance: instance.instance_name };
+          waSummary = { attempted: true, sent, failed, instance: waInstance, source: waSource };
         }
       }
 

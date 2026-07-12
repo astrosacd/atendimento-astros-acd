@@ -55,7 +55,7 @@ serve(async (req) => {
 
     const { data: settings, error: sErr } = await supabase
       .from("instagram_settings")
-      .select("manager_numbers, notify_whatsapp, account_username")
+      .select("manager_numbers, notify_whatsapp, account_username, evolution_api_url, evolution_api_key, evolution_instance_name")
       .eq("user_id", user.id)
       .maybeSingle();
     if (sErr) throw new Error("Erro ao carregar instagram_settings");
@@ -66,21 +66,29 @@ serve(async (req) => {
       return json({ success: false, error: "Nenhum número de gestor cadastrado." }, 400);
     }
 
-    const { data: instance, error: iErr } = await supabase
-      .from("billing_whatsapp_instances")
-      .select("api_url, api_key, instance_name")
-      .eq("is_active", true)
-      .order("last_used_at", { ascending: false, nullsFirst: false })
-      .limit(1)
-      .maybeSingle();
-    if (iErr || !instance) {
-      await logEvent(user.id, "failed", "Nenhuma instância Evolution ativa configurada.");
-      return json({ success: false, error: "Nenhuma instância Evolution ativa configurada." }, 400);
-    }
-    const { api_url, api_key, instance_name } = instance;
+    // 1) Preferir credenciais dedicadas do módulo Instagram
+    let api_url = (settings?.evolution_api_url || "").trim();
+    let api_key = (settings?.evolution_api_key || "").trim();
+    let instance_name = (settings?.evolution_instance_name || "").trim();
+    let source: "instagram_settings" | "billing_whatsapp_instances" = "instagram_settings";
+
+    // 2) Fallback: instância ativa do sistema
     if (!api_url || !api_key || !instance_name) {
-      await logEvent(user.id, "failed", "Instância Evolution incompleta.", { instance_name });
-      return json({ success: false, error: "Instância Evolution incompleta." }, 400);
+      const { data: instance, error: iErr } = await supabase
+        .from("billing_whatsapp_instances")
+        .select("api_url, api_key, instance_name")
+        .eq("is_active", true)
+        .order("last_used_at", { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+      if (iErr || !instance?.api_url || !instance?.api_key || !instance?.instance_name) {
+        await logEvent(user.id, "failed", "Nenhuma credencial Evolution configurada (nem no módulo Instagram, nem instância ativa do sistema).");
+        return json({ success: false, error: "Configure a Evolution API na aba Notificações do módulo Instagram (URL, API Key e Nome da instância)." }, 400);
+      }
+      api_url = instance.api_url;
+      api_key = instance.api_key;
+      instance_name = instance.instance_name;
+      source = "billing_whatsapp_instances";
     }
 
     const dateStr = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
@@ -120,6 +128,7 @@ serve(async (req) => {
     return json({
       success: okCount > 0,
       instance: instance_name,
+      source,
       total: results.length,
       sent: okCount,
       failed: results.length - okCount,
