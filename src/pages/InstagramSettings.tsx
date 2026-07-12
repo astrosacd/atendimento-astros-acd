@@ -35,6 +35,9 @@ type InstagramSettingsState = {
   renewal_webhook: string;
   notify_whatsapp: boolean;
   manager_numbers: string[];
+  evolution_api_url: string;
+  evolution_api_key: string;
+  evolution_instance_name: string;
 };
 
 const getDraftKey = (userId?: string) => `instagram-settings-draft:${userId ?? "anonymous"}`;
@@ -49,7 +52,10 @@ const hasMeaningfulDraft = (draft: InstagramSettingsState) =>
       draft.app_secret ||
       draft.renewal_webhook ||
       draft.notify_whatsapp ||
-      draft.manager_numbers.length,
+      draft.manager_numbers.length ||
+      draft.evolution_api_url ||
+      draft.evolution_api_key ||
+      draft.evolution_instance_name,
   );
 
 const getErrorMessage = (error: unknown) =>
@@ -77,6 +83,9 @@ const InstagramSettings = () => {
     renewal_webhook: "",
     notify_whatsapp: false,
     manager_numbers: [] as string[],
+    evolution_api_url: "",
+    evolution_api_key: "",
+    evolution_instance_name: "",
   });
 
   const updateField = <K extends keyof typeof settings>(key: K, value: (typeof settings)[K]) => {
@@ -197,6 +206,9 @@ const InstagramSettings = () => {
         renewal_webhook: webhookConfig?.config_value || "",
         notify_whatsapp: data?.notify_whatsapp || false,
         manager_numbers: (data?.manager_numbers as string[]) || [],
+        evolution_api_url: (data as any)?.evolution_api_url || "",
+        evolution_api_key: (data as any)?.evolution_api_key || "",
+        evolution_instance_name: (data as any)?.evolution_instance_name || "",
       };
 
       const draftKey = getDraftKey(user?.id);
@@ -359,7 +371,10 @@ const InstagramSettings = () => {
         updated_at: new Date().toISOString(),
         notify_whatsapp: settings.notify_whatsapp,
         manager_numbers: settings.manager_numbers,
-      }, { onConflict: 'user_id' });
+        evolution_api_url: settings.evolution_api_url?.trim() || null,
+        evolution_api_key: settings.evolution_api_key?.trim() || null,
+        evolution_instance_name: settings.evolution_instance_name?.trim() || null,
+      } as any, { onConflict: 'user_id' });
 
       if (settingsError) throw settingsError;
 
@@ -772,6 +787,47 @@ const InstagramSettings = () => {
                         Nenhum número cadastrado.
                       </p>
                     )}
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-border/50">
+                  <div>
+                    <Label className="text-base font-semibold">Evolution API do Instagram</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Credenciais dedicadas usadas por <strong>este módulo</strong> para enviar o teste e as notificações de renovação. Se ficar em branco, cai automaticamente na instância ativa do sistema.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="evo_url">URL da API</Label>
+                    <Input
+                      id="evo_url"
+                      placeholder="https://evolution.seu-dominio.com"
+                      value={settings.evolution_api_url}
+                      onChange={(e) => updateField("evolution_api_url", e.target.value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="evo_key">API Key</Label>
+                      <Input
+                        id="evo_key"
+                        type="text"
+                        autoComplete="off"
+                        style={{ WebkitTextSecurity: "disc" } as React.CSSProperties}
+                        placeholder="apikey da instância"
+                        value={settings.evolution_api_key}
+                        onChange={(e) => updateField("evolution_api_key", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="evo_instance">Nome da Instância</Label>
+                      <Input
+                        id="evo_instance"
+                        placeholder="ex: instagram-alerts"
+                        value={settings.evolution_instance_name}
+                        onChange={(e) => updateField("evolution_instance_name", e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="rounded-lg border border-dashed border-border/60 bg-muted/30 p-3 space-y-2">
