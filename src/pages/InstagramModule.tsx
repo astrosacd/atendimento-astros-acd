@@ -133,6 +133,27 @@ const InstagramModule = () => {
     permissions: ["create", "history"] as string[],
   });
 
+  // Reconexão guiada: banner global quando o token está expirado ou expira em <=3 dias
+  const [tokenAlert, setTokenAlert] = useState<{ expired: boolean; daysLeft: number } | null>(null);
+  useEffect(() => {
+    if (isTempAccess || !effectiveCanManageSettings) return;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("instagram_settings")
+        .select("token_expires_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!data?.token_expires_at) return;
+      const exp = new Date(data.token_expires_at).getTime();
+      const days = Math.ceil((exp - Date.now()) / 86_400_000);
+      if (exp < Date.now()) setTokenAlert({ expired: true, daysLeft: days });
+      else if (days <= 3) setTokenAlert({ expired: false, daysLeft: days });
+      else setTokenAlert(null);
+    })();
+  }, [isTempAccess, effectiveCanManageSettings, activeInstagramTab]);
+
   const PERMISSION_OPTIONS = [
     { id: "create", label: "Criar Post" },
     { id: "autoreply", label: "Auto-Resposta" },
