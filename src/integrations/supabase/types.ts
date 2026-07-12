@@ -4837,6 +4837,48 @@ export type Database = {
         }
         Relationships: []
       }
+      instagram_data_deletion_requests: {
+        Row: {
+          completed_at: string | null
+          confirmation_code: string
+          created_at: string
+          error_message: string | null
+          id: string
+          ig_user_id: string | null
+          requested_at: string
+          signed_request_raw: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          confirmation_code: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          ig_user_id?: string | null
+          requested_at?: string
+          signed_request_raw?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          confirmation_code?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          ig_user_id?: string | null
+          requested_at?: string
+          signed_request_raw?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       instagram_espionage_config: {
         Row: {
           auto_analysis_enabled: boolean
