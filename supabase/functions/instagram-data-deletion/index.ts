@@ -94,6 +94,12 @@ serve(async (req) => {
     const parsed = await parseSignedRequest(supabase, req);
     if (!parsed) {
       console.warn("[data-deletion] signed_request inválido");
+      await supabase.from("instagram_notification_logs").insert({
+        event_type: "data_deletion",
+        status: "rejected",
+        channel: "webhook",
+        message: "signed_request inválido ou ausente",
+      });
       return new Response(JSON.stringify({ error: "invalid_signed_request" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -117,6 +123,16 @@ serve(async (req) => {
       console.error("[data-deletion] insert falhou:", insertErr);
       throw insertErr;
     }
+
+    await supabase.from("instagram_notification_logs").insert({
+      user_id: matchedUserId ?? null,
+      event_type: "data_deletion",
+      status: "received",
+      channel: "webhook",
+      target: igUserId || null,
+      message: `Pedido registrado (code: ${confirmationCode})`,
+      metadata: { confirmation_code: confirmationCode },
+    });
 
     // 2) Apaga dados do IG (best-effort). Não bloqueia o response — Meta exige resposta rápida.
     (async () => {
