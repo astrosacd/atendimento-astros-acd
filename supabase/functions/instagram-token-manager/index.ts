@@ -201,11 +201,38 @@ serve(async (req) => {
         })
         .eq('user_id', user.id);
 
+      const dateStr = expirationDate ? new Date(expirationDate).toLocaleDateString('pt-BR') : 'indeterminada';
+
+      // Helper para gravar logs na aba Saúde
+      const logEvent = async (
+        event_type: string,
+        status: string,
+        message: string,
+        metadata: Record<string, unknown> = {},
+        channel = "system",
+        target: string | null = null,
+      ) => {
+        try {
+          await supabase.from("instagram_notification_logs").insert({
+            user_id: user.id, event_type, status, channel, target, message, metadata,
+          });
+        } catch (e) {
+          console.error("[token-manager] log fail:", e);
+        }
+      };
+
+      await logEvent(
+        "token_refresh",
+        "success",
+        `Renovação manual concluída — nova validade ${dateStr}`,
+        { new_expires_at: expirationDate, trigger: "manual" },
+      );
+
       // 1. Webhook Notification for n8n
       const webhookUrl = renewal_webhook_url;
       if (webhookUrl) {
         try {
-          await fetch(webhookUrl, {
+          const whRes = await fetch(webhookUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -216,61 +243,81 @@ serve(async (req) => {
               timestamp: new Date().toISOString()
             })
           });
-        } catch (webhookErr) {
+          await logEvent(
+            "webhook_notify",
+            whRes.ok ? "sent" : "failed",
+            whRes.ok ? "Webhook n8n chamado com sucesso" : `Webhook falhou (HTTP ${whRes.status})`,
+            { url: webhookUrl, status: whRes.status },
+            "webhook",
+            webhookUrl,
+          );
+        } catch (webhookErr: any) {
           console.error("Error calling renewal webhook:", webhookErr);
+          await logEvent("webhook_notify", "failed", `Erro no webhook: ${webhookErr?.message || webhookErr}`, {}, "webhook", webhookUrl);
         }
       }
 
-      // 2. WhatsApp Notification
-      if (notify_whatsapp && manager_numbers && Array.isArray(manager_numbers) && manager_numbers.length > 0) {
-        const { data: evolutionConfig } = await supabase
-          .from('billing_config')
-          .select('config_key, config_value')
-          .like('config_key', 'evolution_%');
+      // 2. WhatsApp Notification — usa mesma fonte do auto-refresh (billing_whatsapp_instances)
+      let waSummary: any = { attempted: false };
+      if (notify_whatsapp && Array.isArray(manager_numbers) && manager_numbers.length > 0) {
+        const { data: instance, error: instErr } = await supabase
+          .from("billing_whatsapp_instances")
+          .select("api_url, api_key, instance_name")
+          .eq("is_active", true)
+          .order("last_used_at", { ascending: false, nullsFirst: false })
+          .limit(1)
+          .maybeSingle();
 
-        const configMap: Record<string, string> = {};
-        evolutionConfig?.forEach(c => configMap[c.config_key] = c.config_value);
-
-        const apiUrl = configMap['evolution_api_url'];
-        const apiKey = configMap['evolution_api_key'];
-        const instanceName = configMap['evolution_instance_name'];
-
-        if (apiUrl && apiKey && instanceName) {
-          const dateStr = expirationDate ? new Date(expirationDate).toLocaleDateString('pt-BR') : 'indeterminada';
-          const message = `*🔄 Token Instagram Renovado*\n\nSeu Meta Access Token foi renovado com sucesso!\n\n📅 *Nova Validade:* ${dateStr}\n👤 *Usuário:* ${user.email}\n\nO novo token já está ativo no CRM e foi enviado para o n8n.`;
-
+        if (instErr || !instance?.api_url || !instance?.api_key || !instance?.instance_name) {
+          await logEvent(
+            "whatsapp_alert",
+            "failed",
+            "Nenhuma instância Evolution ativa em billing_whatsapp_instances",
+            { error: instErr?.message },
+            "whatsapp",
+          );
+          waSummary = { attempted: true, sent: 0, failed: manager_numbers.length, reason: "no_active_instance" };
+        } else {
+          const message = `*🔄 Token Instagram Renovado (manual)*\n\nSeu Meta Access Token foi renovado com sucesso!\n\n📅 *Nova Validade:* ${dateStr}\n👤 *Usuário:* ${user.email}\n\nO novo token já está ativo no CRM${webhookUrl ? " e foi enviado para o n8n" : ""}.`;
+          let sent = 0, failed = 0;
           for (const number of manager_numbers) {
-            const cleanNumber = number.replace(/\D/g, '');
+            const cleanNumber = (number || "").replace(/\D/g, '');
             if (!cleanNumber) continue;
-
             try {
-              await fetch(`${apiUrl}/message/sendText/${instanceName}`, {
+              const res = await fetch(`${instance.api_url}/message/sendText/${instance.instance_name}`, {
                 method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'apikey': apiKey
-                },
-                body: JSON.stringify({
-                  number: cleanNumber,
-                  text: message,
-                  delay: 1200
-                })
+                headers: { 'Content-Type': 'application/json', 'apikey': instance.api_key },
+                body: JSON.stringify({ number: cleanNumber, text: message, delay: 1200 })
               });
-            } catch (waErr) {
+              if (res.ok) {
+                sent++;
+                await logEvent("whatsapp_alert", "sent", `Notificação de renovação enviada para ${cleanNumber}`, { instance: instance.instance_name }, "whatsapp", cleanNumber);
+              } else {
+                failed++;
+                const body = await res.text().catch(() => "");
+                await logEvent("whatsapp_alert", "failed", `Falha WA [${res.status}] para ${cleanNumber}`, { body: body.slice(0, 300) }, "whatsapp", cleanNumber);
+              }
+            } catch (waErr: any) {
+              failed++;
               console.error(`Error sending WA notification to ${number}:`, waErr);
+              await logEvent("whatsapp_alert", "failed", `Erro WA para ${cleanNumber}: ${waErr?.message || waErr}`, {}, "whatsapp", cleanNumber);
             }
           }
+          waSummary = { attempted: true, sent, failed, instance: instance.instance_name };
         }
       }
 
       return jsonResponse({ 
         success: true, 
-        message: "Token renovado com sucesso! Nova validade: " + (expirationDate ? new Date(expirationDate).toLocaleDateString('pt-BR') : 'indeterminada'),
+        message: "Token renovado com sucesso! Nova validade: " + dateStr,
         data: {
-          expires_at: expirationDate
+          expires_at: expirationDate,
+          whatsapp: waSummary,
+          webhook_called: !!webhookUrl,
         } 
       });
     }
+
 
     throw new Error("Ação inválida");
 
