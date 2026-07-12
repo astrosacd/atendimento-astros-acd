@@ -3,8 +3,46 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-temp-access-token, x-cron-call",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-temp-access-token, x-cron-call, x-hub-signature-256",
 };
+
+// -------- Meta signature validation (X-Hub-Signature-256) --------
+function hexToBytes(hex: string): Uint8Array {
+  const clean = hex.startsWith("sha256=") ? hex.slice(7) : hex;
+  const out = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(clean.substr(i * 2, 2), 16);
+  return out;
+}
+async function hmacSha256Bytes(secret: string, message: string): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
+  return new Uint8Array(sig);
+}
+function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+async function verifyMetaSignature(supabase: any, rawBody: string, signatureHeader: string | null): Promise<boolean> {
+  if (!signatureHeader) return false;
+  const provided = hexToBytes(signatureHeader);
+  // Testa contra cada app_secret cadastrado (multi-tenant)
+  const { data: rows } = await supabase
+    .from("instagram_settings")
+    .select("app_secret")
+    .not("app_secret", "is", null);
+  for (const row of rows ?? []) {
+    if (!row.app_secret) continue;
+    const expected = await hmacSha256Bytes(row.app_secret, rawBody);
+    if (timingSafeEqual(provided, expected)) return true;
+  }
+  return false;
+}
+// -----------------------------------------------------------------
 
 serve(async (req) => {
   // Handle CORS
@@ -40,12 +78,22 @@ serve(async (req) => {
 
   // 2. Handle Webhook Event (POST)
   try {
-    const body = await req.json();
+    // Ler cru primeiro para validar assinatura (parse JSON altera bytes)
+    const rawBody = await req.text();
+    const signatureHeader = req.headers.get("x-hub-signature-256") || req.headers.get("X-Hub-Signature-256");
+    const signatureValid = await verifyMetaSignature(supabase, rawBody, signatureHeader);
+    if (!signatureValid) {
+      console.warn("[ig-webhook] Assinatura X-Hub-Signature-256 inválida ou ausente — rejeitando");
+      return new Response("Invalid signature", { status: 401, headers: corsHeaders });
+    }
+
+    const body = JSON.parse(rawBody);
     console.log("Received Instagram webhook event:", JSON.stringify(body, null, 2));
 
     if (body.object !== "instagram" || !body.entry) {
       return new Response("OK", { status: 200 });
     }
+
 
     for (const entry of body.entry) {
       const igUserId = entry.id;
