@@ -501,6 +501,11 @@ const InstagramModule = () => {
                 <BarChart3 className="h-4 w-4" /> Relatórios Clientes
               </TabsTrigger>
             )}
+            {effectiveCanViewHealth && (
+              <TabsTrigger value="health" className="gap-2">
+                <Activity className="h-4 w-4" /> Saúde
+              </TabsTrigger>
+            )}
             {effectiveCanManageSettings && (
               <TabsTrigger value="settings" className="gap-2">
                 <Settings className="h-4 w-4" /> Configurações
