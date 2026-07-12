@@ -4921,6 +4921,42 @@ export type Database = {
         }
         Relationships: []
       }
+      instagram_notification_logs: {
+        Row: {
+          channel: string | null
+          created_at: string
+          event_type: string
+          id: string
+          message: string | null
+          metadata: Json | null
+          status: string
+          target: string | null
+          user_id: string | null
+        }
+        Insert: {
+          channel?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          status: string
+          target?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          channel?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          status?: string
+          target?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       instagram_oauth_invites: {
         Row: {
           created_at: string
