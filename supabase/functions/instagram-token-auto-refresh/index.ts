@@ -178,6 +178,8 @@ serve(async (req) => {
       if (days !== null && days < 0) {
         const msg = `*⚠️ Token Instagram EXPIRADO*\n\n👤 ${username || row.user_id}\n📅 Expirou há ${Math.abs(days)} dia(s).\n\nÉ necessário gerar um novo token manualmente no Meta Developers e colar no CRM.`;
         if (row.notify_whatsapp) await sendWhatsAppNotification(supabase, row.manager_numbers || [], msg);
+        await logEvent(row.user_id, "token_refresh", "expired", `Token expirado há ${Math.abs(days)} dia(s) — renovação manual necessária`, { username, days_left: days, expires_at: oldExp });
+        if (row.notify_whatsapp) await logEvent(row.user_id, "whatsapp_alert", "sent", "Alerta de token expirado enviado", { numbers: row.manager_numbers });
         results.push({ ...baseResult, status: "already_expired", message: "Token expirado — renovação manual necessária" });
         continue;
       }
@@ -214,9 +216,11 @@ serve(async (req) => {
           .eq("user_id", row.user_id);
 
         const dateStr = new Date(newExpiresAt).toLocaleDateString("pt-BR");
+        await logEvent(row.user_id, "token_refresh", "success", `Renovado até ${dateStr}`, { username, old_expires_at: oldExp, new_expires_at: newExpiresAt, days_left_before: days });
         if (row.notify_whatsapp) {
           const msg = `*✅ Token Instagram renovado automaticamente*\n\n👤 ${username || row.user_id}\n📅 Nova validade: *${dateStr}*\n⏳ Antes faltavam: ${days ?? "?"} dia(s)\n\nNenhuma ação manual é necessária.`;
           await sendWhatsAppNotification(supabase, row.manager_numbers || [], msg);
+          await logEvent(row.user_id, "whatsapp_alert", "sent", `Notificação de renovação enviada — nova validade ${dateStr}`, { numbers: row.manager_numbers });
         }
 
         results.push({
@@ -229,9 +233,11 @@ serve(async (req) => {
         const errMsg = err?.message || String(err);
         console.error(`[auto-refresh] Falha user ${row.user_id}:`, errMsg);
 
+        await logEvent(row.user_id, "token_refresh", "failed", errMsg, { username, days_left: days });
         if (row.notify_whatsapp) {
           const msg = `*❌ Falha ao renovar token Instagram*\n\n👤 ${username || row.user_id}\n⏳ Faltam ${days ?? "?"} dia(s) para expirar.\n\n*Motivo:* ${errMsg}\n\nVerifique o token no painel /instagram do CRM.`;
           await sendWhatsAppNotification(supabase, row.manager_numbers || [], msg);
+          await logEvent(row.user_id, "whatsapp_alert", "sent", `Alerta de falha na renovação enviado: ${errMsg}`, { numbers: row.manager_numbers });
         }
 
         results.push({ ...baseResult, status: "failed", message: errMsg });
