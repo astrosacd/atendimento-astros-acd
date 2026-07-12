@@ -124,10 +124,10 @@ export default function InstagramHealth({ onGoToSettings }: Props) {
 
   const toneClass = (tone: string) =>
     tone === "danger"
-      ? "border-red-300 bg-red-50 dark:bg-red-950/20 dark:border-red-800"
+      ? "border-red-300 bg-red-50 text-red-900 dark:bg-red-950/30 dark:border-red-800 dark:text-red-100 [&_*]:!text-inherit"
       : tone === "warn"
-      ? "border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800"
-      : "border-emerald-300 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800";
+      ? "border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-100 [&_*]:!text-inherit"
+      : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-100 [&_*]:!text-inherit";
 
   if (loading) {
     return (

@@ -94,6 +94,12 @@ serve(async (req) => {
     const parsed = await parseSignedRequest(supabase, req);
     if (!parsed) {
       console.warn("[data-deletion] signed_request inválido");
+      await supabase.from("instagram_notification_logs").insert({
+        event_type: "data_deletion",
+        status: "rejected",
+        channel: "webhook",
+        message: "signed_request inválido ou ausente",
+      });
       return new Response(JSON.stringify({ error: "invalid_signed_request" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -118,6 +124,16 @@ serve(async (req) => {
       throw insertErr;
     }
 
+    await supabase.from("instagram_notification_logs").insert({
+      user_id: matchedUserId ?? null,
+      event_type: "data_deletion",
+      status: "received",
+      channel: "webhook",
+      target: igUserId || null,
+      message: `Pedido registrado (code: ${confirmationCode})`,
+      metadata: { confirmation_code: confirmationCode },
+    });
+
     // 2) Apaga dados do IG (best-effort). Não bloqueia o response — Meta exige resposta rápida.
     (async () => {
       try {
@@ -139,6 +155,15 @@ serve(async (req) => {
           .from("instagram_data_deletion_requests")
           .update({ status: "completed", completed_at: new Date().toISOString() })
           .eq("confirmation_code", confirmationCode);
+        await supabase.from("instagram_notification_logs").insert({
+          user_id: matchedUserId ?? null,
+          event_type: "data_deletion",
+          status: "success",
+          channel: "webhook",
+          target: igUserId || null,
+          message: `Exclusão concluída (code: ${confirmationCode})`,
+          metadata: { confirmation_code: confirmationCode },
+        });
         console.log("[data-deletion] Exclusão concluída:", confirmationCode);
       } catch (e: any) {
         console.error("[data-deletion] Erro na exclusão em background:", e);
@@ -146,6 +171,15 @@ serve(async (req) => {
           .from("instagram_data_deletion_requests")
           .update({ status: "failed", error_message: e?.message || String(e) })
           .eq("confirmation_code", confirmationCode);
+        await supabase.from("instagram_notification_logs").insert({
+          user_id: matchedUserId ?? null,
+          event_type: "data_deletion",
+          status: "failed",
+          channel: "webhook",
+          target: igUserId || null,
+          message: `Erro: ${e?.message || String(e)}`,
+          metadata: { confirmation_code: confirmationCode },
+        });
       }
     })();
 

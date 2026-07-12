@@ -105,6 +105,12 @@ serve(async (req) => {
     const parsed = await parseSignedRequest(req);
     if (!parsed) {
       console.warn("[deauthorize] Assinatura inválida ou signed_request ausente");
+      await supabase.from("instagram_notification_logs").insert({
+        event_type: "deauthorize",
+        status: "rejected",
+        channel: "webhook",
+        message: "signed_request inválido ou ausente",
+      });
       return new Response(JSON.stringify({ error: "invalid_signed_request" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -115,7 +121,6 @@ serve(async (req) => {
     const matchedUserId = parsed.payload._matched_user_id as string | undefined;
     console.log("[deauthorize] Usuário desautorizou o app:", { igUserId, matchedUserId });
 
-    // Limpa tokens do(s) usuário(s) correspondente(s).
     const filter = matchedUserId
       ? supabase.from("instagram_settings").update({
           access_token: null,
@@ -130,6 +135,16 @@ serve(async (req) => {
 
     const { error } = await filter;
     if (error) console.error("[deauthorize] Erro ao limpar tokens:", error);
+
+    await supabase.from("instagram_notification_logs").insert({
+      user_id: matchedUserId ?? null,
+      event_type: "deauthorize",
+      status: error ? "failed" : "success",
+      channel: "webhook",
+      target: igUserId || null,
+      message: error ? `Erro limpando tokens: ${error.message}` : "Usuário revogou o app — tokens limpos",
+      metadata: { ig_user_id: igUserId },
+    });
 
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,

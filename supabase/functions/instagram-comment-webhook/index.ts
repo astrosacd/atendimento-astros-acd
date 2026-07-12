@@ -27,20 +27,38 @@ function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
   for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
   return diff === 0;
 }
-async function verifyMetaSignature(supabase: any, rawBody: string, signatureHeader: string | null): Promise<boolean> {
-  if (!signatureHeader) return false;
+async function verifyMetaSignature(supabase: any, rawBody: string, signatureHeader: string | null): Promise<{ ok: boolean; userId: string | null }> {
+  if (!signatureHeader) return { ok: false, userId: null };
   const provided = hexToBytes(signatureHeader);
-  // Testa contra cada app_secret cadastrado (multi-tenant)
   const { data: rows } = await supabase
     .from("instagram_settings")
-    .select("app_secret")
+    .select("user_id, app_secret")
     .not("app_secret", "is", null);
   for (const row of rows ?? []) {
     if (!row.app_secret) continue;
     const expected = await hmacSha256Bytes(row.app_secret, rawBody);
-    if (timingSafeEqual(provided, expected)) return true;
+    if (timingSafeEqual(provided, expected)) return { ok: true, userId: row.user_id };
   }
-  return false;
+  return { ok: false, userId: null };
+}
+
+async function logEvent(supabase: any, row: {
+  user_id?: string | null; event_type: string; status: string;
+  channel?: string | null; target?: string | null; message?: string | null; metadata?: any;
+}) {
+  try {
+    await supabase.from("instagram_notification_logs").insert({
+      user_id: row.user_id ?? null,
+      event_type: row.event_type,
+      status: row.status,
+      channel: row.channel ?? "webhook",
+      target: row.target ?? null,
+      message: row.message ?? null,
+      metadata: row.metadata ?? null,
+    });
+  } catch (e) {
+    console.error("[log] falha ao gravar log:", e);
+  }
 }
 // -----------------------------------------------------------------
 
@@ -81,13 +99,26 @@ serve(async (req) => {
     // Ler cru primeiro para validar assinatura (parse JSON altera bytes)
     const rawBody = await req.text();
     const signatureHeader = req.headers.get("x-hub-signature-256") || req.headers.get("X-Hub-Signature-256");
-    const signatureValid = await verifyMetaSignature(supabase, rawBody, signatureHeader);
-    if (!signatureValid) {
+    const sig = await verifyMetaSignature(supabase, rawBody, signatureHeader);
+    if (!sig.ok) {
       console.warn("[ig-webhook] Assinatura X-Hub-Signature-256 inválida ou ausente — rejeitando");
+      await logEvent(supabase, {
+        event_type: "webhook_signature_invalid",
+        status: "rejected",
+        message: signatureHeader ? "Assinatura HMAC não bateu com nenhum app_secret" : "Header X-Hub-Signature-256 ausente",
+      });
       return new Response("Invalid signature", { status: 401, headers: corsHeaders });
     }
 
     const body = JSON.parse(rawBody);
+    await logEvent(supabase, {
+      user_id: sig.userId,
+      event_type: "webhook_received",
+      status: "received",
+      target: body?.object || null,
+      message: `${(body?.entry?.length ?? 0)} entry(ies)`,
+      metadata: { object: body?.object },
+    });
     console.log("Received Instagram webhook event:", JSON.stringify(body, null, 2));
 
     if (body.object !== "instagram" || !body.entry) {
