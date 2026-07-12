@@ -538,6 +538,11 @@ const InstagramModule = () => {
               <InstagramClientReports />
             </TabsContent>
           )}
+          {effectiveCanViewHealth && (
+            <TabsContent value="health">
+              <InstagramHealth onGoToSettings={() => setActiveInstagramTab("settings")} />
+            </TabsContent>
+          )}
           {effectiveCanManageSettings && (
             <TabsContent value="settings">
               <InstagramSettings />
