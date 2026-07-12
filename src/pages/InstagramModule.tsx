@@ -491,6 +491,32 @@ const InstagramModule = () => {
           )}
         </div>
 
+        {tokenAlert && effectiveCanViewHealth && selectedInstagramTab !== "health" && selectedInstagramTab !== "settings" && (
+          <div className={`rounded-lg border p-4 flex flex-col sm:flex-row sm:items-center gap-3 ${tokenAlert.expired ? "border-red-300 bg-red-50 dark:bg-red-950/20 dark:border-red-800" : "border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800"}`}>
+            <div className="flex-1 text-sm">
+              <div className={`font-semibold ${tokenAlert.expired ? "text-red-700 dark:text-red-300" : "text-amber-800 dark:text-amber-300"}`}>
+                {tokenAlert.expired
+                  ? `⚠️ Meta Access Token expirado há ${Math.abs(tokenAlert.daysLeft)} dia(s)`
+                  : `⏳ Token Meta expira em ${tokenAlert.daysLeft} dia(s)`}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                {tokenAlert.expired
+                  ? "Publicações, auto-resposta e webhooks estão parados. Gere um token novo agora."
+                  : "A renovação automática pode ter falhado. Verifique agora para evitar interrupção."}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setActiveInstagramTab("health")}>
+                <Activity className="h-4 w-4 mr-2" /> Ver Saúde
+              </Button>
+              <Button size="sm" variant={tokenAlert.expired ? "destructive" : "default"} onClick={() => setActiveInstagramTab("settings")}>
+                Reconectar
+              </Button>
+            </div>
+          </div>
+        )}
+
+
         <Tabs 
           value={selectedInstagramTab}
           onValueChange={setActiveInstagramTab}
