@@ -93,7 +93,7 @@ export default function InstagramStatusExclusao() {
             );
           })()}
           <div className="pt-2 text-xs text-muted-foreground">
-            <Link to="/instagram/politica-privacidade" className="underline">Política de Privacidade</Link>
+            <Link to="/instagram/privacidade" className="underline">Política de Privacidade</Link>
             {" · "}
             <Link to="/instagram/termos" className="underline">Termos de Uso</Link>
           </div>
