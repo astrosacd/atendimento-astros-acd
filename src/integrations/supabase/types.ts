@@ -5015,6 +5015,9 @@ export type Database = {
           app_secret: string | null
           auto_reply_enabled: boolean | null
           created_at: string
+          evolution_api_key: string | null
+          evolution_api_url: string | null
+          evolution_instance_name: string | null
           ig_user_id: string | null
           last_renewal_notification_at: string | null
           manager_numbers: Json | null
@@ -5033,6 +5036,9 @@ export type Database = {
           app_secret?: string | null
           auto_reply_enabled?: boolean | null
           created_at?: string
+          evolution_api_key?: string | null
+          evolution_api_url?: string | null
+          evolution_instance_name?: string | null
           ig_user_id?: string | null
           last_renewal_notification_at?: string | null
           manager_numbers?: Json | null
@@ -5051,6 +5057,9 @@ export type Database = {
           app_secret?: string | null
           auto_reply_enabled?: boolean | null
           created_at?: string
+          evolution_api_key?: string | null
+          evolution_api_url?: string | null
+          evolution_instance_name?: string | null
           ig_user_id?: string | null
           last_renewal_notification_at?: string | null
           manager_numbers?: Json | null
