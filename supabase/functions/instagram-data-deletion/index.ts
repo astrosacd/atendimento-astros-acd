@@ -155,6 +155,15 @@ serve(async (req) => {
           .from("instagram_data_deletion_requests")
           .update({ status: "completed", completed_at: new Date().toISOString() })
           .eq("confirmation_code", confirmationCode);
+        await supabase.from("instagram_notification_logs").insert({
+          user_id: matchedUserId ?? null,
+          event_type: "data_deletion",
+          status: "success",
+          channel: "webhook",
+          target: igUserId || null,
+          message: `Exclusão concluída (code: ${confirmationCode})`,
+          metadata: { confirmation_code: confirmationCode },
+        });
         console.log("[data-deletion] Exclusão concluída:", confirmationCode);
       } catch (e: any) {
         console.error("[data-deletion] Erro na exclusão em background:", e);
@@ -162,6 +171,15 @@ serve(async (req) => {
           .from("instagram_data_deletion_requests")
           .update({ status: "failed", error_message: e?.message || String(e) })
           .eq("confirmation_code", confirmationCode);
+        await supabase.from("instagram_notification_logs").insert({
+          user_id: matchedUserId ?? null,
+          event_type: "data_deletion",
+          status: "failed",
+          channel: "webhook",
+          target: igUserId || null,
+          message: `Erro: ${e?.message || String(e)}`,
+          metadata: { confirmation_code: confirmationCode },
+        });
       }
     })();
 
