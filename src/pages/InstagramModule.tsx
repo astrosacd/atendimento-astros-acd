@@ -93,11 +93,13 @@ const InstagramModule = () => {
   const effectiveCanManageReports = isTempAccess ? hasPermission("reports") : perms.hasPermission("manage_social_media_reports");
   const effectiveCanManageSettings = isTempAccess ? false : canManageInstagramSettings();
   const effectiveCanManageTempAccess = isTempAccess ? false : canManageTemporaryAccess();
+  const effectiveCanViewHealth = !isTempAccess && effectiveCanManageSettings;
   const firstAllowedTab = effectiveCanCreatePost ? "create" : 
     effectiveCanManageAutoReply ? "autoreply" : 
     effectiveCanViewHistory ? "history" : 
     effectiveCanManageEspionage ? "espionage" :
     effectiveCanManageReports ? "reports" :
+    effectiveCanViewHealth ? "health" :
     effectiveCanManageSettings ? "settings" : "none";
   const allowedInstagramTabs = [
     effectiveCanCreatePost && "create",
@@ -105,6 +107,7 @@ const InstagramModule = () => {
     effectiveCanViewHistory && "history",
     effectiveCanManageEspionage && "espionage",
     effectiveCanManageReports && "reports",
+    effectiveCanViewHealth && "health",
     effectiveCanManageSettings && "settings",
   ].filter(Boolean) as string[];
   const selectedInstagramTab = allowedInstagramTabs.includes(activeInstagramTab) ? activeInstagramTab : firstAllowedTab;
