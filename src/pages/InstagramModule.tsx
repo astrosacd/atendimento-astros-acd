@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Instagram, History, Settings, Sparkles, Link as LinkIcon, Plus, Copy, Trash2, Clock, Check, X, Zap, Loader2, Eye, BarChart3 } from "lucide-react";
+import { Instagram, History, Settings, Sparkles, Link as LinkIcon, Plus, Copy, Trash2, Clock, Check, X, Zap, Loader2, Eye, BarChart3, Activity } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import InstagramSettings from "./InstagramSettings";
 import InstagramAutoReply from "./InstagramAutoReply";
 import InstagramEspionage from "./InstagramEspionage";
 import InstagramClientReports from "./InstagramClientReports";
+import InstagramHealth from "./InstagramHealth";
 
 const InstagramModule = () => {
   const perms = usePermissions();
@@ -92,11 +93,13 @@ const InstagramModule = () => {
   const effectiveCanManageReports = isTempAccess ? hasPermission("reports") : perms.hasPermission("manage_social_media_reports");
   const effectiveCanManageSettings = isTempAccess ? false : canManageInstagramSettings();
   const effectiveCanManageTempAccess = isTempAccess ? false : canManageTemporaryAccess();
+  const effectiveCanViewHealth = !isTempAccess && effectiveCanManageSettings;
   const firstAllowedTab = effectiveCanCreatePost ? "create" : 
     effectiveCanManageAutoReply ? "autoreply" : 
     effectiveCanViewHistory ? "history" : 
     effectiveCanManageEspionage ? "espionage" :
     effectiveCanManageReports ? "reports" :
+    effectiveCanViewHealth ? "health" :
     effectiveCanManageSettings ? "settings" : "none";
   const allowedInstagramTabs = [
     effectiveCanCreatePost && "create",
@@ -104,6 +107,7 @@ const InstagramModule = () => {
     effectiveCanViewHistory && "history",
     effectiveCanManageEspionage && "espionage",
     effectiveCanManageReports && "reports",
+    effectiveCanViewHealth && "health",
     effectiveCanManageSettings && "settings",
   ].filter(Boolean) as string[];
   const selectedInstagramTab = allowedInstagramTabs.includes(activeInstagramTab) ? activeInstagramTab : firstAllowedTab;
@@ -128,6 +132,27 @@ const InstagramModule = () => {
     max_uses: "1",
     permissions: ["create", "history"] as string[],
   });
+
+  // Reconexão guiada: banner global quando o token está expirado ou expira em <=3 dias
+  const [tokenAlert, setTokenAlert] = useState<{ expired: boolean; daysLeft: number } | null>(null);
+  useEffect(() => {
+    if (isTempAccess || !effectiveCanManageSettings) return;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("instagram_settings")
+        .select("token_expires_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!data?.token_expires_at) return;
+      const exp = new Date(data.token_expires_at).getTime();
+      const days = Math.ceil((exp - Date.now()) / 86_400_000);
+      if (exp < Date.now()) setTokenAlert({ expired: true, daysLeft: days });
+      else if (days <= 3) setTokenAlert({ expired: false, daysLeft: days });
+      else setTokenAlert(null);
+    })();
+  }, [isTempAccess, effectiveCanManageSettings, activeInstagramTab]);
 
   const PERMISSION_OPTIONS = [
     { id: "create", label: "Criar Post" },
@@ -466,6 +491,32 @@ const InstagramModule = () => {
           )}
         </div>
 
+        {tokenAlert && effectiveCanViewHealth && selectedInstagramTab !== "health" && selectedInstagramTab !== "settings" && (
+          <div className={`rounded-lg border p-4 flex flex-col sm:flex-row sm:items-center gap-3 ${tokenAlert.expired ? "border-red-300 bg-red-50 dark:bg-red-950/20 dark:border-red-800" : "border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800"}`}>
+            <div className="flex-1 text-sm">
+              <div className={`font-semibold ${tokenAlert.expired ? "text-red-700 dark:text-red-300" : "text-amber-800 dark:text-amber-300"}`}>
+                {tokenAlert.expired
+                  ? `⚠️ Meta Access Token expirado há ${Math.abs(tokenAlert.daysLeft)} dia(s)`
+                  : `⏳ Token Meta expira em ${tokenAlert.daysLeft} dia(s)`}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                {tokenAlert.expired
+                  ? "Publicações, auto-resposta e webhooks estão parados. Gere um token novo agora."
+                  : "A renovação automática pode ter falhado. Verifique agora para evitar interrupção."}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setActiveInstagramTab("health")}>
+                <Activity className="h-4 w-4 mr-2" /> Ver Saúde
+              </Button>
+              <Button size="sm" variant={tokenAlert.expired ? "destructive" : "default"} onClick={() => setActiveInstagramTab("settings")}>
+                Reconectar
+              </Button>
+            </div>
+          </div>
+        )}
+
+
         <Tabs 
           value={selectedInstagramTab}
           onValueChange={setActiveInstagramTab}
@@ -495,6 +546,11 @@ const InstagramModule = () => {
             {effectiveCanManageReports && (
               <TabsTrigger value="reports" className="gap-2">
                 <BarChart3 className="h-4 w-4" /> Relatórios Clientes
+              </TabsTrigger>
+            )}
+            {effectiveCanViewHealth && (
+              <TabsTrigger value="health" className="gap-2">
+                <Activity className="h-4 w-4" /> Saúde
               </TabsTrigger>
             )}
             {effectiveCanManageSettings && (
@@ -527,6 +583,11 @@ const InstagramModule = () => {
           {effectiveCanManageReports && (
             <TabsContent value="reports">
               <InstagramClientReports />
+            </TabsContent>
+          )}
+          {effectiveCanViewHealth && (
+            <TabsContent value="health">
+              <InstagramHealth onGoToSettings={() => setActiveInstagramTab("settings")} />
             </TabsContent>
           )}
           {effectiveCanManageSettings && (
