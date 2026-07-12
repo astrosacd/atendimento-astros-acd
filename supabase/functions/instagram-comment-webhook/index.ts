@@ -99,13 +99,26 @@ serve(async (req) => {
     // Ler cru primeiro para validar assinatura (parse JSON altera bytes)
     const rawBody = await req.text();
     const signatureHeader = req.headers.get("x-hub-signature-256") || req.headers.get("X-Hub-Signature-256");
-    const signatureValid = await verifyMetaSignature(supabase, rawBody, signatureHeader);
-    if (!signatureValid) {
+    const sig = await verifyMetaSignature(supabase, rawBody, signatureHeader);
+    if (!sig.ok) {
       console.warn("[ig-webhook] Assinatura X-Hub-Signature-256 inválida ou ausente — rejeitando");
+      await logEvent(supabase, {
+        event_type: "webhook_signature_invalid",
+        status: "rejected",
+        message: signatureHeader ? "Assinatura HMAC não bateu com nenhum app_secret" : "Header X-Hub-Signature-256 ausente",
+      });
       return new Response("Invalid signature", { status: 401, headers: corsHeaders });
     }
 
     const body = JSON.parse(rawBody);
+    await logEvent(supabase, {
+      user_id: sig.userId,
+      event_type: "webhook_received",
+      status: "received",
+      target: body?.object || null,
+      message: `${(body?.entry?.length ?? 0)} entry(ies)`,
+      metadata: { object: body?.object },
+    });
     console.log("Received Instagram webhook event:", JSON.stringify(body, null, 2));
 
     if (body.object !== "instagram" || !body.entry) {
