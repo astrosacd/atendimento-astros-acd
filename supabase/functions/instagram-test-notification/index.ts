@@ -18,12 +18,34 @@ const json = (body: unknown, status = 200) =>
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    );
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+  );
 
+  const logEvent = async (
+    user_id: string | null,
+    status: string,
+    message: string,
+    metadata: Record<string, unknown> = {},
+    target?: string,
+  ) => {
+    try {
+      await supabase.from("instagram_notification_logs").insert({
+        user_id,
+        event_type: "test_notification",
+        status,
+        channel: "whatsapp",
+        target: target ?? null,
+        message,
+        metadata,
+      });
+    } catch (e) {
+      console.error("[ig-test-notif] log fail:", e);
+    }
+  };
+
+  try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Missing Authorization header");
     const { data: { user }, error: authErr } = await supabase.auth.getUser(
@@ -40,6 +62,7 @@ serve(async (req) => {
 
     const numbers: string[] = (settings?.manager_numbers as string[]) || [];
     if (!numbers.length) {
+      await logEvent(user.id, "failed", "Nenhum número de gestor cadastrado.");
       return json({ success: false, error: "Nenhum número de gestor cadastrado." }, 400);
     }
 
@@ -51,10 +74,12 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
     if (iErr || !instance) {
+      await logEvent(user.id, "failed", "Nenhuma instância Evolution ativa configurada.");
       return json({ success: false, error: "Nenhuma instância Evolution ativa configurada." }, 400);
     }
     const { api_url, api_key, instance_name } = instance;
     if (!api_url || !api_key || !instance_name) {
+      await logEvent(user.id, "failed", "Instância Evolution incompleta.", { instance_name });
       return json({ success: false, error: "Instância Evolution incompleta." }, 400);
     }
 
@@ -66,6 +91,7 @@ serve(async (req) => {
       const number = (raw || "").replace(/\D/g, "");
       if (!number) {
         results.push({ number: raw, ok: false, error: "Número inválido" });
+        await logEvent(user.id, "failed", "Número inválido", { raw }, raw);
         continue;
       }
       try {
@@ -78,12 +104,15 @@ serve(async (req) => {
           const body = await res.text().catch(() => "");
           console.error(`[ig-test-notif] Falha ${number} [${res.status}]: ${body}`);
           results.push({ number, ok: false, status: res.status, error: body.slice(0, 200) });
+          await logEvent(user.id, "failed", `HTTP ${res.status}: ${body.slice(0, 200)}`, { instance: instance_name }, number);
         } else {
           results.push({ number, ok: true, status: res.status });
+          await logEvent(user.id, "success", "Teste enviado com sucesso", { instance: instance_name }, number);
         }
       } catch (e: any) {
         console.error(`[ig-test-notif] Erro ${number}:`, e);
         results.push({ number, ok: false, error: e?.message || String(e) });
+        await logEvent(user.id, "failed", e?.message || String(e), { instance: instance_name }, number);
       }
     }
 

@@ -125,6 +125,26 @@ serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
   );
 
+  const logEvent = async (
+    user_id: string | null,
+    event_type: string,
+    status: string,
+    message: string,
+    metadata: Record<string, unknown> = {},
+    target?: string,
+  ) => {
+    try {
+      await supabase.from("instagram_notification_logs").insert({
+        user_id, event_type, status,
+        channel: event_type === "token_refresh" ? "system" : "whatsapp",
+        target: target ?? null,
+        message, metadata,
+      });
+    } catch (e) {
+      console.error("[auto-refresh] log fail:", e);
+    }
+  };
+
   try {
     const { data: rows, error } = await supabase
       .from("instagram_settings")
