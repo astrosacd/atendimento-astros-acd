@@ -66,24 +66,35 @@ async function sendWhatsAppNotification(
   numbers: string[],
   message: string,
 ) {
-  if (!numbers?.length) return;
-
-  const { data: cfg } = await supabase
-    .from("billing_config")
-    .select("config_key, config_value")
-    .like("config_key", "evolution_%");
-
-  const map: Record<string, string> = {};
-  cfg?.forEach((c: any) => (map[c.config_key] = c.config_value));
-
-  const apiUrl = map["evolution_api_url"];
-  const apiKey = map["evolution_api_key"];
-  const instanceName = map["evolution_instance_name"];
-
-  if (!apiUrl || !apiKey || !instanceName) {
-    console.warn("[auto-refresh] Evolution API não configurada — pulando WhatsApp");
+  if (!numbers?.length) {
+    console.warn("[auto-refresh] Sem números de gestores — pulando WhatsApp");
     return;
   }
+
+  // Instância ativa da Evolution API (mesma fonte usada por billing-cron / weekly-renewals)
+  const { data: instance, error: instErr } = await supabase
+    .from("billing_whatsapp_instances")
+    .select("api_url, api_key, instance_name")
+    .eq("is_active", true)
+    .order("last_used_at", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (instErr || !instance) {
+    console.warn("[auto-refresh] Nenhuma instância Evolution ativa encontrada", instErr);
+    return;
+  }
+
+  const apiUrl = instance.api_url;
+  const apiKey = instance.api_key;
+  const instanceName = instance.instance_name;
+
+  if (!apiUrl || !apiKey || !instanceName) {
+    console.warn("[auto-refresh] Instância Evolution incompleta — pulando WhatsApp", { apiUrl: !!apiUrl, apiKey: !!apiKey, instanceName: !!instanceName });
+    return;
+  }
+
+  console.log(`[auto-refresh] Enviando WhatsApp via ${instanceName} para ${numbers.length} número(s)`);
 
   for (const number of numbers) {
     const clean = (number || "").replace(/\D/g, "");
