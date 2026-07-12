@@ -100,11 +100,17 @@ async function sendWhatsAppNotification(
     const clean = (number || "").replace(/\D/g, "");
     if (!clean) continue;
     try {
-      await fetch(`${apiUrl}/message/sendText/${instanceName}`, {
+      const res = await fetch(`${apiUrl}/message/sendText/${instanceName}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: apiKey },
         body: JSON.stringify({ number: clean, text: message, delay: 1200 }),
       });
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        console.error(`[auto-refresh] WA falhou para ${clean} [${res.status}]: ${body}`);
+      } else {
+        console.log(`[auto-refresh] WA enviado com sucesso para ${clean}`);
+      }
     } catch (e) {
       console.error(`[auto-refresh] Falha WA para ${clean}:`, e);
     }
