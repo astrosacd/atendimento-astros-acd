@@ -394,6 +394,28 @@ const InstagramSettings = () => {
     }
   };
 
+  const [testingNotif, setTestingNotif] = useState(false);
+  const handleTestNotification = async () => {
+    if (!settings.manager_numbers.length) {
+      toast({ title: "Sem números", description: "Cadastre pelo menos um número de gestor antes de testar.", variant: "destructive" });
+      return;
+    }
+    setTestingNotif(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("instagram-test-notification", { body: {} });
+      if (error) throw error;
+      if (!data?.success) {
+        toast({ title: "Falha no envio", description: data?.error || "Nenhuma mensagem foi entregue. Verifique a instância Evolution.", variant: "destructive" });
+      } else {
+        toast({ title: "Teste enviado!", description: `${data.sent}/${data.total} mensagem(ns) enviada(s) via ${data.instance}. Verifique o WhatsApp dos gestores.` });
+      }
+    } catch (e: any) {
+      toast({ title: "Erro no teste", description: e?.message || String(e), variant: "destructive" });
+    } finally {
+      setTestingNotif(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
@@ -752,7 +774,20 @@ const InstagramSettings = () => {
                     )}
                   </div>
                 </div>
-                <div className="flex justify-end pt-4">
+                <div className="rounded-lg border border-dashed border-border/60 bg-muted/30 p-3 space-y-2">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    📋 <strong>Onde ver os logs?</strong> Os envios ficam registrados nos logs da função <code className="font-mono">instagram-token-auto-refresh</code> (renovação automática) e <code className="font-mono">instagram-test-notification</code> (teste). Acesse pelo painel <strong>Backend → Edge Functions → Logs</strong>. Cada tentativa mostra número, status HTTP e resposta da Evolution API.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={handleTestNotification}
+                    disabled={testingNotif || !settings.manager_numbers.length}
+                  >
+                    {testingNotif ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <MessageSquare className="h-4 w-4 mr-2" />}
+                    Testar notificação
+                  </Button>
                   <Button onClick={handleSave} disabled={loading}>
                     <Save className="h-4 w-4 mr-2" /> Salvar WhatsApp
                   </Button>
