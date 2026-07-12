@@ -80,6 +80,7 @@ import TemporaryAccessHandler from "./pages/public/TemporaryAccessHandler";
 import SocialReportPublico from "./pages/public/SocialReportPublico";
 import InstagramPrivacidade from "./pages/public/InstagramPrivacidade";
 import InstagramTermos from "./pages/public/InstagramTermos";
+import InstagramStatusExclusao from "./pages/public/InstagramStatusExclusao";
 import NotFound from "./pages/NotFound";
 import Perfil from "./pages/Perfil";
 
@@ -234,6 +235,7 @@ function AppRoutes() {
       <Route path="/instagram/termos" element={<InstagramTermos />} />
       <Route path="/privacidade" element={<InstagramPrivacidade />} />
       <Route path="/termos" element={<InstagramTermos />} />
+      <Route path="/instagram/status-exclusao/:code" element={<InstagramStatusExclusao />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
