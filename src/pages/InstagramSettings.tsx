@@ -789,6 +789,47 @@ const InstagramSettings = () => {
                     )}
                   </div>
                 </div>
+
+                <div className="space-y-4 pt-4 border-t border-border/50">
+                  <div>
+                    <Label className="text-base font-semibold">Evolution API do Instagram</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Credenciais dedicadas usadas por <strong>este módulo</strong> para enviar o teste e as notificações de renovação. Se ficar em branco, cai automaticamente na instância ativa do sistema.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="evo_url">URL da API</Label>
+                    <Input
+                      id="evo_url"
+                      placeholder="https://evolution.seu-dominio.com"
+                      value={settings.evolution_api_url}
+                      onChange={(e) => updateField("evolution_api_url", e.target.value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="evo_key">API Key</Label>
+                      <Input
+                        id="evo_key"
+                        type="text"
+                        autoComplete="off"
+                        style={{ WebkitTextSecurity: "disc" } as React.CSSProperties}
+                        placeholder="apikey da instância"
+                        value={settings.evolution_api_key}
+                        onChange={(e) => updateField("evolution_api_key", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="evo_instance">Nome da Instância</Label>
+                      <Input
+                        id="evo_instance"
+                        placeholder="ex: instagram-alerts"
+                        value={settings.evolution_instance_name}
+                        onChange={(e) => updateField("evolution_instance_name", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
                 <div className="rounded-lg border border-dashed border-border/60 bg-muted/30 p-3 space-y-2">
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     📋 <strong>Onde ver os logs?</strong> Os envios ficam registrados nos logs da função <code className="font-mono">instagram-token-auto-refresh</code> (renovação automática) e <code className="font-mono">instagram-test-notification</code> (teste). Acesse pelo painel <strong>Backend → Edge Functions → Logs</strong>. Cada tentativa mostra número, status HTTP e resposta da Evolution API.
