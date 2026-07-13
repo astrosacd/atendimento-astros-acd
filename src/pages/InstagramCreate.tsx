@@ -25,7 +25,10 @@ import {
   ChevronRight,
   ImageIcon,
   Upload,
-  Info
+  Info,
+  Heart,
+  MessageCircle,
+  Bookmark
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
