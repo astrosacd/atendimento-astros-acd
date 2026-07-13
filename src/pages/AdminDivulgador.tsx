@@ -1943,8 +1943,8 @@ export default function AdminDivulgador() {
                 {messages.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">Nenhuma mensagem agendada</p>
                 ) : (
-                  <ScrollArea className="h-[400px]">
-                    <Table>
+                  <div className="overflow-x-auto overflow-y-auto max-h-[400px]">
+                    <Table className="min-w-[1000px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead>Conteúdo</TableHead>
@@ -2145,7 +2145,7 @@ export default function AdminDivulgador() {
                         ))}
                       </TableBody>
                     </Table>
-                  </ScrollArea>
+                  </div>
                 )}
               </CardContent>
             </Card>
