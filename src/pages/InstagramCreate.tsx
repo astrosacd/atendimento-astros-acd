@@ -83,10 +83,23 @@ const InstagramCreate = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const carouselScrollRef = useRef<HTMLDivElement>(null);
+  const [igUsername, setIgUsername] = useState<string>("seu_perfil");
 
   useEffect(() => {
     setCarouselPreviewIndex((current) => Math.min(current, Math.max(mediaUrls.length - 1, 0)));
   }, [mediaUrls.length]);
+
+  useEffect(() => {
+    (async () => {
+      if (!user?.id) return;
+      const { data } = await supabase
+        .from("instagram_settings")
+        .select("account_username")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data?.account_username) setIgUsername(data.account_username.replace(/^@/, ""));
+    })();
+  }, [user?.id]);
 
   // Regras por tipo de conteúdo
   const typeRules = {
