@@ -1990,11 +1990,26 @@ export default function AdminDivulgador() {
                               )}
                             </TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="gap-1">
-                                {msg.media_type === 'image' && <Image className="h-3 w-3" />}
-                                {msg.media_type === 'text' && <MessageSquare className="h-3 w-3" />}
-                                {msg.media_type || 'text'}
-                              </Badge>
+                              <div className="flex items-center gap-1.5">
+                                <Badge variant="outline" className="gap-1">
+                                  {msg.media_type === 'image' && <Image className="h-3 w-3" />}
+                                  {msg.media_type === 'video' && <Video className="h-3 w-3" />}
+                                  {msg.media_type === 'audio' && <Music className="h-3 w-3" />}
+                                  {msg.media_type === 'document' && <FileText className="h-3 w-3" />}
+                                  {msg.media_type === 'poll' && <BarChart2 className="h-3 w-3" />}
+                                  {(msg.media_type === 'text' || !msg.media_type) && <MessageSquare className="h-3 w-3" />}
+                                  {msg.media_type || 'text'}
+                                </Badge>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 text-muted-foreground hover:text-primary"
+                                  onClick={() => setPreviewMessage(msg)}
+                                  title="Visualizar como no WhatsApp"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
                             </TableCell>
                             <TableCell>
                               <div className="flex flex-col gap-1">
