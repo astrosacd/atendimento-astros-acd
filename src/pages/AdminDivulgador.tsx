@@ -3326,6 +3326,22 @@ export default function AdminDivulgador() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsQuickMessageDialogOpen(false)}>Cancelar</Button>
+              <Button
+                variant="outline"
+                onClick={() => setPreviewMessage({
+                  content: quickMessageForm.content,
+                  media_type: quickMessageForm.media_type,
+                  media_url: quickMessageForm.media_url,
+                  mention_all: quickMessageForm.mention_all,
+                  divulgador_groups: { name: quickMessageGroup?.name },
+                  status: 'preview',
+                })}
+                disabled={!quickMessageForm.content && !quickMessageForm.media_url}
+                title="Pré-visualizar"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                Pré-visualizar
+              </Button>
               <Button onClick={sendQuickMessage} disabled={isSendingQuickMessage || !quickMessageForm.content}>
                 {isSendingQuickMessage ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
                 Enviar Agora
