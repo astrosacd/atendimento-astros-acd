@@ -65,9 +65,15 @@ const InstagramAutoReply = ({ isTemporaryAccess = false }: InstagramAutoReplyPro
     media_type: "all",
     follower_only: false,
     specific_media_id: "",
+    cooldown_seconds: 3600,
+    max_per_user_per_day: 3,
+    blacklist_keywords: [] as string[],
+    blacklist_usernames: [] as string[],
   });
 
   const [newKeyword, setNewKeyword] = useState("");
+  const [newBlacklistKw, setNewBlacklistKw] = useState("");
+  const [newBlacklistUser, setNewBlacklistUser] = useState("");
 
   useEffect(() => {
     if (user) {
