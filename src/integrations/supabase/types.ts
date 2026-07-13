@@ -4626,6 +4626,9 @@ export type Database = {
       ig_auto_reply_rules: {
         Row: {
           active: boolean | null
+          blacklist_keywords: string[]
+          blacklist_usernames: string[]
+          cooldown_seconds: number
           created_at: string
           daily_limit: number | null
           delay_seconds: number | null
@@ -4633,6 +4636,7 @@ export type Database = {
           follower_only: boolean | null
           id: string
           keywords: string[] | null
+          max_per_user_per_day: number
           media_type: string | null
           name: string
           non_follower_response: string | null
@@ -4643,6 +4647,9 @@ export type Database = {
         }
         Insert: {
           active?: boolean | null
+          blacklist_keywords?: string[]
+          blacklist_usernames?: string[]
+          cooldown_seconds?: number
           created_at?: string
           daily_limit?: number | null
           delay_seconds?: number | null
@@ -4650,6 +4657,7 @@ export type Database = {
           follower_only?: boolean | null
           id?: string
           keywords?: string[] | null
+          max_per_user_per_day?: number
           media_type?: string | null
           name: string
           non_follower_response?: string | null
@@ -4660,6 +4668,9 @@ export type Database = {
         }
         Update: {
           active?: boolean | null
+          blacklist_keywords?: string[]
+          blacklist_usernames?: string[]
+          cooldown_seconds?: number
           created_at?: string
           daily_limit?: number | null
           delay_seconds?: number | null
@@ -4667,6 +4678,7 @@ export type Database = {
           follower_only?: boolean | null
           id?: string
           keywords?: string[] | null
+          max_per_user_per_day?: number
           media_type?: string | null
           name?: string
           non_follower_response?: string | null

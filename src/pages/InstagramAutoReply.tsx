@@ -65,9 +65,15 @@ const InstagramAutoReply = ({ isTemporaryAccess = false }: InstagramAutoReplyPro
     media_type: "all",
     follower_only: false,
     specific_media_id: "",
+    cooldown_seconds: 3600,
+    max_per_user_per_day: 3,
+    blacklist_keywords: [] as string[],
+    blacklist_usernames: [] as string[],
   });
 
   const [newKeyword, setNewKeyword] = useState("");
+  const [newBlacklistKw, setNewBlacklistKw] = useState("");
+  const [newBlacklistUser, setNewBlacklistUser] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -293,6 +299,10 @@ const InstagramAutoReply = ({ isTemporaryAccess = false }: InstagramAutoReplyPro
                 follower_only: false,
                 specific_media_id: "",
                 non_follower_response: "",
+                cooldown_seconds: 3600,
+                max_per_user_per_day: 3,
+                blacklist_keywords: [],
+                blacklist_usernames: [],
               });
               setIsMediaSelectorOpen(false);
               setIsRuleDialogOpen(true);
@@ -635,6 +645,101 @@ const InstagramAutoReply = ({ isTemporaryAccess = false }: InstagramAutoReplyPro
                     checked={currentRule.active} 
                     onCheckedChange={(val) => setCurrentRule((prev: any) => ({ ...prev, active: val }))}
                   />
+                </div>
+              </div>
+
+              {/* Anti-spam */}
+              <div className="space-y-3 p-4 bg-amber-50/60 dark:bg-amber-950/10 rounded-xl border border-amber-200/60">
+                <div className="flex items-center gap-2 text-amber-700 font-semibold text-sm">
+                  <AlertCircle className="h-4 w-4" /> Anti-Spam
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Cooldown por usuário (seg)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={currentRule.cooldown_seconds ?? 3600}
+                      onChange={(e) => setCurrentRule((prev: any) => ({ ...prev, cooldown_seconds: Math.max(0, Number(e.target.value) || 0) }))}
+                    />
+                    <p className="text-[10px] text-muted-foreground">Tempo mínimo entre 2 respostas ao mesmo usuário. 3600 = 1h.</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Máx. respostas/dia por usuário</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={currentRule.max_per_user_per_day ?? 3}
+                      onChange={(e) => setCurrentRule((prev: any) => ({ ...prev, max_per_user_per_day: Math.max(0, Number(e.target.value) || 0) }))}
+                    />
+                    <p className="text-[10px] text-muted-foreground">0 = sem limite diário.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs">Blacklist de palavras (não responde se comentário contém)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={newBlacklistKw}
+                      onChange={(e) => setNewBlacklistKw(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && newBlacklistKw.trim()) {
+                          setCurrentRule((prev: any) => ({ ...prev, blacklist_keywords: [...(prev.blacklist_keywords || []), newBlacklistKw.trim()] }));
+                          setNewBlacklistKw("");
+                        }
+                      }}
+                      placeholder="Ex: golpe, fake, spam"
+                    />
+                    <Button variant="outline" size="icon" onClick={() => {
+                      if (newBlacklistKw.trim()) {
+                        setCurrentRule((prev: any) => ({ ...prev, blacklist_keywords: [...(prev.blacklist_keywords || []), newBlacklistKw.trim()] }));
+                        setNewBlacklistKw("");
+                      }
+                    }}><Plus className="h-4 w-4" /></Button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {(currentRule.blacklist_keywords || []).map((kw: string, i: number) => (
+                      <Badge key={i} variant="destructive" className="gap-1 px-2 py-1">
+                        {kw}
+                        <button onClick={() => setCurrentRule((prev: any) => ({ ...prev, blacklist_keywords: prev.blacklist_keywords.filter((_: any, idx: number) => idx !== i) }))}>
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs">Blacklist de usuários (@)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={newBlacklistUser}
+                      onChange={(e) => setNewBlacklistUser(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && newBlacklistUser.trim()) {
+                          setCurrentRule((prev: any) => ({ ...prev, blacklist_usernames: [...(prev.blacklist_usernames || []), newBlacklistUser.trim().replace(/^@/, '')] }));
+                          setNewBlacklistUser("");
+                        }
+                      }}
+                      placeholder="Ex: perfil_bot, spam_user"
+                    />
+                    <Button variant="outline" size="icon" onClick={() => {
+                      if (newBlacklistUser.trim()) {
+                        setCurrentRule((prev: any) => ({ ...prev, blacklist_usernames: [...(prev.blacklist_usernames || []), newBlacklistUser.trim().replace(/^@/, '')] }));
+                        setNewBlacklistUser("");
+                      }
+                    }}><Plus className="h-4 w-4" /></Button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {(currentRule.blacklist_usernames || []).map((u: string, i: number) => (
+                      <Badge key={i} variant="destructive" className="gap-1 px-2 py-1">
+                        @{u}
+                        <button onClick={() => setCurrentRule((prev: any) => ({ ...prev, blacklist_usernames: prev.blacklist_usernames.filter((_: any, idx: number) => idx !== i) }))}>
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

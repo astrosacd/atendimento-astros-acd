@@ -128,7 +128,7 @@ serve(async (req) => {
 
     for (const entry of body.entry) {
       const igUserId = entry.id;
-      
+
       const { data: settings, error: settingsError } = await supabase
         .from("instagram_settings")
         .select("*")
@@ -150,113 +150,158 @@ serve(async (req) => {
 
         const value = change.value;
         const commentId = value.id;
-        const commentText = value.text || "";
-        const commenterId = value.from?.id;
-        const commenterUsername = value.from?.username;
+        const commentText: string = value.text || "";
+        const commenterId: string | undefined = value.from?.id;
+        const commenterUsername: string | undefined = value.from?.username;
         const mediaId = value.media?.id;
 
-        if (commenterId === igUserId) continue;
+        if (!commentId || commenterId === igUserId) continue;
 
-        // Find rules - Prioritize specific post rules
+        // ---------- DEDUP GLOBAL POR COMENTÁRIO ----------
+        // Se já existe qualquer histórico com esse comment_id, pulamos tudo.
+        const { count: dupCount } = await supabase
+          .from("ig_auto_reply_history")
+          .select("id", { count: "exact", head: true })
+          .eq("ig_comment_id", commentId);
+        if ((dupCount ?? 0) > 0) {
+          console.log(`[dedup] Comment ${commentId} já processado — ignorando`);
+          continue;
+        }
+
         const { data: rules } = await supabase
           .from("ig_auto_reply_rules")
           .select("*")
           .eq("user_id", settings.user_id)
           .eq("active", true)
-          .order("specific_media_id", { ascending: false }); // Rules with media_id first
+          .order("specific_media_id", { ascending: false });
 
         if (!rules) continue;
 
         for (const rule of rules) {
-          // Check if rule matches specific post (if defined)
           if (rule.specific_media_id && rule.specific_media_id !== mediaId) continue;
 
-          let matches = false;
-          if (!rule.keywords || rule.keywords.length === 0) {
-            matches = true;
-          } else {
-            const lowerComment = commentText.toLowerCase();
-            matches = rule.keywords.some(kw => lowerComment.includes(kw.toLowerCase()));
+          const lowerComment = commentText.toLowerCase();
+          const lowerUsername = (commenterUsername || "").toLowerCase();
+
+          // ---------- BLACKLISTS ----------
+          const ukBlacklist: string[] = rule.blacklist_usernames ?? [];
+          if (ukBlacklist.some((u) => u && lowerUsername === u.toLowerCase().replace(/^@/, ""))) {
+            console.log(`[blacklist] username ${commenterUsername} bloqueado para rule ${rule.name}`);
+            continue;
+          }
+          const kwBlacklist: string[] = rule.blacklist_keywords ?? [];
+          if (kwBlacklist.some((kw) => kw && lowerComment.includes(kw.toLowerCase()))) {
+            console.log(`[blacklist] keyword bloqueada para rule ${rule.name}`);
+            continue;
           }
 
-          if (matches) {
-            console.log(`Matched rule: ${rule.name}`);
-            
-            let publicSent = false;
-            let dmSent = false;
-            let errorMsg = null;
+          // ---------- MATCH ----------
+          const matches = !rule.keywords || rule.keywords.length === 0
+            ? true
+            : rule.keywords.some((kw: string) => lowerComment.includes(kw.toLowerCase()));
+          if (!matches) continue;
 
-            try {
-              // Priority 1: DM (if configured)
-              if (rule.dm_response && commenterId) {
-                const dmRes = await fetch(`${graphHost}/${igUserId}/messages`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    recipient: { id: commenterId },
-                    message: { text: rule.dm_response },
-                    access_token: accessToken,
-                  }),
-                });
-                const dmData = await dmRes.json();
-                
-                if (dmRes.ok) {
-                  dmSent = true;
+          // ---------- COOLDOWN + DAILY LIMIT POR USUÁRIO ----------
+          if (commenterId) {
+            const cooldown = Math.max(0, rule.cooldown_seconds ?? 3600);
+            if (cooldown > 0) {
+              const since = new Date(Date.now() - cooldown * 1000).toISOString();
+              const { count: recentCount } = await supabase
+                .from("ig_auto_reply_history")
+                .select("id", { count: "exact", head: true })
+                .eq("rule_id", rule.id)
+                .eq("ig_user_id", commenterId)
+                .gte("created_at", since);
+              if ((recentCount ?? 0) > 0) {
+                console.log(`[cooldown] user ${commenterId} ainda em cooldown para rule ${rule.name}`);
+                continue;
+              }
+            }
+
+            const dailyLimit = Math.max(0, rule.max_per_user_per_day ?? 3);
+            if (dailyLimit > 0) {
+              const dayStart = new Date();
+              dayStart.setUTCHours(0, 0, 0, 0);
+              const { count: dayCount } = await supabase
+                .from("ig_auto_reply_history")
+                .select("id", { count: "exact", head: true })
+                .eq("rule_id", rule.id)
+                .eq("ig_user_id", commenterId)
+                .gte("created_at", dayStart.toISOString());
+              if ((dayCount ?? 0) >= dailyLimit) {
+                console.log(`[daily-limit] user ${commenterId} atingiu ${dailyLimit}/dia para rule ${rule.name}`);
+                continue;
+              }
+            }
+          }
+
+          console.log(`Matched rule: ${rule.name}`);
+
+          let publicSent = false;
+          let dmSent = false;
+          let errorMsg: string | null = null;
+
+          try {
+            if (rule.dm_response && commenterId) {
+              const dmRes = await fetch(`${graphHost}/${igUserId}/messages`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  recipient: { id: commenterId },
+                  message: { text: rule.dm_response },
+                  access_token: accessToken,
+                }),
+              });
+              const dmData = await dmRes.json();
+              if (dmRes.ok) {
+                dmSent = true;
+              } else {
+                console.error("DM Error:", dmData);
+                const isFollowError = [400, 10, 100].includes(dmData.error?.code);
+                if (isFollowError && rule.non_follower_response) {
+                  const replyRes = await fetch(`${graphHost}/${commentId}/replies`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: rule.non_follower_response, access_token: accessToken }),
+                  });
+                  if (replyRes.ok) publicSent = true;
+                  errorMsg = "User not following. Sent follow-request public reply.";
                 } else {
-                  console.error("DM Error:", dmData);
-                  // Error codes for "cannot message this user" (not following, no opt-in)
-                  const isFollowError = [400, 10, 100].includes(dmData.error?.code);
-                  
-                  if (isFollowError && rule.non_follower_response) {
-                    // Send non-follower public response instead
-                    const replyRes = await fetch(`${graphHost}/${commentId}/replies`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        message: rule.non_follower_response,
-                        access_token: accessToken,
-                      }),
-                    });
-                    if (replyRes.ok) publicSent = true;
-                    errorMsg = "User not following. Sent follow-request public reply.";
-                  } else {
-                    errorMsg = `DM Error: ${dmData.error?.message || 'Unknown'}`;
-                  }
+                  errorMsg = `DM Error: ${dmData.error?.message || 'Unknown'}`;
                 }
               }
-
-              // Priority 2: Standard Public Response (if configured and not already sent a follow request)
-              if (rule.public_response && !publicSent) {
-                const replyRes = await fetch(`${graphHost}/${commentId}/replies`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    message: rule.public_response,
-                    access_token: accessToken,
-                  }),
-                });
-                if (replyRes.ok) publicSent = true;
-                else if (!errorMsg) errorMsg = "Public reply failed";
-              }
-
-              // Log history
-              await supabase.from("ig_auto_reply_history").insert({
-                user_id: settings.user_id,
-                rule_id: rule.id,
-                ig_comment_id: commentId,
-                ig_media_id: mediaId,
-                ig_username: commenterUsername,
-                ig_user_id: commenterId,
-                comment_text: commentText,
-                public_response_sent: publicSent,
-                dm_sent: dmSent,
-                error_message: errorMsg
-              });
-
-              break; // Stop after first matched rule
-            } catch (err) {
-              console.error("Execution error:", err);
             }
+
+            if (rule.public_response && !publicSent) {
+              const replyRes = await fetch(`${graphHost}/${commentId}/replies`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: rule.public_response, access_token: accessToken }),
+              });
+              if (replyRes.ok) publicSent = true;
+              else if (!errorMsg) errorMsg = "Public reply failed";
+            }
+
+            // Insert com upsert-safe: se outro processo concorrente já inseriu, o unique index (rule_id, ig_comment_id) rejeita.
+            const { error: histErr } = await supabase.from("ig_auto_reply_history").insert({
+              user_id: settings.user_id,
+              rule_id: rule.id,
+              ig_comment_id: commentId,
+              ig_media_id: mediaId,
+              ig_username: commenterUsername,
+              ig_user_id: commenterId,
+              comment_text: commentText,
+              public_response_sent: publicSent,
+              dm_sent: dmSent,
+              error_message: errorMsg,
+            });
+            if (histErr && histErr.code === "23505") {
+              console.log("[dedup] histórico duplicado detectado no insert (race)");
+            }
+
+            break; // Stop after first matched rule
+          } catch (err) {
+            console.error("Execution error:", err);
           }
         }
       }

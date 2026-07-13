@@ -227,33 +227,55 @@ async function checkWhatsAppOfficial(supabase: any): Promise<CheckResult> {
 }
 
 async function checkInstagramAPI(supabase: any): Promise<CheckResult> {
-  const { data } = await supabase.from('instagram_settings').select('access_token, instagram_business_account_id').limit(1).maybeSingle();
+  const { data } = await supabase
+    .from('instagram_settings')
+    .select('access_token, instagram_business_account_id, ig_user_id, token_expires_at, account_username')
+    .limit(1)
+    .maybeSingle();
   const token = data?.access_token;
-  const instaId = data?.instagram_business_account_id;
-  
+  const instaId = data?.instagram_business_account_id || data?.ig_user_id;
+  const expiresAt = data?.token_expires_at ? new Date(data.token_expires_at) : null;
+
   if (!token) {
     return { status: 'warning', message: 'Sem Access Token do Instagram.' };
   }
-  
-  try {
-    const url = instaId 
-      ? `https://graph.facebook.com/v21.0/${instaId}?fields=username,name&access_token=${token}`
-      : `https://graph.facebook.com/v21.0/me?access_token=${token}`;
- 
-    const res = await withTimeout(fetch(url), 8000, 'InstagramMeta');
-    const responseData = await res.json();
- 
-    if (!res.ok) {
-      return { 
-        status: 'offline', 
-        message: `Token rejeitado pelo Instagram: ${responseData.error?.message || `Erro HTTP ${res.status}`}` 
+
+  // Alerta se o token vai expirar em <7 dias
+  if (expiresAt) {
+    const msLeft = expiresAt.getTime() - Date.now();
+    const daysLeft = Math.floor(msLeft / (1000 * 60 * 60 * 24));
+    if (msLeft <= 0) {
+      return { status: 'offline', message: `Token EXPIRADO em ${expiresAt.toISOString().slice(0,10)}. Reautorize o Instagram.` };
+    }
+    if (daysLeft <= 7) {
+      return {
+        status: 'warning',
+        message: `Token expira em ${daysLeft} dia(s) (${expiresAt.toISOString().slice(0,10)}). Refresh automático em breve — se falhar, reautorize.`,
+        details: { token_expires_at: expiresAt.toISOString(), days_left: daysLeft }
       };
     }
- 
-    return { 
-      status: 'online', 
-      message: `Perfil: @${responseData.username || 'Ativo'} (ID: ${responseData.id})`,
-      details: { instagram_id: responseData.id }
+  }
+
+  try {
+    const url = instaId
+      ? `https://graph.facebook.com/v21.0/${instaId}?fields=username,name&access_token=${token}`
+      : `https://graph.facebook.com/v21.0/me?access_token=${token}`;
+
+    const res = await withTimeout(fetch(url), 8000, 'InstagramMeta');
+    const responseData = await res.json();
+
+    if (!res.ok) {
+      return {
+        status: 'offline',
+        message: `Token rejeitado pelo Instagram: ${responseData.error?.message || `Erro HTTP ${res.status}`}`
+      };
+    }
+
+    const daysHint = expiresAt ? ` — expira em ${Math.floor((expiresAt.getTime() - Date.now()) / 86400000)}d` : '';
+    return {
+      status: 'online',
+      message: `Perfil: @${responseData.username || data?.account_username || 'Ativo'}${daysHint}`,
+      details: { instagram_id: responseData.id, token_expires_at: expiresAt?.toISOString() ?? null }
     };
   } catch (e: any) {
     return { status: 'offline', message: `Falha na requisição Instagram: ${e.message}` };

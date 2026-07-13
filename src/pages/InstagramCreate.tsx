@@ -25,7 +25,10 @@ import {
   ChevronRight,
   ImageIcon,
   Upload,
-  Info
+  Info,
+  Heart,
+  MessageCircle,
+  Bookmark
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -83,10 +86,23 @@ const InstagramCreate = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const carouselScrollRef = useRef<HTMLDivElement>(null);
+  const [igUsername, setIgUsername] = useState<string>("seu_perfil");
 
   useEffect(() => {
     setCarouselPreviewIndex((current) => Math.min(current, Math.max(mediaUrls.length - 1, 0)));
   }, [mediaUrls.length]);
+
+  useEffect(() => {
+    (async () => {
+      if (!user?.id) return;
+      const { data } = await supabase
+        .from("instagram_settings")
+        .select("account_username")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data?.account_username) setIgUsername(data.account_username.replace(/^@/, ""));
+    })();
+  }, [user?.id]);
 
   // Regras por tipo de conteúdo
   const typeRules = {
@@ -104,22 +120,75 @@ const InstagramCreate = () => {
     setSelectedVariation(null);
   }, [postType]);
 
+  // ---------- Validação de mídia (dimensões / aspect / tamanho) ----------
+  const readImageMeta = (file: File): Promise<{ w: number; h: number }> => new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => { const r = { w: img.naturalWidth, h: img.naturalHeight }; URL.revokeObjectURL(url); resolve(r); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Falha ao ler imagem")); };
+    img.src = url;
+  });
+  const readVideoMeta = (file: File): Promise<{ w: number; h: number; duration: number }> => new Promise((resolve, reject) => {
+    const v = document.createElement("video");
+    const url = URL.createObjectURL(file);
+    v.preload = "metadata";
+    v.onloadedmetadata = () => { const r = { w: v.videoWidth, h: v.videoHeight, duration: v.duration }; URL.revokeObjectURL(url); resolve(r); };
+    v.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Falha ao ler vídeo")); };
+    v.src = url;
+  });
+
+  // Regras oficiais IG (aproximadas): feed/carousel 4:5 a 1.91:1, reels/stories 9:16 exato preferencial
+  const validateMedia = async (file: File): Promise<string | null> => {
+    const isImg = file.type.startsWith("image/");
+    const isVid = file.type.startsWith("video/");
+    // Tamanhos máximos aproximados da Graph API
+    const maxImgMB = 8;
+    const maxVidMB = 100;
+    if (isImg && file.size > maxImgMB * 1024 * 1024) return `Imagem excede ${maxImgMB}MB (Instagram limita a esse tamanho).`;
+    if (isVid && file.size > maxVidMB * 1024 * 1024) return `Vídeo excede ${maxVidMB}MB (Instagram limita a esse tamanho).`;
+
+    try {
+      if (isImg) {
+        const { w, h } = await readImageMeta(file);
+        if (w < 320) return `Imagem com largura ${w}px — mínimo do Instagram é 320px.`;
+        const ratio = w / h;
+        if (postType === 'feed' || postType === 'carousel') {
+          if (ratio < 0.8 || ratio > 1.91) return `Proporção ${(ratio).toFixed(2)}:1 fora do permitido para Feed (0.8 a 1.91).`;
+        }
+        if (postType === 'stories') {
+          if (Math.abs(ratio - (9/16)) > 0.05) return `Stories preferem 9:16 (${(9/16).toFixed(2)}). Sua imagem está em ${ratio.toFixed(2)}.`;
+        }
+      }
+      if (isVid) {
+        const { w, h, duration } = await readVideoMeta(file);
+        if (w < 500) return `Vídeo com largura ${w}px — mínimo recomendado é 500px.`;
+        const ratio = w / h;
+        if (postType === 'reels') {
+          if (Math.abs(ratio - (9/16)) > 0.05) return `Reels exige 9:16. Seu vídeo está em ${ratio.toFixed(2)}.`;
+          if (duration < 3 || duration > 90) return `Reels aceita 3s a 90s. Seu vídeo tem ${duration.toFixed(1)}s.`;
+        }
+        if (postType === 'stories') {
+          if (duration > 60) return `Stories aceita até 60s. Seu vídeo tem ${duration.toFixed(1)}s.`;
+        }
+      }
+    } catch (e: any) {
+      return `Não foi possível ler a mídia: ${e?.message || 'erro desconhecido'}`;
+    }
+    return null;
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Allow file upload even in temp access for creation
-    // if (isTempAccess) { blockEdit(); return; }
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     const rule = typeRules[postType];
     let filesToUpload = Array.from(files);
 
-    // Bloqueia múltiplos arquivos quando não permitido
     if (!rule.multiple && filesToUpload.length > 1) {
       toast({ title: "Apenas um arquivo", description: `Para ${postType === 'feed' ? 'Feed' : postType === 'reels' ? 'Reels' : 'Stories'} envie somente 1 arquivo.`, variant: "destructive" });
       filesToUpload = [filesToUpload[0]];
     }
 
-    // Aplica limite total (carrossel)
     const remaining = rule.max - mediaUrls.length;
     if (remaining <= 0) {
       toast({ title: "Limite atingido", description: `Você já adicionou o máximo permitido (${rule.max}).`, variant: "destructive" });
@@ -130,13 +199,16 @@ const InstagramCreate = () => {
       filesToUpload = filesToUpload.slice(0, remaining);
     }
 
-    // Validação de tipo MIME
+    // Validação de tipo MIME + dimensões/tamanho
     for (const f of filesToUpload) {
       const isImg = f.type.startsWith("image/");
       const isVid = f.type.startsWith("video/");
       if (postType === 'feed' && !isImg) { toast({ title: "Tipo inválido", description: "Feed aceita apenas imagens.", variant: "destructive" }); return; }
       if (postType === 'reels' && !isVid) { toast({ title: "Tipo inválido", description: "Reels aceita apenas vídeos.", variant: "destructive" }); return; }
       if (postType === 'carousel' && !isImg) { toast({ title: "Tipo inválido", description: "Carrossel aceita apenas imagens.", variant: "destructive" }); return; }
+
+      const err = await validateMedia(f);
+      if (err) { toast({ title: "Mídia inválida para Instagram", description: err, variant: "destructive" }); return; }
     }
 
     setLoading(true);
@@ -687,23 +759,27 @@ const InstagramCreate = () => {
               <div className="pt-6 border-t mt-4">
                 <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest font-bold mb-4">Preview Mobile</p>
                 <div className={cn(
-                  "mx-auto border-8 border-black rounded-[30px] overflow-hidden bg-black shadow-2xl flex flex-col transition-all duration-300",
-                  postType === 'feed' ? "w-[240px] aspect-square" : "w-[240px] aspect-[9/18.5]"
+                  "mx-auto border-[10px] border-black rounded-[36px] overflow-hidden bg-black shadow-2xl flex flex-col transition-all duration-300",
+                  postType === 'feed' ? "w-[280px]" : "w-[280px] aspect-[9/18.5]"
                 )}>
                   {postType === 'feed' || postType === 'carousel' ? (
-                    <div className="bg-white h-full flex flex-col">
+                    <div className="bg-white flex flex-col">
                       {/* IG Header (Feed) */}
-                      <div className="p-2 border-b flex items-center gap-1">
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 p-[1px]">
+                      <div className="px-3 py-2 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 p-[1.5px]">
                           <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-                            <div className="w-4 h-4 rounded-full bg-muted" />
+                            <Instagram className="h-3.5 w-3.5 text-neutral-500" />
                           </div>
                         </div>
-                        <span className="text-[8px] font-bold text-black">seu_perfil</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] font-semibold text-black truncate">{igUsername}</div>
+                          <div className="text-[8px] text-neutral-500 truncate">Publicação • Agora</div>
+                        </div>
+                        <div className="text-black text-lg leading-none tracking-tighter">···</div>
                       </div>
                       
-                      {/* Content Area */}
-                      <div className="flex-1 bg-muted/20 relative overflow-hidden">
+                      {/* Content Area (feed = square) */}
+                      <div className="aspect-square bg-neutral-100 relative overflow-hidden">
                         {mediaUrls.length > 0 ? (
                           <div className="w-full h-full">
                             {postType === 'carousel' ? (
@@ -764,18 +840,24 @@ const InstagramCreate = () => {
                             )}
                           </div>
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/30">
-                            <Instagram className="h-8 w-8 mb-2" />
-                            <span className="text-[10px]">Preview</span>
+                          <div className="w-full h-full flex flex-col items-center justify-center text-neutral-300">
+                            <Instagram className="h-10 w-10 mb-2" />
+                            <span className="text-[10px]">Sua mídia aqui</span>
                           </div>
                         )}
                       </div>
 
-                      {/* IG Interactions */}
-                      <div className="p-2 flex gap-2">
-                        <div className="w-3 h-3 rounded-full border border-black/20" />
-                        <div className="w-3 h-3 rounded-full border border-black/20" />
-                        <div className="w-3 h-3 rounded-full border border-black/20" />
+                      {/* IG Interactions reais */}
+                      <div className="px-3 pt-2 pb-1 flex items-center gap-3 text-black">
+                        <Heart className="h-5 w-5" strokeWidth={1.8} />
+                        <MessageCircle className="h-5 w-5" strokeWidth={1.8} />
+                        <Send className="h-5 w-5" strokeWidth={1.8} />
+                        <Bookmark className="h-5 w-5 ml-auto" strokeWidth={1.8} />
+                      </div>
+                      <div className="px-3 pb-1 text-[10px] font-semibold text-black">1.284 curtidas</div>
+                      <div className="px-3 pb-3 text-[10px] text-black leading-snug">
+                        <span className="font-semibold">{igUsername}</span>{' '}
+                        <span className="whitespace-pre-wrap break-words">{(caption || 'Sua legenda aparecerá aqui...').slice(0, 180)}{(caption?.length ?? 0) > 180 ? '…' : ''}</span>
                       </div>
                     </div>
                   ) : (
@@ -799,7 +881,7 @@ const InstagramCreate = () => {
                       
                       <div className="absolute top-4 left-4 flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full bg-muted border border-white/20" />
-                        <span className="text-[10px] font-bold text-white">seu_perfil</span>
+                        <span className="text-[10px] font-bold text-white">{igUsername}</span>
                       </div>
 
                       <div className="absolute bottom-12 left-4 right-12">
