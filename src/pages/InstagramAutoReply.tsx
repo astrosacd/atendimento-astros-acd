@@ -45,7 +45,9 @@ const InstagramAutoReply = ({ isTemporaryAccess = false }: InstagramAutoReplyPro
   const [loading, setLoading] = useState(false);
   const [rules, setRules] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
+  const [historyFilter, setHistoryFilter] = useState<"all" | "sent" | "blocked" | "error">("all");
   const [activeTab, setActiveTab] = useState("rules");
+
   const [isRuleDialogOpen, setIsRuleDialogOpen] = useState(false);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const [isMediaSelectorOpen, setIsMediaSelectorOpen] = useState(false);
