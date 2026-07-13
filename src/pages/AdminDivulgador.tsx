@@ -3851,11 +3851,24 @@ export default function AdminDivulgador() {
                   </div>
                 </div>
 
-                <div className="mt-6 flex justify-center">
-                  <Badge variant="outline" className="bg-black/40 text-gray-300 border-white/10 text-[10px]">
-                    Pré-visualização · não enviado
-                  </Badge>
-                </div>
+                {(() => {
+                  const st = previewMessage?.status;
+                  const map: Record<string, { label: string; cls: string }> = {
+                    sent:     { label: '✓ Enviado',            cls: 'bg-emerald-600/20 text-emerald-300 border-emerald-500/30' },
+                    pending:  { label: '⏱ Pendente · não enviado', cls: 'bg-amber-600/20 text-amber-300 border-amber-500/30' },
+                    failed:   { label: '✕ Falhou · não enviado',   cls: 'bg-red-600/20 text-red-300 border-red-500/30' },
+                    resolved: { label: '✓ Resolvido',          cls: 'bg-blue-600/20 text-blue-300 border-blue-500/30' },
+                    preview:  { label: 'Pré-visualização · não enviado', cls: 'bg-black/40 text-gray-300 border-white/10' },
+                  };
+                  const info = map[st] || map.preview;
+                  return (
+                    <div className="mt-6 flex justify-center">
+                      <Badge variant="outline" className={`${info.cls} text-[10px]`}>
+                        {info.label}
+                      </Badge>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </DialogContent>
