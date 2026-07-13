@@ -17,7 +17,8 @@ import {
   ArrowLeft, Megaphone, Settings, Target, Users, MessageSquare, Sparkles,
   UserMinus, BarChart3, Plus, Save, RefreshCw, Wifi, WifiOff, Send,
   Trash2, Edit, Copy, Loader2, CheckCircle2, AlertCircle, Clock, Info,
-  FileText, XCircle, Upload, Image, Lock, Shield, CalendarIcon, Pencil
+  FileText, XCircle, Upload, Image, Lock, Shield, CalendarIcon, Pencil,
+  Eye, Music, Video, BarChart2, Check, CheckCheck
 } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
