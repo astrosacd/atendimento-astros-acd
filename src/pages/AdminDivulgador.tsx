@@ -3543,7 +3543,13 @@ export default function AdminDivulgador() {
               </div>
 
               <div className="space-y-2">
-                <Label>{editMessageForm.media_type === 'poll' ? 'Pergunta da enquete' : 'Conteúdo'}</Label>
+                <div className="flex items-center justify-between">
+                  <Label>{editMessageForm.media_type === 'poll' ? 'Pergunta da enquete' : 'Conteúdo'}</Label>
+                  <span className={`text-xs ${(editMessageForm.content || '').length > 1024 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                    {(editMessageForm.content || '').length}/1024
+                    {editMessageForm.media_type !== 'text' && editMessageForm.media_type !== 'poll' && (editMessageForm.content || '').length > 1024 && ' (legenda será truncada)'}
+                  </span>
+                </div>
                 <Textarea
                   value={editMessageForm.content}
                   onChange={(e) => setEditMessageForm({ ...editMessageForm, content: e.target.value })}
