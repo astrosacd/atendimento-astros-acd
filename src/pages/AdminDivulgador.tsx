@@ -2146,6 +2146,7 @@ export default function AdminDivulgador() {
                         ))}
                       </TableBody>
                     </Table>
+                    </div>
                   </ScrollArea>
                 )}
               </CardContent>
