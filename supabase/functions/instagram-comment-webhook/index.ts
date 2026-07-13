@@ -183,15 +183,38 @@ serve(async (req) => {
           const lowerComment = commentText.toLowerCase();
           const lowerUsername = (commenterUsername || "").toLowerCase();
 
+          // Helper para registrar bloqueio no histórico
+          const logBlocked = async (reason: string) => {
+            try {
+              await supabase.from("ig_auto_reply_history").insert({
+                user_id: settings.user_id,
+                rule_id: rule.id,
+                ig_comment_id: commentId,
+                ig_media_id: mediaId,
+                ig_username: commenterUsername,
+                ig_user_id: commenterId,
+                comment_text: commentText,
+                public_response_sent: false,
+                dm_sent: false,
+                blocked_reason: reason,
+              });
+            } catch (e) {
+              console.error("[block-log] falha:", e);
+            }
+          };
+
           // ---------- BLACKLISTS ----------
           const ukBlacklist: string[] = rule.blacklist_usernames ?? [];
           if (ukBlacklist.some((u) => u && lowerUsername === u.toLowerCase().replace(/^@/, ""))) {
             console.log(`[blacklist] username ${commenterUsername} bloqueado para rule ${rule.name}`);
+            await logBlocked(`blacklist_username:${commenterUsername || ""}`);
             continue;
           }
           const kwBlacklist: string[] = rule.blacklist_keywords ?? [];
-          if (kwBlacklist.some((kw) => kw && lowerComment.includes(kw.toLowerCase()))) {
+          const matchedKw = kwBlacklist.find((kw) => kw && lowerComment.includes(kw.toLowerCase()));
+          if (matchedKw) {
             console.log(`[blacklist] keyword bloqueada para rule ${rule.name}`);
+            await logBlocked(`blacklist_keyword:${matchedKw}`);
             continue;
           }
 
@@ -211,9 +234,11 @@ serve(async (req) => {
                 .select("id", { count: "exact", head: true })
                 .eq("rule_id", rule.id)
                 .eq("ig_user_id", commenterId)
+                .is("blocked_reason", null)
                 .gte("created_at", since);
               if ((recentCount ?? 0) > 0) {
                 console.log(`[cooldown] user ${commenterId} ainda em cooldown para rule ${rule.name}`);
+                await logBlocked(`cooldown:${cooldown}s`);
                 continue;
               }
             }
@@ -227,13 +252,16 @@ serve(async (req) => {
                 .select("id", { count: "exact", head: true })
                 .eq("rule_id", rule.id)
                 .eq("ig_user_id", commenterId)
+                .is("blocked_reason", null)
                 .gte("created_at", dayStart.toISOString());
               if ((dayCount ?? 0) >= dailyLimit) {
                 console.log(`[daily-limit] user ${commenterId} atingiu ${dailyLimit}/dia para rule ${rule.name}`);
+                await logBlocked(`daily_limit:${dailyLimit}`);
                 continue;
               }
             }
           }
+
 
           console.log(`Matched rule: ${rule.name}`);
 

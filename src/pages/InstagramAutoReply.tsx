@@ -45,7 +45,9 @@ const InstagramAutoReply = ({ isTemporaryAccess = false }: InstagramAutoReplyPro
   const [loading, setLoading] = useState(false);
   const [rules, setRules] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
+  const [historyFilter, setHistoryFilter] = useState<"all" | "sent" | "blocked" | "error">("all");
   const [activeTab, setActiveTab] = useState("rules");
+
   const [isRuleDialogOpen, setIsRuleDialogOpen] = useState(false);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const [isMediaSelectorOpen, setIsMediaSelectorOpen] = useState(false);
@@ -397,61 +399,126 @@ const InstagramAutoReply = ({ isTemporaryAccess = false }: InstagramAutoReplyPro
 
         <TabsContent value="history">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
               <div>
                 <CardTitle>Histórico Recente</CardTitle>
-                <CardDescription>Últimas 50 interações automáticas.</CardDescription>
+                <CardDescription>
+                  Últimas 50 interações — enviadas, com erro e <strong>bloqueadas por anti-spam</strong>.
+                </CardDescription>
               </div>
-              <Button variant="outline" size="sm" onClick={fetchHistory}>
-                <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
-              </Button>
+              <div className="flex items-center gap-2">
+                <div className="flex rounded-md border overflow-hidden text-xs">
+                  {(["all", "sent", "blocked", "error"] as const).map((f) => {
+                    const count = f === "all" ? history.length
+                      : f === "sent" ? history.filter(h => !h.blocked_reason && !h.error_message && (h.public_response_sent || h.dm_sent)).length
+                      : f === "blocked" ? history.filter(h => h.blocked_reason).length
+                      : history.filter(h => h.error_message && !h.blocked_reason).length;
+                    const label = f === "all" ? "Todas" : f === "sent" ? "Enviadas" : f === "blocked" ? "Bloqueadas" : "Erros";
+                    return (
+                      <button
+                        key={f}
+                        onClick={() => setHistoryFilter(f)}
+                        className={cn(
+                          "px-3 py-1.5 transition-colors",
+                          historyFilter === f ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                        )}
+                      >
+                        {label} <span className="opacity-70">({count})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <Button variant="outline" size="sm" onClick={fetchHistory}>
+                  <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[500px] w-full">
                 <div className="space-y-4">
-                  {history.length === 0 ? (
-                    <p className="text-center py-10 text-muted-foreground italic">Nenhuma interação registrada.</p>
-                  ) : (
-                    history.map((h) => (
-                      <div key={h.id} className="flex items-start gap-4 p-3 rounded-lg border bg-card/50">
-                        <div className={cn(
-                          "p-2 rounded-full",
-                          h.error_message ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"
+                  {(() => {
+                    const filtered = history.filter(h => {
+                      if (historyFilter === "all") return true;
+                      if (historyFilter === "blocked") return !!h.blocked_reason;
+                      if (historyFilter === "error") return !!h.error_message && !h.blocked_reason;
+                      return !h.blocked_reason && !h.error_message && (h.public_response_sent || h.dm_sent);
+                    });
+                    if (filtered.length === 0) {
+                      return <p className="text-center py-10 text-muted-foreground italic">Nenhuma interação nesta categoria.</p>;
+                    }
+                    return filtered.map((h) => {
+                      const blocked = !!h.blocked_reason;
+                      const reasonLabel = (() => {
+                        if (!h.blocked_reason) return null;
+                        const [kind, val] = String(h.blocked_reason).split(":");
+                        switch (kind) {
+                          case "cooldown": return `Cooldown ativo (${val || "?"})`;
+                          case "daily_limit": return `Limite diário atingido (${val || "?"}/dia)`;
+                          case "blacklist_keyword": return `Palavra bloqueada: "${val || "?"}"`;
+                          case "blacklist_username": return `Usuário na blacklist: @${val || "?"}`;
+                          default: return h.blocked_reason;
+                        }
+                      })();
+                      return (
+                        <div key={h.id} className={cn(
+                          "flex items-start gap-4 p-3 rounded-lg border",
+                          blocked ? "bg-amber-50/50 border-amber-200" : "bg-card/50"
                         )}>
-                          {h.error_message ? <AlertCircle className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <p className="font-semibold text-sm">
-                              @{h.ig_username || "Usuário"} <span className="font-normal text-muted-foreground ml-2 text-xs">{format(new Date(h.created_at), "dd/MM HH:mm")}</span>
-                            </p>
-                            {h.ig_auto_reply_rules && (
-                              <Badge variant="outline" className="text-[10px]">{h.ig_auto_reply_rules.name}</Badge>
+                          <div className={cn(
+                            "p-2 rounded-full",
+                            blocked ? "bg-amber-100 text-amber-700"
+                              : h.error_message ? "bg-red-100 text-red-600"
+                              : "bg-green-100 text-green-600"
+                          )}>
+                            {blocked ? <Filter className="h-5 w-5" />
+                              : h.error_message ? <AlertCircle className="h-5 w-5" />
+                              : <CheckCircle2 className="h-5 w-5" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <p className="font-semibold text-sm">
+                                @{h.ig_username || "Usuário"} <span className="font-normal text-muted-foreground ml-2 text-xs">{format(new Date(h.created_at), "dd/MM HH:mm")}</span>
+                              </p>
+                              <div className="flex items-center gap-1">
+                                {blocked && <Badge variant="outline" className="text-[10px] border-amber-400 text-amber-700 bg-amber-100">Bloqueado</Badge>}
+                                {h.ig_auto_reply_rules && (
+                                  <Badge variant="outline" className="text-[10px]">{h.ig_auto_reply_rules.name}</Badge>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-sm italic text-muted-foreground mb-2">"{h.comment_text}"</p>
+                            {blocked ? (
+                              <p className="mt-1 text-xs text-amber-700 bg-amber-100/60 p-2 rounded border border-amber-200">
+                                <strong>Motivo:</strong> {reasonLabel}
+                              </p>
+                            ) : (
+                              <>
+                                <div className="flex flex-wrap gap-3 text-xs">
+                                  <span className={cn("flex items-center gap-1", h.public_response_sent ? "text-green-600" : "text-muted-foreground")}>
+                                    {h.public_response_sent ? <CheckCircle2 className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />} Comentário
+                                  </span>
+                                  <span className={cn("flex items-center gap-1", h.dm_sent ? "text-green-600" : "text-muted-foreground")}>
+                                    {h.dm_sent ? <CheckCircle2 className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />} Direct Message
+                                  </span>
+                                </div>
+                                {h.error_message && (
+                                  <p className="mt-2 text-[10px] text-red-500 bg-red-50 p-2 rounded border border-red-100 truncate">
+                                    <strong>Erro:</strong> {h.error_message}
+                                  </p>
+                                )}
+                              </>
                             )}
                           </div>
-                          <p className="text-sm italic text-muted-foreground mb-2">"{h.comment_text}"</p>
-                          <div className="flex flex-wrap gap-3 text-xs">
-                            <span className={cn("flex items-center gap-1", h.public_response_sent ? "text-green-600" : "text-muted-foreground")}>
-                              {h.public_response_sent ? <CheckCircle2 className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />} Comentário
-                            </span>
-                            <span className={cn("flex items-center gap-1", h.dm_sent ? "text-green-600" : "text-muted-foreground")}>
-                              {h.dm_sent ? <CheckCircle2 className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />} Direct Message
-                            </span>
-                          </div>
-                          {h.error_message && (
-                            <p className="mt-2 text-[10px] text-red-500 bg-red-50 p-2 rounded border border-red-100 truncate">
-                              <strong>Erro:</strong> {h.error_message}
-                            </p>
-                          )}
                         </div>
-                      </div>
-                    ))
-                  )}
+                      );
+                    });
+                  })()}
                 </div>
               </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>
+
       </Tabs>
 
       {/* Dialog: Configurações Globais */}

@@ -4572,6 +4572,7 @@ export type Database = {
       }
       ig_auto_reply_history: {
         Row: {
+          blocked_reason: string | null
           comment_text: string | null
           created_at: string
           dm_sent: boolean | null
@@ -4586,6 +4587,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          blocked_reason?: string | null
           comment_text?: string | null
           created_at?: string
           dm_sent?: boolean | null
@@ -4600,6 +4602,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          blocked_reason?: string | null
           comment_text?: string | null
           created_at?: string
           dm_sent?: boolean | null
