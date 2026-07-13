@@ -92,7 +92,19 @@ export default function AdminDivulgador() {
   const [rescheduleMessage, setRescheduleMessage] = useState<any>(null);
   const [rescheduleDateTime, setRescheduleDateTime] = useState('');
   const [editingMessage, setEditingMessage] = useState<any>(null);
-  const [editMessageForm, setEditMessageForm] = useState({ content: '', scheduled_at: '' });
+  const [editMessageForm, setEditMessageForm] = useState({
+    content: '',
+    scheduled_at: '',
+    media_type: 'text',
+    media_url: '',
+    mention_all: false,
+    delay_seconds: 2,
+    poll_options: ['', '', ''] as string[],
+    poll_selectable_count: 1,
+    campaign_id: '', // group_id
+  });
+  const [isUploadingEditMedia, setIsUploadingEditMedia] = useState(false);
+  const [previewMessage, setPreviewMessage] = useState<any>(null);
   const [duplicateMessage, setDuplicateMessage] = useState<any>(null);
   const [duplicateDateTime, setDuplicateDateTime] = useState('');
   const [checkingWebhookId, setCheckingWebhookId] = useState<string | null>(null);
