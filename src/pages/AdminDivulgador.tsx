@@ -3242,7 +3242,13 @@ export default function AdminDivulgador() {
               </div>
               
               <div className="space-y-2">
-                <Label>Mensagem</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Mensagem</Label>
+                  <span className={`text-xs ${quickMessageForm.content.length > 1024 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                    {quickMessageForm.content.length}/1024
+                    {quickMessageForm.media_type !== 'text' && quickMessageForm.content.length > 1024 && ' (legenda será truncada)'}
+                  </span>
+                </div>
                 <Textarea 
                   rows={4} 
                   value={quickMessageForm.content} 
