@@ -3480,19 +3480,52 @@ export default function AdminDivulgador() {
 
         {/* Dialog: Editar Mensagem */}
         <Dialog open={!!editingMessage} onOpenChange={(open) => !open && setEditingMessage(null)}>
-          <DialogContent>
+          <DialogContent className="max-w-lg max-h-[90vh]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Pencil className="h-5 w-5" />
                 Editar Mensagem
               </DialogTitle>
               <DialogDescription>
-                Edite o conteúdo e horário da mensagem pendente
+                Edite todos os campos da mensagem pendente (tipo, mídia, conteúdo, enquete, agendamento)
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <ScrollArea className="max-h-[65vh]">
+            <div className="space-y-4 py-4 px-1">
               <div className="space-y-2">
-                <Label>Conteúdo</Label>
+                <Label>Grupo de destino</Label>
+                <Select
+                  value={editMessageForm.campaign_id || "_all"}
+                  onValueChange={(v) => setEditMessageForm({ ...editMessageForm, campaign_id: v === "_all" ? "" : v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Todos os grupos" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_all">Todos os grupos</SelectItem>
+                    {groups.map((g: any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Tipo de mídia</Label>
+                <Select
+                  value={editMessageForm.media_type}
+                  onValueChange={(v) => setEditMessageForm({ ...editMessageForm, media_type: v, media_url: v === 'text' || v === 'poll' ? '' : editMessageForm.media_url })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="text">Texto</SelectItem>
+                    <SelectItem value="image">Imagem</SelectItem>
+                    <SelectItem value="video">Vídeo</SelectItem>
+                    <SelectItem value="audio">Áudio</SelectItem>
+                    <SelectItem value="document">Documento</SelectItem>
+                    <SelectItem value="poll">Enquete</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>{editMessageForm.media_type === 'poll' ? 'Pergunta da enquete' : 'Conteúdo'}</Label>
                 <Textarea
                   value={editMessageForm.content}
                   onChange={(e) => setEditMessageForm({ ...editMessageForm, content: e.target.value })}
@@ -3500,6 +3533,113 @@ export default function AdminDivulgador() {
                   placeholder="Conteúdo da mensagem..."
                 />
               </div>
+
+              {editMessageForm.media_type === 'poll' && (
+                <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                  <div className="space-y-2">
+                    <Label>Opções da enquete</Label>
+                    <p className="text-xs text-muted-foreground">Mínimo 2 opções, máximo 12</p>
+                    <div className="space-y-2">
+                      {editMessageForm.poll_options.map((option, index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input
+                            value={option}
+                            onChange={(e) => {
+                              const newOptions = [...editMessageForm.poll_options];
+                              newOptions[index] = e.target.value;
+                              setEditMessageForm({ ...editMessageForm, poll_options: newOptions });
+                            }}
+                            placeholder={`Opção ${index + 1}`}
+                          />
+                          {editMessageForm.poll_options.length > 2 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                const newOptions = editMessageForm.poll_options.filter((_, i) => i !== index);
+                                setEditMessageForm({ ...editMessageForm, poll_options: newOptions });
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {editMessageForm.poll_options.length < 12 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditMessageForm({ ...editMessageForm, poll_options: [...editMessageForm.poll_options, ''] })}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Adicionar opção
+                      </Button>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Quantidade de respostas permitidas</Label>
+                    <Select
+                      value={String(editMessageForm.poll_selectable_count)}
+                      onValueChange={(v) => setEditMessageForm({ ...editMessageForm, poll_selectable_count: parseInt(v) })}
+                    >
+                      <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 (resposta única)</SelectItem>
+                        <SelectItem value="2">Até 2 respostas</SelectItem>
+                        <SelectItem value="3">Até 3 respostas</SelectItem>
+                        <SelectItem value="0">Múltiplas respostas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {editMessageForm.media_type !== 'text' && editMessageForm.media_type !== 'poll' && (
+                <div className="space-y-2">
+                  <Label>Arquivo de mídia</Label>
+                  <Input
+                    value={editMessageForm.media_url}
+                    onChange={(e) => setEditMessageForm({ ...editMessageForm, media_url: e.target.value })}
+                    placeholder="URL da mídia ou faça upload abaixo"
+                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      id="edit-media-upload"
+                      className="hidden"
+                      accept={
+                        editMessageForm.media_type === 'image' ? 'image/*' :
+                        editMessageForm.media_type === 'video' ? 'video/*' :
+                        editMessageForm.media_type === 'audio' ? 'audio/*' :
+                        '*'
+                      }
+                      onChange={handleEditMediaUpload}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById('edit-media-upload')?.click()}
+                      disabled={isUploadingEditMedia}
+                    >
+                      {isUploadingEditMedia ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+                      {isUploadingEditMedia ? 'Enviando...' : 'Substituir arquivo'}
+                    </Button>
+                    {editMessageForm.media_url && (
+                      <Badge variant="outline" className="text-xs">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />Arquivo carregado
+                      </Badge>
+                    )}
+                  </div>
+                  {editMessageForm.media_url && editMessageForm.media_type === 'image' && (
+                    <img src={editMessageForm.media_url} alt="Preview" className="max-h-40 rounded border" />
+                  )}
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Data e horário de envio</Label>
                 <Input
@@ -3509,26 +3649,169 @@ export default function AdminDivulgador() {
                   min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
                 />
               </div>
+
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={editMessageForm.mention_all}
+                    onCheckedChange={(c) => setEditMessageForm({ ...editMessageForm, mention_all: c })}
+                  />
+                  <Label>Mencionar todos</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label>Delay (seg):</Label>
+                  <Input
+                    type="number"
+                    className="w-20"
+                    min={1}
+                    max={60}
+                    value={editMessageForm.delay_seconds}
+                    onChange={(e) => setEditMessageForm({ ...editMessageForm, delay_seconds: parseInt(e.target.value) || 2 })}
+                  />
+                </div>
+              </div>
             </div>
+            </ScrollArea>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditingMessage(null)}>
                 Cancelar
               </Button>
-              <Button 
+              <Button
                 onClick={() => {
-                  if (editingMessage && editMessageForm.content) {
-                    editMessageMutation.mutate({ 
-                      id: editingMessage.id, 
-                      content: editMessageForm.content,
-                      scheduled_at: editMessageForm.scheduled_at
-                    });
+                  if (!editingMessage) return;
+                  if (!editMessageForm.content && editMessageForm.media_type === 'text') {
+                    toast.error('Digite o conteúdo da mensagem');
+                    return;
                   }
+                  if (editMessageForm.media_type === 'poll') {
+                    const opts = editMessageForm.poll_options.filter(o => o.trim() !== '');
+                    if (opts.length < 2) {
+                      toast.error('Enquete precisa de no mínimo 2 opções');
+                      return;
+                    }
+                  }
+                  if (editMessageForm.media_type !== 'text' && editMessageForm.media_type !== 'poll' && !editMessageForm.media_url) {
+                    toast.error('Adicione um arquivo de mídia');
+                    return;
+                  }
+                  editMessageMutation.mutate({ id: editingMessage.id, form: editMessageForm });
                 }}
-                disabled={!editMessageForm.content || editMessageMutation.isPending}
+                disabled={editMessageMutation.isPending}
               >
                 {editMessageMutation.isPending ? 'Salvando...' : 'Salvar'}
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog: Preview WhatsApp */}
+        <Dialog open={!!previewMessage} onOpenChange={(open) => !open && setPreviewMessage(null)}>
+          <DialogContent className="max-w-md p-0 overflow-hidden bg-transparent border-0 shadow-2xl">
+            <div className="bg-[#0b141a] rounded-lg overflow-hidden">
+              {/* Header estilo WhatsApp */}
+              <div className="bg-[#202c33] px-4 py-3 flex items-center gap-3 border-b border-black/30">
+                <Avatar className="h-10 w-10">
+                  <AvatarFallback className="bg-emerald-700 text-white">
+                    {(previewMessage?.divulgador_groups?.name || 'G').charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-medium truncate text-sm">
+                    {previewMessage?.divulgador_groups?.name || 'Todos os grupos'}
+                  </p>
+                  <p className="text-[11px] text-gray-400">Preview da mensagem</p>
+                </div>
+              </div>
+
+              {/* Body com pattern estilo WhatsApp */}
+              <div
+                className="p-4 min-h-[280px]"
+                style={{
+                  backgroundColor: '#0b141a',
+                  backgroundImage: 'radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px)',
+                  backgroundSize: '20px 20px',
+                }}
+              >
+                <div className="flex justify-end">
+                  <div className="max-w-[85%] bg-[#005c4b] text-white rounded-lg rounded-tr-none shadow p-2 space-y-2">
+                    {previewMessage?.mention_all && (
+                      <div className="text-[11px] text-emerald-200 font-medium">@todos</div>
+                    )}
+
+                    {previewMessage?.media_type === 'image' && previewMessage?.media_url && (
+                      <img src={previewMessage.media_url} alt="mídia" className="rounded max-w-full max-h-72 object-contain" />
+                    )}
+
+                    {previewMessage?.media_type === 'video' && previewMessage?.media_url && (
+                      <video src={previewMessage.media_url} controls className="rounded max-w-full max-h-72" />
+                    )}
+
+                    {previewMessage?.media_type === 'audio' && previewMessage?.media_url && (
+                      <div className="flex items-center gap-2 bg-[#025144] rounded px-2 py-2 min-w-[240px]">
+                        <Music className="h-5 w-5 text-emerald-200" />
+                        <audio src={previewMessage.media_url} controls className="flex-1 h-8" />
+                      </div>
+                    )}
+
+                    {previewMessage?.media_type === 'document' && previewMessage?.media_url && (
+                      <a
+                        href={previewMessage.media_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-2 bg-[#025144] rounded px-3 py-2 min-w-[220px] hover:bg-[#02624f]"
+                      >
+                        <FileText className="h-6 w-6 text-emerald-200" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-white truncate">
+                            {previewMessage.media_url.split('/').pop() || 'Documento'}
+                          </p>
+                          <p className="text-[11px] text-emerald-200/70">Abrir arquivo</p>
+                        </div>
+                      </a>
+                    )}
+
+                    {previewMessage?.media_type === 'poll' && Array.isArray(previewMessage?.poll_options) && (
+                      <div className="bg-[#025144] rounded p-3 space-y-2 min-w-[260px]">
+                        <div className="flex items-center gap-2 text-emerald-200 text-xs">
+                          <BarChart2 className="h-4 w-4" />
+                          <span>Enquete{previewMessage.poll_selectable_count === 0 ? ' · múltiplas respostas' : previewMessage.poll_selectable_count > 1 ? ` · até ${previewMessage.poll_selectable_count} respostas` : ''}</span>
+                        </div>
+                        {previewMessage.content && (
+                          <p className="text-sm text-white font-medium whitespace-pre-wrap">{previewMessage.content}</p>
+                        )}
+                        <div className="space-y-1.5">
+                          {previewMessage.poll_options.filter((o: string) => o?.trim() !== '').map((opt: string, i: number) => (
+                            <div key={i} className="border border-white/20 rounded px-2.5 py-1.5 text-sm text-white flex items-center gap-2">
+                              <span className="h-3.5 w-3.5 rounded-full border border-white/50 inline-block" />
+                              {opt}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {previewMessage?.content && previewMessage?.media_type !== 'poll' && (
+                      <p className="text-sm whitespace-pre-wrap break-words">{previewMessage.content}</p>
+                    )}
+
+                    <div className="flex items-center justify-end gap-1 text-[10px] text-gray-300/80">
+                      <span>
+                        {previewMessage?.scheduled_at
+                          ? formatFromUtc(previewMessage.scheduled_at, 'HH:mm')
+                          : format(new Date(), 'HH:mm')}
+                      </span>
+                      <CheckCheck className="h-3 w-3" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-center">
+                  <Badge variant="outline" className="bg-black/40 text-gray-300 border-white/10 text-[10px]">
+                    Pré-visualização · não enviado
+                  </Badge>
+                </div>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
 
