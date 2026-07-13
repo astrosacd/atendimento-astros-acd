@@ -299,6 +299,10 @@ const InstagramAutoReply = ({ isTemporaryAccess = false }: InstagramAutoReplyPro
                 follower_only: false,
                 specific_media_id: "",
                 non_follower_response: "",
+                cooldown_seconds: 3600,
+                max_per_user_per_day: 3,
+                blacklist_keywords: [],
+                blacklist_usernames: [],
               });
               setIsMediaSelectorOpen(false);
               setIsRuleDialogOpen(true);
