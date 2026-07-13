@@ -778,8 +778,8 @@ const InstagramCreate = () => {
                         <div className="text-black text-lg leading-none tracking-tighter">···</div>
                       </div>
                       
-                      {/* Content Area */}
-                      <div className="flex-1 bg-muted/20 relative overflow-hidden">
+                      {/* Content Area (feed = square) */}
+                      <div className="aspect-square bg-neutral-100 relative overflow-hidden">
                         {mediaUrls.length > 0 ? (
                           <div className="w-full h-full">
                             {postType === 'carousel' ? (
@@ -840,18 +840,24 @@ const InstagramCreate = () => {
                             )}
                           </div>
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/30">
-                            <Instagram className="h-8 w-8 mb-2" />
-                            <span className="text-[10px]">Preview</span>
+                          <div className="w-full h-full flex flex-col items-center justify-center text-neutral-300">
+                            <Instagram className="h-10 w-10 mb-2" />
+                            <span className="text-[10px]">Sua mídia aqui</span>
                           </div>
                         )}
                       </div>
 
-                      {/* IG Interactions */}
-                      <div className="p-2 flex gap-2">
-                        <div className="w-3 h-3 rounded-full border border-black/20" />
-                        <div className="w-3 h-3 rounded-full border border-black/20" />
-                        <div className="w-3 h-3 rounded-full border border-black/20" />
+                      {/* IG Interactions reais */}
+                      <div className="px-3 pt-2 pb-1 flex items-center gap-3 text-black">
+                        <Heart className="h-5 w-5" strokeWidth={1.8} />
+                        <MessageCircle className="h-5 w-5" strokeWidth={1.8} />
+                        <Send className="h-5 w-5" strokeWidth={1.8} />
+                        <Bookmark className="h-5 w-5 ml-auto" strokeWidth={1.8} />
+                      </div>
+                      <div className="px-3 pb-1 text-[10px] font-semibold text-black">1.284 curtidas</div>
+                      <div className="px-3 pb-3 text-[10px] text-black leading-snug">
+                        <span className="font-semibold">{igUsername}</span>{' '}
+                        <span className="whitespace-pre-wrap break-words">{(caption || 'Sua legenda aparecerá aqui...').slice(0, 180)}{(caption?.length ?? 0) > 180 ? '…' : ''}</span>
                       </div>
                     </div>
                   ) : (
