@@ -2123,9 +2123,21 @@ export default function AdminDivulgador() {
                                     <CheckCircle2 className="h-4 w-4" />
                                   </Button>
                                 )}
-                                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMessageMutation.mutate(msg.id)}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                {msg.status === 'pending' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-destructive"
+                                    onClick={() => {
+                                      if (confirm('Excluir esta mensagem agendada?')) {
+                                        deleteMessageMutation.mutate(msg.id);
+                                      }
+                                    }}
+                                    title="Excluir (apenas pendentes)"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
 
                               </div>
                             </TableCell>
