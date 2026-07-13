@@ -2071,9 +2071,16 @@ export default function AdminDivulgador() {
                                     className="text-muted-foreground hover:text-blue-500"
                                     onClick={() => {
                                       setEditingMessage(msg);
-                                      setEditMessageForm({ 
-                                        content: msg.content, 
-                                        scheduled_at: msg.scheduled_at ? format(new Date(msg.scheduled_at), "yyyy-MM-dd'T'HH:mm") : '' 
+                                      setEditMessageForm({
+                                        content: msg.content || '',
+                                        scheduled_at: msg.scheduled_at ? format(new Date(msg.scheduled_at), "yyyy-MM-dd'T'HH:mm") : '',
+                                        media_type: msg.media_type || 'text',
+                                        media_url: msg.media_url || '',
+                                        mention_all: !!msg.mention_all,
+                                        delay_seconds: msg.delay_seconds ?? 2,
+                                        poll_options: Array.isArray(msg.poll_options) && msg.poll_options.length > 0 ? msg.poll_options : ['', '', ''],
+                                        poll_selectable_count: msg.poll_selectable_count ?? 1,
+                                        campaign_id: msg.group_id || '',
                                       });
                                     }}
                                     title="Editar"
