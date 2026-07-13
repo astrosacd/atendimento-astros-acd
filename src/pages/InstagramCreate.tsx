@@ -756,19 +756,23 @@ const InstagramCreate = () => {
               <div className="pt-6 border-t mt-4">
                 <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest font-bold mb-4">Preview Mobile</p>
                 <div className={cn(
-                  "mx-auto border-8 border-black rounded-[30px] overflow-hidden bg-black shadow-2xl flex flex-col transition-all duration-300",
-                  postType === 'feed' ? "w-[240px] aspect-square" : "w-[240px] aspect-[9/18.5]"
+                  "mx-auto border-[10px] border-black rounded-[36px] overflow-hidden bg-black shadow-2xl flex flex-col transition-all duration-300",
+                  postType === 'feed' ? "w-[280px]" : "w-[280px] aspect-[9/18.5]"
                 )}>
                   {postType === 'feed' || postType === 'carousel' ? (
-                    <div className="bg-white h-full flex flex-col">
+                    <div className="bg-white flex flex-col">
                       {/* IG Header (Feed) */}
-                      <div className="p-2 border-b flex items-center gap-1">
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 p-[1px]">
+                      <div className="px-3 py-2 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 p-[1.5px]">
                           <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-                            <div className="w-4 h-4 rounded-full bg-muted" />
+                            <Instagram className="h-3.5 w-3.5 text-neutral-500" />
                           </div>
                         </div>
-                        <span className="text-[8px] font-bold text-black">seu_perfil</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] font-semibold text-black truncate">{igUsername}</div>
+                          <div className="text-[8px] text-neutral-500 truncate">Publicação • Agora</div>
+                        </div>
+                        <div className="text-black text-lg leading-none tracking-tighter">···</div>
                       </div>
                       
                       {/* Content Area */}
