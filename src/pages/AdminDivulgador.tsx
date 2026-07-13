@@ -1943,9 +1943,8 @@ export default function AdminDivulgador() {
                 {messages.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">Nenhuma mensagem agendada</p>
                 ) : (
-                  <ScrollArea className="h-[400px]">
-                    <div className="overflow-x-auto">
-                      <Table className="min-w-[1000px]">
+                  <div className="overflow-x-auto overflow-y-auto max-h-[400px]">
+                    <Table className="min-w-[1000px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead>Conteúdo</TableHead>
