@@ -3771,7 +3771,7 @@ export default function AdminDivulgador() {
 
               {/* Body com pattern estilo WhatsApp */}
               <div
-                className="p-4 min-h-[280px]"
+                className="p-4 min-h-[280px] overflow-y-auto flex-1"
                 style={{
                   backgroundColor: '#0b141a',
                   backgroundImage: 'radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px)',
