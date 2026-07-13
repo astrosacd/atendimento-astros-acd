@@ -881,7 +881,7 @@ const InstagramCreate = () => {
                       
                       <div className="absolute top-4 left-4 flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full bg-muted border border-white/20" />
-                        <span className="text-[10px] font-bold text-white">seu_perfil</span>
+                        <span className="text-[10px] font-bold text-white">{igUsername}</span>
                       </div>
 
                       <div className="absolute bottom-12 left-4 right-12">
