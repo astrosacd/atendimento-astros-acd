@@ -968,12 +968,22 @@ export default function AdminDivulgador() {
   });
 
   const editMessageMutation = useMutation({
-    mutationFn: async ({ id, content, scheduled_at }: { id: string; content: string; scheduled_at: string }) => {
+    mutationFn: async ({ id, form }: { id: string; form: typeof editMessageForm }) => {
+      const pollOptions = form.media_type === 'poll'
+        ? form.poll_options.filter(opt => opt.trim() !== '')
+        : null;
       const { error } = await (supabase as any)
         .from('divulgador_messages')
-        .update({ 
-          content,
-          scheduled_at: scheduled_at ? toUtcFromLocal(scheduled_at) : null
+        .update({
+          content: form.content,
+          scheduled_at: form.scheduled_at ? toUtcFromLocal(form.scheduled_at) : null,
+          media_type: form.media_type || 'text',
+          media_url: form.media_type !== 'text' && form.media_type !== 'poll' ? (form.media_url || null) : null,
+          mention_all: form.mention_all,
+          delay_seconds: form.delay_seconds,
+          group_id: form.campaign_id || null,
+          poll_options: pollOptions,
+          poll_selectable_count: form.media_type === 'poll' ? form.poll_selectable_count : null,
         })
         .eq('id', id);
       if (error) throw error;
@@ -982,10 +992,25 @@ export default function AdminDivulgador() {
       queryClient.invalidateQueries({ queryKey: ['divulgador-messages'] });
       toast.success('Mensagem atualizada com sucesso!');
       setEditingMessage(null);
-      setEditMessageForm({ content: '', scheduled_at: '' });
+      setEditMessageForm({ content: '', scheduled_at: '', media_type: 'text', media_url: '', mention_all: false, delay_seconds: 2, poll_options: ['', '', ''], poll_selectable_count: 1, campaign_id: '' });
     },
     onError: (error: any) => toast.error('Erro ao editar: ' + error.message),
   });
+
+  const handleEditMediaUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setIsUploadingEditMedia(true);
+    try {
+      const url = await uploadMediaFile(file);
+      setEditMessageForm(prev => ({ ...prev, media_url: url }));
+      toast.success('Arquivo enviado com sucesso!');
+    } catch (error: any) {
+      toast.error('Erro ao enviar arquivo: ' + error.message);
+    } finally {
+      setIsUploadingEditMedia(false);
+    }
+  };
 
   const duplicateMessageMutation = useMutation({
     mutationFn: async ({ originalMessage, newDateTime }: { originalMessage: any; newDateTime: string }) => {
