@@ -3753,7 +3753,7 @@ export default function AdminDivulgador() {
         {/* Dialog: Preview WhatsApp */}
         <Dialog open={!!previewMessage} onOpenChange={(open) => !open && setPreviewMessage(null)}>
           <DialogContent className="max-w-md p-0 overflow-hidden bg-transparent border-0 shadow-2xl max-h-[90vh] flex flex-col">
-            <div className="bg-[#0b141a] rounded-lg overflow-hidden">
+            <div className="bg-[#0b141a] rounded-lg overflow-hidden flex flex-col max-h-[90vh]">
               {/* Header estilo WhatsApp */}
               <div className="bg-[#202c33] px-4 py-3 flex items-center gap-3 border-b border-black/30">
                 <Avatar className="h-10 w-10">
