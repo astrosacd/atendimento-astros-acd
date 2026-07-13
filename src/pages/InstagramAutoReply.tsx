@@ -743,6 +743,8 @@ const InstagramAutoReply = ({ isTemporaryAccess = false }: InstagramAutoReplyPro
                 </div>
               </div>
             </div>
+
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="public-resp" className="flex items-center gap-2">
                   <MessageSquare className="h-4 w-4 text-blue-500" /> 
