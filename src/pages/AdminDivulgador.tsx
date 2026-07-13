@@ -2123,9 +2123,21 @@ export default function AdminDivulgador() {
                                     <CheckCircle2 className="h-4 w-4" />
                                   </Button>
                                 )}
-                                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMessageMutation.mutate(msg.id)}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                {msg.status === 'pending' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-destructive"
+                                    onClick={() => {
+                                      if (confirm('Excluir esta mensagem agendada?')) {
+                                        deleteMessageMutation.mutate(msg.id);
+                                      }
+                                    }}
+                                    title="Excluir (apenas pendentes)"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
 
                               </div>
                             </TableCell>
@@ -2670,7 +2682,13 @@ export default function AdminDivulgador() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Conteúdo</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Conteúdo</Label>
+                  <span className={`text-xs ${messageForm.content.length > 1024 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                    {messageForm.content.length}/1024
+                    {messageForm.media_type !== 'text' && messageForm.media_type !== 'poll' && messageForm.content.length > 1024 && ' (legenda de mídia será truncada)'}
+                  </span>
+                </div>
                 <Textarea rows={4} value={messageForm.content} onChange={(e) => setMessageForm({ ...messageForm, content: e.target.value })} placeholder="Digite a mensagem..." />
               </div>
               {messageForm.media_type === 'poll' && (
@@ -3224,7 +3242,13 @@ export default function AdminDivulgador() {
               </div>
               
               <div className="space-y-2">
-                <Label>Mensagem</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Mensagem</Label>
+                  <span className={`text-xs ${quickMessageForm.content.length > 1024 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                    {quickMessageForm.content.length}/1024
+                    {quickMessageForm.media_type !== 'text' && quickMessageForm.content.length > 1024 && ' (legenda será truncada)'}
+                  </span>
+                </div>
                 <Textarea 
                   rows={4} 
                   value={quickMessageForm.content} 
@@ -3302,6 +3326,22 @@ export default function AdminDivulgador() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsQuickMessageDialogOpen(false)}>Cancelar</Button>
+              <Button
+                variant="outline"
+                onClick={() => setPreviewMessage({
+                  content: quickMessageForm.content,
+                  media_type: quickMessageForm.media_type,
+                  media_url: quickMessageForm.media_url,
+                  mention_all: quickMessageForm.mention_all,
+                  divulgador_groups: { name: quickMessageGroup?.name },
+                  status: 'preview',
+                })}
+                disabled={!quickMessageForm.content && !quickMessageForm.media_url}
+                title="Pré-visualizar"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                Pré-visualizar
+              </Button>
               <Button onClick={sendQuickMessage} disabled={isSendingQuickMessage || !quickMessageForm.content}>
                 {isSendingQuickMessage ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
                 Enviar Agora
@@ -3525,7 +3565,13 @@ export default function AdminDivulgador() {
               </div>
 
               <div className="space-y-2">
-                <Label>{editMessageForm.media_type === 'poll' ? 'Pergunta da enquete' : 'Conteúdo'}</Label>
+                <div className="flex items-center justify-between">
+                  <Label>{editMessageForm.media_type === 'poll' ? 'Pergunta da enquete' : 'Conteúdo'}</Label>
+                  <span className={`text-xs ${(editMessageForm.content || '').length > 1024 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                    {(editMessageForm.content || '').length}/1024
+                    {editMessageForm.media_type !== 'text' && editMessageForm.media_type !== 'poll' && (editMessageForm.content || '').length > 1024 && ' (legenda será truncada)'}
+                  </span>
+                </div>
                 <Textarea
                   value={editMessageForm.content}
                   onChange={(e) => setEditMessageForm({ ...editMessageForm, content: e.target.value })}
@@ -3706,8 +3752,8 @@ export default function AdminDivulgador() {
 
         {/* Dialog: Preview WhatsApp */}
         <Dialog open={!!previewMessage} onOpenChange={(open) => !open && setPreviewMessage(null)}>
-          <DialogContent className="max-w-md p-0 overflow-hidden bg-transparent border-0 shadow-2xl">
-            <div className="bg-[#0b141a] rounded-lg overflow-hidden">
+          <DialogContent className="max-w-md p-0 overflow-hidden bg-transparent border-0 shadow-2xl max-h-[90vh] flex flex-col">
+            <div className="bg-[#0b141a] rounded-lg overflow-hidden flex flex-col max-h-[90vh]">
               {/* Header estilo WhatsApp */}
               <div className="bg-[#202c33] px-4 py-3 flex items-center gap-3 border-b border-black/30">
                 <Avatar className="h-10 w-10">
@@ -3725,7 +3771,7 @@ export default function AdminDivulgador() {
 
               {/* Body com pattern estilo WhatsApp */}
               <div
-                className="p-4 min-h-[280px]"
+                className="p-4 min-h-[280px] overflow-y-auto flex-1"
                 style={{
                   backgroundColor: '#0b141a',
                   backgroundImage: 'radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px)',
@@ -3805,11 +3851,24 @@ export default function AdminDivulgador() {
                   </div>
                 </div>
 
-                <div className="mt-6 flex justify-center">
-                  <Badge variant="outline" className="bg-black/40 text-gray-300 border-white/10 text-[10px]">
-                    Pré-visualização · não enviado
-                  </Badge>
-                </div>
+                {(() => {
+                  const st = previewMessage?.status;
+                  const map: Record<string, { label: string; cls: string }> = {
+                    sent:     { label: '✓ Enviado',            cls: 'bg-emerald-600/20 text-emerald-300 border-emerald-500/30' },
+                    pending:  { label: '⏱ Pendente · não enviado', cls: 'bg-amber-600/20 text-amber-300 border-amber-500/30' },
+                    failed:   { label: '✕ Falhou · não enviado',   cls: 'bg-red-600/20 text-red-300 border-red-500/30' },
+                    resolved: { label: '✓ Resolvido',          cls: 'bg-blue-600/20 text-blue-300 border-blue-500/30' },
+                    preview:  { label: 'Pré-visualização · não enviado', cls: 'bg-black/40 text-gray-300 border-white/10' },
+                  };
+                  const info = map[st] || map.preview;
+                  return (
+                    <div className="mt-6 flex justify-center">
+                      <Badge variant="outline" className={`${info.cls} text-[10px]`}>
+                        {info.label}
+                      </Badge>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </DialogContent>
