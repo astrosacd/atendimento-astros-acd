@@ -1,0 +1,1 @@
+ALTER TABLE public.ig_auto_reply_history ADD COLUMN IF NOT EXISTS blocked_reason TEXT; CREATE INDEX IF NOT EXISTS ig_auto_reply_history_blocked_idx ON public.ig_auto_reply_history(user_id, created_at DESC) WHERE blocked_reason IS NOT NULL;
