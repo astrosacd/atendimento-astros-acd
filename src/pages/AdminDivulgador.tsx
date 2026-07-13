@@ -2682,7 +2682,13 @@ export default function AdminDivulgador() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Conteúdo</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Conteúdo</Label>
+                  <span className={`text-xs ${messageForm.content.length > 1024 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                    {messageForm.content.length}/1024
+                    {messageForm.media_type !== 'text' && messageForm.media_type !== 'poll' && messageForm.content.length > 1024 && ' (legenda de mídia será truncada)'}
+                  </span>
+                </div>
                 <Textarea rows={4} value={messageForm.content} onChange={(e) => setMessageForm({ ...messageForm, content: e.target.value })} placeholder="Digite a mensagem..." />
               </div>
               {messageForm.media_type === 'poll' && (
