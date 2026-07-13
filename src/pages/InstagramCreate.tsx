@@ -104,22 +104,75 @@ const InstagramCreate = () => {
     setSelectedVariation(null);
   }, [postType]);
 
+  // ---------- Validação de mídia (dimensões / aspect / tamanho) ----------
+  const readImageMeta = (file: File): Promise<{ w: number; h: number }> => new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => { const r = { w: img.naturalWidth, h: img.naturalHeight }; URL.revokeObjectURL(url); resolve(r); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Falha ao ler imagem")); };
+    img.src = url;
+  });
+  const readVideoMeta = (file: File): Promise<{ w: number; h: number; duration: number }> => new Promise((resolve, reject) => {
+    const v = document.createElement("video");
+    const url = URL.createObjectURL(file);
+    v.preload = "metadata";
+    v.onloadedmetadata = () => { const r = { w: v.videoWidth, h: v.videoHeight, duration: v.duration }; URL.revokeObjectURL(url); resolve(r); };
+    v.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Falha ao ler vídeo")); };
+    v.src = url;
+  });
+
+  // Regras oficiais IG (aproximadas): feed/carousel 4:5 a 1.91:1, reels/stories 9:16 exato preferencial
+  const validateMedia = async (file: File): Promise<string | null> => {
+    const isImg = file.type.startsWith("image/");
+    const isVid = file.type.startsWith("video/");
+    // Tamanhos máximos aproximados da Graph API
+    const maxImgMB = 8;
+    const maxVidMB = 100;
+    if (isImg && file.size > maxImgMB * 1024 * 1024) return `Imagem excede ${maxImgMB}MB (Instagram limita a esse tamanho).`;
+    if (isVid && file.size > maxVidMB * 1024 * 1024) return `Vídeo excede ${maxVidMB}MB (Instagram limita a esse tamanho).`;
+
+    try {
+      if (isImg) {
+        const { w, h } = await readImageMeta(file);
+        if (w < 320) return `Imagem com largura ${w}px — mínimo do Instagram é 320px.`;
+        const ratio = w / h;
+        if (postType === 'feed' || postType === 'carousel') {
+          if (ratio < 0.8 || ratio > 1.91) return `Proporção ${(ratio).toFixed(2)}:1 fora do permitido para Feed (0.8 a 1.91).`;
+        }
+        if (postType === 'stories') {
+          if (Math.abs(ratio - (9/16)) > 0.05) return `Stories preferem 9:16 (${(9/16).toFixed(2)}). Sua imagem está em ${ratio.toFixed(2)}.`;
+        }
+      }
+      if (isVid) {
+        const { w, h, duration } = await readVideoMeta(file);
+        if (w < 500) return `Vídeo com largura ${w}px — mínimo recomendado é 500px.`;
+        const ratio = w / h;
+        if (postType === 'reels') {
+          if (Math.abs(ratio - (9/16)) > 0.05) return `Reels exige 9:16. Seu vídeo está em ${ratio.toFixed(2)}.`;
+          if (duration < 3 || duration > 90) return `Reels aceita 3s a 90s. Seu vídeo tem ${duration.toFixed(1)}s.`;
+        }
+        if (postType === 'stories') {
+          if (duration > 60) return `Stories aceita até 60s. Seu vídeo tem ${duration.toFixed(1)}s.`;
+        }
+      }
+    } catch (e: any) {
+      return `Não foi possível ler a mídia: ${e?.message || 'erro desconhecido'}`;
+    }
+    return null;
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Allow file upload even in temp access for creation
-    // if (isTempAccess) { blockEdit(); return; }
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     const rule = typeRules[postType];
     let filesToUpload = Array.from(files);
 
-    // Bloqueia múltiplos arquivos quando não permitido
     if (!rule.multiple && filesToUpload.length > 1) {
       toast({ title: "Apenas um arquivo", description: `Para ${postType === 'feed' ? 'Feed' : postType === 'reels' ? 'Reels' : 'Stories'} envie somente 1 arquivo.`, variant: "destructive" });
       filesToUpload = [filesToUpload[0]];
     }
 
-    // Aplica limite total (carrossel)
     const remaining = rule.max - mediaUrls.length;
     if (remaining <= 0) {
       toast({ title: "Limite atingido", description: `Você já adicionou o máximo permitido (${rule.max}).`, variant: "destructive" });
@@ -130,13 +183,16 @@ const InstagramCreate = () => {
       filesToUpload = filesToUpload.slice(0, remaining);
     }
 
-    // Validação de tipo MIME
+    // Validação de tipo MIME + dimensões/tamanho
     for (const f of filesToUpload) {
       const isImg = f.type.startsWith("image/");
       const isVid = f.type.startsWith("video/");
       if (postType === 'feed' && !isImg) { toast({ title: "Tipo inválido", description: "Feed aceita apenas imagens.", variant: "destructive" }); return; }
       if (postType === 'reels' && !isVid) { toast({ title: "Tipo inválido", description: "Reels aceita apenas vídeos.", variant: "destructive" }); return; }
       if (postType === 'carousel' && !isImg) { toast({ title: "Tipo inválido", description: "Carrossel aceita apenas imagens.", variant: "destructive" }); return; }
+
+      const err = await validateMedia(f);
+      if (err) { toast({ title: "Mídia inválida para Instagram", description: err, variant: "destructive" }); return; }
     }
 
     setLoading(true);
