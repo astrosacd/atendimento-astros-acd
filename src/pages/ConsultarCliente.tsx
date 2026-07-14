@@ -224,6 +224,15 @@ export default function ConsultarCliente() {
     if (data) {
       setAvailableTags(data.map(d => d.config_value).filter(Boolean));
     }
+    // Load approved payment client ids (paid + approved_by not null)
+    const { data: pays } = await supabase
+      .from('client_payments')
+      .select('cliente_id')
+      .eq('status', 'paid')
+      .not('approved_by', 'is', null);
+    if (pays) {
+      setApprovedPaymentIds(new Set(pays.map((p: any) => p.cliente_id).filter(Boolean)));
+    }
   };
 
   const handleSearch = async (e: React.FormEvent) => {
