@@ -856,7 +856,6 @@ export function QrScansTab() {
                   {numerosSearch ? "Nenhum resultado encontrado." : "Nenhum número marcado como auto-hospedado ainda."}
                 </p>
               ) : (
-                <div className="max-h-[600px] overflow-auto relative rounded-md border">
                 <Table>
                   <TableHeader className="sticky top-0 z-30 bg-background shadow-[0_1px_0_0_hsl(var(--border))]">
                     <TableRow className="hover:bg-transparent">
