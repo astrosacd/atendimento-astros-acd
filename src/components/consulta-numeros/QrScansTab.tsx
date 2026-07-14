@@ -868,7 +868,7 @@ export function QrScansTab() {
                       <TableHead className="bg-background">Seguro</TableHead>
                       <TableHead className="bg-background">Check-in / Aparelho</TableHead>
                       <TableHead className="bg-background">Observação</TableHead>
-                      <TableHead className="text-right sticky right-0 bg-background shadow-[-1px_0_0_0_hsl(var(--border))] z-40">Ações</TableHead>
+                      <TableHead className="text-right bg-background">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
