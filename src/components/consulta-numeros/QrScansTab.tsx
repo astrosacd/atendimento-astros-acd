@@ -111,6 +111,8 @@ const STATUS_BADGES: Record<string, { label: string; variant: any }> = {
 };
 
 const EMPTY_SEARCH_RESULTS: any[] = [];
+const QR_SCAN_HEADER_CELL_CLASS =
+  "sticky top-0 z-30 bg-background shadow-[0_1px_0_0_hsl(var(--border))]";
 
 export function QrScansTab() {
   const { isAdmin } = useAuth();
@@ -856,18 +858,18 @@ export function QrScansTab() {
                   {numerosSearch ? "Nenhum resultado encontrado." : "Nenhum número marcado como auto-hospedado ainda."}
                 </p>
               ) : (
-                <Table>
-                  <TableHeader className="sticky top-0 z-30 bg-background shadow-[0_1px_0_0_hsl(var(--border))]">
+                <Table containerClassName="overflow-visible">
+                  <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="bg-background">Número</TableHead>
-                      <TableHead className="bg-background">Cliente</TableHead>
-                      <TableHead className="bg-background">Grátis no mês</TableHead>
-                      <TableHead className="bg-background">Pagos no mês</TableHead>
-                      <TableHead className="bg-background">Hospedagem</TableHead>
-                      <TableHead className="bg-background">Seguro</TableHead>
-                      <TableHead className="bg-background">Check-in / Aparelho</TableHead>
-                      <TableHead className="bg-background">Observação</TableHead>
-                      <TableHead className="text-right bg-background">Ações</TableHead>
+                      <TableHead className={QR_SCAN_HEADER_CELL_CLASS}>Número</TableHead>
+                      <TableHead className={QR_SCAN_HEADER_CELL_CLASS}>Cliente</TableHead>
+                      <TableHead className={QR_SCAN_HEADER_CELL_CLASS}>Grátis no mês</TableHead>
+                      <TableHead className={QR_SCAN_HEADER_CELL_CLASS}>Pagos no mês</TableHead>
+                      <TableHead className={QR_SCAN_HEADER_CELL_CLASS}>Hospedagem</TableHead>
+                      <TableHead className={QR_SCAN_HEADER_CELL_CLASS}>Seguro</TableHead>
+                      <TableHead className={QR_SCAN_HEADER_CELL_CLASS}>Check-in / Aparelho</TableHead>
+                      <TableHead className={QR_SCAN_HEADER_CELL_CLASS}>Observação</TableHead>
+                      <TableHead className={`${QR_SCAN_HEADER_CELL_CLASS} text-right`}>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
