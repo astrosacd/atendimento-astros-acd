@@ -858,7 +858,7 @@ export function QrScansTab() {
                   {numerosSearch ? "Nenhum resultado encontrado." : "Nenhum número marcado como auto-hospedado ainda."}
                 </p>
               ) : (
-                <Table containerClassName="overflow-visible">
+                <Table containerClassName="max-h-[70vh] overflow-auto rounded-md border">
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
                       <TableHead className={QR_SCAN_HEADER_CELL_CLASS}>Número</TableHead>
