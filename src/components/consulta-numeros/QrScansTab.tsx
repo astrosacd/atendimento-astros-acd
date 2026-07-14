@@ -190,6 +190,10 @@ export function QrScansTab() {
   const [insuranceTarget, setInsuranceTarget] = useState<any>(null);
   const [insuranceObs, setInsuranceObs] = useState("");
 
+  // Confirmation dialogs (Acionar Seguro / Desmarcar)
+  const [confirmInsuranceTarget, setConfirmInsuranceTarget] = useState<any>(null);
+  const [confirmDesmarcarTarget, setConfirmDesmarcarTarget] = useState<any>(null);
+
   // Check-in inline dialog
   const [checkinDialogOpen, setCheckinDialogOpen] = useState(false);
   const [checkinTarget, setCheckinTarget] = useState<{
