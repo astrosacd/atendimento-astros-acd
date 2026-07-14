@@ -308,6 +308,28 @@ export default function ConsultarCliente() {
       if (filters.tag && filters.tag !== 'all') {
         if (!cliente.tags?.some(t => t.toLowerCase() === filters.tag.toLowerCase())) return false;
       }
+
+      // Status de pagamento filter
+      if (filters.statusPagamento && filters.statusPagamento !== 'all') {
+        const sp = filters.statusPagamento;
+        if (sp === 'aprovado') {
+          if (!approvedPaymentIds.has(cliente.id)) return false;
+        } else {
+          if (!cliente.data_renovacao || cliente.cobranca_ativa === false) return false;
+          const today = new Date();
+          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+          const renovacaoStr = String(cliente.data_renovacao).slice(0, 10);
+          if (sp === 'atrasado') {
+            if (renovacaoStr >= todayStr) return false;
+          } else if (sp.startsWith('vence_')) {
+            const days = parseInt(sp.replace('vence_', ''), 10);
+            const target = new Date(today.getFullYear(), today.getMonth(), today.getDate() + days);
+            const targetStr = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`;
+            if (renovacaoStr !== targetStr) return false;
+          }
+        }
+      }
+      
       
       return true;
     });
