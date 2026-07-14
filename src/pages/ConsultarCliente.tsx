@@ -597,21 +597,20 @@ export default function ConsultarCliente() {
                       
                       <div className="space-y-2">
                         <Label className="text-foreground">{t('clients.product')}</Label>
-                        <Select
-                          value={filters.produto}
-                          onValueChange={(value) => setFilters({ ...filters, produto: value })}
-                        >
-                          <SelectTrigger className="bg-secondary border-border text-foreground">
-                            <SelectValue placeholder={t('clients.allProducts')} />
-                          </SelectTrigger>
-                          <SelectContent className="bg-card border-border">
-                            <SelectItem value="all">{t('clients.allProducts')}</SelectItem>
-                            {uniqueProducts.map((produto) => (
-                              <SelectItem key={produto} value={produto}>{produto}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Input
+                          list="consultar-produtos-list"
+                          value={filters.produto === 'all' ? '' : filters.produto}
+                          onChange={(e) => setFilters({ ...filters, produto: e.target.value })}
+                          className="bg-secondary border-border text-foreground"
+                          placeholder={t('clients.allProducts')}
+                        />
+                        <datalist id="consultar-produtos-list">
+                          {uniqueProducts.map((produto) => (
+                            <option key={produto} value={produto} />
+                          ))}
+                        </datalist>
                       </div>
+                      
                       
                       <div className="space-y-2">
                         <Label className="text-foreground">{t('clients.plan')}</Label>
