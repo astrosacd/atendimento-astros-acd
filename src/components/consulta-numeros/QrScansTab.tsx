@@ -868,7 +868,7 @@ export function QrScansTab() {
                       <TableHead className="bg-background">Seguro</TableHead>
                       <TableHead className="bg-background">Check-in / Aparelho</TableHead>
                       <TableHead className="bg-background">Observação</TableHead>
-                      <TableHead className="text-right sticky right-0 bg-background shadow-[-1px_0_0_0_hsl(var(--border))] z-40">Ações</TableHead>
+                      <TableHead className="text-right bg-background">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1105,7 +1105,7 @@ export function QrScansTab() {
                               );
                             })()}
                           </TableCell>
-                          <TableCell className="text-right sticky right-0 bg-background group-hover:bg-muted/50 shadow-[-1px_0_0_0_hsl(var(--border))] z-10">
+                          <TableCell className="text-right">
                             <div className="flex flex-col items-end gap-2">
                                 {(() => {
                                   const confirmedToday = getConfirmedScansToday(n.baserow_row_id);
