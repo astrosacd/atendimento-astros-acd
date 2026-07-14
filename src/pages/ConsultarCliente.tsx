@@ -144,7 +144,9 @@ export default function ConsultarCliente() {
     plano: '',
     tag: '',
     tipoCliente: '',
+    statusPagamento: '',
   });
+  const [approvedPaymentIds, setApprovedPaymentIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadAllClientes();
@@ -222,6 +224,15 @@ export default function ConsultarCliente() {
     if (data) {
       setAvailableTags(data.map(d => d.config_value).filter(Boolean));
     }
+    // Load approved payment client ids (paid + approved_by not null)
+    const { data: pays } = await supabase
+      .from('client_payments')
+      .select('cliente_id')
+      .eq('status', 'paid')
+      .not('approved_by', 'is', null);
+    if (pays) {
+      setApprovedPaymentIds(new Set(pays.map((p: any) => p.cliente_id).filter(Boolean)));
+    }
   };
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -297,6 +308,28 @@ export default function ConsultarCliente() {
       if (filters.tag && filters.tag !== 'all') {
         if (!cliente.tags?.some(t => t.toLowerCase() === filters.tag.toLowerCase())) return false;
       }
+
+      // Status de pagamento filter
+      if (filters.statusPagamento && filters.statusPagamento !== 'all') {
+        const sp = filters.statusPagamento;
+        if (sp === 'aprovado') {
+          if (!approvedPaymentIds.has(cliente.id)) return false;
+        } else {
+          if (!cliente.data_renovacao || cliente.cobranca_ativa === false) return false;
+          const today = new Date();
+          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+          const renovacaoStr = String(cliente.data_renovacao).slice(0, 10);
+          if (sp === 'atrasado') {
+            if (renovacaoStr >= todayStr) return false;
+          } else if (sp.startsWith('vence_')) {
+            const days = parseInt(sp.replace('vence_', ''), 10);
+            const target = new Date(today.getFullYear(), today.getMonth(), today.getDate() + days);
+            const targetStr = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`;
+            if (renovacaoStr !== targetStr) return false;
+          }
+        }
+      }
+      
       
       return true;
     });
@@ -312,6 +345,7 @@ export default function ConsultarCliente() {
       plano: '',
       tag: '',
       tipoCliente: '',
+      statusPagamento: '',
     });
     setFilterInadimplente(false);
     setFilterRenovacaoProxima(false);
@@ -563,21 +597,20 @@ export default function ConsultarCliente() {
                       
                       <div className="space-y-2">
                         <Label className="text-foreground">{t('clients.product')}</Label>
-                        <Select
-                          value={filters.produto}
-                          onValueChange={(value) => setFilters({ ...filters, produto: value })}
-                        >
-                          <SelectTrigger className="bg-secondary border-border text-foreground">
-                            <SelectValue placeholder={t('clients.allProducts')} />
-                          </SelectTrigger>
-                          <SelectContent className="bg-card border-border">
-                            <SelectItem value="all">{t('clients.allProducts')}</SelectItem>
-                            {uniqueProducts.map((produto) => (
-                              <SelectItem key={produto} value={produto}>{produto}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Input
+                          list="consultar-produtos-list"
+                          value={filters.produto === 'all' ? '' : filters.produto}
+                          onChange={(e) => setFilters({ ...filters, produto: e.target.value })}
+                          className="bg-secondary border-border text-foreground"
+                          placeholder={t('clients.allProducts')}
+                        />
+                        <datalist id="consultar-produtos-list">
+                          {uniqueProducts.map((produto) => (
+                            <option key={produto} value={produto} />
+                          ))}
+                        </datalist>
                       </div>
+                      
                       
                       <div className="space-y-2">
                         <Label className="text-foreground">{t('clients.plan')}</Label>
@@ -641,6 +674,32 @@ export default function ConsultarCliente() {
                           </SelectContent>
                         </Select>
                       </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-foreground">Status de pagamento</Label>
+                        <Select
+                          value={filters.statusPagamento}
+                          onValueChange={(value) => setFilters({ ...filters, statusPagamento: value })}
+                        >
+                          <SelectTrigger className="bg-secondary border-border text-foreground">
+                            <SelectValue placeholder="Todos" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border">
+                            <SelectItem value="all">Todos</SelectItem>
+                            <SelectItem value="aprovado" className="text-emerald-500">Pagamento aprovado</SelectItem>
+                            <SelectItem value="atrasado" className="text-red-500">Pagamento atrasado</SelectItem>
+                            <SelectItem value="vence_0">Vence hoje (D0)</SelectItem>
+                            <SelectItem value="vence_1">Vence em 1 dia</SelectItem>
+                            <SelectItem value="vence_2">Vence em 2 dias</SelectItem>
+                            <SelectItem value="vence_3">Vence em 3 dias</SelectItem>
+                            <SelectItem value="vence_4">Vence em 4 dias</SelectItem>
+                            <SelectItem value="vence_5">Vence em 5 dias</SelectItem>
+                            <SelectItem value="vence_6">Vence em 6 dias</SelectItem>
+                            <SelectItem value="vence_7">Vence em 7 dias</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
                       
                       <div className="flex gap-2 pt-4">
                         <Button 
