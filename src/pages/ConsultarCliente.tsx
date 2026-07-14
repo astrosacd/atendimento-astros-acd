@@ -674,6 +674,32 @@ export default function ConsultarCliente() {
                           </SelectContent>
                         </Select>
                       </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-foreground">Status de pagamento</Label>
+                        <Select
+                          value={filters.statusPagamento}
+                          onValueChange={(value) => setFilters({ ...filters, statusPagamento: value })}
+                        >
+                          <SelectTrigger className="bg-secondary border-border text-foreground">
+                            <SelectValue placeholder="Todos" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border">
+                            <SelectItem value="all">Todos</SelectItem>
+                            <SelectItem value="aprovado" className="text-emerald-500">Pagamento aprovado</SelectItem>
+                            <SelectItem value="atrasado" className="text-red-500">Pagamento atrasado</SelectItem>
+                            <SelectItem value="vence_0">Vence hoje (D0)</SelectItem>
+                            <SelectItem value="vence_1">Vence em 1 dia</SelectItem>
+                            <SelectItem value="vence_2">Vence em 2 dias</SelectItem>
+                            <SelectItem value="vence_3">Vence em 3 dias</SelectItem>
+                            <SelectItem value="vence_4">Vence em 4 dias</SelectItem>
+                            <SelectItem value="vence_5">Vence em 5 dias</SelectItem>
+                            <SelectItem value="vence_6">Vence em 6 dias</SelectItem>
+                            <SelectItem value="vence_7">Vence em 7 dias</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
                       
                       <div className="flex gap-2 pt-4">
                         <Button 
