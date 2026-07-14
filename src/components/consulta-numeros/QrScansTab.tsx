@@ -904,7 +904,8 @@ export function QrScansTab() {
                       const temSeguroLink = !!seguroPayData;
 
                       return (
-                        <TableRow key={n.baserow_row_id}>
+                        <TableRow key={n.baserow_row_id} className="group">
+
                           <TableCell className="font-mono">
                             <div className="flex flex-col gap-0.5">
                               <span>{rd.numero ?? "—"}</span>
