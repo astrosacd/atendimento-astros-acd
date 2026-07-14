@@ -144,7 +144,9 @@ export default function ConsultarCliente() {
     plano: '',
     tag: '',
     tipoCliente: '',
+    statusPagamento: '',
   });
+  const [approvedPaymentIds, setApprovedPaymentIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadAllClientes();
