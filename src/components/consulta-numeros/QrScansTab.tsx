@@ -1105,7 +1105,7 @@ export function QrScansTab() {
                               );
                             })()}
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-right sticky right-0 bg-background group-hover:bg-muted/50 shadow-[-1px_0_0_0_hsl(var(--border))] z-10">
                             <div className="flex flex-col items-end gap-2">
                                 {(() => {
                                   const confirmedToday = getConfirmedScansToday(n.baserow_row_id);
@@ -1164,12 +1164,8 @@ export function QrScansTab() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
-                                  onClick={() => {
-                                    setInsuranceTarget(n);
-                                    setInsuranceObs("");
-                                    setInsuranceDialogOpen(true);
-                                  }}
+                                  className="border-blue-500 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white hover:border-blue-500 dark:hover:bg-blue-600 dark:hover:text-white transition-colors"
+                                  onClick={() => setConfirmInsuranceTarget(n)}
                                 >
                                   <Shield className="h-4 w-4 mr-1" /> Acionar Seguro
                                 </Button>
@@ -1177,12 +1173,7 @@ export function QrScansTab() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() =>
-                                  toggleHosp.mutate({
-                                    baserowRowId: n.baserow_row_id,
-                                    value: false,
-                                  })
-                                }
+                                onClick={() => setConfirmDesmarcarTarget(n)}
                               >
                                 Desmarcar
                               </Button>
