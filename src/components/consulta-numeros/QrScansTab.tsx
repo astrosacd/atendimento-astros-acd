@@ -1105,7 +1105,7 @@ export function QrScansTab() {
                               );
                             })()}
                           </TableCell>
-                          <TableCell className="text-right sticky right-0 bg-background group-hover:bg-muted/50 shadow-[-1px_0_0_0_hsl(var(--border))] z-10">
+                          <TableCell className="text-right">
                             <div className="flex flex-col items-end gap-2">
                                 {(() => {
                                   const confirmedToday = getConfirmedScansToday(n.baserow_row_id);
