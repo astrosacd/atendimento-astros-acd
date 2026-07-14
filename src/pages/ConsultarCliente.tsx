@@ -314,6 +314,7 @@ export default function ConsultarCliente() {
       plano: '',
       tag: '',
       tipoCliente: '',
+      statusPagamento: '',
     });
     setFilterInadimplente(false);
     setFilterRenovacaoProxima(false);
