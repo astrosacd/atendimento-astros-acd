@@ -112,7 +112,7 @@ const STATUS_BADGES: Record<string, { label: string; variant: any }> = {
 
 const EMPTY_SEARCH_RESULTS: any[] = [];
 const QR_SCAN_HEADER_CELL_CLASS =
-  "sticky top-0 z-30 bg-background shadow-[0_1px_0_0_hsl(var(--border))]";
+  "sticky top-0 z-30 bg-card shadow-[0_1px_0_0_hsl(var(--border))]";
 
 export function QrScansTab() {
   const { isAdmin } = useAuth();
