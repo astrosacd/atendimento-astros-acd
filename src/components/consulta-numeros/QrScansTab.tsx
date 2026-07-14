@@ -30,6 +30,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -179,6 +189,10 @@ export function QrScansTab() {
   const [insuranceDialogOpen, setInsuranceDialogOpen] = useState(false);
   const [insuranceTarget, setInsuranceTarget] = useState<any>(null);
   const [insuranceObs, setInsuranceObs] = useState("");
+
+  // Confirmation dialogs (Acionar Seguro / Desmarcar)
+  const [confirmInsuranceTarget, setConfirmInsuranceTarget] = useState<any>(null);
+  const [confirmDesmarcarTarget, setConfirmDesmarcarTarget] = useState<any>(null);
 
   // Check-in inline dialog
   const [checkinDialogOpen, setCheckinDialogOpen] = useState(false);
@@ -842,18 +856,19 @@ export function QrScansTab() {
                   {numerosSearch ? "Nenhum resultado encontrado." : "Nenhum número marcado como auto-hospedado ainda."}
                 </p>
               ) : (
+                <div className="max-h-[600px] overflow-auto relative rounded-md border">
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Número</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Grátis no mês</TableHead>
-                      <TableHead>Pagos no mês</TableHead>
-                      <TableHead>Hospedagem</TableHead>
-                      <TableHead>Seguro</TableHead>
-                      <TableHead>Check-in / Aparelho</TableHead>
-                      <TableHead>Observação</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
+                  <TableHeader className="sticky top-0 z-30 bg-background shadow-[0_1px_0_0_hsl(var(--border))]">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="bg-background">Número</TableHead>
+                      <TableHead className="bg-background">Cliente</TableHead>
+                      <TableHead className="bg-background">Grátis no mês</TableHead>
+                      <TableHead className="bg-background">Pagos no mês</TableHead>
+                      <TableHead className="bg-background">Hospedagem</TableHead>
+                      <TableHead className="bg-background">Seguro</TableHead>
+                      <TableHead className="bg-background">Check-in / Aparelho</TableHead>
+                      <TableHead className="bg-background">Observação</TableHead>
+                      <TableHead className="text-right sticky right-0 bg-background shadow-[-1px_0_0_0_hsl(var(--border))] z-40">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -889,7 +904,8 @@ export function QrScansTab() {
                       const temSeguroLink = !!seguroPayData;
 
                       return (
-                        <TableRow key={n.baserow_row_id}>
+                        <TableRow key={n.baserow_row_id} className="group">
+
                           <TableCell className="font-mono">
                             <div className="flex flex-col gap-0.5">
                               <span>{rd.numero ?? "—"}</span>
@@ -1089,7 +1105,7 @@ export function QrScansTab() {
                               );
                             })()}
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-right sticky right-0 bg-background group-hover:bg-muted/50 shadow-[-1px_0_0_0_hsl(var(--border))] z-10">
                             <div className="flex flex-col items-end gap-2">
                                 {(() => {
                                   const confirmedToday = getConfirmedScansToday(n.baserow_row_id);
@@ -1148,12 +1164,8 @@ export function QrScansTab() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
-                                  onClick={() => {
-                                    setInsuranceTarget(n);
-                                    setInsuranceObs("");
-                                    setInsuranceDialogOpen(true);
-                                  }}
+                                  className="border-blue-500 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white hover:border-blue-500 dark:hover:bg-blue-600 dark:hover:text-white transition-colors"
+                                  onClick={() => setConfirmInsuranceTarget(n)}
                                 >
                                   <Shield className="h-4 w-4 mr-1" /> Acionar Seguro
                                 </Button>
@@ -1161,12 +1173,7 @@ export function QrScansTab() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() =>
-                                  toggleHosp.mutate({
-                                    baserowRowId: n.baserow_row_id,
-                                    value: false,
-                                  })
-                                }
+                                onClick={() => setConfirmDesmarcarTarget(n)}
                               >
                                 Desmarcar
                               </Button>
@@ -1177,6 +1184,7 @@ export function QrScansTab() {
                     })}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -2360,6 +2368,68 @@ export function QrScansTab() {
           defaultStatusConexao={checkinTarget.defaultStatusConexao}
         />
       )}
+
+      {/* Confirmação: Acionar Seguro */}
+      <AlertDialog open={!!confirmInsuranceTarget} onOpenChange={(o) => !o && setConfirmInsuranceTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-blue-500" /> Acionar seguro deste número?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Você vai abrir o registro de acionamento do seguro para{" "}
+              <strong className="font-mono">{confirmInsuranceTarget?.row_data?.numero ?? "—"}</strong>
+              {confirmInsuranceTarget?.row_data?.nome ? <> — {confirmInsuranceTarget.row_data.nome}</> : null}.
+              O seguro só pode ser usado 1x por mês. Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => {
+                setInsuranceTarget(confirmInsuranceTarget);
+                setInsuranceObs("");
+                setInsuranceDialogOpen(true);
+                setConfirmInsuranceTarget(null);
+              }}
+            >
+              Sim, acionar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmação: Desmarcar auto-hospedado */}
+      <AlertDialog open={!!confirmDesmarcarTarget} onOpenChange={(o) => !o && setConfirmDesmarcarTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desmarcar como auto-hospedado?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O número <strong className="font-mono">{confirmDesmarcarTarget?.row_data?.numero ?? "—"}</strong>
+              {confirmDesmarcarTarget?.row_data?.nome ? <> ({confirmDesmarcarTarget.row_data.nome})</> : null}
+              {" "}sairá da lista de auto-hospedados. Você poderá remarcá-lo depois pela busca. Confirma?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (confirmDesmarcarTarget) {
+                  toggleHosp.mutate({
+                    baserowRowId: confirmDesmarcarTarget.baserow_row_id,
+                    value: false,
+                  });
+                }
+                setConfirmDesmarcarTarget(null);
+              }}
+            >
+              Sim, desmarcar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
