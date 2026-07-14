@@ -856,18 +856,19 @@ export function QrScansTab() {
                   {numerosSearch ? "Nenhum resultado encontrado." : "Nenhum número marcado como auto-hospedado ainda."}
                 </p>
               ) : (
+                <div className="max-h-[600px] overflow-auto relative rounded-md border">
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Número</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Grátis no mês</TableHead>
-                      <TableHead>Pagos no mês</TableHead>
-                      <TableHead>Hospedagem</TableHead>
-                      <TableHead>Seguro</TableHead>
-                      <TableHead>Check-in / Aparelho</TableHead>
-                      <TableHead>Observação</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
+                  <TableHeader className="sticky top-0 z-30 bg-background shadow-[0_1px_0_0_hsl(var(--border))]">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="bg-background">Número</TableHead>
+                      <TableHead className="bg-background">Cliente</TableHead>
+                      <TableHead className="bg-background">Grátis no mês</TableHead>
+                      <TableHead className="bg-background">Pagos no mês</TableHead>
+                      <TableHead className="bg-background">Hospedagem</TableHead>
+                      <TableHead className="bg-background">Seguro</TableHead>
+                      <TableHead className="bg-background">Check-in / Aparelho</TableHead>
+                      <TableHead className="bg-background">Observação</TableHead>
+                      <TableHead className="text-right sticky right-0 bg-background shadow-[-1px_0_0_0_hsl(var(--border))] z-40">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
