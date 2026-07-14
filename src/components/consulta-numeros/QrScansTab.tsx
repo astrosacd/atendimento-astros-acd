@@ -2368,6 +2368,68 @@ export function QrScansTab() {
           defaultStatusConexao={checkinTarget.defaultStatusConexao}
         />
       )}
+
+      {/* Confirmação: Acionar Seguro */}
+      <AlertDialog open={!!confirmInsuranceTarget} onOpenChange={(o) => !o && setConfirmInsuranceTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-blue-500" /> Acionar seguro deste número?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Você vai abrir o registro de acionamento do seguro para{" "}
+              <strong className="font-mono">{confirmInsuranceTarget?.row_data?.numero ?? "—"}</strong>
+              {confirmInsuranceTarget?.row_data?.nome ? <> — {confirmInsuranceTarget.row_data.nome}</> : null}.
+              O seguro só pode ser usado 1x por mês. Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => {
+                setInsuranceTarget(confirmInsuranceTarget);
+                setInsuranceObs("");
+                setInsuranceDialogOpen(true);
+                setConfirmInsuranceTarget(null);
+              }}
+            >
+              Sim, acionar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmação: Desmarcar auto-hospedado */}
+      <AlertDialog open={!!confirmDesmarcarTarget} onOpenChange={(o) => !o && setConfirmDesmarcarTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desmarcar como auto-hospedado?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O número <strong className="font-mono">{confirmDesmarcarTarget?.row_data?.numero ?? "—"}</strong>
+              {confirmDesmarcarTarget?.row_data?.nome ? <> ({confirmDesmarcarTarget.row_data.nome})</> : null}
+              {" "}sairá da lista de auto-hospedados. Você poderá remarcá-lo depois pela busca. Confirma?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (confirmDesmarcarTarget) {
+                  toggleHosp.mutate({
+                    baserowRowId: confirmDesmarcarTarget.baserow_row_id,
+                    value: false,
+                  });
+                }
+                setConfirmDesmarcarTarget(null);
+              }}
+            >
+              Sim, desmarcar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
