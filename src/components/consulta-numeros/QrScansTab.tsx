@@ -1192,6 +1192,7 @@ export function QrScansTab() {
                     })}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
