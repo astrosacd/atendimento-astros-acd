@@ -17,7 +17,40 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Buscar credenciais do recovery_config (igual ao send-welcome)
+    const body = await req.json().catch(() => ({}));
+    const rawEmail: string | undefined = body?.email;
+
+    if (!rawEmail || typeof rawEmail !== "string") {
+      throw new Error("email é obrigatório");
+    }
+
+    const normalizedEmail = rawEmail.trim().toLowerCase();
+
+    // Server-side lookup — client CANNOT dictate destination for another user
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("user_id, email, name, approval_status")
+      .ilike("email", normalizedEmail)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error("Error looking up profile:", profileError);
+      throw new Error("Erro ao localizar usuário");
+    }
+
+    // Generic success response even when user does not exist (avoid enumeration)
+    if (!profile || (profile.approval_status && profile.approval_status !== "approved")) {
+      return new Response(
+        JSON.stringify({ success: true, message: "Se o email existir, um link será enviado." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    const userId = profile.user_id;
+    const email = profile.email;
+    const userName = profile.name;
+
+    // Load Gmail credentials
     const { data: configs } = await supabase
       .from("recovery_config")
       .select("config_key, config_value");
@@ -35,23 +68,11 @@ serve(async (req) => {
       throw new Error("Credenciais de email não configuradas. Configure em Admin > Boas-vindas.");
     }
 
-    console.log(`Using Gmail credentials from recovery_config: ${gmailUser}`);
-
-    const { userId, email, userName } = await req.json();
-
-    if (!userId || !email) {
-      throw new Error("userId e email são obrigatórios");
-    }
-
-    console.log(`Generating password reset token for user: ${userId}`);
-
-    // Generate a secure token
     const token = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour expiration
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-    // Store the token in the database using the secure function
     const { data: tokenCreated, error: tokenError } = await supabase.rpc(
-      'create_password_reset_token',
+      "create_password_reset_token",
       {
         p_user_id: userId,
         p_email: email,
@@ -65,31 +86,21 @@ serve(async (req) => {
       throw new Error("Limite de solicitações atingido. Tente novamente mais tarde.");
     }
 
-    // Create the reset link pointing to the app's redefinir-senha page
     const appUrl = "https://atendimento-astros-acd.lovable.app";
     const resetLink = `${appUrl}/redefinir-senha?token=${token}`;
 
-    console.log(`Sending password reset email to: ${email}`);
-
-    // Send email using Gmail SMTP
     const client = new SMTPClient({
       connection: {
         hostname: "smtp.gmail.com",
         port: 465,
         tls: true,
-        auth: {
-          username: gmailUser,
-          password: gmailAppPassword,
-        },
+        auth: { username: gmailUser, password: gmailAppPassword },
       },
     });
 
     const emailHtml = `
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-</head>
+<html><head><meta charset="UTF-8"></head>
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
     <h1 style="color: white; margin: 0;">Recuperação de Senha</h1>
@@ -102,12 +113,8 @@ serve(async (req) => {
     </div>
     <p style="font-size: 12px; color: #9ca3af;">Este link expira em 1 hora.</p>
     <p style="font-size: 12px; color: #9ca3af;">Se você não solicitou esta recuperação, ignore este email.</p>
-    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-    <p style="font-size: 11px; color: #9ca3af; text-align: center;">Sistema de Gerenciamento de Clientes - Astros</p>
   </div>
-</body>
-</html>
-    `.trim();
+</body></html>`.trim();
 
     await client.send({
       from: gmailUser,
@@ -119,26 +126,15 @@ serve(async (req) => {
 
     await client.close();
 
-    console.log(`Password reset email sent successfully to: ${email}`);
-
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "Email de recuperação enviado com sucesso" 
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
+      JSON.stringify({ success: true, message: "Se o email existir, um link será enviado." }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error: any) {
     console.error("Error in send-password-reset-email:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
     );
   }
 });
