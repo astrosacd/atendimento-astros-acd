@@ -24,7 +24,7 @@ export default function InstagramStatusExclusao() {
   useEffect(() => {
     (async () => {
       if (!code) return;
-      const { data, error } = await supabase.rpc("get_instagram_deletion_status", {
+      const { data, error } = await (supabase.rpc as any)("get_instagram_deletion_status", {
         p_code: code,
       });
       const row = Array.isArray(data) ? data[0] : data;
