@@ -27,10 +27,9 @@ serve(async (req) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Use service role to query profiles - no RLS bypass needed since we're using service key
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('user_id, name, email, approval_status')
+      .select('approval_status')
       .ilike('email', normalizedEmail)
       .maybeSingle();
 
@@ -43,41 +42,29 @@ serve(async (req) => {
     }
 
     if (!profile) {
-      // Return a generic message to prevent email enumeration
+      // Generic response to avoid email enumeration
       return new Response(
-        JSON.stringify({ 
-          found: false, 
-          message: "Usuário não encontrado" 
-        }),
+        JSON.stringify({ found: false, message: "Usuário não encontrado" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Check approval status
     if (profile.approval_status && profile.approval_status !== 'approved') {
       const isPending = profile.approval_status === 'pending';
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           found: true,
           canRecover: false,
           isPending,
-          message: isPending 
-            ? 'Conta ainda não aprovada' 
-            : 'Conta rejeitada'
+          message: isPending ? 'Conta ainda não aprovada' : 'Conta rejeitada',
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Return minimal data needed for recovery
+    // Do NOT return user_id/email/name — prevents account-takeover chain
     return new Response(
-      JSON.stringify({ 
-        found: true,
-        canRecover: true,
-        userId: profile.user_id,
-        userName: profile.name,
-        userEmail: profile.email,
-      }),
+      JSON.stringify({ found: true, canRecover: true }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 

@@ -205,12 +205,10 @@ async function buildServer(ctx: { keyHint: string; ip: string | null }): Promise
               throw new Error(`Operação "${op}" não permitida para a tool "${t.name}".`);
             }
           } else if (t.tool_type === "sql_query") {
-            const query = String(args?.query ?? "");
-            if (!query) throw new Error("Parâmetro 'query' obrigatório");
-            const { data, error } = await supabase.rpc("execute_sql", { sql_query: query });
-            if (error) throw error;
-            result = data;
-            resultSummary = { length: Array.isArray(data) ? data.length : 1 };
+            // Disabled: raw SQL execution via MCP is not permitted. A leaked static
+            // API key would grant full RLS-bypassing SQL access. Use narrowly
+            // scoped table_access / table_write tools instead.
+            throw new Error("tool_type 'sql_query' está desabilitado por segurança. Use table_access ou table_write com escopo restrito.");
           } else if (t.tool_type === "table_write") {
             // Validação estrita para escritas
             const table = cfg.table as string;

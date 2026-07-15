@@ -24,13 +24,12 @@ export default function InstagramStatusExclusao() {
   useEffect(() => {
     (async () => {
       if (!code) return;
-      const { data, error } = await supabase
-        .from("instagram_data_deletion_requests")
-        .select("confirmation_code, status, requested_at, completed_at, error_message")
-        .eq("confirmation_code", code)
-        .maybeSingle();
-      if (error || !data) setNotFound(true);
-      else setRow(data as Row);
+      const { data, error } = await (supabase.rpc as any)("get_instagram_deletion_status", {
+        p_code: code,
+      });
+      const row = Array.isArray(data) ? data[0] : data;
+      if (error || !row) setNotFound(true);
+      else setRow(row as Row);
       setLoading(false);
     })();
   }, [code]);
