@@ -61,19 +61,9 @@ export default function RecuperarSenha() {
         return;
       }
 
-      const profile = {
-        user_id: verifyResult.userId,
-        email: verifyResult.userEmail,
-        name: verifyResult.userName,
-      };
-
-      // Chamar Edge Function personalizada para enviar email via Gmail
-      const { data, error } = await supabase.functions.invoke('send-password-reset-email', {
-        body: {
-          userId: profile.user_id,
-          email: profile.email,
-          userName: profile.name,
-        },
+      // Edge Function looks up user server-side by email — client cannot dictate destination
+      const { error } = await supabase.functions.invoke('send-password-reset-email', {
+        body: { email: email.trim() },
       });
 
       if (error) {

@@ -14,7 +14,39 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    // Require authenticated admin caller — WhatsApp reset is admin-only
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userError } = await userClient.auth.getUser();
+    if (userError || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const admin = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: isAdmin, error: roleError } = await admin.rpc("has_role", {
+      _user_id: userData.user.id,
+      _role: "admin",
+    });
+    if (roleError || !isAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const { userId, phone, userName, instanceName, apiUrl, apiKey } = await req.json();
 
@@ -22,35 +54,30 @@ serve(async (req) => {
       throw new Error("userId e phone são obrigatórios");
     }
 
-    // Use passed credentials or fallback to env vars
     const evolutionApiUrl = apiUrl || Deno.env.get("EVOLUTION_API_URL");
     const evolutionApiKey = apiKey || Deno.env.get("EVOLUTION_API_KEY");
     const evolutionInstance = instanceName || Deno.env.get("EVOLUTION_INSTANCE");
 
     if (!evolutionApiUrl || !evolutionApiKey || !evolutionInstance) {
-      console.error("Missing Evolution API credentials");
       throw new Error("Credenciais da Evolution API não configuradas");
     }
 
-    const cleanPhone = phone.replace(/\D/g, '');
-    console.log(`Generating password reset token for user: ${userId}`);
+    const cleanPhone = String(phone).replace(/\D/g, "");
 
     const token = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-    // Get user email from profiles
-    const { data: profile } = await supabase
+    const { data: profile } = await admin
       .from("profiles")
       .select("email")
       .eq("user_id", userId)
       .single();
 
-    // Store token using RPC function with rate limiting
-    const { data: tokenCreated, error: rpcError } = await supabase.rpc('create_password_reset_token', {
+    const { data: tokenCreated, error: rpcError } = await admin.rpc("create_password_reset_token", {
       p_user_id: userId,
       p_email: profile?.email || "",
       p_token: token,
-      p_expires_at: expiresAt.toISOString()
+      p_expires_at: expiresAt.toISOString(),
     });
 
     if (rpcError) {
@@ -62,14 +89,11 @@ serve(async (req) => {
       throw new Error("Limite de solicitações atingido. Tente novamente em 1 hora.");
     }
 
-    // Create the reset link with actual app domain
     const resetLink = `https://astros-crm.lovable.app/redefinir-senha?token=${token}`;
-
-    console.log(`Sending password reset WhatsApp to: ${cleanPhone}`);
 
     const message = `🔐 *Recuperação de Senha*
 
-Olá, ${userName || 'Usuário'}!
+Olá, ${userName || "Usuário"}!
 
 Você solicitou a recuperação da sua senha do Sistema Astros.
 
@@ -80,20 +104,15 @@ ${resetLink}
 
 Se você não solicitou esta recuperação, ignore esta mensagem.`;
 
-    // Send message via Evolution API
     const evolutionUrl = `${evolutionApiUrl}/message/sendText/${evolutionInstance}`;
-    console.log(`Calling Evolution API: ${evolutionUrl}`);
 
     const response = await fetch(evolutionUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "apikey": evolutionApiKey,
+        apikey: evolutionApiKey,
       },
-      body: JSON.stringify({
-        number: cleanPhone,
-        text: message,
-      }),
+      body: JSON.stringify({ number: cleanPhone, text: message }),
     });
 
     if (!response.ok) {
@@ -102,27 +121,15 @@ Se você não solicitou esta recuperação, ignore esta mensagem.`;
       throw new Error(`Erro ao enviar WhatsApp: ${response.status}`);
     }
 
-    const responseData = await response.json();
-    console.log("Evolution API response:", responseData);
-
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "Mensagem WhatsApp enviada com sucesso" 
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
+      JSON.stringify({ success: true, message: "Mensagem WhatsApp enviada com sucesso" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error: any) {
     console.error("Error in send-password-reset-whatsapp:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
     );
   }
 });
