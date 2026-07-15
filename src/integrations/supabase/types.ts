@@ -9828,6 +9828,16 @@ export type Database = {
       }
       get_horario_cleanup_config: { Args: never; Returns: Json }
       get_horario_cleanup_last_run: { Args: never; Returns: Json }
+      get_instagram_deletion_status: {
+        Args: { p_code: string }
+        Returns: {
+          completed_at: string
+          confirmation_code: string
+          error_message: string
+          requested_at: string
+          status: string
+        }[]
+      }
       get_instagram_spy_cron_schedule: {
         Args: never
         Returns: {
