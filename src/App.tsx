@@ -20,7 +20,7 @@ import Admin from "./pages/Admin";
 import AdminRecuperacaoSenha from "./pages/AdminRecuperacaoSenha";
 import AdminRecaptcha from "./pages/AdminRecaptcha";
 import AdminWebhooks from "./pages/AdminWebhooks";
-import FormulariosAtomicat from "./pages/FormulariosAtomicat";
+
 import AdminApiKeys from "./pages/AdminApiKeys";
 import AdminAuditLogs from "./pages/AdminAuditLogs";
 import AdminCobranca from "./pages/AdminCobranca";
