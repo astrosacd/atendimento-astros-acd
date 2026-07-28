@@ -50,7 +50,7 @@ import AdminChamadosApiKeys from "./pages/AdminChamadosApiKeys";
 import AdminChamadosGuia from "./pages/AdminChamadosGuia";
 import AdminRelatorios from "./pages/AdminRelatorios";
 import AdminIA from "./pages/AdminIA";
-import AdminMCP from "./pages/AdminMCP";
+
 import AdminHealthDashboard from "./pages/AdminHealthDashboard";
 import AdminSegurancaPagamento from "./pages/AdminSegurancaPagamento";
 import Tarefas from "./pages/Tarefas";
