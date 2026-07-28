@@ -94,14 +94,6 @@ const Admin = () => {
       color: 'from-emerald-500/20 to-emerald-600/10',
     },
     {
-      key: 'mcp',
-      title: t('admin.modules.mcp.title'),
-      description: t('admin.modules.mcp.description'),
-      icon: Server,
-      path: '/admin/mcp',
-      color: 'from-orange-500/20 to-orange-600/10',
-    },
-    {
       key: 'horarioComercial',
       title: 'Horário Comercial',
       description: 'Configure o expediente, bloqueios de datas e a exibição do status no Dashboard.',
