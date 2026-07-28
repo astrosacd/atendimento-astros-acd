@@ -137,7 +137,7 @@ function AppRoutes() {
       <Route path="/admin/recuperacao-senha" element={<ProtectedRoute permission="manage_settings"><AdminRecuperacaoSenha /></ProtectedRoute>} />
       <Route path="/admin/recaptcha" element={<ProtectedRoute permission="manage_recaptcha"><AdminRecaptcha /></ProtectedRoute>} />
       <Route path="/admin/webhooks" element={<ProtectedRoute permission="manage_webhooks"><AdminWebhooks /></ProtectedRoute>} />
-      <Route path="/admin/formularios-atomicat" element={<ProtectedRoute permission="manage_webhooks"><FormulariosAtomicat /></ProtectedRoute>} />
+      
       <Route path="/admin/api" element={<ProtectedRoute permission="manage_api"><AdminApiKeys /></ProtectedRoute>} />
       <Route path="/admin/logs" element={<ProtectedRoute permission="view_logs"><AdminAuditLogs /></ProtectedRoute>} />
       <Route path="/admin/activity" element={<ProtectedRoute permission="view_logs"><AdminActivityLogs /></ProtectedRoute>} />
