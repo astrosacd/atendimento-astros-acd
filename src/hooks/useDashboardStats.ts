@@ -197,9 +197,10 @@ export function useDashboardStats() {
 
       // Cancelados nos últimos 30 dias: cliente com tag 'cancelado' + cobranca_ativa=false,
       // cuja última transição de cobranca_ativa (via client_history) ocorreu na janela.
+      // Usa allClientes (inclui os marcados como excluir_metricas), para bater com a listagem.
       let canceladosUltimos30d = 0;
       try {
-        const canceladosAtuais = (clientes || []).filter(
+        const canceladosAtuais = (allClientes || []).filter(
           (c: any) =>
             c.cobranca_ativa === false &&
             Array.isArray(c.tags) &&
@@ -211,15 +212,22 @@ export function useDashboardStats() {
             .from('client_history')
             .select('cliente_id, created_at')
             .in('cliente_id', ids)
-            .eq('action', 'update')
+            .in('action', ['update', 'updated'])
             .contains('changed_fields', ['cobranca_ativa'])
             .gte('created_at', thirtyDaysAgo.toISOString());
           const setIds = new Set((histRows || []).map((h: any) => h.cliente_id));
+          // Fallback: sem histórico, considera updated_at do cliente dentro da janela
+          canceladosAtuais.forEach((c: any) => {
+            if (!setIds.has(c.id) && c.updated_at && new Date(c.updated_at) >= thirtyDaysAgo) {
+              setIds.add(c.id);
+            }
+          });
           canceladosUltimos30d = setIds.size;
         }
       } catch (e) {
         console.error('[Dashboard] Erro ao calcular cancelados 30d:', e);
       }
+
 
       const vendasClientesBrl = clientesRegistroComValor
         .filter(c => (c.moeda || 'BRL') === 'BRL')
