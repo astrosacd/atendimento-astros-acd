@@ -9708,6 +9708,19 @@ export type Database = {
           status: string
         }[]
       }
+      profile_admin_fields_unchanged: {
+        Args: {
+          _approval_status: string
+          _approved: boolean
+          _blocked_at: string
+          _blocked_by: string
+          _blocked_reason: string
+          _is_blocked: boolean
+          _rejection_reason: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       record_proposal_view: {
         Args: {
           p_event_data?: Json
