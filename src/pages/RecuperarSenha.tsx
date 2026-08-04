@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Mail, Loader2 } from 'lucide-react';
-import logoLoginAsset from '@/assets/logo-login.png.asset.json';
 
 export default function RecuperarSenha() {
   const navigate = useNavigate();
@@ -94,7 +93,7 @@ export default function RecuperarSenha() {
         <Card className="w-full max-w-md bg-card border-border">
           <CardHeader className="text-center space-y-4">
             <img
-              src={logoLoginAsset.url}
+              src="/logo-login.png"
               alt="Astros Comunicação Digital"
               className="h-20 mx-auto"
             />
@@ -137,7 +136,7 @@ export default function RecuperarSenha() {
       <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center space-y-4">
           <img
-            src={logoLoginAsset.url}
+            src="/logo-login.png"
             alt="Astros Comunicação Digital"
             className="h-20 mx-auto"
           />
