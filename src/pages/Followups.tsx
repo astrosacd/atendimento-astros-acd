@@ -48,9 +48,18 @@ import {
 import {
   Plus, Search, Trash2, XCircle, Clock, CheckCircle, Send,
   Mail, MessageSquare, RefreshCcw, AlertCircle, CalendarClock, Settings,
-  Eye, Edit, Copy, ThumbsUp, ThumbsDown, Star, Hash, ChevronLeft, ChevronRight, ShieldCheck, History, Loader2
+  Eye, Edit, Copy, ThumbsUp, ThumbsDown, Star, Hash, ChevronLeft, ChevronRight, ShieldCheck, History, Loader2,
+  FileSignature, FileX2, Megaphone, Link2, FileText, ChevronDown, ExternalLink, Download
 } from 'lucide-react';
-import { useFollowups, type Followup } from '@/hooks/useFollowups';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useFollowups, type Followup, type EnvioTipo } from '@/hooks/useFollowups';
 import { FollowupFormDialog } from '@/components/followups/FollowupFormDialog';
 import { FollowupConfigPanel } from '@/components/followups/FollowupConfigPanel';
 import { ContactHistoryDialog } from '@/components/followups/ContactHistoryDialog';
@@ -81,6 +90,12 @@ const conversionMap: Record<string, { label: string; color: string; icon: React.
   not_converted: { label: 'Não convertido', color: 'bg-rose-100 text-rose-700', icon: <ThumbsDown className="h-3 w-3" /> },
 };
 
+const tipoMap: Record<EnvioTipo, { label: string; color: string; icon: React.ReactNode }> = {
+  proposta: { label: 'Proposta', color: 'bg-violet-100 text-violet-700', icon: <Megaphone className="h-3 w-3" /> },
+  contrato: { label: 'Contrato', color: 'bg-sky-100 text-sky-700', icon: <FileSignature className="h-3 w-3" /> },
+  distrato: { label: 'Distrato', color: 'bg-orange-100 text-orange-700', icon: <FileX2 className="h-3 w-3" /> },
+};
+
 const PAGE_SIZE = 15;
 
 export default function Followups() {
@@ -101,6 +116,17 @@ export default function Followups() {
   const [resolveReason, setResolveReason] = useState('');
   const [resolveNote, setResolveNote] = useState('');
   const [historyContact, setHistoryContact] = useState<{ phone: string; email: string; name: string } | null>(null);
+  const [tipoFilter, setTipoFilter] = useState<string>('all');
+  const [formTipo, setFormTipo] = useState<EnvioTipo>('proposta');
+
+  const openPdf = async (path: string) => {
+    const { data, error } = await supabase.storage.from('contratos').createSignedUrl(path, 60 * 10);
+    if (error || !data?.signedUrl) {
+      toast.error('Não foi possível abrir o PDF');
+      return;
+    }
+    window.open(data.signedUrl, '_blank', 'noopener');
+  };
 
   // Count sends per contact (phone or email)
   const sendCountMap = useMemo(() => {
@@ -126,7 +152,8 @@ export default function Followups() {
       || (conversionFilter === 'converted' && f.conversion_status === 'converted')
       || (conversionFilter === 'not_converted' && f.conversion_status === 'not_converted')
       || (conversionFilter === 'pending_conversion' && !f.conversion_status && (f.status === 'sent' || f.status === 'completed'));
-    return matchSearch && matchStatus && matchConversion;
+    const matchTipo = tipoFilter === 'all' || (f.envio_tipo || 'proposta') === tipoFilter;
+    return matchSearch && matchStatus && matchConversion && matchTipo;
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -215,10 +242,32 @@ export default function Followups() {
                 Configurações
               </Button>
             )}
-            <Button onClick={() => { setEditFollowup(null); setShowForm(true); }}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Follow-up
-            </Button>
+            <div className="flex">
+              <Button
+                className="rounded-r-none"
+                onClick={() => { setEditFollowup(null); setFormTipo('proposta'); setShowForm(true); }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Follow-up
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="rounded-l-none border-l border-primary-foreground/20 px-2">
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => { setEditFollowup(null); setFormTipo('contrato'); setShowForm(true); }}>
+                    <FileSignature className="h-4 w-4 mr-2 text-sky-600" />
+                    Enviar Contrato
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setEditFollowup(null); setFormTipo('distrato'); setShowForm(true); }}>
+                    <FileX2 className="h-4 w-4 mr-2 text-orange-600" />
+                    Enviar Distrato
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
 
@@ -306,6 +355,17 @@ export default function Followups() {
               <SelectItem value="pending_conversion">Sem marcação</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={tipoFilter} onValueChange={v => { setTipoFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              <SelectItem value="proposta">Proposta</SelectItem>
+              <SelectItem value="contrato">Contrato</SelectItem>
+              <SelectItem value="distrato">Distrato</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Table */}
@@ -336,6 +396,7 @@ export default function Followups() {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="min-w-[140px]">Contato</TableHead>
+                        <TableHead className="min-w-[100px]">Tipo</TableHead>
                         <TableHead className="min-w-[100px]">Produto</TableHead>
                         <TableHead className="min-w-[80px]">Canal</TableHead>
                         <TableHead className="min-w-[130px]">Agendado</TableHead>
@@ -377,6 +438,39 @@ export default function Followups() {
                                   <span className="text-xs text-muted-foreground truncate max-w-[180px]">{email}</span>
                                 )}
                               </div>
+                            </TableCell>
+                            <TableCell>
+                              {(() => {
+                                const t = tipoMap[(f.envio_tipo || 'proposta') as EnvioTipo] || tipoMap.proposta;
+                                return (
+                                  <div className="flex items-center gap-1">
+                                    <Badge variant="secondary" className={`${t.color} gap-1 text-[10px] px-1.5 py-0 w-fit`}>
+                                      {t.icon}
+                                      {t.label}
+                                    </Badge>
+                                    {f.doc_link && (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <a href={f.doc_link} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
+                                            <Link2 className="h-3.5 w-3.5" />
+                                          </a>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Abrir link de assinatura</TooltipContent>
+                                      </Tooltip>
+                                    )}
+                                    {f.doc_pdf_url && (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <button type="button" onClick={() => openPdf(f.doc_pdf_url!)} className="text-muted-foreground hover:text-primary">
+                                            <FileText className="h-3.5 w-3.5" />
+                                          </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Abrir PDF</TooltipContent>
+                                      </Tooltip>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </TableCell>
                             <TableCell>
                               <span className="text-sm truncate max-w-[120px] block">{f.produto}</span>
@@ -567,7 +661,7 @@ export default function Followups() {
         )}
 
         {/* Form Dialog */}
-        <FollowupFormDialog open={showForm} onOpenChange={setShowForm} editData={editFollowup} />
+        <FollowupFormDialog open={showForm} onOpenChange={setShowForm} editData={editFollowup} initialTipo={formTipo} />
         <FollowupConfigPanel open={showConfig} onOpenChange={setShowConfig} />
 
         {/* Preview Dialog */}
@@ -586,9 +680,44 @@ export default function Followups() {
                   <p className="font-semibold">{previewFollowup.manual_name || previewFollowup.clientes?.nome || 'Sem nome'}</p>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Produto</p>
+                  <p className="text-sm font-medium text-muted-foreground">Tipo de envio</p>
+                  <Badge variant="secondary" className={`${(tipoMap[(previewFollowup.envio_tipo || 'proposta') as EnvioTipo] || tipoMap.proposta).color} gap-1 w-fit`}>
+                    {(tipoMap[(previewFollowup.envio_tipo || 'proposta') as EnvioTipo] || tipoMap.proposta).icon}
+                    {(tipoMap[(previewFollowup.envio_tipo || 'proposta') as EnvioTipo] || tipoMap.proposta).label}
+                  </Badge>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Produto / Serviço</p>
                   <p>{previewFollowup.produto}</p>
                 </div>
+                {(previewFollowup.doc_link || previewFollowup.doc_pdf_url) && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-muted-foreground">Documento</p>
+                    <div className="flex flex-col gap-2">
+                      {previewFollowup.doc_link && (
+                        <a
+                          href={previewFollowup.doc_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 rounded-md border p-2 text-sm hover:bg-muted transition-colors"
+                        >
+                          <ExternalLink className="h-4 w-4 text-primary shrink-0" />
+                          <span className="truncate">{previewFollowup.doc_link}</span>
+                        </a>
+                      )}
+                      {previewFollowup.doc_pdf_url && (
+                        <button
+                          type="button"
+                          onClick={() => openPdf(previewFollowup.doc_pdf_url!)}
+                          className="flex items-center gap-2 rounded-md border p-2 text-sm hover:bg-muted transition-colors text-left"
+                        >
+                          <Download className="h-4 w-4 text-primary shrink-0" />
+                          <span className="truncate">{previewFollowup.doc_pdf_name || 'Documento PDF'}</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-muted-foreground">Mensagem</p>
                   <div className="bg-muted rounded-lg p-4 text-sm whitespace-pre-wrap">
