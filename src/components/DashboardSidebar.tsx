@@ -6,7 +6,7 @@ import {
   UserPlus, Search, Edit, Trash2, Users, Settings, 
   LayoutDashboard, Webhook, LogOut, ChevronLeft, ChevronRight, 
   Key, FileText, CreditCard, MessageCircle, MessageSquare, ShieldCheck, Tag, Megaphone, Smartphone, Database, HelpCircle, ShoppingBag, Ticket, Sparkles, Store, BarChart3, ListTodo, FileSignature, Receipt, CalendarClock, Columns3, Crosshair, CalendarDays, Link2, Brain, Network, Package, UserCircle, Bot,
-  Instagram, History, Activity, PhoneCall, Clock
+  Instagram, History, Activity, PhoneCall, Clock, Palette
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -328,6 +328,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
         { title: t('sidebar.guide'), icon: HelpCircle, path: '/admin/guia', adminOnly: !canViewGuia(), color: 'text-purple-500', gradient: 'from-purple-500 to-violet-500' },
         { title: 'Saúde do Sistema', icon: Activity, path: '/admin/saude', adminOnly: !canManageSystemHealth(), color: 'text-emerald-500', gradient: 'from-emerald-500 to-teal-500' },
         
+        { title: 'Identidade Visual', icon: Palette, path: '/admin/identidade-visual', adminOnly: !canManageSettings(), color: 'text-fuchsia-500', gradient: 'from-fuchsia-500 to-pink-500' },
         { title: t('sidebar.settings'), icon: Settings, path: '/admin', adminOnly: !canManageSettings(), color: 'text-slate-400', gradient: 'from-slate-500 to-zinc-500' },
       ]
     }
