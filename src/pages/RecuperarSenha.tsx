@@ -1,3 +1,4 @@
+import { useBranding } from '@/hooks/useBranding';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Mail, Loader2 } from 'lucide-react';
 
 export default function RecuperarSenha() {
+  const { loginLogo } = useBranding();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
@@ -93,7 +95,7 @@ export default function RecuperarSenha() {
         <Card className="w-full max-w-md bg-card border-border">
           <CardHeader className="text-center space-y-4">
             <img
-              src="/logo-login.png"
+              src={loginLogo}
               alt="Astros Comunicação Digital"
               className="h-20 mx-auto"
             />
@@ -136,7 +138,7 @@ export default function RecuperarSenha() {
       <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center space-y-4">
           <img
-            src="/logo-login.png"
+            src={loginLogo}
             alt="Astros Comunicação Digital"
             className="h-20 mx-auto"
           />

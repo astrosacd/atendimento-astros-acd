@@ -1,3 +1,4 @@
+import { useBranding } from '@/hooks/useBranding';
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,6 +26,7 @@ const passwordSchema = z
   });
 
 export default function RedefinirSenha() {
+  const { loginLogo } = useBranding();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
@@ -149,7 +151,7 @@ export default function RedefinirSenha() {
         <Card className="w-full max-w-md bg-card border-border">
           <CardHeader className="text-center space-y-4">
             <img
-              src="/logo-login.png"
+              src={loginLogo}
               alt="Astros Comunicação Digital"
               className="h-20 mx-auto"
             />
@@ -190,7 +192,7 @@ export default function RedefinirSenha() {
         <Card className="w-full max-w-md bg-card border-border">
           <CardHeader className="text-center space-y-4">
             <img
-              src="/logo-login.png"
+              src={loginLogo}
               alt="Astros Comunicação Digital"
               className="h-20 mx-auto"
             />
@@ -220,7 +222,7 @@ export default function RedefinirSenha() {
       <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center space-y-4">
           <img
-            src="/logo-login.png"
+            src={loginLogo}
             alt="Astros Comunicação Digital"
             className="h-20 mx-auto"
           />

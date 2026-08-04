@@ -1,3 +1,4 @@
+import { useBranding } from '@/hooks/useBranding';
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,6 +31,7 @@ interface ProfileStatus {
   user_response: string | null;
 }
 
+  const { loginLogo } = useBranding();
 export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -418,7 +420,7 @@ export default function Auth() {
         <Card className="w-full max-w-md bg-card border-border border-2 border-destructive/20 shadow-2xl">
           <CardHeader className="text-center space-y-4">
             <img
-              src="/logo-login.png"
+              src={loginLogo}
               alt="Astros Comunicação Digital"
               className="h-24 mx-auto mb-2"
             />
@@ -456,7 +458,7 @@ export default function Auth() {
           <Card className="w-full max-w-md bg-card border-border">
             <CardHeader className="text-center space-y-4">
               <img
-                src="/logo-login.png"
+                src={loginLogo}
                 alt="Astros Comunicação Digital"
                 className="h-20 mx-auto"
               />
@@ -495,7 +497,7 @@ export default function Auth() {
           <Card className="w-full max-w-md bg-card border-border">
             <CardHeader className="text-center space-y-4">
               <img
-                src="/logo-login.png"
+                src={loginLogo}
                 alt="Astros Comunicação Digital"
                 className="h-20 mx-auto"
               />
@@ -562,7 +564,7 @@ export default function Auth() {
       <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center space-y-4">
           <img
-            src="/logo-login.png"
+            src={loginLogo}
             alt="Astros Comunicação Digital"
             className="h-20 mx-auto"
           />
