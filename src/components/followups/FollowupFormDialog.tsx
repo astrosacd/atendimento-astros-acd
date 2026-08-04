@@ -15,14 +15,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { PhoneInputWithCountry } from '@/components/PhoneInputWithCountry';
-import { Mail, MessageSquare, Loader2, UserPlus, Users, Sparkles, Languages } from 'lucide-react';
+import { Mail, MessageSquare, Loader2, UserPlus, Users, Sparkles, Languages, FileSignature, FileX2, Megaphone, Link2, Upload, FileText, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useFollowups, type CreateFollowupData, type Followup } from '@/hooks/useFollowups';
+import { useFollowups, type CreateFollowupData, type Followup, type EnvioTipo } from '@/hooks/useFollowups';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
