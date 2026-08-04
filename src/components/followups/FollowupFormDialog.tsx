@@ -60,6 +60,57 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
   const [maxAttempts, setMaxAttempts] = useState(3);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [envioTipo, setEnvioTipo] = useState<EnvioTipo>('proposta');
+  const [docLink, setDocLink] = useState('');
+  const [docPdfUrl, setDocPdfUrl] = useState('');
+  const [docPdfName, setDocPdfName] = useState('');
+  const [isUploadingPdf, setIsUploadingPdf] = useState(false);
+
+  const isDocumento = envioTipo === 'contrato' || envioTipo === 'distrato';
+
+  const tipoOptions: { value: EnvioTipo; label: string; icon: React.ReactNode; hint: string }[] = [
+    { value: 'proposta', label: 'Proposta', icon: <Megaphone className="h-4 w-4" />, hint: 'Mensagem comercial de follow-up' },
+    { value: 'contrato', label: 'Contrato', icon: <FileSignature className="h-4 w-4" />, hint: 'Envio de contrato para assinatura' },
+    { value: 'distrato', label: 'Distrato', icon: <FileX2 className="h-4 w-4" />, hint: 'Cancelamento contratual para assinatura' },
+  ];
+
+  const handlePdfUpload = async (file: File) => {
+    if (file.type !== 'application/pdf') {
+      toast.error('Envie um arquivo PDF');
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('O PDF deve ter no máximo 15 MB');
+      return;
+    }
+    setIsUploadingPdf(true);
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `${envioTipo}/${crypto.randomUUID()}-${safeName}`;
+      const { error } = await supabase.storage.from('contratos').upload(path, file, {
+        contentType: 'application/pdf',
+        upsert: false,
+      });
+      if (error) throw error;
+      setDocPdfUrl(path);
+      setDocPdfName(file.name);
+      toast.success('PDF anexado!');
+    } catch (err: any) {
+      toast.error('Erro ao enviar PDF: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setIsUploadingPdf(false);
+    }
+  };
+
+  const handleRemovePdf = async () => {
+    const path = docPdfUrl;
+    setDocPdfUrl('');
+    setDocPdfName('');
+    if (path) {
+      await supabase.storage.from('contratos').remove([path]).catch(() => null);
+    }
+  };
+
 
   const translateLanguages = [
     { code: 'pt-BR', label: '🇧🇷 Português' },
