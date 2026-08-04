@@ -92,9 +92,9 @@ export default function RecuperarSenha() {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md bg-card border-border">
           <CardHeader className="text-center space-y-4">
-            <img 
-              src="https://i.imgur.com/odbwwWW.png" 
-              alt="Astros Comunicação Digital" 
+            <img
+              src="/logo-login.png"
+              alt="Astros Comunicação Digital"
               className="h-20 mx-auto"
             />
             <div className="flex justify-center">
@@ -135,9 +135,9 @@ export default function RecuperarSenha() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center space-y-4">
-          <img 
-            src="https://i.imgur.com/odbwwWW.png" 
-            alt="Astros Comunicação Digital" 
+          <img
+            src="/logo-login.png"
+            alt="Astros Comunicação Digital"
             className="h-20 mx-auto"
           />
           <CardTitle className="text-2xl font-bold text-primary">Recuperar Senha</CardTitle>

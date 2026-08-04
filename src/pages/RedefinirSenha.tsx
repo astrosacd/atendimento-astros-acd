@@ -149,7 +149,7 @@ export default function RedefinirSenha() {
         <Card className="w-full max-w-md bg-card border-border">
           <CardHeader className="text-center space-y-4">
             <img
-              src="https://i.imgur.com/odbwwWW.png"
+              src="/logo-login.png"
               alt="Astros Comunicação Digital"
               className="h-20 mx-auto"
             />
@@ -190,7 +190,7 @@ export default function RedefinirSenha() {
         <Card className="w-full max-w-md bg-card border-border">
           <CardHeader className="text-center space-y-4">
             <img
-              src="https://i.imgur.com/odbwwWW.png"
+              src="/logo-login.png"
               alt="Astros Comunicação Digital"
               className="h-20 mx-auto"
             />
@@ -220,7 +220,7 @@ export default function RedefinirSenha() {
       <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center space-y-4">
           <img
-            src="https://i.imgur.com/odbwwWW.png"
+            src="/logo-login.png"
             alt="Astros Comunicação Digital"
             className="h-20 mx-auto"
           />
