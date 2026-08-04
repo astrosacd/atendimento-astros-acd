@@ -74,7 +74,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <span className="font-display font-bold text-foreground text-sm">Astros CRM</span>
+            {sidebarLogo && (
+              <img src={sidebarLogo} alt="Logo" className="h-7 w-7 rounded-md object-contain shrink-0" />
+            )}
+            <span className="font-display font-bold text-foreground text-sm truncate">Astros CRM</span>
+
           </div>
         )}
         {children}
