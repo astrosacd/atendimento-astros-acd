@@ -206,6 +206,10 @@ export function useFollowups() {
           max_attempts: followup.max_attempts,
           current_attempt: 0,
           next_dispatch_at: tomorrow.toISOString(),
+          envio_tipo: followup.envio_tipo || 'proposta',
+          doc_link: followup.doc_link || null,
+          doc_pdf_url: followup.doc_pdf_url || null,
+          doc_pdf_name: followup.doc_pdf_name || null,
           status: 'pending',
           created_by: user?.id,
         } as any)
