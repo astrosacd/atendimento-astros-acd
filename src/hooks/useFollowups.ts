@@ -4,6 +4,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useSystemActivities } from '@/hooks/useSystemActivities';
 
+export type EnvioTipo = 'proposta' | 'contrato' | 'distrato';
+
+export const ENVIO_TIPO_LABEL: Record<EnvioTipo, string> = {
+  proposta: 'Proposta',
+  contrato: 'Contrato',
+  distrato: 'Distrato',
+};
+
 export interface Followup {
   id: string;
   cliente_id: string | null;
@@ -28,6 +36,10 @@ export interface Followup {
   conversion_status: 'converted' | 'not_converted' | null;
   conversion_note: string | null;
   converted_at: string | null;
+  envio_tipo: EnvioTipo;
+  doc_link: string | null;
+  doc_pdf_url: string | null;
+  doc_pdf_name: string | null;
 }
 
 export interface FollowupLog {
@@ -51,7 +63,12 @@ export interface CreateFollowupData {
   is_recurring: boolean;
   recurrence_interval_days?: number;
   max_attempts?: number;
+  envio_tipo?: EnvioTipo;
+  doc_link?: string | null;
+  doc_pdf_url?: string | null;
+  doc_pdf_name?: string | null;
 }
+
 
 export function useFollowups() {
   const { user } = useAuth();
@@ -87,6 +104,10 @@ export function useFollowups() {
           recurrence_interval_days: input.is_recurring ? (input.recurrence_interval_days || 3) : null,
           max_attempts: input.is_recurring ? (input.max_attempts || 3) : 1,
           next_dispatch_at: input.scheduled_at,
+          envio_tipo: input.envio_tipo || 'proposta',
+          doc_link: input.doc_link || null,
+          doc_pdf_url: input.doc_pdf_url || null,
+          doc_pdf_name: input.doc_pdf_name || null,
           status: 'pending',
           created_by: user?.id,
         } as any)
@@ -142,6 +163,10 @@ export function useFollowups() {
       if (updates.manual_email !== undefined) updateData.manual_email = updates.manual_email || null;
       if (updates.manual_phone !== undefined) updateData.manual_phone = updates.manual_phone || null;
       if (updates.cliente_id !== undefined) updateData.cliente_id = updates.cliente_id || null;
+      if (updates.envio_tipo !== undefined) updateData.envio_tipo = updates.envio_tipo;
+      if (updates.doc_link !== undefined) updateData.doc_link = updates.doc_link || null;
+      if (updates.doc_pdf_url !== undefined) updateData.doc_pdf_url = updates.doc_pdf_url || null;
+      if (updates.doc_pdf_name !== undefined) updateData.doc_pdf_name = updates.doc_pdf_name || null;
 
       const { error } = await supabase
         .from('client_followups')
@@ -181,6 +206,10 @@ export function useFollowups() {
           max_attempts: followup.max_attempts,
           current_attempt: 0,
           next_dispatch_at: tomorrow.toISOString(),
+          envio_tipo: followup.envio_tipo || 'proposta',
+          doc_link: followup.doc_link || null,
+          doc_pdf_url: followup.doc_pdf_url || null,
+          doc_pdf_name: followup.doc_pdf_name || null,
           status: 'pending',
           created_by: user?.id,
         } as any)

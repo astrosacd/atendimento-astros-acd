@@ -78,10 +78,67 @@ serve(async (req: Request) => {
       followup.manual_phone ||
       (followup.clientes as any)?.numero;
 
-    const message =
+    const envioTipo: "proposta" | "contrato" | "distrato" = followup.envio_tipo || "proposta";
+    const isDocumento = envioTipo === "contrato" || envioTipo === "distrato";
+    const tipoLabel = envioTipo === "contrato" ? "Contrato" : envioTipo === "distrato" ? "Distrato" : "Proposta";
+
+    const defaultMessage = isDocumento
+      ? `Olá ${clientName}, segue o ${tipoLabel.toLowerCase()} referente a ${followup.produto} para sua assinatura.`
+      : `Olá ${clientName}, temos uma oferta especial para você sobre ${followup.produto}. Entre em contato conosco!`;
+
+    const baseMessage =
       followup.custom_message ||
       followup.message_template ||
-      `Olá ${clientName}, temos uma oferta especial para você sobre ${followup.produto}. Entre em contato conosco!`;
+      defaultMessage;
+
+    // Signed URL do PDF (válida por 7 dias) — bucket privado "contratos"
+    let pdfSignedUrl: string | null = null;
+    let pdfBase64: string | null = null;
+    const pdfFileName = followup.doc_pdf_name || `${tipoLabel.toLowerCase()}.pdf`;
+
+    if (isDocumento && followup.doc_pdf_url) {
+      try {
+        const { data: signed } = await supabase.storage
+          .from("contratos")
+          .createSignedUrl(followup.doc_pdf_url, 60 * 60 * 24 * 7);
+        pdfSignedUrl = signed?.signedUrl || null;
+
+        const { data: fileData, error: dlError } = await supabase.storage
+          .from("contratos")
+          .download(followup.doc_pdf_url);
+        if (dlError) throw dlError;
+        if (fileData) {
+          const bytes = new Uint8Array(await fileData.arrayBuffer());
+          let binary = "";
+          const chunk = 0x8000;
+          for (let i = 0; i < bytes.length; i += chunk) {
+            binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+          }
+          pdfBase64 = btoa(binary);
+        }
+      } catch (err: any) {
+        console.error("❌ Erro ao preparar PDF:", err.message);
+        await supabase.from("client_followup_logs").insert({
+          followup_id: followup.id,
+          channel: "system",
+          status: "error",
+          error_message: `Falha ao carregar PDF do ${tipoLabel.toLowerCase()}: ${err.message}`,
+        });
+      }
+    }
+
+    // Mensagem final (texto) com bloco de documento quando aplicável
+    let message = baseMessage;
+    if (isDocumento) {
+      const parts: string[] = [baseMessage];
+      if (followup.doc_link) {
+        parts.push(`\n📝 *Assine o ${tipoLabel.toLowerCase()} online:*\n${followup.doc_link}`);
+      }
+      if (pdfSignedUrl && !pdfBase64) {
+        parts.push(`\n📎 *Baixar o PDF:*\n${pdfSignedUrl}`);
+      }
+      message = parts.join("\n");
+    }
 
     const channel = followup.channel;
     let emailSent = false;
@@ -101,7 +158,19 @@ serve(async (req: Request) => {
       gmailAppPassword
     ) {
       try {
-        const htmlBody = generateEmailHtml(clientName, followup.produto, message, config.gmail_sender_name || "Equipe Comercial");
+        const htmlBody = generateEmailHtml(
+          clientName,
+          followup.produto,
+          baseMessage,
+          config.gmail_sender_name || "Equipe Comercial",
+          {
+            tipo: envioTipo,
+            tipoLabel,
+            docLink: followup.doc_link || null,
+            pdfUrl: pdfSignedUrl,
+            pdfName: pdfFileName,
+          }
+        );
 
         const client = new SMTPClient({
           connection: {
@@ -119,12 +188,28 @@ serve(async (req: Request) => {
           ? `${config.gmail_sender_name} <${gmailUser}>`
           : gmailUser;
 
+        const subject = isDocumento
+          ? `${tipoLabel} para assinatura - ${followup.produto}`
+          : `${clientName}, temos uma novidade para você! 🚀`;
+
         await client.send({
           from: fromAddress,
           to: clientEmail,
-          subject: `${clientName}, temos uma novidade para você! 🚀`,
+          subject,
           content: message,
           html: htmlBody,
+          ...(pdfBase64
+            ? {
+                attachments: [
+                  {
+                    filename: pdfFileName,
+                    content: pdfBase64,
+                    encoding: "base64" as const,
+                    contentType: "application/pdf",
+                  },
+                ],
+              }
+            : {}),
         });
 
         await client.close();
@@ -183,6 +268,40 @@ serve(async (req: Request) => {
 
         whatsappSent = true;
         console.log(`✅ WhatsApp enviado para ${cleanNumber}`);
+
+        // Envia o PDF como documento quando houver
+        if (isDocumento && pdfSignedUrl) {
+          try {
+            const mediaResp = await fetch(`${evolutionApiUrl}/message/sendMedia/${evolutionInstanceName}`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                apikey: evolutionApiKey,
+              },
+              body: JSON.stringify({
+                number: cleanNumber,
+                mediatype: "document",
+                mimetype: "application/pdf",
+                media: pdfSignedUrl,
+                fileName: pdfFileName,
+                caption: `${tipoLabel} - ${followup.produto}`,
+              }),
+            });
+            if (!mediaResp.ok) {
+              const t = await mediaResp.text();
+              throw new Error(`HTTP ${mediaResp.status}: ${t}`);
+            }
+            console.log(`✅ PDF (${tipoLabel}) enviado via WhatsApp`);
+          } catch (mediaErr: any) {
+            console.error("❌ Erro ao enviar PDF no WhatsApp:", mediaErr.message);
+            await supabase.from("client_followup_logs").insert({
+              followup_id: followup.id,
+              channel: "whatsapp",
+              status: "error",
+              error_message: `Texto enviado, mas falhou o envio do PDF: ${mediaErr.message}`,
+            });
+          }
+        }
 
         await supabase.from("client_followup_logs").insert({
           followup_id: followup.id,
@@ -431,11 +550,41 @@ async function createBaserowLead(
   }
 }
 
+interface DocInfo {
+  tipo: "proposta" | "contrato" | "distrato";
+  tipoLabel: string;
+  docLink: string | null;
+  pdfUrl: string | null;
+  pdfName: string;
+}
+
 function generateEmailHtml(
   clientName: string,
   produto: string,
   message: string,
-  senderName: string
+  senderName: string,
+  doc?: DocInfo
 ): string {
+  const isDoc = !!doc && (doc.tipo === "contrato" || doc.tipo === "distrato");
+
+  if (isDoc && doc) {
+    const accent = doc.tipo === "contrato" ? "#0284c7" : "#ea580c";
+    const accentDark = doc.tipo === "contrato" ? "#075985" : "#9a3412";
+    const headline = doc.tipo === "contrato"
+      ? "Seu contrato está pronto para assinatura"
+      : "Distrato para sua assinatura";
+
+    const linkBlock = doc.docLink
+      ? `<table role="presentation" style="width:100%;border-collapse:collapse;margin:0 0 16px 0;"><tr><td align="center"><a href="${doc.docLink}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:16px;font-weight:600;">Assinar ${doc.tipoLabel.toLowerCase()} online</a></td></tr></table>`
+      : "";
+
+    const pdfBlock = doc.pdfUrl
+      ? `<table role="presentation" style="width:100%;border-collapse:collapse;margin:0 0 16px 0;"><tr><td align="center"><a href="${doc.pdfUrl}" style="display:inline-block;border:1px solid ${accent};color:${accentDark};text-decoration:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:600;">📎 Baixar PDF do ${doc.tipoLabel.toLowerCase()}</a></td></tr></table><p style="color:#94a3b8;font-size:12px;text-align:center;margin:0 0 8px 0;">O PDF também segue anexado a este e-mail. O link de download expira em 7 dias.</p>`
+      : "";
+
+    return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${doc.tipoLabel}</title></head><body style="margin:0;padding:0;font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;background-color:#f4f4f5;"><table role="presentation" style="width:100%;border-collapse:collapse;"><tr><td align="center" style="padding:40px 20px;"><table role="presentation" style="width:100%;max-width:600px;border-collapse:collapse;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.1);"><tr><td style="background:${accent};padding:36px 40px;text-align:center;"><h1 style="color:#ffffff;margin:0;font-size:24px;font-weight:600;">${headline}</h1></td></tr><tr><td style="padding:36px 40px 24px 40px;"><p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 20px 0;">Olá <strong>${clientName}</strong>,</p><p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 24px 0;white-space:pre-wrap;">${message.replace(/\n/g, '<br>')}</p><table role="presentation" style="width:100%;border-collapse:collapse;margin:0 0 28px 0;"><tr><td style="background-color:#f8fafc;border-radius:8px;padding:20px;border-left:4px solid ${accent};"><p style="color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin:0 0 6px 0;">${doc.tipoLabel} referente a</p><p style="color:#1e293b;font-size:18px;font-weight:600;margin:0;">${produto}</p></td></tr></table>${linkBlock}${pdfBlock}</td></tr><tr><td style="background-color:#f8fafc;padding:26px 40px;border-top:1px solid #e5e7eb;"><p style="color:#6b7280;font-size:14px;margin:0 0 10px 0;">Qualquer dúvida, é só responder este e-mail.</p><p style="color:#374151;font-size:16px;font-weight:600;margin:0;">${senderName}</p></td></tr></table></td></tr></table></body></html>`;
+  }
+
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Novidade para você</title></head><body style="margin:0;padding:0;font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;background-color:#f4f4f5;"><table role="presentation" style="width:100%;border-collapse:collapse;"><tr><td align="center" style="padding:40px 20px;"><table role="presentation" style="width:100%;max-width:600px;border-collapse:collapse;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.1);"><tr><td style="background:linear-gradient(135deg,#8b5cf6 0%,#6d28d9 100%);padding:40px;text-align:center;"><h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:600;">Temos uma novidade para você! 🚀</h1></td></tr><tr><td style="padding:40px;"><p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 20px 0;">Olá <strong>${clientName}</strong>,</p><p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 20px 0;white-space:pre-wrap;">${message.replace(/\n/g, '<br>')}</p><table role="presentation" style="width:100%;border-collapse:collapse;margin:30px 0;"><tr><td style="background-color:#f8fafc;border-radius:8px;padding:24px;border-left:4px solid #8b5cf6;"><p style="color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin:0 0 8px 0;">PRODUTO</p><p style="color:#1e293b;font-size:20px;font-weight:600;margin:0;">${produto}</p></td></tr></table></td></tr><tr><td style="background-color:#f8fafc;padding:30px 40px;border-top:1px solid #e5e7eb;"><p style="color:#6b7280;font-size:14px;margin:0 0 10px 0;">Atenciosamente,</p><p style="color:#374151;font-size:16px;font-weight:600;margin:0;">${senderName}</p></td></tr></table></td></tr></table></body></html>`;
 }
+

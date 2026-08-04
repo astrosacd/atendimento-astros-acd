@@ -1416,6 +1416,10 @@ export type Database = {
           created_by: string | null
           current_attempt: number
           custom_message: string | null
+          doc_link: string | null
+          doc_pdf_name: string | null
+          doc_pdf_url: string | null
+          envio_tipo: string
           id: string
           is_recurring: boolean
           manual_email: string | null
@@ -1440,6 +1444,10 @@ export type Database = {
           created_by?: string | null
           current_attempt?: number
           custom_message?: string | null
+          doc_link?: string | null
+          doc_pdf_name?: string | null
+          doc_pdf_url?: string | null
+          envio_tipo?: string
           id?: string
           is_recurring?: boolean
           manual_email?: string | null
@@ -1464,6 +1472,10 @@ export type Database = {
           created_by?: string | null
           current_attempt?: number
           custom_message?: string | null
+          doc_link?: string | null
+          doc_pdf_name?: string | null
+          doc_pdf_url?: string | null
+          envio_tipo?: string
           id?: string
           is_recurring?: boolean
           manual_email?: string | null

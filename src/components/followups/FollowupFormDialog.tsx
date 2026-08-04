@@ -15,14 +15,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { PhoneInputWithCountry } from '@/components/PhoneInputWithCountry';
-import { Mail, MessageSquare, Loader2, UserPlus, Users, Sparkles, Languages } from 'lucide-react';
+import { Mail, MessageSquare, Loader2, UserPlus, Users, Sparkles, Languages, FileSignature, FileX2, Megaphone, Link2, Upload, FileText, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useFollowups, type CreateFollowupData, type Followup } from '@/hooks/useFollowups';
+import { useFollowups, type CreateFollowupData, type Followup, type EnvioTipo } from '@/hooks/useFollowups';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -38,9 +38,10 @@ interface FollowupFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editData?: Followup | null;
+  initialTipo?: EnvioTipo;
 }
 
-export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFormDialogProps) {
+export function FollowupFormDialog({ open, onOpenChange, editData, initialTipo }: FollowupFormDialogProps) {
   const { createFollowup, updateFollowup } = useFollowups();
   const isEditing = !!editData && editData.id !== '__clone__';
 
@@ -60,6 +61,57 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
   const [maxAttempts, setMaxAttempts] = useState(3);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [envioTipo, setEnvioTipo] = useState<EnvioTipo>('proposta');
+  const [docLink, setDocLink] = useState('');
+  const [docPdfUrl, setDocPdfUrl] = useState('');
+  const [docPdfName, setDocPdfName] = useState('');
+  const [isUploadingPdf, setIsUploadingPdf] = useState(false);
+
+  const isDocumento = envioTipo === 'contrato' || envioTipo === 'distrato';
+
+  const tipoOptions: { value: EnvioTipo; label: string; icon: React.ReactNode; hint: string }[] = [
+    { value: 'proposta', label: 'Proposta', icon: <Megaphone className="h-4 w-4" />, hint: 'Mensagem comercial de follow-up' },
+    { value: 'contrato', label: 'Contrato', icon: <FileSignature className="h-4 w-4" />, hint: 'Envio de contrato para assinatura' },
+    { value: 'distrato', label: 'Distrato', icon: <FileX2 className="h-4 w-4" />, hint: 'Cancelamento contratual para assinatura' },
+  ];
+
+  const handlePdfUpload = async (file: File) => {
+    if (file.type !== 'application/pdf') {
+      toast.error('Envie um arquivo PDF');
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('O PDF deve ter no máximo 15 MB');
+      return;
+    }
+    setIsUploadingPdf(true);
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `${envioTipo}/${crypto.randomUUID()}-${safeName}`;
+      const { error } = await supabase.storage.from('contratos').upload(path, file, {
+        contentType: 'application/pdf',
+        upsert: false,
+      });
+      if (error) throw error;
+      setDocPdfUrl(path);
+      setDocPdfName(file.name);
+      toast.success('PDF anexado!');
+    } catch (err: any) {
+      toast.error('Erro ao enviar PDF: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setIsUploadingPdf(false);
+    }
+  };
+
+  const handleRemovePdf = async () => {
+    const path = docPdfUrl;
+    setDocPdfUrl('');
+    setDocPdfName('');
+    if (path) {
+      await supabase.storage.from('contratos').remove([path]).catch(() => null);
+    }
+  };
+
 
   const translateLanguages = [
     { code: 'pt-BR', label: '🇧🇷 Português' },
@@ -156,6 +208,10 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
         setIsRecurring(editData.is_recurring);
         setIntervalDays(editData.recurrence_interval_days || 3);
         setMaxAttempts(editData.max_attempts || 3);
+        setEnvioTipo((editData.envio_tipo as EnvioTipo) || 'proposta');
+        setDocLink(editData.doc_link || '');
+        setDocPdfUrl(editData.doc_pdf_url || '');
+        setDocPdfName(editData.doc_pdf_name || '');
       } else {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -172,6 +228,10 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
         setIsRecurring(false);
         setIntervalDays(3);
         setMaxAttempts(3);
+        setEnvioTipo(initialTipo || 'proposta');
+        setDocLink('');
+        setDocPdfUrl('');
+        setDocPdfName('');
       }
 
       // Load clients
@@ -183,7 +243,7 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
           if (data) setClients(data as ClientOption[]);
         });
     }
-  }, [open, editData]);
+  }, [open, editData, initialTipo]);
 
   // Auto-fill message template (only for new)
   useEffect(() => {
@@ -192,10 +252,17 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
       ? clients.find(c => c.id === selectedClientId)?.nome || 'Cliente'
       : manualName || 'Cliente';
 
-    if (produto) {
+    if (!produto) return;
+
+    if (envioTipo === 'contrato') {
+      setCustomMessage(`Olá ${name}! 👋\n\nSegue o *contrato* referente ao serviço de *${produto}*.\n\nPor favor, revise o documento e realize a assinatura. Qualquer dúvida sobre as cláusulas, estou à disposição.\n\nApós a assinatura, você receberá a via final do contrato.`);
+    } else if (envioTipo === 'distrato') {
+      setCustomMessage(`Olá ${name}!\n\nSegue o *distrato* (encerramento contratual) referente ao serviço de *${produto}*.\n\nPor favor, revise e assine o documento para formalizarmos o encerramento.\n\nAgradecemos pela parceria e seguimos à disposição para o que precisar.`);
+    } else {
       setCustomMessage(`Olá ${name}! 👋\n\nNotei seu interesse em *${produto}*. Gostaria de conversar mais sobre como podemos te ajudar?\n\nEstou à disposição para tirar suas dúvidas!`);
     }
-  }, [produto, manualName, selectedClientId, clientSource, clients, isEditing]);
+  }, [produto, manualName, selectedClientId, clientSource, clients, isEditing, envioTipo]);
+
 
   const clientOptions = clients.map(c => ({
     value: c.id,
@@ -205,8 +272,23 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
   const handleSubmit = () => {
     if (!produto.trim()) return;
     if (!scheduledDate) return;
+    if (isDocumento && !docLink.trim() && !docPdfUrl) {
+      toast.error('Informe o link de assinatura e/ou anexe o PDF do documento');
+      return;
+    }
+    if (docLink.trim() && !/^https?:\/\//i.test(docLink.trim())) {
+      toast.error('O link de assinatura deve começar com http:// ou https://');
+      return;
+    }
 
     const scheduledAt = new Date(`${scheduledDate}T${scheduledTime}:00-03:00`).toISOString();
+
+    const docFields = {
+      envio_tipo: envioTipo,
+      doc_link: isDocumento ? (docLink.trim() || null) : null,
+      doc_pdf_url: isDocumento ? (docPdfUrl || null) : null,
+      doc_pdf_name: isDocumento ? (docPdfName || null) : null,
+    };
 
     if (isEditing && editData) {
       updateFollowup.mutate({
@@ -222,6 +304,7 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
         manual_name: clientSource === 'manual' ? manualName.trim() : undefined,
         manual_email: clientSource === 'manual' ? manualEmail.trim() : undefined,
         manual_phone: clientSource === 'manual' ? manualPhone.trim() : undefined,
+        ...docFields,
       }, {
         onSuccess: () => onOpenChange(false),
       });
@@ -236,6 +319,7 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
       is_recurring: isRecurring,
       recurrence_interval_days: isRecurring ? intervalDays : undefined,
       max_attempts: isRecurring ? maxAttempts : undefined,
+      ...docFields,
     };
 
     if (clientSource === 'existing' && selectedClientId) {
@@ -251,10 +335,11 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
     });
   };
 
-  const canSubmit = produto.trim() && scheduledDate && (
+  const canSubmit = produto.trim() && scheduledDate && !isUploadingPdf && (
     (clientSource === 'existing' && selectedClientId) ||
     (clientSource === 'manual' && (manualName.trim() || manualEmail.trim() || manualPhone.trim()))
-  );
+  ) && (!isDocumento || !!docLink.trim() || !!docPdfUrl);
+
 
   const isPending = isEditing ? updateFollowup.isPending : createFollowup.isPending;
 
@@ -264,13 +349,42 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar Follow-up' : editData?.id === '__clone__' ? 'Duplicar Follow-up' : 'Novo Follow-up'}</DialogTitle>
           <DialogDescription>
-            {isEditing ? 'Atualize os dados do follow-up agendado' : editData?.id === '__clone__' ? 'Revise e ajuste os dados antes de salvar o follow-up duplicado' : 'Agende uma mensagem de follow-up para um cliente interessado'}
+            {isDocumento
+              ? `Agende o envio do ${envioTipo} para assinatura do cliente (link e/ou PDF)`
+              : isEditing ? 'Atualize os dados do follow-up agendado' : editData?.id === '__clone__' ? 'Revise e ajuste os dados antes de salvar o follow-up duplicado' : 'Agende uma mensagem de follow-up para um cliente interessado'}
           </DialogDescription>
+
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          {/* Tipo de envio */}
+          <div className="space-y-2">
+            <Label>Tipo de envio</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {tipoOptions.map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setEnvioTipo(opt.value)}
+                  className={`flex flex-col items-center gap-1 rounded-lg border p-2.5 text-xs transition-colors ${
+                    envioTipo === opt.value
+                      ? 'border-primary bg-primary/10 text-primary font-medium'
+                      : 'border-border text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  {opt.icon}
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {tipoOptions.find(o => o.value === envioTipo)?.hint}
+            </p>
+          </div>
+
           {/* Client source toggle */}
           <div className="flex gap-2">
+
             <Button
               type="button"
               variant={clientSource === 'manual' ? 'default' : 'outline'}
@@ -326,9 +440,76 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
 
           {/* Produto */}
           <div className="space-y-2">
-            <Label>Produto / Interesse <span className="text-destructive">*</span></Label>
-            <Input placeholder="Ex: Plano Premium, Consultoria..." value={produto} onChange={e => setProduto(e.target.value)} />
+            <Label>
+              {isDocumento ? 'Serviço / Objeto do documento' : 'Produto / Interesse'} <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              placeholder={isDocumento ? 'Ex: Gestão de Tráfego, Social Media...' : 'Ex: Plano Premium, Consultoria...'}
+              value={produto}
+              onChange={e => setProduto(e.target.value)}
+            />
           </div>
+
+          {/* Documento: link de assinatura + PDF */}
+          {isDocumento && (
+            <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                {envioTipo === 'contrato' ? <FileSignature className="h-4 w-4 text-primary" /> : <FileX2 className="h-4 w-4 text-primary" />}
+                Documento para assinatura
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Informe o link de assinatura, o PDF, ou os dois. Pelo menos um é obrigatório.
+              </p>
+
+              <div className="space-y-2">
+                <Label className="text-xs flex items-center gap-1">
+                  <Link2 className="h-3.5 w-3.5" /> Link de assinatura
+                </Label>
+                <Input
+                  placeholder="https://app.autentique.com.br/..."
+                  value={docLink}
+                  onChange={e => setDocLink(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs flex items-center gap-1">
+                  <FileText className="h-3.5 w-3.5" /> PDF do {envioTipo}
+                </Label>
+                {docPdfName ? (
+                  <div className="flex items-center justify-between gap-2 rounded-md border bg-background px-3 py-2">
+                    <span className="text-xs truncate flex items-center gap-2">
+                      <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
+                      {docPdfName}
+                    </span>
+                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={handleRemovePdf}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="flex items-center justify-center gap-2 rounded-md border border-dashed px-3 py-4 text-xs text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors">
+                    {isUploadingPdf ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" /> Enviando PDF...</>
+                    ) : (
+                      <><Upload className="h-4 w-4" /> Clique para anexar o PDF (máx. 15 MB)</>
+                    )}
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      className="hidden"
+                      disabled={isUploadingPdf}
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) handlePdfUpload(file);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+          )}
+
 
           {/* Channel */}
           <div className="space-y-2">
