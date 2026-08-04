@@ -9045,6 +9045,39 @@ export type Database = {
         }
         Relationships: []
       }
+      system_branding: {
+        Row: {
+          favicon_url: string | null
+          id: string
+          login_logo_url: string | null
+          og_image_url: string | null
+          sidebar_logo_url: string | null
+          singleton: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          favicon_url?: string | null
+          id?: string
+          login_logo_url?: string | null
+          og_image_url?: string | null
+          sidebar_logo_url?: string | null
+          singleton?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          favicon_url?: string | null
+          id?: string
+          login_logo_url?: string | null
+          og_image_url?: string | null
+          sidebar_logo_url?: string | null
+          singleton?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       system_permissions: {
         Row: {
           category: string
