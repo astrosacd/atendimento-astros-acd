@@ -12,7 +12,6 @@ import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { Clock, XCircle, Send } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import logoLoginAsset from '@/assets/logo-login.png.asset.json';
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
