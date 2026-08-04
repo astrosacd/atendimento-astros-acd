@@ -78,10 +78,67 @@ serve(async (req: Request) => {
       followup.manual_phone ||
       (followup.clientes as any)?.numero;
 
-    const message =
+    const envioTipo: "proposta" | "contrato" | "distrato" = followup.envio_tipo || "proposta";
+    const isDocumento = envioTipo === "contrato" || envioTipo === "distrato";
+    const tipoLabel = envioTipo === "contrato" ? "Contrato" : envioTipo === "distrato" ? "Distrato" : "Proposta";
+
+    const defaultMessage = isDocumento
+      ? `Olá ${clientName}, segue o ${tipoLabel.toLowerCase()} referente a ${followup.produto} para sua assinatura.`
+      : `Olá ${clientName}, temos uma oferta especial para você sobre ${followup.produto}. Entre em contato conosco!`;
+
+    const baseMessage =
       followup.custom_message ||
       followup.message_template ||
-      `Olá ${clientName}, temos uma oferta especial para você sobre ${followup.produto}. Entre em contato conosco!`;
+      defaultMessage;
+
+    // Signed URL do PDF (válida por 7 dias) — bucket privado "contratos"
+    let pdfSignedUrl: string | null = null;
+    let pdfBase64: string | null = null;
+    const pdfFileName = followup.doc_pdf_name || `${tipoLabel.toLowerCase()}.pdf`;
+
+    if (isDocumento && followup.doc_pdf_url) {
+      try {
+        const { data: signed } = await supabase.storage
+          .from("contratos")
+          .createSignedUrl(followup.doc_pdf_url, 60 * 60 * 24 * 7);
+        pdfSignedUrl = signed?.signedUrl || null;
+
+        const { data: fileData, error: dlError } = await supabase.storage
+          .from("contratos")
+          .download(followup.doc_pdf_url);
+        if (dlError) throw dlError;
+        if (fileData) {
+          const bytes = new Uint8Array(await fileData.arrayBuffer());
+          let binary = "";
+          const chunk = 0x8000;
+          for (let i = 0; i < bytes.length; i += chunk) {
+            binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+          }
+          pdfBase64 = btoa(binary);
+        }
+      } catch (err: any) {
+        console.error("❌ Erro ao preparar PDF:", err.message);
+        await supabase.from("client_followup_logs").insert({
+          followup_id: followup.id,
+          channel: "system",
+          status: "error",
+          error_message: `Falha ao carregar PDF do ${tipoLabel.toLowerCase()}: ${err.message}`,
+        });
+      }
+    }
+
+    // Mensagem final (texto) com bloco de documento quando aplicável
+    let message = baseMessage;
+    if (isDocumento) {
+      const parts: string[] = [baseMessage];
+      if (followup.doc_link) {
+        parts.push(`\n📝 *Assine o ${tipoLabel.toLowerCase()} online:*\n${followup.doc_link}`);
+      }
+      if (pdfSignedUrl && !pdfBase64) {
+        parts.push(`\n📎 *Baixar o PDF:*\n${pdfSignedUrl}`);
+      }
+      message = parts.join("\n");
+    }
 
     const channel = followup.channel;
     let emailSent = false;
@@ -101,7 +158,19 @@ serve(async (req: Request) => {
       gmailAppPassword
     ) {
       try {
-        const htmlBody = generateEmailHtml(clientName, followup.produto, message, config.gmail_sender_name || "Equipe Comercial");
+        const htmlBody = generateEmailHtml(
+          clientName,
+          followup.produto,
+          baseMessage,
+          config.gmail_sender_name || "Equipe Comercial",
+          {
+            tipo: envioTipo,
+            tipoLabel,
+            docLink: followup.doc_link || null,
+            pdfUrl: pdfSignedUrl,
+            pdfName: pdfFileName,
+          }
+        );
 
         const client = new SMTPClient({
           connection: {
@@ -119,12 +188,28 @@ serve(async (req: Request) => {
           ? `${config.gmail_sender_name} <${gmailUser}>`
           : gmailUser;
 
+        const subject = isDocumento
+          ? `${tipoLabel} para assinatura - ${followup.produto}`
+          : `${clientName}, temos uma novidade para você! 🚀`;
+
         await client.send({
           from: fromAddress,
           to: clientEmail,
-          subject: `${clientName}, temos uma novidade para você! 🚀`,
+          subject,
           content: message,
           html: htmlBody,
+          ...(pdfBase64
+            ? {
+                attachments: [
+                  {
+                    filename: pdfFileName,
+                    content: pdfBase64,
+                    encoding: "base64" as const,
+                    contentType: "application/pdf",
+                  },
+                ],
+              }
+            : {}),
         });
 
         await client.close();
@@ -183,6 +268,40 @@ serve(async (req: Request) => {
 
         whatsappSent = true;
         console.log(`✅ WhatsApp enviado para ${cleanNumber}`);
+
+        // Envia o PDF como documento quando houver
+        if (isDocumento && pdfSignedUrl) {
+          try {
+            const mediaResp = await fetch(`${evolutionApiUrl}/message/sendMedia/${evolutionInstanceName}`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                apikey: evolutionApiKey,
+              },
+              body: JSON.stringify({
+                number: cleanNumber,
+                mediatype: "document",
+                mimetype: "application/pdf",
+                media: pdfSignedUrl,
+                fileName: pdfFileName,
+                caption: `${tipoLabel} - ${followup.produto}`,
+              }),
+            });
+            if (!mediaResp.ok) {
+              const t = await mediaResp.text();
+              throw new Error(`HTTP ${mediaResp.status}: ${t}`);
+            }
+            console.log(`✅ PDF (${tipoLabel}) enviado via WhatsApp`);
+          } catch (mediaErr: any) {
+            console.error("❌ Erro ao enviar PDF no WhatsApp:", mediaErr.message);
+            await supabase.from("client_followup_logs").insert({
+              followup_id: followup.id,
+              channel: "whatsapp",
+              status: "error",
+              error_message: `Texto enviado, mas falhou o envio do PDF: ${mediaErr.message}`,
+            });
+          }
+        }
 
         await supabase.from("client_followup_logs").insert({
           followup_id: followup.id,
