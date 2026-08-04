@@ -348,8 +348,11 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar Follow-up' : editData?.id === '__clone__' ? 'Duplicar Follow-up' : 'Novo Follow-up'}</DialogTitle>
           <DialogDescription>
-            {isEditing ? 'Atualize os dados do follow-up agendado' : editData?.id === '__clone__' ? 'Revise e ajuste os dados antes de salvar o follow-up duplicado' : 'Agende uma mensagem de follow-up para um cliente interessado'}
+            {isDocumento
+              ? `Agende o envio do ${envioTipo} para assinatura do cliente (link e/ou PDF)`
+              : isEditing ? 'Atualize os dados do follow-up agendado' : editData?.id === '__clone__' ? 'Revise e ajuste os dados antes de salvar o follow-up duplicado' : 'Agende uma mensagem de follow-up para um cliente interessado'}
           </DialogDescription>
+
         </DialogHeader>
 
         <div className="space-y-4 py-2">
