@@ -207,6 +207,10 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
         setIsRecurring(editData.is_recurring);
         setIntervalDays(editData.recurrence_interval_days || 3);
         setMaxAttempts(editData.max_attempts || 3);
+        setEnvioTipo((editData.envio_tipo as EnvioTipo) || 'proposta');
+        setDocLink(editData.doc_link || '');
+        setDocPdfUrl(editData.doc_pdf_url || '');
+        setDocPdfName(editData.doc_pdf_name || '');
       } else {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -223,6 +227,10 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
         setIsRecurring(false);
         setIntervalDays(3);
         setMaxAttempts(3);
+        setEnvioTipo('proposta');
+        setDocLink('');
+        setDocPdfUrl('');
+        setDocPdfName('');
       }
 
       // Load clients
@@ -243,10 +251,17 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
       ? clients.find(c => c.id === selectedClientId)?.nome || 'Cliente'
       : manualName || 'Cliente';
 
-    if (produto) {
+    if (!produto) return;
+
+    if (envioTipo === 'contrato') {
+      setCustomMessage(`Olá ${name}! 👋\n\nSegue o *contrato* referente ao serviço de *${produto}*.\n\nPor favor, revise o documento e realize a assinatura. Qualquer dúvida sobre as cláusulas, estou à disposição.\n\nApós a assinatura, você receberá a via final do contrato.`);
+    } else if (envioTipo === 'distrato') {
+      setCustomMessage(`Olá ${name}!\n\nSegue o *distrato* (encerramento contratual) referente ao serviço de *${produto}*.\n\nPor favor, revise e assine o documento para formalizarmos o encerramento.\n\nAgradecemos pela parceria e seguimos à disposição para o que precisar.`);
+    } else {
       setCustomMessage(`Olá ${name}! 👋\n\nNotei seu interesse em *${produto}*. Gostaria de conversar mais sobre como podemos te ajudar?\n\nEstou à disposição para tirar suas dúvidas!`);
     }
-  }, [produto, manualName, selectedClientId, clientSource, clients, isEditing]);
+  }, [produto, manualName, selectedClientId, clientSource, clients, isEditing, envioTipo]);
+
 
   const clientOptions = clients.map(c => ({
     value: c.id,
