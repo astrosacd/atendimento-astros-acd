@@ -242,6 +242,7 @@ REGRAS:
 - NÃO inclua links (eles são anexados automaticamente pelo sistema)
 - Coloque-se à disposição para dúvidas sobre o documento
 - Emojis no máximo 1, discretos
+- NÃO use placeholders entre colchetes (ex: [Seu Nome]) e NÃO assine a mensagem
 - Use formatação do WhatsApp (*negrito*, _itálico_)
 - Escreva em português brasileiro`
       : `Você é responsável pelo relacionamento contratual de uma agência digital. Gere a mensagem de WhatsApp que acompanha o envio de um DISTRATO (encerramento contratual) para assinatura.
@@ -254,6 +255,7 @@ REGRAS:
 - NÃO invente cláusulas, multas, prazos ou valores
 - NÃO inclua links (eles são anexados automaticamente pelo sistema)
 - Sem emojis festivos; no máximo 1 emoji discreto
+- NÃO use placeholders entre colchetes (ex: [Seu Nome]) e NÃO assine a mensagem
 - Use formatação do WhatsApp (*negrito*, _itálico_)
 - Escreva em português brasileiro`;
 
