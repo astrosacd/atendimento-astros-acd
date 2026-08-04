@@ -31,8 +31,8 @@ interface ProfileStatus {
   user_response: string | null;
 }
 
-  const { loginLogo } = useBranding();
 export default function Auth() {
+  const { loginLogo } = useBranding();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const urlCode = searchParams.get('codigo');
