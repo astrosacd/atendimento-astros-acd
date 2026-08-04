@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, CheckCircle, Loader2, Lock, AlertCircle } from 'lucide-react';
 import { z } from 'zod';
+import logoLoginAsset from '@/assets/logo-login.png.asset.json';
 
 const passwordSchema = z
   .object({
@@ -149,7 +150,7 @@ export default function RedefinirSenha() {
         <Card className="w-full max-w-md bg-card border-border">
           <CardHeader className="text-center space-y-4">
             <img
-              src="https://i.imgur.com/odbwwWW.png"
+              src={logoLoginAsset.url}
               alt="Astros Comunicação Digital"
               className="h-20 mx-auto"
             />
@@ -190,7 +191,7 @@ export default function RedefinirSenha() {
         <Card className="w-full max-w-md bg-card border-border">
           <CardHeader className="text-center space-y-4">
             <img
-              src="https://i.imgur.com/odbwwWW.png"
+              src={logoLoginAsset.url}
               alt="Astros Comunicação Digital"
               className="h-20 mx-auto"
             />
@@ -220,7 +221,7 @@ export default function RedefinirSenha() {
       <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center space-y-4">
           <img
-            src="https://i.imgur.com/odbwwWW.png"
+            src={logoLoginAsset.url}
             alt="Astros Comunicação Digital"
             className="h-20 mx-auto"
           />
