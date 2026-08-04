@@ -38,6 +38,7 @@ interface FollowupFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editData?: Followup | null;
+  initialTipo?: EnvioTipo;
 }
 
 export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFormDialogProps) {
