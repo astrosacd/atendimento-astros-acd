@@ -163,6 +163,10 @@ export function useFollowups() {
       if (updates.manual_email !== undefined) updateData.manual_email = updates.manual_email || null;
       if (updates.manual_phone !== undefined) updateData.manual_phone = updates.manual_phone || null;
       if (updates.cliente_id !== undefined) updateData.cliente_id = updates.cliente_id || null;
+      if (updates.envio_tipo !== undefined) updateData.envio_tipo = updates.envio_tipo;
+      if (updates.doc_link !== undefined) updateData.doc_link = updates.doc_link || null;
+      if (updates.doc_pdf_url !== undefined) updateData.doc_pdf_url = updates.doc_pdf_url || null;
+      if (updates.doc_pdf_name !== undefined) updateData.doc_pdf_name = updates.doc_pdf_name || null;
 
       const { error } = await supabase
         .from('client_followups')
