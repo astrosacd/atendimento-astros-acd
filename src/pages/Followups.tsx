@@ -91,9 +91,9 @@ const conversionMap: Record<string, { label: string; color: string; icon: React.
 };
 
 const tipoMap: Record<EnvioTipo, { label: string; color: string; icon: React.ReactNode }> = {
-  proposta: { label: 'Proposta', color: 'bg-violet-100 text-violet-700', icon: <Megaphone className="h-3 w-3" /> },
-  contrato: { label: 'Contrato', color: 'bg-sky-100 text-sky-700', icon: <FileSignature className="h-3 w-3" /> },
-  distrato: { label: 'Distrato', color: 'bg-orange-100 text-orange-700', icon: <FileX2 className="h-3 w-3" /> },
+  proposta: { label: 'Proposta', color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300', icon: <Megaphone className="h-3 w-3" /> },
+  contrato: { label: 'Contrato', color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300', icon: <FileSignature className="h-3 w-3" /> },
+  distrato: { label: 'Distrato', color: 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300', icon: <FileX2 className="h-3 w-3" /> },
 };
 
 const PAGE_SIZE = 15;

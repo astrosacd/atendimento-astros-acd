@@ -21,7 +21,7 @@ serve(async (req: Request) => {
     // lovableApiKey may be null if using external provider
 
 
-    const { produto, client_name, translate_to, original_message } = await req.json();
+    const { produto, client_name, translate_to, original_message, envio_tipo } = await req.json();
 
     // If this is a translation request, handle it separately
     if (translate_to && original_message) {
@@ -229,7 +229,37 @@ serve(async (req: Request) => {
 
     // Get custom prompt or use default
     const customPrompt = getVal("ai_custom_prompt", "");
-    const systemPrompt = customPrompt || `Você é um assistente de vendas de uma agência digital. Gere uma mensagem de follow-up personalizada para WhatsApp.
+    const tipoEnvio = envio_tipo === "contrato" || envio_tipo === "distrato" ? envio_tipo : "proposta";
+    const isDocumento = tipoEnvio !== "proposta";
+
+    const docSystemPrompt = tipoEnvio === "contrato"
+      ? `Você é responsável pelo relacionamento contratual de uma agência digital. Gere a mensagem de WhatsApp que acompanha o envio de um CONTRATO para assinatura.
+
+REGRAS:
+- Tom profissional, cordial e objetivo (máximo 4 parágrafos)
+- Deixe claro que se trata do contrato do serviço contratado e que ele deve ser revisado e assinado
+- NÃO faça discurso de venda, NÃO ofereça descontos, NÃO invente cláusulas, prazos, valores ou condições
+- NÃO inclua links (eles são anexados automaticamente pelo sistema)
+- Coloque-se à disposição para dúvidas sobre o documento
+- Emojis no máximo 1, discretos
+- NÃO use placeholders entre colchetes (ex: [Seu Nome]) e NÃO assine a mensagem
+- Use formatação do WhatsApp (*negrito*, _itálico_)
+- Escreva em português brasileiro`
+      : `Você é responsável pelo relacionamento contratual de uma agência digital. Gere a mensagem de WhatsApp que acompanha o envio de um DISTRATO (encerramento contratual) para assinatura.
+
+REGRAS:
+- Tom respeitoso, profissional e sem cobranças ou culpabilização (máximo 4 parágrafos)
+- Deixe claro que é o documento de encerramento do contrato, que deve ser revisado e assinado
+- Agradeça pela parceria e deixe a porta aberta para o futuro
+- NÃO faça discurso de venda nem tente reverter o cancelamento
+- NÃO invente cláusulas, multas, prazos ou valores
+- NÃO inclua links (eles são anexados automaticamente pelo sistema)
+- Sem emojis festivos; no máximo 1 emoji discreto
+- NÃO use placeholders entre colchetes (ex: [Seu Nome]) e NÃO assine a mensagem
+- Use formatação do WhatsApp (*negrito*, _itálico_)
+- Escreva em português brasileiro`;
+
+    const systemPrompt = isDocumento ? docSystemPrompt : customPrompt || `Você é um assistente de vendas de uma agência digital. Gere uma mensagem de follow-up personalizada para WhatsApp.
 
 REGRAS:
 - Mensagem curta e direta (máximo 4 parágrafos)
@@ -241,7 +271,12 @@ REGRAS:
 - Use formatação do WhatsApp (*negrito*, _itálico_)
 - Escreva em português brasileiro`;
 
-    const userPrompt = `Gere uma mensagem de follow-up para o cliente "${safeName}" que demonstrou interesse no produto "${produto}".
+    const userPrompt = isDocumento
+      ? `Gere a mensagem que acompanha o envio do ${tipoEnvio} para o cliente "${safeName}", referente ao serviço "${produto}".
+
+Contexto do serviço (use apenas para citar o serviço corretamente, não venda nada):
+${productContext}`
+      : `Gere uma mensagem de follow-up para o cliente "${safeName}" que demonstrou interesse no produto "${produto}".
 
 Informações do produto no banco de dados:
 ${productContext}`;

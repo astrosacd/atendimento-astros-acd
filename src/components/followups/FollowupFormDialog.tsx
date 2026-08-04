@@ -175,7 +175,7 @@ export function FollowupFormDialog({ open, onOpenChange, editData, initialTipo }
     setIsGeneratingAI(true);
     try {
       const { data, error } = await supabase.functions.invoke('followup-generate-message', {
-        body: { produto: produto.trim(), client_name: name },
+        body: { produto: produto.trim(), client_name: name, envio_tipo: envioTipo },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
