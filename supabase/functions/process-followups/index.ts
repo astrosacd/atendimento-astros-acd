@@ -550,11 +550,41 @@ async function createBaserowLead(
   }
 }
 
+interface DocInfo {
+  tipo: "proposta" | "contrato" | "distrato";
+  tipoLabel: string;
+  docLink: string | null;
+  pdfUrl: string | null;
+  pdfName: string;
+}
+
 function generateEmailHtml(
   clientName: string,
   produto: string,
   message: string,
-  senderName: string
+  senderName: string,
+  doc?: DocInfo
 ): string {
+  const isDoc = !!doc && (doc.tipo === "contrato" || doc.tipo === "distrato");
+
+  if (isDoc && doc) {
+    const accent = doc.tipo === "contrato" ? "#0284c7" : "#ea580c";
+    const accentDark = doc.tipo === "contrato" ? "#075985" : "#9a3412";
+    const headline = doc.tipo === "contrato"
+      ? "Seu contrato está pronto para assinatura"
+      : "Distrato para sua assinatura";
+
+    const linkBlock = doc.docLink
+      ? `<table role="presentation" style="width:100%;border-collapse:collapse;margin:0 0 16px 0;"><tr><td align="center"><a href="${doc.docLink}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:16px;font-weight:600;">Assinar ${doc.tipoLabel.toLowerCase()} online</a></td></tr></table>`
+      : "";
+
+    const pdfBlock = doc.pdfUrl
+      ? `<table role="presentation" style="width:100%;border-collapse:collapse;margin:0 0 16px 0;"><tr><td align="center"><a href="${doc.pdfUrl}" style="display:inline-block;border:1px solid ${accent};color:${accentDark};text-decoration:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:600;">📎 Baixar PDF do ${doc.tipoLabel.toLowerCase()}</a></td></tr></table><p style="color:#94a3b8;font-size:12px;text-align:center;margin:0 0 8px 0;">O PDF também segue anexado a este e-mail. O link de download expira em 7 dias.</p>`
+      : "";
+
+    return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${doc.tipoLabel}</title></head><body style="margin:0;padding:0;font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;background-color:#f4f4f5;"><table role="presentation" style="width:100%;border-collapse:collapse;"><tr><td align="center" style="padding:40px 20px;"><table role="presentation" style="width:100%;max-width:600px;border-collapse:collapse;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.1);"><tr><td style="background:${accent};padding:36px 40px;text-align:center;"><h1 style="color:#ffffff;margin:0;font-size:24px;font-weight:600;">${headline}</h1></td></tr><tr><td style="padding:36px 40px 24px 40px;"><p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 20px 0;">Olá <strong>${clientName}</strong>,</p><p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 24px 0;white-space:pre-wrap;">${message.replace(/\n/g, '<br>')}</p><table role="presentation" style="width:100%;border-collapse:collapse;margin:0 0 28px 0;"><tr><td style="background-color:#f8fafc;border-radius:8px;padding:20px;border-left:4px solid ${accent};"><p style="color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin:0 0 6px 0;">${doc.tipoLabel} referente a</p><p style="color:#1e293b;font-size:18px;font-weight:600;margin:0;">${produto}</p></td></tr></table>${linkBlock}${pdfBlock}</td></tr><tr><td style="background-color:#f8fafc;padding:26px 40px;border-top:1px solid #e5e7eb;"><p style="color:#6b7280;font-size:14px;margin:0 0 10px 0;">Qualquer dúvida, é só responder este e-mail.</p><p style="color:#374151;font-size:16px;font-weight:600;margin:0;">${senderName}</p></td></tr></table></td></tr></table></body></html>`;
+  }
+
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Novidade para você</title></head><body style="margin:0;padding:0;font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;background-color:#f4f4f5;"><table role="presentation" style="width:100%;border-collapse:collapse;"><tr><td align="center" style="padding:40px 20px;"><table role="presentation" style="width:100%;max-width:600px;border-collapse:collapse;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.1);"><tr><td style="background:linear-gradient(135deg,#8b5cf6 0%,#6d28d9 100%);padding:40px;text-align:center;"><h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:600;">Temos uma novidade para você! 🚀</h1></td></tr><tr><td style="padding:40px;"><p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 20px 0;">Olá <strong>${clientName}</strong>,</p><p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 20px 0;white-space:pre-wrap;">${message.replace(/\n/g, '<br>')}</p><table role="presentation" style="width:100%;border-collapse:collapse;margin:30px 0;"><tr><td style="background-color:#f8fafc;border-radius:8px;padding:24px;border-left:4px solid #8b5cf6;"><p style="color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin:0 0 8px 0;">PRODUTO</p><p style="color:#1e293b;font-size:20px;font-weight:600;margin:0;">${produto}</p></td></tr></table></td></tr><tr><td style="background-color:#f8fafc;padding:30px 40px;border-top:1px solid #e5e7eb;"><p style="color:#6b7280;font-size:14px;margin:0 0 10px 0;">Atenciosamente,</p><p style="color:#374151;font-size:16px;font-weight:600;margin:0;">${senderName}</p></td></tr></table></td></tr></table></body></html>`;
 }
+
