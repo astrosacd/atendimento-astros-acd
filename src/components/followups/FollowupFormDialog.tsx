@@ -436,9 +436,76 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
 
           {/* Produto */}
           <div className="space-y-2">
-            <Label>Produto / Interesse <span className="text-destructive">*</span></Label>
-            <Input placeholder="Ex: Plano Premium, Consultoria..." value={produto} onChange={e => setProduto(e.target.value)} />
+            <Label>
+              {isDocumento ? 'Serviço / Objeto do documento' : 'Produto / Interesse'} <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              placeholder={isDocumento ? 'Ex: Gestão de Tráfego, Social Media...' : 'Ex: Plano Premium, Consultoria...'}
+              value={produto}
+              onChange={e => setProduto(e.target.value)}
+            />
           </div>
+
+          {/* Documento: link de assinatura + PDF */}
+          {isDocumento && (
+            <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                {envioTipo === 'contrato' ? <FileSignature className="h-4 w-4 text-primary" /> : <FileX2 className="h-4 w-4 text-primary" />}
+                Documento para assinatura
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Informe o link de assinatura, o PDF, ou os dois. Pelo menos um é obrigatório.
+              </p>
+
+              <div className="space-y-2">
+                <Label className="text-xs flex items-center gap-1">
+                  <Link2 className="h-3.5 w-3.5" /> Link de assinatura
+                </Label>
+                <Input
+                  placeholder="https://app.autentique.com.br/..."
+                  value={docLink}
+                  onChange={e => setDocLink(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs flex items-center gap-1">
+                  <FileText className="h-3.5 w-3.5" /> PDF do {envioTipo}
+                </Label>
+                {docPdfName ? (
+                  <div className="flex items-center justify-between gap-2 rounded-md border bg-background px-3 py-2">
+                    <span className="text-xs truncate flex items-center gap-2">
+                      <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
+                      {docPdfName}
+                    </span>
+                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={handleRemovePdf}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="flex items-center justify-center gap-2 rounded-md border border-dashed px-3 py-4 text-xs text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors">
+                    {isUploadingPdf ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" /> Enviando PDF...</>
+                    ) : (
+                      <><Upload className="h-4 w-4" /> Clique para anexar o PDF (máx. 15 MB)</>
+                    )}
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      className="hidden"
+                      disabled={isUploadingPdf}
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) handlePdfUpload(file);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+          )}
+
 
           {/* Channel */}
           <div className="space-y-2">
