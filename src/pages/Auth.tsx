@@ -418,7 +418,7 @@ export default function Auth() {
         <Card className="w-full max-w-md bg-card border-border border-2 border-destructive/20 shadow-2xl">
           <CardHeader className="text-center space-y-4">
             <img
-              src={logoLoginAsset.url}
+              src="/logo-login.png"
               alt="Astros Comunicação Digital"
               className="h-24 mx-auto mb-2"
             />
@@ -456,7 +456,7 @@ export default function Auth() {
           <Card className="w-full max-w-md bg-card border-border">
             <CardHeader className="text-center space-y-4">
               <img
-                src={logoLoginAsset.url}
+                src="/logo-login.png"
                 alt="Astros Comunicação Digital"
                 className="h-20 mx-auto"
               />
@@ -495,7 +495,7 @@ export default function Auth() {
           <Card className="w-full max-w-md bg-card border-border">
             <CardHeader className="text-center space-y-4">
               <img
-                src={logoLoginAsset.url}
+                src="/logo-login.png"
                 alt="Astros Comunicação Digital"
                 className="h-20 mx-auto"
               />
@@ -562,7 +562,7 @@ export default function Auth() {
       <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center space-y-4">
           <img
-            src={logoLoginAsset.url}
+            src="/logo-login.png"
             alt="Astros Comunicação Digital"
             className="h-20 mx-auto"
           />
