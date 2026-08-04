@@ -271,8 +271,23 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
   const handleSubmit = () => {
     if (!produto.trim()) return;
     if (!scheduledDate) return;
+    if (isDocumento && !docLink.trim() && !docPdfUrl) {
+      toast.error('Informe o link de assinatura e/ou anexe o PDF do documento');
+      return;
+    }
+    if (docLink.trim() && !/^https?:\/\//i.test(docLink.trim())) {
+      toast.error('O link de assinatura deve começar com http:// ou https://');
+      return;
+    }
 
     const scheduledAt = new Date(`${scheduledDate}T${scheduledTime}:00-03:00`).toISOString();
+
+    const docFields = {
+      envio_tipo: envioTipo,
+      doc_link: isDocumento ? (docLink.trim() || null) : null,
+      doc_pdf_url: isDocumento ? (docPdfUrl || null) : null,
+      doc_pdf_name: isDocumento ? (docPdfName || null) : null,
+    };
 
     if (isEditing && editData) {
       updateFollowup.mutate({
@@ -288,6 +303,7 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
         manual_name: clientSource === 'manual' ? manualName.trim() : undefined,
         manual_email: clientSource === 'manual' ? manualEmail.trim() : undefined,
         manual_phone: clientSource === 'manual' ? manualPhone.trim() : undefined,
+        ...docFields,
       }, {
         onSuccess: () => onOpenChange(false),
       });
@@ -302,6 +318,7 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
       is_recurring: isRecurring,
       recurrence_interval_days: isRecurring ? intervalDays : undefined,
       max_attempts: isRecurring ? maxAttempts : undefined,
+      ...docFields,
     };
 
     if (clientSource === 'existing' && selectedClientId) {
@@ -317,10 +334,11 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
     });
   };
 
-  const canSubmit = produto.trim() && scheduledDate && (
+  const canSubmit = produto.trim() && scheduledDate && !isUploadingPdf && (
     (clientSource === 'existing' && selectedClientId) ||
     (clientSource === 'manual' && (manualName.trim() || manualEmail.trim() || manualPhone.trim()))
-  );
+  ) && (!isDocumento || !!docLink.trim() || !!docPdfUrl);
+
 
   const isPending = isEditing ? updateFollowup.isPending : createFollowup.isPending;
 
