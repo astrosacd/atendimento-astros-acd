@@ -104,6 +104,10 @@ export function useFollowups() {
           recurrence_interval_days: input.is_recurring ? (input.recurrence_interval_days || 3) : null,
           max_attempts: input.is_recurring ? (input.max_attempts || 3) : 1,
           next_dispatch_at: input.scheduled_at,
+          envio_tipo: input.envio_tipo || 'proposta',
+          doc_link: input.doc_link || null,
+          doc_pdf_url: input.doc_pdf_url || null,
+          doc_pdf_name: input.doc_pdf_name || null,
           status: 'pending',
           created_by: user?.id,
         } as any)
