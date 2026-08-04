@@ -418,9 +418,9 @@ export default function Auth() {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md bg-card border-border border-2 border-destructive/20 shadow-2xl">
           <CardHeader className="text-center space-y-4">
-            <img 
-              src="https://i.imgur.com/odbwwWW.png" 
-              alt="Astros Comunicação Digital" 
+            <img
+              src={logoLoginAsset.url}
+              alt="Astros Comunicação Digital"
               className="h-24 mx-auto mb-2"
             />
             <div className="flex justify-center">
@@ -456,9 +456,9 @@ export default function Auth() {
         <div className="min-h-screen flex items-center justify-center bg-background p-4">
           <Card className="w-full max-w-md bg-card border-border">
             <CardHeader className="text-center space-y-4">
-              <img 
-                src="https://i.imgur.com/odbwwWW.png" 
-                alt="Astros Comunicação Digital" 
+              <img
+                src={logoLoginAsset.url}
+                alt="Astros Comunicação Digital"
                 className="h-20 mx-auto"
               />
               <div className="flex justify-center">
@@ -495,9 +495,9 @@ export default function Auth() {
         <div className="min-h-screen flex items-center justify-center bg-background p-4">
           <Card className="w-full max-w-md bg-card border-border">
             <CardHeader className="text-center space-y-4">
-              <img 
-                src="https://i.imgur.com/odbwwWW.png" 
-                alt="Astros Comunicação Digital" 
+              <img
+                src={logoLoginAsset.url}
+                alt="Astros Comunicação Digital"
                 className="h-20 mx-auto"
               />
               <div className="flex justify-center">
@@ -562,9 +562,9 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center space-y-4">
-          <img 
-            src="https://i.imgur.com/odbwwWW.png" 
-            alt="Astros Comunicação Digital" 
+          <img
+            src={logoLoginAsset.url}
+            alt="Astros Comunicação Digital"
             className="h-20 mx-auto"
           />
           <CardTitle className="text-2xl font-bold text-primary">Sistema Astros</CardTitle>
