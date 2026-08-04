@@ -20,6 +20,7 @@ import {
   Activity,
   Server,
   Clock,
+  Palette,
 } from 'lucide-react';
 
 const Admin = () => {
@@ -92,6 +93,14 @@ const Admin = () => {
       icon: Activity,
       path: '/admin/saude',
       color: 'from-emerald-500/20 to-emerald-600/10',
+    },
+    {
+      key: 'identidadeVisual',
+      title: 'Identidade Visual',
+      description: 'Troque a logo de login, o favicon, a imagem social e a logo do menu lateral.',
+      icon: Palette,
+      path: '/admin/identidade-visual',
+      color: 'from-fuchsia-500/20 to-pink-600/10',
     },
     {
       key: 'horarioComercial',

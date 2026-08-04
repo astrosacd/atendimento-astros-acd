@@ -19,6 +19,7 @@ import GerenciarUsuarios from "./pages/GerenciarUsuarios";
 import Admin from "./pages/Admin";
 import AdminRecuperacaoSenha from "./pages/AdminRecuperacaoSenha";
 import AdminRecaptcha from "./pages/AdminRecaptcha";
+import AdminBranding from "./pages/AdminBranding";
 import AdminWebhooks from "./pages/AdminWebhooks";
 
 import AdminApiKeys from "./pages/AdminApiKeys";
@@ -136,6 +137,7 @@ function AppRoutes() {
       <Route path="/admin" element={<ProtectedRoute permission="manage_settings"><Admin /></ProtectedRoute>} />
       <Route path="/admin/recuperacao-senha" element={<ProtectedRoute permission="manage_settings"><AdminRecuperacaoSenha /></ProtectedRoute>} />
       <Route path="/admin/recaptcha" element={<ProtectedRoute permission="manage_recaptcha"><AdminRecaptcha /></ProtectedRoute>} />
+      <Route path="/admin/identidade-visual" element={<ProtectedRoute permission="manage_settings"><AdminBranding /></ProtectedRoute>} />
       <Route path="/admin/webhooks" element={<ProtectedRoute permission="manage_webhooks"><AdminWebhooks /></ProtectedRoute>} />
       
       <Route path="/admin/api" element={<ProtectedRoute permission="manage_api"><AdminApiKeys /></ProtectedRoute>} />

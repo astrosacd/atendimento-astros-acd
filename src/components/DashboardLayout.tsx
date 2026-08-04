@@ -7,12 +7,14 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useLoginTracker } from '@/hooks/useLoginTracker';
+import { useBranding } from '@/hooks/useBranding';
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
+  const { sidebarLogo } = useBranding();
   const [chatOpen, setChatOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -72,7 +74,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <span className="font-display font-bold text-foreground text-sm">Astros CRM</span>
+            {sidebarLogo && (
+              <img src={sidebarLogo} alt="Logo" className="h-7 w-7 rounded-md object-contain shrink-0" />
+            )}
+            <span className="font-display font-bold text-foreground text-sm truncate">Astros CRM</span>
+
           </div>
         )}
         {children}
