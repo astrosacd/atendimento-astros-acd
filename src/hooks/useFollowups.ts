@@ -4,6 +4,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useSystemActivities } from '@/hooks/useSystemActivities';
 
+export type EnvioTipo = 'proposta' | 'contrato' | 'distrato';
+
+export const ENVIO_TIPO_LABEL: Record<EnvioTipo, string> = {
+  proposta: 'Proposta',
+  contrato: 'Contrato',
+  distrato: 'Distrato',
+};
+
 export interface Followup {
   id: string;
   cliente_id: string | null;
@@ -28,6 +36,10 @@ export interface Followup {
   conversion_status: 'converted' | 'not_converted' | null;
   conversion_note: string | null;
   converted_at: string | null;
+  envio_tipo: EnvioTipo;
+  doc_link: string | null;
+  doc_pdf_url: string | null;
+  doc_pdf_name: string | null;
 }
 
 export interface FollowupLog {
@@ -51,7 +63,12 @@ export interface CreateFollowupData {
   is_recurring: boolean;
   recurrence_interval_days?: number;
   max_attempts?: number;
+  envio_tipo?: EnvioTipo;
+  doc_link?: string | null;
+  doc_pdf_url?: string | null;
+  doc_pdf_name?: string | null;
 }
+
 
 export function useFollowups() {
   const { user } = useAuth();
