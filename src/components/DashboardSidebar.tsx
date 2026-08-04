@@ -19,6 +19,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { LanguageSelector } from '@/components/LanguageSelector';
+import { useBranding } from '@/hooks/useBranding';
 
 interface NavItem {
   title: string;
@@ -166,6 +167,7 @@ interface DashboardSidebarProps {
 }
 
 export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedChange, mobileOpen = false, onMobileClose: _onMobileClose, isMobile = false }: DashboardSidebarProps) {
+  const { sidebarLogo } = useBranding();
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, signOut, user } = useAuth();
