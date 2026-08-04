@@ -359,23 +359,38 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
         collapsed && !isMobile ? "justify-center" : "justify-between"
       )}>
         {!collapsed ? (
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md">
-                <span className="text-primary-foreground font-bold text-lg">A</span>
-              </div>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="relative shrink-0">
+              {sidebarLogo ? (
+                <img
+                  src={sidebarLogo}
+                  alt="Logo"
+                  className="w-10 h-10 rounded-xl object-contain bg-background/40 shadow-md"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md">
+                  <span className="text-primary-foreground font-bold text-lg">A</span>
+                </div>
+              )}
               <Sparkles className="absolute -top-1 -right-1 h-3.5 w-3.5 text-amber-400" />
             </div>
-            <div className="flex flex-col">
-              <span className="font-display font-bold text-foreground text-sm">Astros CRM</span>
-              <span className="text-[10px] text-muted-foreground">Sistema de Gestão</span>
+            <div className="flex flex-col min-w-0">
+              <span className="font-display font-bold text-foreground text-sm truncate">Astros CRM</span>
+              <span className="text-[10px] text-muted-foreground truncate">Sistema de Gestão</span>
             </div>
           </div>
+        ) : sidebarLogo ? (
+          <img
+            src={sidebarLogo}
+            alt="Logo"
+            className="w-10 h-10 rounded-xl object-contain bg-background/40 shadow-md"
+          />
         ) : (
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md">
             <span className="text-primary-foreground font-bold text-lg">A</span>
           </div>
         )}
+
       </div>
 
       {/* Toggle Button - escondido em mobile */}
