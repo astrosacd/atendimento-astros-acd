@@ -41,7 +41,7 @@ interface FollowupFormDialogProps {
   initialTipo?: EnvioTipo;
 }
 
-export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFormDialogProps) {
+export function FollowupFormDialog({ open, onOpenChange, editData, initialTipo }: FollowupFormDialogProps) {
   const { createFollowup, updateFollowup } = useFollowups();
   const isEditing = !!editData && editData.id !== '__clone__';
 
@@ -228,7 +228,7 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
         setIsRecurring(false);
         setIntervalDays(3);
         setMaxAttempts(3);
-        setEnvioTipo('proposta');
+        setEnvioTipo(initialTipo || 'proposta');
         setDocLink('');
         setDocPdfUrl('');
         setDocPdfName('');
@@ -243,7 +243,7 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
           if (data) setClients(data as ClientOption[]);
         });
     }
-  }, [open, editData]);
+  }, [open, editData, initialTipo]);
 
   // Auto-fill message template (only for new)
   useEffect(() => {
