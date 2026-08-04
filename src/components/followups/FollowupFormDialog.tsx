@@ -353,8 +353,34 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          {/* Tipo de envio */}
+          <div className="space-y-2">
+            <Label>Tipo de envio</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {tipoOptions.map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setEnvioTipo(opt.value)}
+                  className={`flex flex-col items-center gap-1 rounded-lg border p-2.5 text-xs transition-colors ${
+                    envioTipo === opt.value
+                      ? 'border-primary bg-primary/10 text-primary font-medium'
+                      : 'border-border text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  {opt.icon}
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {tipoOptions.find(o => o.value === envioTipo)?.hint}
+            </p>
+          </div>
+
           {/* Client source toggle */}
           <div className="flex gap-2">
+
             <Button
               type="button"
               variant={clientSource === 'manual' ? 'default' : 'outline'}
