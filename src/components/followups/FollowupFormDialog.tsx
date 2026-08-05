@@ -269,19 +269,53 @@ export function FollowupFormDialog({ open, onOpenChange, editData, initialTipo }
     label: `${c.nome} - ${c.numero || c.email}`,
   }));
 
-  const handleSubmit = () => {
-    if (!produto.trim()) return;
-    if (!scheduledDate) return;
+  const selectedClient = clients.find(c => c.id === selectedClientId);
+
+  // Lista de pendências — usada para feedback explícito (nada de botão desabilitado em silêncio)
+  const validationErrors: string[] = (() => {
+    const errs: string[] = [];
+    if (clientSource === 'existing') {
+      if (!selectedClientId) errs.push('Selecione o cliente cadastrado');
+    } else if (!manualName.trim() && !manualEmail.trim() && !manualPhone.trim()) {
+      errs.push('Preencha ao menos nome, e-mail ou WhatsApp do cliente');
+    }
+
+    if (!produto.trim()) errs.push(isDocumento ? 'Informe o serviço / objeto do documento' : 'Informe o produto / interesse');
+    if (!scheduledDate) errs.push('Escolha a data do envio');
+
+    const phone = clientSource === 'existing' ? (selectedClient?.numero || '') : manualPhone;
+    const email = clientSource === 'existing' ? (selectedClient?.email || '') : manualEmail;
+    if ((channel === 'whatsapp' || channel === 'both') && !phone.trim()) {
+      errs.push('Informe o WhatsApp do cliente (canal selecionado inclui WhatsApp)');
+    }
+    if ((channel === 'email' || channel === 'both') && !email.trim()) {
+      errs.push('Informe o e-mail do cliente (canal selecionado inclui e-mail)');
+    }
+
     if (isDocumento && !docLink.trim() && !docPdfUrl) {
-      toast.error('Informe o link de assinatura e/ou anexe o PDF do documento');
-      return;
+      errs.push(`Informe o link de assinatura e/ou anexe o PDF do ${envioTipo}`);
     }
     if (docLink.trim() && !/^https?:\/\//i.test(docLink.trim())) {
-      toast.error('O link de assinatura deve começar com http:// ou https://');
+      errs.push('O link de assinatura deve começar com http:// ou https://');
+    }
+    if (isUploadingPdf) errs.push('Aguarde o upload do PDF terminar');
+    if (!customMessage.trim()) errs.push('Escreva (ou gere) a mensagem que será enviada');
+    return errs;
+  })();
+
+  const handleSubmit = () => {
+    if (validationErrors.length > 0) {
+      toast.error(validationErrors[0], {
+        description: validationErrors.length > 1 ? `+ ${validationErrors.length - 1} pendência(s) para resolver` : undefined,
+      });
       return;
     }
 
     const scheduledAt = new Date(`${scheduledDate}T${scheduledTime}:00-03:00`).toISOString();
+    if (new Date(scheduledAt).getTime() < Date.now() - 60_000) {
+      toast.info('Data/horário no passado — o envio será disparado no próximo ciclo (até 1 min).');
+    }
+
 
     const docFields = {
       envio_tipo: envioTipo,
