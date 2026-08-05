@@ -669,13 +669,25 @@ export function FollowupFormDialog({ open, onOpenChange, editData, initialTipo }
           </div>
         </div>
 
+        {validationErrors.length > 0 && (
+          <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 space-y-1">
+            <p className="text-xs font-medium text-destructive">Falta preencher para agendar:</p>
+            <ul className="list-disc pl-4 space-y-0.5">
+              {validationErrors.map(err => (
+                <li key={err} className="text-xs text-destructive/90">{err}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={!canSubmit || isPending}>
+          <Button onClick={handleSubmit} disabled={isPending || isUploadingPdf}>
             {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             {isEditing ? 'Salvar Alterações' : 'Agendar Follow-up'}
           </Button>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
