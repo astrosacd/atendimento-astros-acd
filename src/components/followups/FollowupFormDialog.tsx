@@ -369,10 +369,8 @@ export function FollowupFormDialog({ open, onOpenChange, editData, initialTipo }
     });
   };
 
-  const canSubmit = produto.trim() && scheduledDate && !isUploadingPdf && (
-    (clientSource === 'existing' && selectedClientId) ||
-    (clientSource === 'manual' && (manualName.trim() || manualEmail.trim() || manualPhone.trim()))
-  ) && (!isDocumento || !!docLink.trim() || !!docPdfUrl);
+
+
 
 
   const isPending = isEditing ? updateFollowup.isPending : createFollowup.isPending;
