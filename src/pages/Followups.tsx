@@ -160,6 +160,21 @@ export default function Followups() {
   const currentPage = Math.min(page, totalPages - 1);
   const paged = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
+  // Motivos de erro (e-mail/WhatsApp) dos follow-ups visíveis na página atual
+  const failedIds = useMemo(
+    () => paged.filter(f => f.status === 'failed' || f.status === 'sent' || f.status === 'completed').map(f => f.id),
+    [paged]
+  );
+  const { data: errorLogsMap = {} } = useFollowupErrorLogs(failedIds);
+
+  const channelLabel: Record<string, string> = {
+    email: 'E-mail',
+    whatsapp: 'WhatsApp',
+    system: 'Sistema',
+  };
+
+
+
   const stats = {
     total: followups.length,
     pending: followups.filter(f => f.status === 'pending').length,
