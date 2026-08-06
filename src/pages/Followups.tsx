@@ -59,7 +59,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useFollowups, type Followup, type EnvioTipo } from '@/hooks/useFollowups';
+import { useFollowups, useFollowupErrorLogs, type Followup, type EnvioTipo } from '@/hooks/useFollowups';
 import { FollowupFormDialog } from '@/components/followups/FollowupFormDialog';
 import { FollowupConfigPanel } from '@/components/followups/FollowupConfigPanel';
 import { ContactHistoryDialog } from '@/components/followups/ContactHistoryDialog';
