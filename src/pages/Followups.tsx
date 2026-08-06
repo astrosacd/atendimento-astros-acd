@@ -59,7 +59,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useFollowups, type Followup, type EnvioTipo } from '@/hooks/useFollowups';
+import { useFollowups, useFollowupErrorLogs, type Followup, type EnvioTipo } from '@/hooks/useFollowups';
 import { FollowupFormDialog } from '@/components/followups/FollowupFormDialog';
 import { FollowupConfigPanel } from '@/components/followups/FollowupConfigPanel';
 import { ContactHistoryDialog } from '@/components/followups/ContactHistoryDialog';
@@ -159,6 +159,21 @@ export default function Followups() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages - 1);
   const paged = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+
+  // Motivos de erro (e-mail/WhatsApp) dos follow-ups visíveis na página atual
+  const failedIds = useMemo(
+    () => paged.filter(f => f.status === 'failed' || f.status === 'sent' || f.status === 'completed').map(f => f.id),
+    [paged]
+  );
+  const { data: errorLogsMap = {} } = useFollowupErrorLogs(failedIds);
+
+  const channelLabel: Record<string, string> = {
+    email: 'E-mail',
+    whatsapp: 'WhatsApp',
+    system: 'Sistema',
+  };
+
+
 
   const stats = {
     total: followups.length,
@@ -497,7 +512,30 @@ export default function Followups() {
                                     {conversion.label}
                                   </Badge>
                                 )}
+                                {(errorLogsMap[f.id] || []).map(log => (
+                                  <Tooltip key={log.id}>
+                                    <TooltipTrigger asChild>
+                                      <div className="flex items-start gap-1 max-w-[220px] rounded-md border border-destructive/30 bg-destructive/10 px-1.5 py-1 cursor-help">
+                                        <AlertCircle className="h-3 w-3 text-destructive shrink-0 mt-[1px]" />
+                                        <span className="text-[10px] leading-tight text-destructive line-clamp-2 break-words">
+                                          <span className="font-semibold">{channelLabel[log.channel] || log.channel}:</span>{' '}
+                                          {log.error_message || 'Falha no envio'}
+                                        </span>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      <p className="text-xs font-semibold">
+                                        Falha em {channelLabel[log.channel] || log.channel}
+                                      </p>
+                                      <p className="text-xs break-words">{log.error_message || 'Falha no envio'}</p>
+                                      <p className="text-[10px] text-muted-foreground mt-1">
+                                        {format(new Date(log.sent_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ))}
                               </div>
+
                             </TableCell>
                             <TableCell className="text-center">
                               {sendCount > 0 ? (
