@@ -379,7 +379,13 @@ export function FollowupFormDialog({ open, onOpenChange, editData, initialTipo }
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent key={open ? (editData?.id || 'new') : 'closed'} className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Editar Follow-up' : editData?.id === '__clone__' ? 'Duplicar Follow-up' : 'Novo Follow-up'}</DialogTitle>
+          <DialogTitle>
+            {isEditing
+              ? `Editar ${tipoTitulo}`
+              : editData?.id === '__clone__'
+                ? `Duplicar ${tipoTitulo}`
+                : isDocumento ? `Novo Envio de ${tipoTitulo}` : 'Novo Follow-up'}
+          </DialogTitle>
           <DialogDescription>
             {isDocumento
               ? `Agende o envio do ${envioTipo} para assinatura do cliente (link e/ou PDF)`
