@@ -356,3 +356,36 @@ export function useFollowupLogs(followupId: string | null) {
     },
   });
 }
+
+/**
+ * Últimos erros de envio por follow-up (mapa followup_id -> logs de erro mais recentes).
+ * Usado para exibir o motivo da falha direto no card/linha do follow-up.
+ */
+export function useFollowupErrorLogs(followupIds: string[]) {
+  const key = [...followupIds].sort().join(',');
+  return useQuery({
+    queryKey: ['followup-error-logs', key],
+    enabled: followupIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('client_followup_logs')
+        .select('*')
+        .in('followup_id', followupIds)
+        .eq('status', 'error')
+        .order('sent_at', { ascending: false })
+        .limit(500);
+      if (error) throw error;
+
+      const map: Record<string, FollowupLog[]> = {};
+      for (const log of (data || []) as FollowupLog[]) {
+        if (!map[log.followup_id]) map[log.followup_id] = [];
+        // mantém apenas o erro mais recente por canal
+        if (!map[log.followup_id].some(l => l.channel === log.channel)) {
+          map[log.followup_id].push(log);
+        }
+      }
+      return map;
+    },
+  });
+}
+
