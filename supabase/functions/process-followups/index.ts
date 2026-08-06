@@ -151,14 +151,30 @@ serve(async (req: Request) => {
     const evolutionApiKey = Deno.env.get("EVOLUTION_API_KEY") || config?.evolution_api_key;
     const evolutionInstanceName = Deno.env.get("EVOLUTION_INSTANCE") || config?.evolution_instance_name;
 
+    // Motivo de e-mail não enviado (registrado em log para ficar visível na UI)
+    const wantsEmail = channel === "email" || channel === "both";
+    const emailSkipReason = !wantsEmail
+      ? null
+      : !clientEmail
+        ? "Cliente sem e-mail cadastrado"
+        : !config?.email_enabled
+          ? "Envio por e-mail está desativado na configuração de follow-ups"
+          : !gmailUser || !gmailAppPassword
+            ? "Credenciais de e-mail (Gmail) não configuradas"
+            : null;
+
+    if (emailSkipReason) {
+      console.error(`❌ Email não enviado: ${emailSkipReason}`);
+      await supabase.from("client_followup_logs").insert({
+        followup_id: followup.id,
+        channel: "email",
+        status: "error",
+        error_message: emailSkipReason,
+      });
+    }
+
     // Send Email
-    if (
-      (channel === "email" || channel === "both") &&
-      clientEmail &&
-      config?.email_enabled &&
-      gmailUser &&
-      gmailAppPassword
-    ) {
+    if (wantsEmail && !emailSkipReason) {
       try {
         const htmlBody = generateEmailHtml(
           clientName,
