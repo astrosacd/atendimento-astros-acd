@@ -692,7 +692,7 @@ export function FollowupFormDialog({ open, onOpenChange, editData, initialTipo }
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={isPending || isUploadingPdf}>
             {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {isEditing ? 'Salvar Alterações' : 'Agendar Follow-up'}
+            {isEditing ? 'Salvar Alterações' : acaoLabel}
           </Button>
         </DialogFooter>
 
