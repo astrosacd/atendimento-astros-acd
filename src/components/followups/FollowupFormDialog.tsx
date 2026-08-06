@@ -68,6 +68,8 @@ export function FollowupFormDialog({ open, onOpenChange, editData, initialTipo }
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
 
   const isDocumento = envioTipo === 'contrato' || envioTipo === 'distrato';
+  const tipoTitulo = envioTipo === 'contrato' ? 'Contrato' : envioTipo === 'distrato' ? 'Distrato' : 'Follow-up';
+  const acaoLabel = isDocumento ? `Agendar Envio de ${tipoTitulo}` : 'Agendar Follow-up';
 
   const tipoOptions: { value: EnvioTipo; label: string; icon: React.ReactNode; hint: string }[] = [
     { value: 'proposta', label: 'Proposta', icon: <Megaphone className="h-4 w-4" />, hint: 'Mensagem comercial de follow-up' },
@@ -379,7 +381,13 @@ export function FollowupFormDialog({ open, onOpenChange, editData, initialTipo }
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent key={open ? (editData?.id || 'new') : 'closed'} className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Editar Follow-up' : editData?.id === '__clone__' ? 'Duplicar Follow-up' : 'Novo Follow-up'}</DialogTitle>
+          <DialogTitle>
+            {isEditing
+              ? `Editar ${tipoTitulo}`
+              : editData?.id === '__clone__'
+                ? `Duplicar ${tipoTitulo}`
+                : isDocumento ? `Novo Envio de ${tipoTitulo}` : 'Novo Follow-up'}
+          </DialogTitle>
           <DialogDescription>
             {isDocumento
               ? `Agende o envio do ${envioTipo} para assinatura do cliente (link e/ou PDF)`
@@ -684,7 +692,7 @@ export function FollowupFormDialog({ open, onOpenChange, editData, initialTipo }
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={isPending || isUploadingPdf}>
             {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {isEditing ? 'Salvar Alterações' : 'Agendar Follow-up'}
+            {isEditing ? 'Salvar Alterações' : acaoLabel}
           </Button>
         </DialogFooter>
 

@@ -143,20 +143,38 @@ serve(async (req: Request) => {
     const channel = followup.channel;
     let emailSent = false;
     let whatsappSent = false;
-    const gmailUser = Deno.env.get("GMAIL_USER") || config?.gmail_user;
-    const gmailAppPassword = Deno.env.get("GMAIL_APP_PASSWORD") || config?.gmail_app_password;
+    // Credenciais salvas na tela de configuração têm prioridade sobre os secrets
+    // (os secrets ficam apenas como fallback para automações antigas).
+    const gmailUser = config?.gmail_user || Deno.env.get("GMAIL_USER");
+    const gmailAppPassword = config?.gmail_app_password || Deno.env.get("GMAIL_APP_PASSWORD");
     const evolutionApiUrl = (Deno.env.get("EVOLUTION_API_URL") || config?.evolution_api_url || "").replace(/\/$/, "");
     const evolutionApiKey = Deno.env.get("EVOLUTION_API_KEY") || config?.evolution_api_key;
     const evolutionInstanceName = Deno.env.get("EVOLUTION_INSTANCE") || config?.evolution_instance_name;
 
+    // Motivo de e-mail não enviado (registrado em log para ficar visível na UI)
+    const wantsEmail = channel === "email" || channel === "both";
+    const emailSkipReason = !wantsEmail
+      ? null
+      : !clientEmail
+        ? "Cliente sem e-mail cadastrado"
+        : !config?.email_enabled
+          ? "Envio por e-mail está desativado na configuração de follow-ups"
+          : !gmailUser || !gmailAppPassword
+            ? "Credenciais de e-mail (Gmail) não configuradas"
+            : null;
+
+    if (emailSkipReason) {
+      console.error(`❌ Email não enviado: ${emailSkipReason}`);
+      await supabase.from("client_followup_logs").insert({
+        followup_id: followup.id,
+        channel: "email",
+        status: "error",
+        error_message: emailSkipReason,
+      });
+    }
+
     // Send Email
-    if (
-      (channel === "email" || channel === "both") &&
-      clientEmail &&
-      config?.email_enabled &&
-      gmailUser &&
-      gmailAppPassword
-    ) {
+    if (wantsEmail && !emailSkipReason) {
       try {
         const htmlBody = generateEmailHtml(
           clientName,
