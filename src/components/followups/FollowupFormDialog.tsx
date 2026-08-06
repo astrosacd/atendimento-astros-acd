@@ -68,6 +68,8 @@ export function FollowupFormDialog({ open, onOpenChange, editData, initialTipo }
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
 
   const isDocumento = envioTipo === 'contrato' || envioTipo === 'distrato';
+  const tipoTitulo = envioTipo === 'contrato' ? 'Contrato' : envioTipo === 'distrato' ? 'Distrato' : 'Follow-up';
+  const acaoLabel = isDocumento ? `Agendar Envio de ${tipoTitulo}` : 'Agendar Follow-up';
 
   const tipoOptions: { value: EnvioTipo; label: string; icon: React.ReactNode; hint: string }[] = [
     { value: 'proposta', label: 'Proposta', icon: <Megaphone className="h-4 w-4" />, hint: 'Mensagem comercial de follow-up' },
