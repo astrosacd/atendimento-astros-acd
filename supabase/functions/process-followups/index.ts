@@ -143,8 +143,10 @@ serve(async (req: Request) => {
     const channel = followup.channel;
     let emailSent = false;
     let whatsappSent = false;
-    const gmailUser = Deno.env.get("GMAIL_USER") || config?.gmail_user;
-    const gmailAppPassword = Deno.env.get("GMAIL_APP_PASSWORD") || config?.gmail_app_password;
+    // Credenciais salvas na tela de configuração têm prioridade sobre os secrets
+    // (os secrets ficam apenas como fallback para automações antigas).
+    const gmailUser = config?.gmail_user || Deno.env.get("GMAIL_USER");
+    const gmailAppPassword = config?.gmail_app_password || Deno.env.get("GMAIL_APP_PASSWORD");
     const evolutionApiUrl = (Deno.env.get("EVOLUTION_API_URL") || config?.evolution_api_url || "").replace(/\/$/, "");
     const evolutionApiKey = Deno.env.get("EVOLUTION_API_KEY") || config?.evolution_api_key;
     const evolutionInstanceName = Deno.env.get("EVOLUTION_INSTANCE") || config?.evolution_instance_name;
