@@ -512,7 +512,30 @@ export default function Followups() {
                                     {conversion.label}
                                   </Badge>
                                 )}
+                                {(errorLogsMap[f.id] || []).map(log => (
+                                  <Tooltip key={log.id}>
+                                    <TooltipTrigger asChild>
+                                      <div className="flex items-start gap-1 max-w-[220px] rounded-md border border-destructive/30 bg-destructive/10 px-1.5 py-1 cursor-help">
+                                        <AlertCircle className="h-3 w-3 text-destructive shrink-0 mt-[1px]" />
+                                        <span className="text-[10px] leading-tight text-destructive line-clamp-2 break-words">
+                                          <span className="font-semibold">{channelLabel[log.channel] || log.channel}:</span>{' '}
+                                          {log.error_message || 'Falha no envio'}
+                                        </span>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      <p className="text-xs font-semibold">
+                                        Falha em {channelLabel[log.channel] || log.channel}
+                                      </p>
+                                      <p className="text-xs break-words">{log.error_message || 'Falha no envio'}</p>
+                                      <p className="text-[10px] text-muted-foreground mt-1">
+                                        {format(new Date(log.sent_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ))}
                               </div>
+
                             </TableCell>
                             <TableCell className="text-center">
                               {sendCount > 0 ? (
