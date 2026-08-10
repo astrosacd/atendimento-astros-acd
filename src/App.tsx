@@ -203,6 +203,8 @@ function AppRoutes() {
       <Route path="/grafo-clientes" element={<ProtectedRoute permission="view_client_graph"><GrafoClientes /></ProtectedRoute>} />
       <Route path="/central-ajuda" element={<ProtectedRoute permission="view_central_ajuda"><CentralAjuda /></ProtectedRoute>} />
       <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
+      <Route path="/astro" element={<ProtectedRoute><Astro /></ProtectedRoute>} />
+
       
       {/* Instagram Module */}
       <Route path="/instagram" element={<ProtectedRoute permission="view_instagram"><InstagramModule /></ProtectedRoute>} />
