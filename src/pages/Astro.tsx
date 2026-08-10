@@ -144,7 +144,7 @@ export default function Astro() {
       if (data?.error) throw new Error(data.error);
       const answer: string = data?.reply ?? "";
       setReply(answer);
-      setHistory([...messages, { role: "assistant", content: answer }].slice(-12));
+      setHistory([...messages, { role: "assistant" as const, content: answer }].slice(-12));
       await speak(answer);
     } catch (e) {
       setState("idle");
