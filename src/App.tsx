@@ -95,6 +95,7 @@ import CentralSMS from "./pages/CentralSMS";
 import FilaExecutando from "./pages/FilaExecutando";
 import FilaSMSExecutando from "./pages/FilaSMSExecutando";
 import AdminHorarioComercial from "./pages/AdminHorarioComercial";
+import Astro from "./pages/Astro";
 
 const queryClient = new QueryClient();
 
