@@ -60,8 +60,8 @@ const VERT = /* glsl */ `
 
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
     gl_Position = projectionMatrix * mv;
-    float size = 0.9 + aRand * 0.9 + uAmp * 1.2;
-    gl_PointSize = size * (18.0 / -mv.z);
+    float size = 0.7 + aRand * 0.6 + uAmp * 0.8;
+    gl_PointSize = size * (26.0 / -mv.z);
 
     vGlow = clamp(0.18 + abs(n) * 0.8 + speak * 2.0 + uListen * 0.3 + uThink * 0.25, 0.0, 1.2);
   }
@@ -79,7 +79,7 @@ const FRAG = /* glsl */ `
     if (d > 0.5) discard;
     float alpha = smoothstep(0.5, 0.1, d);
     vec3 color = mix(uColorA, uColorB, clamp(vGlow, 0.0, 1.0));
-    gl_FragColor = vec4(color, alpha * (0.10 + vGlow * 0.30));
+    gl_FragColor = vec4(color, alpha * (0.06 + vGlow * 0.20));
   }
 `;
 
@@ -128,7 +128,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
-    camera.position.z = 3.4;
+    camera.position.z = 6.2;
 
     let renderer: THREE.WebGLRenderer;
     try {
@@ -139,7 +139,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
-    const COUNT = 22000;
+    const COUNT = 34000;
     const { pos, rand } = buildHeadPositions(COUNT);
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
@@ -150,8 +150,8 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       uAmp: { value: 0 },
       uListen: { value: 0 },
       uThink: { value: 0 },
-      uColorA: { value: new THREE.Color("#0ea5e9") },
-      uColorB: { value: new THREE.Color("#a78bfa") },
+      uColorA: { value: new THREE.Color("#1d4ed8") },
+      uColorB: { value: new THREE.Color("#67e8f9") },
     };
 
     const material = new THREE.ShaderMaterial({
@@ -194,8 +194,8 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       uniforms.uListen.value = cur.listen;
       uniforms.uThink.value = cur.think;
 
-      points.rotation.y = Math.sin(t * 0.18) * 0.28;
-      points.rotation.x = Math.sin(t * 0.13) * 0.09;
+      points.rotation.y = Math.sin(t * 0.15) * 0.16;
+      points.rotation.x = Math.sin(t * 0.11) * 0.05;
       renderer.render(scene, camera);
     };
     loop();
