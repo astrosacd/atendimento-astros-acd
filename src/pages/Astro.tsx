@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Mic, Square, Loader2, Volume2 } from "lucide-react";
+import { ArrowLeft, Mic, MicOff, Square, Loader2, Volume2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -230,6 +230,17 @@ export default function Astro() {
     }
   }, []);
 
+  // Modo conversa contínua: reabre o microfone sozinho sempre que fica ocioso
+  const [live, setLive] = useState(true);
+  const startRef = useRef(startListening);
+  useEffect(() => { startRef.current = startListening; }, [startListening]);
+
+  useEffect(() => {
+    if (!live || state !== "idle") return;
+    const t = setTimeout(() => startRef.current(), 400);
+    return () => clearTimeout(t);
+  }, [live, state]);
+
   useEffect(() => () => {
     cancelAnimationFrame(rafRef.current);
     audioElRef.current?.pause();
@@ -237,17 +248,26 @@ export default function Astro() {
   }, [stopMic]);
 
   const statusLabel: Record<AstroState, string> = {
-    idle: "Toque para falar",
-    listening: "Ouvindo...",
+    idle: live ? "Iniciando microfone..." : "Microfone desligado",
+    listening: "Ouvindo... pode falar",
     thinking: "Processando...",
     speaking: "Respondendo",
+  };
+
+  const toggleLive = () => {
+    if (live) {
+      setLive(false);
+      stopMic();
+      setState("idle");
+    } else {
+      setLive(true);
+    }
   };
 
   return (
     <main className="relative min-h-screen w-full overflow-hidden bg-background">
       {/* fundo */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.18),transparent_65%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background via-background/60 to-background" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.12),transparent_70%)]" />
 
       <header className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between p-4">
         <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
@@ -279,20 +299,29 @@ export default function Astro() {
         </div>
 
         <div className="flex flex-col items-center gap-3">
-          {state === "listening" ? (
-            <Button size="lg" variant="destructive" className="h-16 w-16 rounded-full" onClick={() => finishListening()}>
-              <Square className="h-6 w-6" />
-            </Button>
-          ) : (
+          <div className="flex items-center gap-3">
             <Button
               size="lg"
-              className="h-16 w-16 rounded-full shadow-lg"
-              disabled={state !== "idle"}
-              onClick={startListening}
+              variant={live ? "secondary" : "default"}
+              className="h-14 w-14 rounded-full shadow-lg"
+              onClick={toggleLive}
+              aria-label={live ? "Desligar microfone" : "Ligar microfone"}
             >
-              {state === "idle" ? <Mic className="h-6 w-6" /> : <Loader2 className="h-6 w-6 animate-spin" />}
+              {live ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
             </Button>
-          )}
+            {state === "listening" && (
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-14 w-14 rounded-full"
+                onClick={() => finishListening()}
+                aria-label="Enviar agora"
+              >
+                <Square className="h-5 w-5" />
+              </Button>
+            )}
+            {state === "thinking" && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+          </div>
           <span className="text-xs uppercase tracking-widest text-muted-foreground">{statusLabel[state]}</span>
         </div>
       </div>
