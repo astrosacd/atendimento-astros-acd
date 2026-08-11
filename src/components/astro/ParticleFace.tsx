@@ -60,10 +60,10 @@ const VERT = /* glsl */ `
 
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
     gl_Position = projectionMatrix * mv;
-    float size = 2.0 + aRand * 2.2 + uAmp * 3.5;
-    gl_PointSize = size * (300.0 / -mv.z);
+    float size = 0.9 + aRand * 0.9 + uAmp * 1.2;
+    gl_PointSize = size * (18.0 / -mv.z);
 
-    vGlow = clamp(0.25 + abs(n) * 1.2 + speak * 3.0 + uListen * 0.35 + uThink * 0.3, 0.0, 1.6);
+    vGlow = clamp(0.18 + abs(n) * 0.8 + speak * 2.0 + uListen * 0.3 + uThink * 0.25, 0.0, 1.2);
   }
 `;
 
@@ -77,9 +77,9 @@ const FRAG = /* glsl */ `
     vec2 c = gl_PointCoord - 0.5;
     float d = length(c);
     if (d > 0.5) discard;
-    float alpha = smoothstep(0.5, 0.0, d);
+    float alpha = smoothstep(0.5, 0.1, d);
     vec3 color = mix(uColorA, uColorB, clamp(vGlow, 0.0, 1.0));
-    gl_FragColor = vec4(color * (0.6 + vGlow), alpha * (0.35 + vGlow * 0.55));
+    gl_FragColor = vec4(color, alpha * (0.10 + vGlow * 0.30));
   }
 `;
 
