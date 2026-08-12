@@ -1,75 +1,32 @@
-## Funcionalidade: Extrato de Investimento (PDF)
+# ASTRO: rosto fiel, voz correta e menor latência
 
-Substitui o processo manual de gerar PDF de investimentos. Consolida múltiplos cadastros do mesmo cliente (por nome + e-mail + telefone), permite revisar/desmarcar registros, e gera PDF idêntico ao modelo Astros (azul-marinho + dourado).
+## Objetivo
+Aproximar o ASTRO da referência enviada: rosto humano frontal reconhecível em malha luminosa, reação orgânica durante fala/escuta, mesma voz configurada em Ligações IA e resposta perceptivelmente mais rápida.
 
-### 1. Onde acessar
-- Adicionar botão **"Gerar Extrato de Investimento"** na página do cliente (`/clientes` → ação da linha) e/ou no detalhe do cliente.
-- Também acessível por uma rota nova `/clientes/extrato-investimento` com busca por nome/email/telefone.
+## Execução
+1. **Reconstruir o avatar 3D**
+   - Trocar o esferoide uniforme por uma geometria facial paramétrica com testa, órbitas, nariz, maçãs, lábios, mandíbula e queixo.
+   - Renderizar duas camadas: pontos luminosos + conexões trianguladas discretas.
+   - Adicionar partículas soltas e faíscas orbitando o rosto, com brilho branco/ciano e profundidade.
+   - Animar boca, bochechas e emissão de partículas conforme o áudio; manter reações próprias para escuta e processamento.
+   - Ajustar enquadramento responsivo para o rosto dominar a tela sem cobrir controles/legendas.
 
-### 2. Agrupamento e busca
-- Query consolida `clientes` + `client_purchases` + `client_payments` (pagos) usando fuzzy match:
-  - Mesmo telefone (normalizado: só dígitos)
-  - OU mesmo email (lowercase)
-  - OU nome muito similar (`similarity()` do `pg_trgm`)
-- Retorna todos os registros encontrados com origem (cadastro principal, compras avulsas, mensalidades).
+2. **Garantir a mesma voz de Ligações IA**
+   - Manter o TTS ligado à configuração central de Ligações IA (`elevenlabs_default_voice_id`, modelo, estabilidade, similaridade e velocidade).
+   - Validar e expor erro claro caso a voz padrão não esteja configurada, evitando fallback silencioso para outra voz.
 
-### 3. Tela de seleção
-- Modal/página lista todos os itens encontrados, agrupados em duas seções:
-  - **Aquisição única** (compras de `client_purchases` + pagamentos únicos)
-  - **Mensais recorrentes** (cadastros de `clientes` com `cobranca_ativa=true` e `ciclo_cobranca='mensal'`)
-- Cada linha tem checkbox (marcado por padrão), quantidade editável, valor unitário e total calculado.
-- Campos editáveis: **Referência do extrato** (subtítulo), **Nome do cliente** (pré-preenchido com o mais frequente).
-- Botão **"Gerar PDF"** dispara a geração com a seleção final.
+3. **Reduzir o atraso da conversa**
+   - Encurtar a espera de silêncio do detector de voz sem cortar palavras.
+   - Eliminar etapas evitáveis no cliente e preparar o áudio para tocar assim que estiver disponível.
+   - Usar resposta curta e modelo rápido no assistente, preservando as ferramentas e permissões existentes.
+   - Mostrar estados separados de transcrição, consulta e preparação da voz para o atraso não parecer travamento.
 
-### 4. Geração do PDF
-- Edge Function `gerar-extrato-investimento`:
-  - Recebe `{ cliente_nome, referencia, itens_unicos[], itens_mensais[] }`.
-  - Renderiza HTML idêntico ao layout Astros (cores `#0B1733` fundo, `#D4A84B` dourado, `#1B2E54` cards).
-  - Converte para PDF via `puppeteer-core` + Chromium (ou via `@react-pdf/renderer` server-side se mais simples no Deno).
-  - Página 1: header + 3 KPIs + tabela "Aquisição Única" + tabela "Mensais Recorrentes" + 2 totais.
-  - Página 2: detalhamento de cada item com descrição (pega de `predefined_products` quando bate por nome, senão deixa descrição padrão).
-  - Retorna o PDF base64 ou URL de bucket.
-- Frontend faz download direto (`extrato_<nome>_<data>.pdf`).
+4. **Validar**
+   - Verificar renderização WebGL em desktop e mobile, enquadramento, ausência de sobreposição e animação.
+   - Testar o ciclo: escutar → transcrever → consultar → gerar voz → falar → reabrir microfone.
+   - Confirmar que nenhum módulo existente foi alterado fora de ASTRO e da função de TTS compartilhada, se necessário.
 
-### 5. Layout (fiel ao modelo)
-- Fundo `#0B1733`, dourado `#D4A84B`, texto branco/cinza claro.
-- Header: "ASTROS COMUNICAÇÃO DIGITAL" (dourado+branco) + badge "EXTRATO DE INVESTIMENTO".
-- Tipografia: serif/sans similar ao modelo (usar Inter ou Manrope — bundled no Chromium).
-- Cards com borda dourada no destaque "INVESTIMENTO ÚNICO".
-- Linha total com fundo dourado sólido e texto azul-marinho escuro.
-- Rodapé: "ASTROS COMUNICAÇÃO DIGITAL · Confidencial · página x/y".
-
-### 6. Detalhes técnicos
-
-**Banco**
-- Migration: habilitar extensão `pg_trgm` (se ainda não tiver) para o fuzzy match.
-- Criar função RPC `buscar_investimentos_cliente(p_nome text, p_email text, p_telefone text)` que retorna json consolidado (RLS-safe via `SECURITY DEFINER` + checagem `is_admin() OR auth.uid() IS NOT NULL`).
-
-**Frontend**
-- `src/pages/ExtratoInvestimento.tsx` — página com busca e tela de seleção.
-- `src/components/extrato/SelecaoItensDialog.tsx` — modal de revisão.
-- Botão na tabela de `/clientes` na lista de ações.
-
-**Edge Function**
-- `supabase/functions/gerar-extrato-investimento/index.ts`
-  - Geração via **`@react-pdf/renderer`** (funciona em Deno via `npm:` e gera PDF nativamente sem Chromium) **ou** via HTML→PDF com a lib `npm:html-pdf-node`/`npm:pdf-lib`.
-  - Vou usar HTML estático + `npm:@react-pdf/renderer` pela fidelidade ao layout.
-
-### 7. Permissão
-- Apenas usuários com `has_permission('clientes_view')` ou admins podem gerar.
-
-### 8. Riscos / pontos de atenção
-- Fuzzy match pode trazer falso-positivos → a tela de seleção é a salvaguarda (operador desmarca).
-- Renderização PDF no Edge Function tem limite de memória; vou validar com cliente de 15+ serviços.
-- Mapeamento de produto → descrição rica usa `predefined_products`; se não houver match, mostra só nome + valores.
-
-### 9. Itens fora deste escopo (confirmar se quer incluir)
-- Envio automático por WhatsApp/email após gerar.
-- Histórico de extratos gerados por cliente (auditoria).
-- Logo customizada do cliente/empresa.
-
-### Confirmações necessárias antes de codar
-1. **Origem dos itens "mensais"**: usar `clientes.valor` + `ciclo_cobranca='mensal'` como base, certo? Ou tem outra tabela de assinaturas?
-2. **Descrição rica de cada produto** (texto + bullets na página 2): deve vir de `predefined_products.descricao` ou você vai cadastrar à parte? Se não houver, mostro só nome + valores.
-3. **Histórico**: salvar cada PDF gerado em bucket + tabela `extratos_investimento_logs` para auditoria? (recomendo sim)
-4. **Envio automático**: gerar só pra download, ou já adicionar botão "Enviar por WhatsApp" no fim?
+## Impacto e riscos
+- A malha será procedural e inspirada na referência; não é captura facial/fotogrametria do vídeo original.
+- A latência externa de STT, IA e ElevenLabs não pode ser zerada, mas o pipeline local e os tempos de espera serão reduzidos.
+- Alterações na função compartilhada de TTS serão limitadas a validação/latência e devem preservar Ligações IA.
