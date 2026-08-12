@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import ParticleFace from "@/components/astro/ParticleFace";
 
 type AstroState = "idle" | "listening" | "thinking" | "speaking";
+type ProcessingPhase = "transcribing" | "consulting" | "voice" | null;
 interface Turn { role: "user" | "assistant"; content: string }
 
 /** Codifica PCM float32 mono em WAV 16-bit 16kHz */
@@ -52,6 +53,7 @@ export default function Astro() {
   const [transcript, setTranscript] = useState("");
   const [reply, setReply] = useState("");
   const [history, setHistory] = useState<Turn[]>([]);
+  const [processingPhase, setProcessingPhase] = useState<ProcessingPhase>(null);
 
   const stateRef = useRef<AstroState>("idle");
   useEffect(() => { stateRef.current = state; }, [state]);
@@ -77,14 +79,25 @@ export default function Astro() {
 
   const speak = useCallback(async (text: string) => {
     try {
+      setProcessingPhase("voice");
       setState("speaking");
-      const { data, error } = await supabase.functions.invoke("ligacoes-ia-tts", {
-        body: { preview_text: text },
-      });
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
-      const url: string | undefined = data?.signed_url;
-      if (!url) throw new Error("Áudio não gerado");
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Sessão expirada");
+      const response = await fetch(
+        `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/astro-tts`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        },
+      );
+      if (!response.ok) {
+        const details = await response.json().catch(() => ({}));
+        throw new Error(details.error ?? `Erro ${response.status}`);
+      }
+      const audioBlob = await response.blob();
+      const url = URL.createObjectURL(audioBlob);
 
       const audio = new Audio(url);
       audio.crossOrigin = "anonymous";
@@ -120,15 +133,17 @@ export default function Astro() {
 
       await audio.play();
       await new Promise<void>((resolve) => {
-        audio.onended = () => resolve();
-        audio.onerror = () => resolve();
+        audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
+        audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
       });
       cancelAnimationFrame(rafRef.current);
       setAmplitude(0);
+      setProcessingPhase(null);
       setState("idle");
     } catch (e) {
       cancelAnimationFrame(rafRef.current);
       setAmplitude(0);
+      setProcessingPhase(null);
       setState("idle");
       toast.error(`Falha na voz: ${(e as Error).message}`);
     }
@@ -136,6 +151,7 @@ export default function Astro() {
 
   const ask = useCallback(async (text: string) => {
     setState("thinking");
+    setProcessingPhase("consulting");
     setReply("");
     try {
       const messages = [...history, { role: "user" as const, content: text }].slice(-12);
@@ -167,6 +183,7 @@ export default function Astro() {
     }
 
     setState("thinking");
+    setProcessingPhase("transcribing");
     try {
       const form = new FormData();
       form.append("file", blob, "recording.wav");
@@ -219,7 +236,7 @@ export default function Astro() {
         if (rms > 0.02) { spoke = true; silenceRef.current = 0; }
         else if (spoke) {
           silenceRef.current += input.length / ctx.sampleRate;
-          if (silenceRef.current > 1.4) { node.onaudioprocess = null; finishRef.current(); }
+          if (silenceRef.current > 0.82) { node.onaudioprocess = null; finishRef.current(); }
         }
       };
       source.connect(node);
@@ -253,6 +270,13 @@ export default function Astro() {
     thinking: "Processando...",
     speaking: "Respondendo",
   };
+  const visibleStatus = processingPhase === "transcribing"
+    ? "Entendendo sua fala..."
+    : processingPhase === "consulting"
+      ? "Consultando o CRM..."
+      : processingPhase === "voice"
+        ? "Preparando a voz..."
+        : statusLabel[state];
 
   const toggleLive = () => {
     if (live) {
@@ -267,7 +291,7 @@ export default function Astro() {
   return (
     <main className="relative min-h-screen w-full overflow-hidden bg-background">
       {/* fundo */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.12),transparent_70%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--info)/0.08),transparent_62%)]" />
 
       <header className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between p-4">
         <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
@@ -278,7 +302,7 @@ export default function Astro() {
       </header>
 
       {/* rosto de partículas */}
-      <div className="absolute inset-0 z-10">
+      <div className="absolute inset-x-0 top-14 bottom-32 z-10 sm:bottom-28">
         <ParticleFace amplitude={amplitude} listening={listenLevel} state={state} />
       </div>
 
@@ -322,7 +346,7 @@ export default function Astro() {
             )}
             {state === "thinking" && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
           </div>
-          <span className="text-xs uppercase tracking-widest text-muted-foreground">{statusLabel[state]}</span>
+          <span className="text-xs uppercase tracking-widest text-muted-foreground">{visibleStatus}</span>
         </div>
       </div>
     </main>

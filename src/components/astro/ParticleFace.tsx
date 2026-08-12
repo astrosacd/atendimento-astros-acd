@@ -10,106 +10,98 @@ interface ParticleFaceProps {
   state: "idle" | "listening" | "thinking" | "speaking";
 }
 
-const VERT = /* glsl */ `
+const FACE_VERT = /* glsl */ `
   uniform float uTime;
   uniform float uAmp;
   uniform float uListen;
   uniform float uThink;
-  attribute float aRand;
   varying float vGlow;
-
-  // hash noise
-  float hash(vec3 p) {
-    p = fract(p * 0.3183099 + 0.1);
-    p *= 17.0;
-    return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
-  }
-  float noise(vec3 x) {
-    vec3 i = floor(x);
-    vec3 f = fract(x);
-    f = f * f * (3.0 - 2.0 * f);
-    return mix(
-      mix(mix(hash(i + vec3(0,0,0)), hash(i + vec3(1,0,0)), f.x),
-          mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
-      mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
-          mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
-  }
-
   void main() {
     vec3 p = position;
-    vec3 dir = normalize(p);
-
-    // respiração base
-    float breathe = 0.035 * sin(uTime * 0.9 + aRand * 6.2831);
-
-    // turbulência orgânica
-    float n = noise(p * 1.9 + vec3(uTime * 0.35)) - 0.5;
-
-    // "boca": faixa horizontal abaixo do centro reage à fala
-    float mouth = exp(-pow((p.y + 0.28) * 4.2, 2.0)) * exp(-pow(p.z - 0.7, 2.0) * 1.2);
-    float speak = uAmp * mouth * 0.55;
-
-    // ondas concêntricas quando escuta
-    float ripple = sin(length(p.xy) * 9.0 - uTime * 4.0) * 0.05 * uListen;
-
-    // rotação de energia enquanto pensa
-    float think = sin(p.y * 8.0 + uTime * 6.0) * 0.035 * uThink;
-
-    float disp = breathe + n * (0.10 + uAmp * 0.22) + speak + ripple + think;
-    p += dir * disp;
-
+    float mouth = exp(-pow(p.x * 3.3, 2.0) - pow((p.y + 0.48) * 8.0, 2.0));
+    float jaw = smoothstep(-0.18, -0.78, p.y);
+    p.y -= uAmp * (mouth * 0.13 + jaw * 0.025);
+    p.z += uAmp * mouth * 0.08;
+    p.z += sin(uTime * 1.4 + p.y * 5.0) * 0.006;
+    p.z += sin(length(p.xy) * 15.0 - uTime * 5.0) * uListen * 0.012;
+    p.x += sin(uTime * 5.0 + p.y * 9.0) * uThink * 0.008;
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
     gl_Position = projectionMatrix * mv;
-    float size = 0.7 + aRand * 0.6 + uAmp * 0.8;
-    gl_PointSize = size * (26.0 / -mv.z);
-
-    vGlow = clamp(0.18 + abs(n) * 0.8 + speak * 2.0 + uListen * 0.3 + uThink * 0.25, 0.0, 1.2);
+    gl_PointSize = (1.2 + mouth * uAmp * 1.7) * (23.0 / -mv.z);
+    vGlow = clamp(0.28 + mouth * uAmp * 1.4 + uListen * 0.25 + uThink * 0.18, 0.0, 1.0);
   }
 `;
 
-const FRAG = /* glsl */ `
+const POINT_FRAG = /* glsl */ `
   precision highp float;
-  uniform vec3 uColorA;
-  uniform vec3 uColorB;
   varying float vGlow;
-
   void main() {
     vec2 c = gl_PointCoord - 0.5;
     float d = length(c);
     if (d > 0.5) discard;
-    float alpha = smoothstep(0.5, 0.1, d);
-    vec3 color = mix(uColorA, uColorB, clamp(vGlow, 0.0, 1.0));
-    gl_FragColor = vec4(color, alpha * (0.06 + vGlow * 0.20));
+    float core = smoothstep(0.5, 0.0, d);
+    vec3 color = mix(vec3(0.28, 0.78, 1.0), vec3(1.0), vGlow);
+    gl_FragColor = vec4(color, core * (0.34 + vGlow * 0.58));
   }
 `;
 
-/** Gera pontos numa superfície tipo "cabeça" (esferoide alongado com queixo). */
-function buildHeadPositions(count: number) {
-  const pos = new Float32Array(count * 3);
-  const rand = new Float32Array(count);
-  for (let i = 0; i < count; i++) {
-    // distribuição fibonacci na esfera
-    const k = i + 0.5;
-    const phi = Math.acos(1 - (2 * k) / count);
-    const theta = Math.PI * (1 + Math.sqrt(5)) * k;
-    let x = Math.sin(phi) * Math.cos(theta);
-    let y = Math.cos(phi);
-    let z = Math.sin(phi) * Math.sin(theta);
+const gauss = (x: number, y: number, cx: number, cy: number, sx: number, sy: number) =>
+  Math.exp(-(((x - cx) / sx) ** 2 + ((y - cy) / sy) ** 2));
 
-    // formato de cabeça: mais estreito nos lados, alongado na vertical, queixo afinado
-    x *= 0.78;
-    z *= 0.86;
-    y *= 1.12;
-    const chin = y < 0 ? 1 - Math.pow(-y, 2.2) * 0.35 : 1;
-    x *= chin;
-    z *= chin;
+function facePoint(u: number, v: number) {
+  const forehead = 0.93 + 0.07 * Math.max(v, 0);
+  const jaw = v < 0 ? 1 - 0.32 * Math.pow(-v, 1.5) : 1;
+  const x = u * 1.02 * forehead * jaw;
+  const y = v * 1.38;
+  const oval = Math.sqrt(Math.max(0, 1 - u * u - v * v));
+  let z = oval * 0.30;
+  z += gauss(u, v, 0, 0.05, 0.13, 0.30) * 0.62;
+  z += gauss(u, v, 0, -0.16, 0.20, 0.14) * 0.16;
+  z -= gauss(u, v, -0.34, 0.22, 0.22, 0.13) * 0.17;
+  z -= gauss(u, v, 0.34, 0.22, 0.22, 0.13) * 0.17;
+  z += gauss(u, v, -0.46, -0.08, 0.31, 0.28) * 0.11;
+  z += gauss(u, v, 0.46, -0.08, 0.31, 0.28) * 0.11;
+  z -= gauss(u, v, 0, -0.36, 0.34, 0.055) * 0.09;
+  z += gauss(u, v, 0, -0.43, 0.34, 0.065) * 0.07;
+  z += gauss(u, v, 0, -0.64, 0.24, 0.16) * 0.08;
+  return new THREE.Vector3(x, y, z);
+}
 
-    pos[i * 3] = x;
-    pos[i * 3 + 1] = y;
-    pos[i * 3 + 2] = z;
-    rand[i] = Math.random();
+function buildFaceGeometry() {
+  const columns = 78;
+  const rows = 96;
+  const positions: number[] = [];
+  const indices: number[] = [];
+  const valid = new Map<string, number>();
+  for (let row = 0; row <= rows; row++) {
+    const v = 1 - (row / rows) * 2;
+    for (let column = 0; column <= columns; column++) {
+      const u = -1 + (column / columns) * 2;
+      if (u * u + v * v > 1) continue;
+      const point = facePoint(u, v);
+      valid.set(`${column}:${row}`, positions.length / 3);
+      positions.push(point.x, point.y, point.z);
+    }
   }
-  return { pos, rand };
+  for (let row = 0; row < rows; row++) {
+    for (let column = 0; column < columns; column++) {
+      const a = valid.get(`${column}:${row}`);
+      const b = valid.get(`${column + 1}:${row}`);
+      const c = valid.get(`${column}:${row + 1}`);
+      const d = valid.get(`${column + 1}:${row + 1}`);
+      if (a !== undefined && b !== undefined && c !== undefined) indices.push(a, c, b);
+      if (b !== undefined && c !== undefined && d !== undefined) indices.push(b, c, d);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+function featureLine(points: THREE.Vector3[], material: THREE.LineBasicMaterial) {
+  return new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
 }
 
 export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps) {
@@ -127,8 +119,8 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     if (!container) return;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
-    camera.position.z = 6.2;
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+    camera.position.set(0, 0, 4.25);
 
     let renderer: THREE.WebGLRenderer;
     try {
@@ -139,32 +131,67 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
-    const COUNT = 34000;
-    const { pos, rand } = buildHeadPositions(COUNT);
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-    geo.setAttribute("aRand", new THREE.BufferAttribute(rand, 1));
-
+    const faceGeometry = buildFaceGeometry();
     const uniforms = {
       uTime: { value: 0 },
       uAmp: { value: 0 },
       uListen: { value: 0 },
       uThink: { value: 0 },
-      uColorA: { value: new THREE.Color("#1d4ed8") },
-      uColorB: { value: new THREE.Color("#67e8f9") },
     };
-
-    const material = new THREE.ShaderMaterial({
+    const pointMaterial = new THREE.ShaderMaterial({
       uniforms,
-      vertexShader: VERT,
-      fragmentShader: FRAG,
+      vertexShader: FACE_VERT,
+      fragmentShader: POINT_FRAG,
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
+    const wireMaterial = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(0.45, 0.86, 1), wireframe: true, transparent: true,
+      opacity: 0.13, blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const featureMaterial = new THREE.LineBasicMaterial({
+      color: new THREE.Color(0.82, 0.96, 1), transparent: true, opacity: 0.72,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const faceGroup = new THREE.Group();
+    const facePoints = new THREE.Points(faceGeometry, pointMaterial);
+    const faceWire = new THREE.Mesh(faceGeometry, wireMaterial);
+    faceGroup.add(faceWire, facePoints);
 
-    const points = new THREE.Points(geo, material);
-    scene.add(points);
+    const makeCurve = (coords: Array<[number, number]>, zOffset = 0.018) => coords.map(([u, v]) => {
+      const point = facePoint(u, v);
+      point.z += zOffset;
+      return point;
+    });
+    faceGroup.add(
+      featureLine(makeCurve([[-0.57, 0.23], [-0.47, 0.29], [-0.34, 0.30], [-0.22, 0.24]]), featureMaterial),
+      featureLine(makeCurve([[0.22, 0.24], [0.34, 0.30], [0.47, 0.29], [0.57, 0.23]]), featureMaterial),
+      featureLine(makeCurve([[-0.55, 0.20], [-0.44, 0.16], [-0.32, 0.16], [-0.23, 0.21]]), featureMaterial),
+      featureLine(makeCurve([[0.23, 0.21], [0.32, 0.16], [0.44, 0.16], [0.55, 0.20]]), featureMaterial),
+      featureLine(makeCurve([[0, 0.28], [-0.05, 0.05], [-0.08, -0.13], [0, -0.20], [0.10, -0.14]]), featureMaterial),
+      featureLine(makeCurve([[-0.35, -0.42], [-0.19, -0.37], [0, -0.39], [0.19, -0.37], [0.35, -0.42]]), featureMaterial),
+      featureLine(makeCurve([[-0.32, -0.43], [-0.16, -0.48], [0, -0.49], [0.16, -0.48], [0.32, -0.43]]), featureMaterial),
+    );
+    scene.add(faceGroup);
+
+    const sparkCount = 1800;
+    const sparkPositions = new Float32Array(sparkCount * 3);
+    for (let i = 0; i < sparkCount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 1.08 + Math.random() * 1.15;
+      sparkPositions[i * 3] = Math.cos(angle) * radius * (0.72 + Math.random() * 0.3);
+      sparkPositions[i * 3 + 1] = Math.sin(angle) * radius * 1.1;
+      sparkPositions[i * 3 + 2] = (Math.random() - 0.5) * 1.7;
+    }
+    const sparkGeometry = new THREE.BufferGeometry();
+    sparkGeometry.setAttribute("position", new THREE.BufferAttribute(sparkPositions, 3));
+    const sparkMaterial = new THREE.PointsMaterial({
+      color: new THREE.Color(0.44, 0.88, 1), size: 0.012, transparent: true,
+      opacity: 0.48, blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const sparks = new THREE.Points(sparkGeometry, sparkMaterial);
+    scene.add(sparks);
 
     const resize = () => {
       const w = container.clientWidth || 1;
@@ -194,8 +221,12 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       uniforms.uListen.value = cur.listen;
       uniforms.uThink.value = cur.think;
 
-      points.rotation.y = Math.sin(t * 0.15) * 0.16;
-      points.rotation.x = Math.sin(t * 0.11) * 0.05;
+      faceGroup.rotation.y = Math.sin(t * 0.28) * 0.075;
+      faceGroup.rotation.x = Math.sin(t * 0.19) * 0.025;
+      faceGroup.position.y = Math.sin(t * 0.75) * 0.018;
+      sparks.rotation.z = t * (0.018 + cur.think * 0.07);
+      sparks.rotation.y = -t * 0.025;
+      sparkMaterial.opacity = 0.32 + cur.listen * 0.18 + cur.amp * 0.34 + cur.think * 0.18;
       renderer.render(scene, camera);
     };
     loop();
@@ -203,8 +234,15 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
-      geo.dispose();
-      material.dispose();
+      faceGeometry.dispose();
+      pointMaterial.dispose();
+      wireMaterial.dispose();
+      featureMaterial.dispose();
+      faceGroup.children.forEach((child) => {
+        if (child instanceof THREE.Line) child.geometry.dispose();
+      });
+      sparkGeometry.dispose();
+      sparkMaterial.dispose();
       renderer.dispose();
       if (renderer.domElement.parentNode === container) container.removeChild(renderer.domElement);
     };
