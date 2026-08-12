@@ -335,7 +335,13 @@ Deno.serve(async (req) => {
       const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: convo, tools }),
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: convo,
+          tools,
+          temperature: 0.25,
+          max_tokens: 220,
+        }),
       });
 
       if (aiRes.status === 429) return json({ error: "Limite de requisições atingido. Tente em instantes." }, 429);
@@ -356,17 +362,18 @@ Deno.serve(async (req) => {
       }
 
       convo.push(msg);
-      for (const call of calls) {
-        let result: unknown;
+      const results = await Promise.all(calls.map(async (call: any) => {
         try {
           const args = JSON.parse(call.function?.arguments || "{}");
           console.log("astro tool:", call.function?.name, args);
-          result = await runTool(call.function?.name, args);
+          return await runTool(call.function?.name, args);
         } catch (e) {
-          result = { erro: (e as Error).message };
+          return { erro: (e as Error).message };
         }
-        convo.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(result) });
-      }
+      }));
+      calls.forEach((call: any, index: number) => {
+        convo.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(results[index]) });
+      });
     }
 
     return json({ reply: "Não consegui concluir a solicitação. Pode reformular?" });
