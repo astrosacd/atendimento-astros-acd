@@ -120,7 +120,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-    camera.position.set(0, 0, 3.15);
+    camera.position.set(0, 0, 4.65);
 
     let renderer: THREE.WebGLRenderer;
     try {
@@ -161,7 +161,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     const facePoints = new THREE.Points(faceGeometry, pointMaterial);
     const faceWire = new THREE.Mesh(faceGeometry, wireMaterial);
     faceGroup.add(faceWire, facePoints);
-    faceGroup.scale.setScalar(1.08);
+    faceGroup.scale.setScalar(1.02);
 
     const makeCurve = (coords: Array<[number, number]>, zOffset = 0.018) => coords.map(([u, v]) => {
       const point = facePoint(u, v);
