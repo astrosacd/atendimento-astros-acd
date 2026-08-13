@@ -27,8 +27,8 @@ const FACE_VERT = /* glsl */ `
     p.x += sin(uTime * 5.0 + p.y * 9.0) * uThink * 0.008;
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = (1.2 + mouth * uAmp * 1.7) * (23.0 / -mv.z);
-    vGlow = clamp(0.28 + mouth * uAmp * 1.4 + uListen * 0.25 + uThink * 0.18, 0.0, 1.0);
+    gl_PointSize = (0.9 + mouth * uAmp * 0.65) * (7.0 / -mv.z);
+    vGlow = clamp(0.12 + mouth * uAmp * 0.72 + uListen * 0.18 + uThink * 0.14, 0.0, 1.0);
   }
 `;
 
@@ -40,8 +40,8 @@ const POINT_FRAG = /* glsl */ `
     float d = length(c);
     if (d > 0.5) discard;
     float core = smoothstep(0.5, 0.0, d);
-    vec3 color = mix(vec3(0.28, 0.78, 1.0), vec3(1.0), vGlow);
-    gl_FragColor = vec4(color, core * (0.34 + vGlow * 0.58));
+    vec3 color = mix(vec3(0.16, 0.62, 0.92), vec3(0.82, 0.96, 1.0), vGlow);
+    gl_FragColor = vec4(color, core * (0.18 + vGlow * 0.42));
   }
 `;
 
@@ -120,7 +120,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-    camera.position.set(0, 0, 4.25);
+    camera.position.set(0, 0, 3.15);
 
     let renderer: THREE.WebGLRenderer;
     try {
@@ -144,20 +144,21 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       fragmentShader: POINT_FRAG,
       transparent: true,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending,
     });
     const wireMaterial = new THREE.MeshBasicMaterial({
       color: new THREE.Color(0.45, 0.86, 1), wireframe: true, transparent: true,
-      opacity: 0.13, blending: THREE.AdditiveBlending, depthWrite: false,
+      opacity: 0.24, blending: THREE.AdditiveBlending, depthWrite: false,
     });
     const featureMaterial = new THREE.LineBasicMaterial({
-      color: new THREE.Color(0.82, 0.96, 1), transparent: true, opacity: 0.72,
+      color: new THREE.Color(0.82, 0.96, 1), transparent: true, opacity: 0.58,
       blending: THREE.AdditiveBlending, depthWrite: false,
     });
     const faceGroup = new THREE.Group();
     const facePoints = new THREE.Points(faceGeometry, pointMaterial);
     const faceWire = new THREE.Mesh(faceGeometry, wireMaterial);
     faceGroup.add(faceWire, facePoints);
+    faceGroup.scale.setScalar(1.08);
 
     const makeCurve = (coords: Array<[number, number]>, zOffset = 0.018) => coords.map(([u, v]) => {
       const point = facePoint(u, v);
