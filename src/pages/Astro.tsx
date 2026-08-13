@@ -78,6 +78,7 @@ export default function Astro() {
   }, []);
 
   const speak = useCallback(async (text: string) => {
+    let audioUrl: string | null = null;
     try {
       setProcessingPhase("voice");
       setState("speaking");
@@ -96,11 +97,17 @@ export default function Astro() {
         const details = await response.json().catch(() => ({}));
         throw new Error(details.error ?? `Erro ${response.status}`);
       }
-      const audioBlob = await response.blob();
-      const url = URL.createObjectURL(audioBlob);
+      const canStream = Boolean(response.body && "MediaSource" in window && MediaSource.isTypeSupported("audio/mpeg"));
+      let mediaSource: MediaSource | null = null;
+      if (canStream) {
+        mediaSource = new MediaSource();
+        audioUrl = URL.createObjectURL(mediaSource);
+      } else {
+        const audioBlob = await response.blob();
+        audioUrl = URL.createObjectURL(audioBlob);
+      }
 
-      const audio = new Audio(url);
-      audio.crossOrigin = "anonymous";
+      const audio = new Audio(audioUrl);
       audioElRef.current = audio;
 
       let analyser: AnalyserNode | null = null;
@@ -131,11 +138,41 @@ export default function Astro() {
       };
       tick();
 
-      await audio.play();
-      await new Promise<void>((resolve) => {
-        audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
-        audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+      const ended = new Promise<void>((resolve) => {
+        audio.onended = () => resolve();
+        audio.onerror = () => resolve();
       });
+
+      if (mediaSource && response.body) {
+        await new Promise<void>((resolve, reject) => {
+          mediaSource?.addEventListener("sourceopen", () => resolve(), { once: true });
+          mediaSource?.addEventListener("error", () => reject(new Error("Falha ao abrir fluxo de voz")), { once: true });
+        });
+        const sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
+        const reader = response.body.getReader();
+        let started = false;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (!value?.byteLength) continue;
+          await new Promise<void>((resolve, reject) => {
+            sourceBuffer.addEventListener("updateend", () => resolve(), { once: true });
+            sourceBuffer.addEventListener("error", () => reject(new Error("Falha no fluxo de áudio")), { once: true });
+            sourceBuffer.appendBuffer(value);
+          });
+          if (!started) {
+            started = true;
+            setProcessingPhase(null);
+            await audio.play();
+          }
+        }
+        if (mediaSource.readyState === "open") mediaSource.endOfStream();
+        if (!started) throw new Error("Áudio vazio");
+      } else {
+        setProcessingPhase(null);
+        await audio.play();
+      }
+      await ended;
       cancelAnimationFrame(rafRef.current);
       setAmplitude(0);
       setProcessingPhase(null);
@@ -146,6 +183,8 @@ export default function Astro() {
       setProcessingPhase(null);
       setState("idle");
       toast.error(`Falha na voz: ${(e as Error).message}`);
+    } finally {
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
     }
   }, []);
 
@@ -163,6 +202,7 @@ export default function Astro() {
       setHistory([...messages, { role: "assistant" as const, content: answer }].slice(-12));
       await speak(answer);
     } catch (e) {
+      setProcessingPhase(null);
       setState("idle");
       toast.error(`ASTRO: ${(e as Error).message}`);
     }
@@ -196,10 +236,16 @@ export default function Astro() {
       const json = await res.json();
       if (!res.ok || json?.error) throw new Error(json?.error ?? `Erro ${res.status}`);
       const text: string = (json.text ?? "").trim();
-      if (!text) { setState("idle"); toast.error("Não entendi o que você falou."); return; }
+      if (!text) {
+        setProcessingPhase(null);
+        setState("idle");
+        toast.error("Não entendi o que você falou.");
+        return;
+      }
       setTranscript(text);
       await ask(text);
     } catch (e) {
+      setProcessingPhase(null);
       setState("idle");
       toast.error(`Transcrição: ${(e as Error).message}`);
     }
