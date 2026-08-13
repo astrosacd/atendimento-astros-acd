@@ -129,6 +129,9 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       return;
     }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.domElement.style.display = "block";
+    renderer.domElement.style.width = "100%";
+    renderer.domElement.style.height = "100%";
     container.appendChild(renderer.domElement);
 
     const faceGeometry = buildFaceGeometry();
