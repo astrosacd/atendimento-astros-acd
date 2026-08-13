@@ -10,38 +10,118 @@ interface ParticleFaceProps {
   state: "idle" | "listening" | "thinking" | "speaking";
 }
 
+/* Deformação compartilhada entre pontos e wireframe */
+const DEFORM = /* glsl */ `
+  vec3 deform(vec3 p, float t, float amp, float listen, float think, out float mouthMask) {
+    float mouth = exp(-pow(p.x * 3.3, 2.0) - pow((p.y + 0.46) * 7.2, 2.0));
+    mouthMask = mouth;
+    float jaw = smoothstep(-0.16, -0.82, p.y);
+    p.y -= amp * (mouth * 0.26 + jaw * 0.075);
+    p.z += amp * mouth * 0.16;
+    // bochechas respiram
+    p.z += amp * exp(-pow((abs(p.x) - 0.52) * 4.0, 2.0) - pow((p.y + 0.18) * 3.2, 2.0)) * 0.05;
+    // respiração idle
+    p.z += sin(t * 1.2 + p.y * 4.0) * 0.005;
+    // ondas de escuta
+    p.z += sin(length(p.xy) * 14.0 - t * 5.0) * listen * 0.016;
+    // ruído de pensamento
+    p.x += sin(t * 5.0 + p.y * 9.0) * think * 0.010;
+    return p;
+  }
+`;
+
 const FACE_VERT = /* glsl */ `
   uniform float uTime;
   uniform float uAmp;
   uniform float uListen;
   uniform float uThink;
+  attribute float aSeed;
   varying float vGlow;
+  varying float vFresnel;
+  varying float vIri;
+  varying float vSpark;
+  ${DEFORM}
   void main() {
-    vec3 p = position;
-    float mouth = exp(-pow(p.x * 3.3, 2.0) - pow((p.y + 0.48) * 8.0, 2.0));
-    float jaw = smoothstep(-0.18, -0.78, p.y);
-    p.y -= uAmp * (mouth * 0.13 + jaw * 0.025);
-    p.z += uAmp * mouth * 0.08;
-    p.z += sin(uTime * 1.4 + p.y * 5.0) * 0.006;
-    p.z += sin(length(p.xy) * 15.0 - uTime * 5.0) * uListen * 0.012;
-    p.x += sin(uTime * 5.0 + p.y * 9.0) * uThink * 0.008;
+    float mouth;
+    vec3 p = deform(position, uTime, uAmp, uListen, uThink, mouth);
+
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
+    vec3 n = normalize(normalMatrix * normal);
+    vec3 viewDir = normalize(-mv.xyz);
+    float ndv = clamp(dot(n, viewDir), 0.0, 1.0);
+    vFresnel = pow(1.0 - ndv, 2.2);
+
+    // iridescência: ângulo de visão + posição -> deslocamento de matiz (efeito cristal/espelho)
+    vIri = fract(vFresnel * 1.35 + p.y * 0.22 + p.x * 0.10 + uTime * 0.035);
+
+    // cintilância individual das partículas
+    float tw = sin(uTime * 3.2 + aSeed * 62.8) * 0.5 + 0.5;
+    vSpark = pow(tw, 6.0) * (0.35 + uAmp * 0.65);
+
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = (0.9 + mouth * uAmp * 0.65) * (7.0 / -mv.z);
-    vGlow = clamp(0.12 + mouth * uAmp * 0.72 + uListen * 0.18 + uThink * 0.14, 0.0, 1.0);
+    gl_PointSize = (1.05 + mouth * uAmp * 1.1 + vSpark * 0.9) * (7.2 / -mv.z);
+    vGlow = clamp(0.10 + mouth * uAmp * 0.85 + uListen * 0.16 + uThink * 0.12 + vFresnel * 0.35, 0.0, 1.0);
   }
 `;
 
 const POINT_FRAG = /* glsl */ `
   precision highp float;
   varying float vGlow;
+  varying float vFresnel;
+  varying float vIri;
+  varying float vSpark;
+
+  vec3 spectrum(float t) {
+    // paleta cristal: azul profundo -> ciano -> magenta -> âmbar
+    return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.62, 0.42, 0.20)));
+  }
+
   void main() {
     vec2 c = gl_PointCoord - 0.5;
     float d = length(c);
     if (d > 0.5) discard;
     float core = smoothstep(0.5, 0.0, d);
-    vec3 color = mix(vec3(0.16, 0.62, 0.92), vec3(0.82, 0.96, 1.0), vGlow);
-    gl_FragColor = vec4(color, core * (0.18 + vGlow * 0.42));
+
+    vec3 base = mix(vec3(0.10, 0.42, 0.78), vec3(0.62, 0.94, 1.0), vGlow);
+    vec3 iri = spectrum(vIri);
+    vec3 color = mix(base, iri, 0.42 + vFresnel * 0.38);
+    color += vec3(1.0) * vSpark * 0.55;
+
+    float alpha = core * (0.16 + vGlow * 0.40 + vFresnel * 0.28 + vSpark * 0.45);
+    gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0));
+  }
+`;
+
+const WIRE_VERT = /* glsl */ `
+  uniform float uTime;
+  uniform float uAmp;
+  uniform float uListen;
+  uniform float uThink;
+  varying float vFresnel;
+  varying float vIri;
+  ${DEFORM}
+  void main() {
+    float mouth;
+    vec3 p = deform(position, uTime, uAmp, uListen, uThink, mouth);
+    vec4 mv = modelViewMatrix * vec4(p, 1.0);
+    vec3 n = normalize(normalMatrix * normal);
+    float ndv = clamp(dot(n, normalize(-mv.xyz)), 0.0, 1.0);
+    vFresnel = pow(1.0 - ndv, 2.4);
+    vIri = fract(vFresnel * 1.5 + p.y * 0.25 - uTime * 0.05);
+    gl_Position = projectionMatrix * mv;
+  }
+`;
+
+const WIRE_FRAG = /* glsl */ `
+  precision highp float;
+  varying float vFresnel;
+  varying float vIri;
+  vec3 spectrum(float t) {
+    return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.62, 0.42, 0.20)));
+  }
+  void main() {
+    vec3 color = mix(vec3(0.20, 0.55, 0.90), spectrum(vIri), 0.55);
+    gl_FragColor = vec4(color, 0.06 + vFresnel * 0.30);
   }
 `;
 
@@ -95,6 +175,9 @@ function buildFaceGeometry() {
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  const seeds = new Float32Array(positions.length / 3);
+  for (let i = 0; i < seeds.length; i++) seeds[i] = Math.random();
+  geometry.setAttribute("aSeed", new THREE.BufferAttribute(seeds, 1));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
   return geometry;
@@ -147,14 +230,19 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       fragmentShader: POINT_FRAG,
       transparent: true,
       depthWrite: false,
-      blending: THREE.NormalBlending,
+      blending: THREE.AdditiveBlending,
     });
-    const wireMaterial = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(0.45, 0.86, 1), wireframe: true, transparent: true,
-      opacity: 0.24, blending: THREE.AdditiveBlending, depthWrite: false,
+    const wireMaterial = new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader: WIRE_VERT,
+      fragmentShader: WIRE_FRAG,
+      wireframe: true,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
     });
     const featureMaterial = new THREE.LineBasicMaterial({
-      color: new THREE.Color(0.82, 0.96, 1), transparent: true, opacity: 0.58,
+      color: new THREE.Color(0.72, 0.92, 1), transparent: true, opacity: 0.5,
       blending: THREE.AdditiveBlending, depthWrite: false,
     });
     const faceGroup = new THREE.Group();
@@ -179,7 +267,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     );
     scene.add(faceGroup);
 
-    const sparkCount = 1800;
+    const sparkCount = 2400;
     const sparkPositions = new Float32Array(sparkCount * 3);
     for (let i = 0; i < sparkCount; i++) {
       const angle = Math.random() * Math.PI * 2;
@@ -191,7 +279,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     const sparkGeometry = new THREE.BufferGeometry();
     sparkGeometry.setAttribute("position", new THREE.BufferAttribute(sparkPositions, 3));
     const sparkMaterial = new THREE.PointsMaterial({
-      color: new THREE.Color(0.44, 0.88, 1), size: 0.012, transparent: true,
+      color: new THREE.Color(0.55, 0.85, 1), size: 0.013, transparent: true,
       opacity: 0.48, blending: THREE.AdditiveBlending, depthWrite: false,
     });
     const sparks = new THREE.Points(sparkGeometry, sparkMaterial);
@@ -211,6 +299,9 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     let raf = 0;
     const clock = new THREE.Clock();
     const cur = { amp: 0, listen: 0, think: 0 };
+    const head = { yaw: 0, pitch: 0, roll: 0 };
+    let nextGlance = 2.5;
+    const glance = { yaw: 0, pitch: 0 };
 
     const loop = () => {
       raf = requestAnimationFrame(loop);
@@ -225,12 +316,27 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       uniforms.uListen.value = cur.listen;
       uniforms.uThink.value = cur.think;
 
-      faceGroup.rotation.y = Math.sin(t * 0.28) * 0.075;
-      faceGroup.rotation.x = Math.sin(t * 0.19) * 0.025;
+      // olhadas aleatórias — cabeça vira de verdade
+      if (t > nextGlance) {
+        nextGlance = t + 2.2 + Math.random() * 3.4;
+        glance.yaw = (Math.random() - 0.5) * (0.42 + cur.amp * 0.3);
+        glance.pitch = (Math.random() - 0.5) * 0.18;
+      }
+      const yawTarget = glance.yaw + Math.sin(t * 0.32) * 0.10 + Math.sin(t * 1.9) * cur.amp * 0.05;
+      const pitchTarget = glance.pitch + Math.sin(t * 0.23) * 0.05 - cur.amp * 0.04;
+      const rollTarget = Math.sin(t * 0.41) * 0.045 + glance.yaw * 0.18;
+      head.yaw += (yawTarget - head.yaw) * 0.035;
+      head.pitch += (pitchTarget - head.pitch) * 0.035;
+      head.roll += (rollTarget - head.roll) * 0.03;
+
+      faceGroup.rotation.y = head.yaw;
+      faceGroup.rotation.x = head.pitch;
+      faceGroup.rotation.z = head.roll;
       faceGroup.position.y = Math.sin(t * 0.75) * 0.018;
+
       sparks.rotation.z = t * (0.018 + cur.think * 0.07);
       sparks.rotation.y = -t * 0.025;
-      sparkMaterial.opacity = 0.32 + cur.listen * 0.18 + cur.amp * 0.34 + cur.think * 0.18;
+      sparkMaterial.opacity = 0.30 + cur.listen * 0.18 + cur.amp * 0.38 + cur.think * 0.18;
       renderer.render(scene, camera);
     };
     loop();
