@@ -349,10 +349,6 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       faceGeometry.dispose();
       pointMaterial.dispose();
       wireMaterial.dispose();
-      featureMaterial.dispose();
-      faceGroup.children.forEach((child) => {
-        if (child instanceof THREE.Line) child.geometry.dispose();
-      });
       sparkGeometry.dispose();
       sparkMaterial.dispose();
       renderer.dispose();
