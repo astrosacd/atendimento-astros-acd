@@ -261,31 +261,13 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
-    const featureMaterial = new THREE.LineBasicMaterial({
-      color: new THREE.Color(0.72, 0.92, 1), transparent: true, opacity: 0.5,
-      blending: THREE.AdditiveBlending, depthWrite: false,
-    });
     const faceGroup = new THREE.Group();
     const facePoints = new THREE.Points(faceGeometry, pointMaterial);
     const faceWire = new THREE.Mesh(faceGeometry, wireMaterial);
     faceGroup.add(faceWire, facePoints);
     faceGroup.scale.setScalar(1.02);
-
-    const makeCurve = (coords: Array<[number, number]>, zOffset = 0.018) => coords.map(([u, v]) => {
-      const point = facePoint(u, v);
-      point.z += zOffset;
-      return point;
-    });
-    faceGroup.add(
-      featureLine(makeCurve([[-0.57, 0.23], [-0.47, 0.29], [-0.34, 0.30], [-0.22, 0.24]]), featureMaterial),
-      featureLine(makeCurve([[0.22, 0.24], [0.34, 0.30], [0.47, 0.29], [0.57, 0.23]]), featureMaterial),
-      featureLine(makeCurve([[-0.55, 0.20], [-0.44, 0.16], [-0.32, 0.16], [-0.23, 0.21]]), featureMaterial),
-      featureLine(makeCurve([[0.23, 0.21], [0.32, 0.16], [0.44, 0.16], [0.55, 0.20]]), featureMaterial),
-      featureLine(makeCurve([[0, 0.28], [-0.05, 0.05], [-0.08, -0.13], [0, -0.20], [0.10, -0.14]]), featureMaterial),
-      featureLine(makeCurve([[-0.35, -0.42], [-0.19, -0.37], [0, -0.39], [0.19, -0.37], [0.35, -0.42]]), featureMaterial),
-      featureLine(makeCurve([[-0.32, -0.43], [-0.16, -0.48], [0, -0.49], [0.16, -0.48], [0.32, -0.43]]), featureMaterial),
-    );
     scene.add(faceGroup);
+
 
     const sparkCount = 2400;
     const sparkPositions = new Float32Array(sparkCount * 3);
