@@ -51,16 +51,22 @@ const FACE_VERT = /* glsl */ `
     float ndv = clamp(dot(n, viewDir), 0.0, 1.0);
     vFresnel = pow(1.0 - ndv, 2.2);
 
+    // luz-chave: revela nariz, órbitas e lábios pelo relevo
+    float key = clamp(dot(n, normalize(vec3(-0.55, 0.62, 0.85))), 0.0, 1.0);
+    float rim = clamp(dot(n, normalize(vec3(0.75, -0.15, 0.35))), 0.0, 1.0);
+    float shade = pow(key, 1.5) * 0.85 + pow(rim, 3.0) * 0.30;
+
     // iridescência: ângulo de visão + posição -> deslocamento de matiz (efeito cristal/espelho)
     vIri = fract(vFresnel * 1.35 + p.y * 0.22 + p.x * 0.10 + uTime * 0.035);
 
     // cintilância individual das partículas
     float tw = sin(uTime * 3.2 + aSeed * 62.8) * 0.5 + 0.5;
-    vSpark = pow(tw, 6.0) * (0.35 + uAmp * 0.65);
+    vSpark = pow(tw, 6.0) * (0.30 + uAmp * 0.65) * (0.25 + shade);
 
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = (1.05 + mouth * uAmp * 1.1 + vSpark * 0.9) * (7.2 / -mv.z);
-    vGlow = clamp(0.10 + mouth * uAmp * 0.85 + uListen * 0.16 + uThink * 0.12 + vFresnel * 0.35, 0.0, 1.0);
+    gl_PointSize = (0.85 + shade * 0.95 + mouth * uAmp * 1.1 + vSpark * 0.9) * (7.2 / -mv.z);
+    vGlow = clamp(0.04 + shade * 0.80 + mouth * uAmp * 0.75 + uListen * 0.12 + uThink * 0.10 + vFresnel * 0.25, 0.0, 1.0);
+
   }
 `;
 
