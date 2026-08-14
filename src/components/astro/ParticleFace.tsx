@@ -51,16 +51,22 @@ const FACE_VERT = /* glsl */ `
     float ndv = clamp(dot(n, viewDir), 0.0, 1.0);
     vFresnel = pow(1.0 - ndv, 2.2);
 
+    // luz-chave: revela nariz, órbitas e lábios pelo relevo
+    float key = clamp(dot(n, normalize(vec3(-0.55, 0.62, 0.85))), 0.0, 1.0);
+    float rim = clamp(dot(n, normalize(vec3(0.75, -0.15, 0.35))), 0.0, 1.0);
+    float shade = pow(key, 1.5) * 0.85 + pow(rim, 3.0) * 0.30;
+
     // iridescência: ângulo de visão + posição -> deslocamento de matiz (efeito cristal/espelho)
     vIri = fract(vFresnel * 1.35 + p.y * 0.22 + p.x * 0.10 + uTime * 0.035);
 
     // cintilância individual das partículas
     float tw = sin(uTime * 3.2 + aSeed * 62.8) * 0.5 + 0.5;
-    vSpark = pow(tw, 6.0) * (0.35 + uAmp * 0.65);
+    vSpark = pow(tw, 6.0) * (0.30 + uAmp * 0.65) * (0.25 + shade);
 
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = (1.05 + mouth * uAmp * 1.1 + vSpark * 0.9) * (7.2 / -mv.z);
-    vGlow = clamp(0.10 + mouth * uAmp * 0.85 + uListen * 0.16 + uThink * 0.12 + vFresnel * 0.35, 0.0, 1.0);
+    gl_PointSize = (0.85 + shade * 0.95 + mouth * uAmp * 1.1 + vSpark * 0.9) * (7.2 / -mv.z);
+    vGlow = clamp(0.04 + shade * 0.80 + mouth * uAmp * 0.75 + uListen * 0.12 + uThink * 0.10 + vFresnel * 0.25, 0.0, 1.0);
+
   }
 `;
 
@@ -72,8 +78,7 @@ const POINT_FRAG = /* glsl */ `
   varying float vSpark;
 
   vec3 spectrum(float t) {
-    // paleta cristal: azul profundo -> ciano -> magenta -> âmbar
-    return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.62, 0.42, 0.20)));
+    return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.62, 0.46, 0.28)));
   }
 
   void main() {
@@ -82,12 +87,12 @@ const POINT_FRAG = /* glsl */ `
     if (d > 0.5) discard;
     float core = smoothstep(0.5, 0.0, d);
 
-    vec3 base = mix(vec3(0.10, 0.42, 0.78), vec3(0.62, 0.94, 1.0), vGlow);
+    vec3 base = mix(vec3(0.36, 0.66, 0.92), vec3(0.90, 0.98, 1.0), vGlow);
     vec3 iri = spectrum(vIri);
-    vec3 color = mix(base, iri, 0.42 + vFresnel * 0.38);
-    color += vec3(1.0) * vSpark * 0.55;
+    vec3 color = mix(base, iri, 0.16 + vFresnel * 0.20);
+    color += vec3(1.0) * vSpark * 0.60;
 
-    float alpha = core * (0.16 + vGlow * 0.40 + vFresnel * 0.28 + vSpark * 0.45);
+    float alpha = core * (0.22 + vGlow * 0.42 + vFresnel * 0.20 + vSpark * 0.45);
     gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0));
   }
 `;
@@ -117,39 +122,60 @@ const WIRE_FRAG = /* glsl */ `
   varying float vFresnel;
   varying float vIri;
   vec3 spectrum(float t) {
-    return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.62, 0.42, 0.20)));
+    return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.62, 0.46, 0.28)));
   }
   void main() {
-    vec3 color = mix(vec3(0.20, 0.55, 0.90), spectrum(vIri), 0.55);
-    gl_FragColor = vec4(color, 0.06 + vFresnel * 0.30);
+    vec3 color = mix(vec3(0.42, 0.72, 0.96), spectrum(vIri), 0.22);
+    gl_FragColor = vec4(color, 0.05 + vFresnel * 0.22);
   }
 `;
 
 const gauss = (x: number, y: number, cx: number, cy: number, sx: number, sy: number) =>
   Math.exp(-(((x - cx) / sx) ** 2 + ((y - cy) / sy) ** 2));
 
+/**
+ * Cabeça volumétrica: base elipsoidal profunda (não mais um disco chapado)
+ * + escultura gaussiana das feições (testa, órbitas, nariz, lábios, queixo).
+ */
 function facePoint(u: number, v: number) {
-  const forehead = 0.93 + 0.07 * Math.max(v, 0);
-  const jaw = v < 0 ? 1 - 0.32 * Math.pow(-v, 1.5) : 1;
-  const x = u * 1.02 * forehead * jaw;
-  const y = v * 1.38;
-  const oval = Math.sqrt(Math.max(0, 1 - u * u - v * v));
-  let z = oval * 0.30;
-  z += gauss(u, v, 0, 0.05, 0.13, 0.30) * 0.62;
-  z += gauss(u, v, 0, -0.16, 0.20, 0.14) * 0.16;
-  z -= gauss(u, v, -0.34, 0.22, 0.22, 0.13) * 0.17;
-  z -= gauss(u, v, 0.34, 0.22, 0.22, 0.13) * 0.17;
-  z += gauss(u, v, -0.46, -0.08, 0.31, 0.28) * 0.11;
-  z += gauss(u, v, 0.46, -0.08, 0.31, 0.28) * 0.11;
-  z -= gauss(u, v, 0, -0.36, 0.34, 0.055) * 0.09;
-  z += gauss(u, v, 0, -0.43, 0.34, 0.065) * 0.07;
-  z += gauss(u, v, 0, -0.64, 0.24, 0.16) * 0.08;
-  return new THREE.Vector3(x, y, z);
+  const forehead = 0.94 + 0.06 * Math.max(v, 0);
+  const jaw = v < 0 ? 1 - 0.30 * Math.pow(-v, 1.6) : 1;
+  const x = u * 1.00 * forehead * jaw;
+  const y = v * 1.34;
+
+  const r = Math.min(1, Math.sqrt(u * u + v * v));
+  // volume real: profundidade próxima da largura -> cabeça, não máscara
+  let z = Math.sqrt(Math.max(0, 1 - r * r)) * 0.92;
+
+  // testa levemente recuada nas laterais
+  z -= gauss(u, v, 0, 0.72, 0.55, 0.30) * 0.06;
+  // órbitas (cavidades) + pálpebras fechadas
+  z -= gauss(u, v, -0.33, 0.20, 0.20, 0.12) * 0.22;
+  z -= gauss(u, v, 0.33, 0.20, 0.20, 0.12) * 0.22;
+  z += gauss(u, v, -0.33, 0.17, 0.15, 0.055) * 0.13;
+  z += gauss(u, v, 0.33, 0.17, 0.15, 0.055) * 0.13;
+  // nariz: dorso + ponta + asas
+  z += gauss(u, v, 0, 0.02, 0.085, 0.28) * 0.30;
+  z += gauss(u, v, 0, -0.17, 0.11, 0.075) * 0.16;
+  z += gauss(u, v, -0.13, -0.19, 0.06, 0.05) * 0.06;
+  z += gauss(u, v, 0.13, -0.19, 0.06, 0.05) * 0.06;
+  // maçãs do rosto
+  z += gauss(u, v, -0.44, -0.04, 0.26, 0.24) * 0.07;
+  z += gauss(u, v, 0.44, -0.04, 0.26, 0.24) * 0.07;
+  // filtro labial, lábios e sulco
+  z -= gauss(u, v, 0, -0.30, 0.30, 0.05) * 0.05;
+  z += gauss(u, v, 0, -0.38, 0.26, 0.045) * 0.07;
+  z += gauss(u, v, 0, -0.46, 0.24, 0.05) * 0.06;
+  z -= gauss(u, v, 0, -0.53, 0.28, 0.045) * 0.05;
+  // queixo
+  z += gauss(u, v, 0, -0.70, 0.22, 0.15) * 0.09;
+
+  return new THREE.Vector3(x, y, z - 0.22);
 }
 
 function buildFaceGeometry() {
-  const columns = 78;
-  const rows = 96;
+  const columns = 104;
+  const rows = 126;
   const positions: number[] = [];
   const indices: number[] = [];
   const valid = new Map<string, number>();
@@ -158,7 +184,10 @@ function buildFaceGeometry() {
     for (let column = 0; column <= columns; column++) {
       const u = -1 + (column / columns) * 2;
       if (u * u + v * v > 1) continue;
-      const point = facePoint(u, v);
+      // jitter orgânico: elimina o padrão de tela (moiré) do grid regular
+      const ju = u + (Math.random() - 0.5) * (1.6 / columns);
+      const jv = v + (Math.random() - 0.5) * (1.6 / rows);
+      const point = facePoint(ju, jv);
       valid.set(`${column}:${row}`, positions.length / 3);
       positions.push(point.x, point.y, point.z);
     }
@@ -183,9 +212,6 @@ function buildFaceGeometry() {
   return geometry;
 }
 
-function featureLine(points: THREE.Vector3[], material: THREE.LineBasicMaterial) {
-  return new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
-}
 
 export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -241,31 +267,13 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
-    const featureMaterial = new THREE.LineBasicMaterial({
-      color: new THREE.Color(0.72, 0.92, 1), transparent: true, opacity: 0.5,
-      blending: THREE.AdditiveBlending, depthWrite: false,
-    });
     const faceGroup = new THREE.Group();
     const facePoints = new THREE.Points(faceGeometry, pointMaterial);
     const faceWire = new THREE.Mesh(faceGeometry, wireMaterial);
     faceGroup.add(faceWire, facePoints);
     faceGroup.scale.setScalar(1.02);
-
-    const makeCurve = (coords: Array<[number, number]>, zOffset = 0.018) => coords.map(([u, v]) => {
-      const point = facePoint(u, v);
-      point.z += zOffset;
-      return point;
-    });
-    faceGroup.add(
-      featureLine(makeCurve([[-0.57, 0.23], [-0.47, 0.29], [-0.34, 0.30], [-0.22, 0.24]]), featureMaterial),
-      featureLine(makeCurve([[0.22, 0.24], [0.34, 0.30], [0.47, 0.29], [0.57, 0.23]]), featureMaterial),
-      featureLine(makeCurve([[-0.55, 0.20], [-0.44, 0.16], [-0.32, 0.16], [-0.23, 0.21]]), featureMaterial),
-      featureLine(makeCurve([[0.23, 0.21], [0.32, 0.16], [0.44, 0.16], [0.55, 0.20]]), featureMaterial),
-      featureLine(makeCurve([[0, 0.28], [-0.05, 0.05], [-0.08, -0.13], [0, -0.20], [0.10, -0.14]]), featureMaterial),
-      featureLine(makeCurve([[-0.35, -0.42], [-0.19, -0.37], [0, -0.39], [0.19, -0.37], [0.35, -0.42]]), featureMaterial),
-      featureLine(makeCurve([[-0.32, -0.43], [-0.16, -0.48], [0, -0.49], [0.16, -0.48], [0.32, -0.43]]), featureMaterial),
-    );
     scene.add(faceGroup);
+
 
     const sparkCount = 2400;
     const sparkPositions = new Float32Array(sparkCount * 3);
@@ -347,10 +355,6 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       faceGeometry.dispose();
       pointMaterial.dispose();
       wireMaterial.dispose();
-      featureMaterial.dispose();
-      faceGroup.children.forEach((child) => {
-        if (child instanceof THREE.Line) child.geometry.dispose();
-      });
       sparkGeometry.dispose();
       sparkMaterial.dispose();
       renderer.dispose();
