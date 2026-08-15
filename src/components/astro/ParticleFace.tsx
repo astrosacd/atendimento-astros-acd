@@ -145,30 +145,34 @@ function facePoint(u: number, v: number) {
 
   const r = Math.min(1, Math.sqrt(u * u + v * v));
   // volume real: profundidade próxima da largura -> cabeça, não máscara
-  let z = Math.sqrt(Math.max(0, 1 - r * r)) * 0.92;
+  let z = Math.sqrt(Math.max(0, 1 - r * r)) * 0.72;
 
-  // testa levemente recuada nas laterais
-  z -= gauss(u, v, 0, 0.72, 0.55, 0.30) * 0.06;
+  // testa
+  z -= gauss(u, v, 0, 0.74, 0.55, 0.30) * 0.05;
   // órbitas (cavidades) + pálpebras fechadas
-  z -= gauss(u, v, -0.33, 0.20, 0.20, 0.12) * 0.22;
-  z -= gauss(u, v, 0.33, 0.20, 0.20, 0.12) * 0.22;
-  z += gauss(u, v, -0.33, 0.17, 0.15, 0.055) * 0.13;
-  z += gauss(u, v, 0.33, 0.17, 0.15, 0.055) * 0.13;
+  z -= gauss(u, v, -0.33, 0.20, 0.19, 0.115) * 0.34;
+  z -= gauss(u, v, 0.33, 0.20, 0.19, 0.115) * 0.34;
+  z += gauss(u, v, -0.33, 0.17, 0.14, 0.05) * 0.20;
+  z += gauss(u, v, 0.33, 0.17, 0.14, 0.05) * 0.20;
+  // sobrancelhas
+  z += gauss(u, v, -0.33, 0.32, 0.19, 0.045) * 0.07;
+  z += gauss(u, v, 0.33, 0.32, 0.19, 0.045) * 0.07;
   // nariz: dorso + ponta + asas
-  z += gauss(u, v, 0, 0.02, 0.085, 0.28) * 0.30;
-  z += gauss(u, v, 0, -0.17, 0.11, 0.075) * 0.16;
-  z += gauss(u, v, -0.13, -0.19, 0.06, 0.05) * 0.06;
-  z += gauss(u, v, 0.13, -0.19, 0.06, 0.05) * 0.06;
+  z += gauss(u, v, 0, 0.04, 0.075, 0.26) * 0.34;
+  z += gauss(u, v, 0, -0.17, 0.095, 0.065) * 0.22;
+  z += gauss(u, v, -0.135, -0.185, 0.055, 0.045) * 0.11;
+  z += gauss(u, v, 0.135, -0.185, 0.055, 0.045) * 0.11;
   // maçãs do rosto
-  z += gauss(u, v, -0.44, -0.04, 0.26, 0.24) * 0.07;
-  z += gauss(u, v, 0.44, -0.04, 0.26, 0.24) * 0.07;
+  z += gauss(u, v, -0.45, -0.05, 0.24, 0.22) * 0.09;
+  z += gauss(u, v, 0.45, -0.05, 0.24, 0.22) * 0.09;
   // filtro labial, lábios e sulco
-  z -= gauss(u, v, 0, -0.30, 0.30, 0.05) * 0.05;
-  z += gauss(u, v, 0, -0.38, 0.26, 0.045) * 0.07;
-  z += gauss(u, v, 0, -0.46, 0.24, 0.05) * 0.06;
-  z -= gauss(u, v, 0, -0.53, 0.28, 0.045) * 0.05;
+  z -= gauss(u, v, 0, -0.29, 0.26, 0.045) * 0.07;
+  z += gauss(u, v, 0, -0.375, 0.25, 0.040) * 0.13;
+  z += gauss(u, v, 0, -0.455, 0.23, 0.045) * 0.11;
+  z -= gauss(u, v, 0, -0.53, 0.27, 0.040) * 0.08;
   // queixo
-  z += gauss(u, v, 0, -0.70, 0.22, 0.15) * 0.09;
+  z += gauss(u, v, 0, -0.71, 0.21, 0.14) * 0.12;
+
 
   return new THREE.Vector3(x, y, z - 0.22);
 }
