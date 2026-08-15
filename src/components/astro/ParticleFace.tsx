@@ -154,14 +154,15 @@ function facePoint(u: number, v: number) {
   z -= gauss(u, v, 0.33, 0.20, 0.19, 0.115) * 0.34;
   z += gauss(u, v, -0.33, 0.17, 0.14, 0.05) * 0.20;
   z += gauss(u, v, 0.33, 0.17, 0.14, 0.05) * 0.20;
-  // sobrancelhas
-  z += gauss(u, v, -0.33, 0.32, 0.19, 0.045) * 0.07;
-  z += gauss(u, v, 0.33, 0.32, 0.19, 0.045) * 0.07;
-  // nariz: dorso + ponta + asas
-  z += gauss(u, v, 0, 0.04, 0.075, 0.26) * 0.34;
-  z += gauss(u, v, 0, -0.17, 0.095, 0.065) * 0.22;
-  z += gauss(u, v, -0.135, -0.185, 0.055, 0.045) * 0.11;
-  z += gauss(u, v, 0.135, -0.185, 0.055, 0.045) * 0.11;
+  // sobrancelhas (discretas, não formam barra com o nariz)
+  z += gauss(u, v, -0.34, 0.33, 0.16, 0.032) * 0.035;
+  z += gauss(u, v, 0.34, 0.33, 0.16, 0.032) * 0.035;
+  // nariz: dorso estreito que nasce abaixo da testa + ponta + asas
+  z += gauss(u, v, 0, -0.02, 0.062, 0.20) * 0.30 * (1 - Math.min(1, Math.max(0, (v - 0.16) / 0.20)));
+  z += gauss(u, v, 0, -0.17, 0.085, 0.055) * 0.22;
+  z += gauss(u, v, -0.13, -0.185, 0.05, 0.04) * 0.10;
+  z += gauss(u, v, 0.13, -0.185, 0.05, 0.04) * 0.10;
+
   // maçãs do rosto
   z += gauss(u, v, -0.45, -0.05, 0.24, 0.22) * 0.09;
   z += gauss(u, v, 0.45, -0.05, 0.24, 0.22) * 0.09;
