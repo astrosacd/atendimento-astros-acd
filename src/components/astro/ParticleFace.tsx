@@ -189,9 +189,6 @@ function buildFaceGeometry() {
       const u = -1 + (column / columns) * 2;
       if (u * u + v * v > 1) continue;
       const point = facePoint(u, v);
-      // jitter só no plano XY: quebra o moiré do grid sem sujar as normais
-      point.x += (Math.random() - 0.5) * (1.1 / columns);
-      point.y += (Math.random() - 0.5) * (1.4 / rows);
       valid.set(`${column}:${row}`, positions.length / 3);
       positions.push(point.x, point.y, point.z);
     }
