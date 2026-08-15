@@ -210,6 +210,15 @@ function buildFaceGeometry() {
   geometry.setAttribute("aSeed", new THREE.BufferAttribute(seeds, 1));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
+  // jitter aplicado DEPOIS das normais: quebra o moiré sem sujar o sombreado
+  const pos = geometry.getAttribute("position") as THREE.BufferAttribute;
+  const jx = 1.0 / columns;
+  const jy = 1.3 / rows;
+  for (let i = 0; i < pos.count; i++) {
+    pos.setX(i, pos.getX(i) + (Math.random() - 0.5) * jx);
+    pos.setY(i, pos.getY(i) + (Math.random() - 0.5) * jy);
+  }
+  pos.needsUpdate = true;
   return geometry;
 }
 
