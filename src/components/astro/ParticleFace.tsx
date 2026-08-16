@@ -66,8 +66,8 @@ const FACE_VERT = /* glsl */ `
     vSpark = pow(tw, 6.0) * (0.30 + uAmp * 0.65) * (0.25 + shade);
 
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = (0.85 + shade * 0.95 + mouth * uAmp * 1.1 + vSpark * 0.9) * (7.2 / -mv.z);
-    vGlow = clamp(0.04 + shade * 0.80 + mouth * uAmp * 0.75 + uListen * 0.12 + uThink * 0.10 + vFresnel * 0.25, 0.0, 1.0);
+    gl_PointSize = (1.15 + shade * 1.15 + mouth * uAmp * 1.25 + vSpark) * (10.5 / -mv.z);
+    vGlow = clamp(0.20 + shade * 0.90 + mouth * uAmp * 0.75 + uListen * 0.16 + uThink * 0.12 + vFresnel * 0.30, 0.0, 1.0);
 
   }
 `;
@@ -94,7 +94,7 @@ const POINT_FRAG = /* glsl */ `
     vec3 color = mix(base, iri, 0.16 + vFresnel * 0.20);
     color += vec3(1.0) * vSpark * 0.60;
 
-    float alpha = core * (0.22 + vGlow * 0.42 + vFresnel * 0.20 + vSpark * 0.45);
+    float alpha = core * (0.40 + vGlow * 0.50 + vFresnel * 0.18 + vSpark * 0.42);
     gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0));
   }
 `;
@@ -128,7 +128,7 @@ const WIRE_FRAG = /* glsl */ `
   }
   void main() {
     vec3 color = mix(vec3(0.42, 0.72, 0.96), spectrum(vIri), 0.22);
-    gl_FragColor = vec4(color, 0.05 + vFresnel * 0.22);
+    gl_FragColor = vec4(color, 0.025 + vFresnel * 0.12);
   }
 `;
 
