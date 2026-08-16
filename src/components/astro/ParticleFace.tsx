@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 interface ParticleFaceProps {
   /** 0..1 — intensidade da fala (boca/ondas) */
@@ -130,100 +131,6 @@ const WIRE_FRAG = /* glsl */ `
   }
 `;
 
-const gauss = (x: number, y: number, cx: number, cy: number, sx: number, sy: number) =>
-  Math.exp(-(((x - cx) / sx) ** 2 + ((y - cy) / sy) ** 2));
-
-/**
- * Cabeça volumétrica: base elipsoidal profunda (não mais um disco chapado)
- * + escultura gaussiana das feições (testa, órbitas, nariz, lábios, queixo).
- */
-function facePoint(u: number, v: number) {
-  const forehead = 0.94 + 0.06 * Math.max(v, 0);
-  const jaw = v < 0 ? 1 - 0.30 * Math.pow(-v, 1.6) : 1;
-  const x = u * 1.00 * forehead * jaw;
-  const y = v * 1.34;
-
-  const r = Math.min(1, Math.sqrt(u * u + v * v));
-  // volume real: profundidade próxima da largura -> cabeça, não máscara
-  let z = Math.sqrt(Math.max(0, 1 - r * r)) * 0.72;
-
-  // testa
-  z -= gauss(u, v, 0, 0.74, 0.55, 0.30) * 0.05;
-  // órbitas (cavidades) + pálpebras fechadas
-  z -= gauss(u, v, -0.33, 0.20, 0.19, 0.115) * 0.34;
-  z -= gauss(u, v, 0.33, 0.20, 0.19, 0.115) * 0.34;
-  z += gauss(u, v, -0.33, 0.17, 0.14, 0.05) * 0.20;
-  z += gauss(u, v, 0.33, 0.17, 0.14, 0.05) * 0.20;
-  // sobrancelhas (discretas, não formam barra com o nariz)
-  z += gauss(u, v, -0.34, 0.33, 0.16, 0.032) * 0.035;
-  z += gauss(u, v, 0.34, 0.33, 0.16, 0.032) * 0.035;
-  // nariz: dorso estreito que nasce abaixo da testa + ponta + asas
-  z += gauss(u, v, 0, -0.02, 0.062, 0.20) * 0.30 * (1 - Math.min(1, Math.max(0, (v - 0.16) / 0.20)));
-  z += gauss(u, v, 0, -0.17, 0.085, 0.055) * 0.22;
-  z += gauss(u, v, -0.13, -0.185, 0.05, 0.04) * 0.10;
-  z += gauss(u, v, 0.13, -0.185, 0.05, 0.04) * 0.10;
-
-  // maçãs do rosto
-  z += gauss(u, v, -0.45, -0.05, 0.24, 0.22) * 0.09;
-  z += gauss(u, v, 0.45, -0.05, 0.24, 0.22) * 0.09;
-  // filtro labial, lábios e sulco
-  z -= gauss(u, v, 0, -0.29, 0.26, 0.045) * 0.07;
-  z += gauss(u, v, 0, -0.375, 0.25, 0.040) * 0.13;
-  z += gauss(u, v, 0, -0.455, 0.23, 0.045) * 0.11;
-  z -= gauss(u, v, 0, -0.53, 0.27, 0.040) * 0.08;
-  // queixo
-  z += gauss(u, v, 0, -0.71, 0.21, 0.14) * 0.12;
-
-
-  return new THREE.Vector3(x, y, z - 0.22);
-}
-
-function buildFaceGeometry() {
-  const columns = 104;
-  const rows = 126;
-  const positions: number[] = [];
-  const indices: number[] = [];
-  const valid = new Map<string, number>();
-  for (let row = 0; row <= rows; row++) {
-    const v = 1 - (row / rows) * 2;
-    for (let column = 0; column <= columns; column++) {
-      const u = -1 + (column / columns) * 2;
-      if (u * u + v * v > 1) continue;
-      const point = facePoint(u, v);
-      valid.set(`${column}:${row}`, positions.length / 3);
-      positions.push(point.x, point.y, point.z);
-    }
-  }
-  for (let row = 0; row < rows; row++) {
-    for (let column = 0; column < columns; column++) {
-      const a = valid.get(`${column}:${row}`);
-      const b = valid.get(`${column + 1}:${row}`);
-      const c = valid.get(`${column}:${row + 1}`);
-      const d = valid.get(`${column + 1}:${row + 1}`);
-      if (a !== undefined && b !== undefined && c !== undefined) indices.push(a, c, b);
-      if (b !== undefined && c !== undefined && d !== undefined) indices.push(b, c, d);
-    }
-  }
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-  const seeds = new Float32Array(positions.length / 3);
-  for (let i = 0; i < seeds.length; i++) seeds[i] = Math.random();
-  geometry.setAttribute("aSeed", new THREE.BufferAttribute(seeds, 1));
-  geometry.setIndex(indices);
-  geometry.computeVertexNormals();
-  // jitter aplicado DEPOIS das normais: quebra o moiré sem sujar o sombreado
-  const pos = geometry.getAttribute("position") as THREE.BufferAttribute;
-  const jx = 1.0 / columns;
-  const jy = 1.3 / rows;
-  for (let i = 0; i < pos.count; i++) {
-    pos.setX(i, pos.getX(i) + (Math.random() - 0.5) * jx);
-    pos.setY(i, pos.getY(i) + (Math.random() - 0.5) * jy);
-  }
-  pos.needsUpdate = true;
-  return geometry;
-}
-
-
 export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const targetRef = useRef({ amp: 0, listen: 0, think: 0 });
@@ -254,7 +161,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     renderer.domElement.style.height = "100%";
     container.appendChild(renderer.domElement);
 
-    const faceGeometry = buildFaceGeometry();
+    let faceGeometry: THREE.BufferGeometry | null = null;
     const uniforms = {
       uTime: { value: 0 },
       uAmp: { value: 0 },
@@ -279,11 +186,33 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       blending: THREE.AdditiveBlending,
     });
     const faceGroup = new THREE.Group();
-    const facePoints = new THREE.Points(faceGeometry, pointMaterial);
-    const faceWire = new THREE.Mesh(faceGeometry, wireMaterial);
-    faceGroup.add(faceWire, facePoints);
-    faceGroup.scale.setScalar(1.02);
     scene.add(faceGroup);
+
+    // Uma cabeça humana escaneada substitui a antiga máscara oval paramétrica.
+    // O material original não é usado: a própria topologia vira cristal, pontos e luz.
+    const loader = new GLTFLoader();
+    loader.load("/models/astro/head.glb", (gltf) => {
+      if (!container.isConnected) return;
+      let source: THREE.Mesh | null = null;
+      gltf.scene.traverse((object) => {
+        if (!source && object instanceof THREE.Mesh) source = object;
+      });
+      if (!source) return;
+      const geometry = source.geometry.clone();
+      geometry.computeBoundingBox();
+      const bounds = geometry.boundingBox;
+      if (!bounds) return;
+      const center = bounds.getCenter(new THREE.Vector3());
+      const size = bounds.getSize(new THREE.Vector3());
+      geometry.translate(-center.x, -center.y, -center.z);
+      geometry.scale(2.62 / size.y, 2.62 / size.y, 2.62 / size.y);
+      geometry.computeVertexNormals();
+      const seeds = new Float32Array(geometry.getAttribute("position").count);
+      for (let i = 0; i < seeds.length; i++) seeds[i] = Math.random();
+      geometry.setAttribute("aSeed", new THREE.BufferAttribute(seeds, 1));
+      faceGeometry = geometry;
+      faceGroup.add(new THREE.Mesh(geometry, wireMaterial), new THREE.Points(geometry, pointMaterial));
+    });
 
 
     const sparkCount = 2400;
@@ -363,7 +292,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
-      faceGeometry.dispose();
+      faceGeometry?.dispose();
       pointMaterial.dispose();
       wireMaterial.dispose();
       sparkGeometry.dispose();
