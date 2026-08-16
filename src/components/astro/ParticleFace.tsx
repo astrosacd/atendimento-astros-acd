@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
+import { MeshSurfaceSampler } from "three/examples/jsm/math/MeshSurfaceSampler.js";
 
 interface ParticleFaceProps {
   /** 0..1 — intensidade da fala (boca/ondas) */
@@ -162,6 +163,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     container.appendChild(renderer.domElement);
 
     let faceGeometry: THREE.BufferGeometry | null = null;
+    let particleGeometry: THREE.BufferGeometry | null = null;
     const uniforms = {
       uTime: { value: 0 },
       uAmp: { value: 0 },
@@ -224,11 +226,27 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       geometry.translate(-center.x, -center.y, -center.z);
       geometry.scale(2.62 / size.y, 2.62 / size.y, 2.62 / size.y);
       geometry.computeVertexNormals();
-      const seeds = new Float32Array(geometry.getAttribute("position").count);
+      const surface = new THREE.Mesh(geometry);
+      const sampler = new MeshSurfaceSampler(surface).build();
+      const particleCount = 42000;
+      const particlePositions = new Float32Array(particleCount * 3);
+      const particleNormals = new Float32Array(particleCount * 3);
+      const point = new THREE.Vector3();
+      const normal = new THREE.Vector3();
+      for (let i = 0; i < particleCount; i++) {
+        sampler.sample(point, normal);
+        point.toArray(particlePositions, i * 3);
+        normal.toArray(particleNormals, i * 3);
+      }
+      const particles = new THREE.BufferGeometry();
+      particles.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
+      particles.setAttribute("normal", new THREE.BufferAttribute(particleNormals, 3));
+      const seeds = new Float32Array(particleCount);
       for (let i = 0; i < seeds.length; i++) seeds[i] = Math.random();
-      geometry.setAttribute("aSeed", new THREE.BufferAttribute(seeds, 1));
+      particles.setAttribute("aSeed", new THREE.BufferAttribute(seeds, 1));
       faceGeometry = geometry;
-      faceGroup.add(new THREE.Mesh(geometry, wireMaterial), new THREE.Points(geometry, pointMaterial));
+      particleGeometry = particles;
+      faceGroup.add(new THREE.Mesh(geometry, wireMaterial), new THREE.Points(particles, pointMaterial));
     });
 
 
@@ -310,6 +328,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       cancelAnimationFrame(raf);
       ro.disconnect();
       faceGeometry?.dispose();
+      particleGeometry?.dispose();
       pointMaterial.dispose();
       wireMaterial.dispose();
       sparkGeometry.dispose();
