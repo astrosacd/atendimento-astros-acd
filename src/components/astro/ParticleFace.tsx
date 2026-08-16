@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader.js";
 
 interface ParticleFaceProps {
   /** 0..1 — intensidade da fala (boca/ondas) */
@@ -191,7 +192,11 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     // Uma cabeça humana escaneada substitui a antiga máscara oval paramétrica.
     // O material original não é usado: a própria topologia vira cristal, pontos e luz.
     const loader = new GLTFLoader();
-    loader.load("/models/astro/head.glb", (gltf) => {
+    const ktx2Loader = new KTX2Loader()
+      .setTranscoderPath("https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/libs/basis/")
+      .detectSupport(renderer);
+    loader.setKTX2Loader(ktx2Loader);
+    loader.load("/models/astro/facecap.glb", (gltf) => {
       if (!container.isConnected) return;
       let source: THREE.Mesh | null = null;
       gltf.scene.traverse((object) => {
@@ -206,6 +211,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const size = bounds.getSize(new THREE.Vector3());
       geometry.translate(-center.x, -center.y, -center.z);
       geometry.scale(2.62 / size.y, 2.62 / size.y, 2.62 / size.y);
+      geometry.rotateY(Math.PI);
       geometry.computeVertexNormals();
       const seeds = new Float32Array(geometry.getAttribute("position").count);
       for (let i = 0; i < seeds.length; i++) seeds[i] = Math.random();
@@ -293,6 +299,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       cancelAnimationFrame(raf);
       ro.disconnect();
       faceGeometry?.dispose();
+      ktx2Loader.dispose();
       pointMaterial.dispose();
       wireMaterial.dispose();
       sparkGeometry.dispose();
