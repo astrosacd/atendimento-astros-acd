@@ -199,8 +199,14 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     loader.load("/models/astro/facecap.glb", (gltf) => {
       if (!container.isConnected) return;
       let source: THREE.Mesh | null = null;
+      let largestVertexCount = 0;
       gltf.scene.traverse((object) => {
-        if (!source && object instanceof THREE.Mesh) source = object;
+        if (!(object instanceof THREE.Mesh)) return;
+        const vertexCount = object.geometry.getAttribute("position")?.count ?? 0;
+        if (vertexCount > largestVertexCount) {
+          source = object;
+          largestVertexCount = vertexCount;
+        }
       });
       if (!source) return;
       const geometry = source.geometry.clone();
