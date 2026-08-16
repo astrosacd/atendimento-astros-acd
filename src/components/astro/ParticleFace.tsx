@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader.js";
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 
 interface ParticleFaceProps {
   /** 0..1 — intensidade da fala (boca/ondas) */
@@ -191,16 +190,12 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
 
     // Uma cabeça humana escaneada substitui a antiga máscara oval paramétrica.
     // O material original não é usado: a própria topologia vira cristal, pontos e luz.
-    const loader = new GLTFLoader();
-    const ktx2Loader = new KTX2Loader()
-      .setTranscoderPath("https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/libs/basis/")
-      .detectSupport(renderer);
-    loader.setKTX2Loader(ktx2Loader);
-    loader.load("/models/astro/facecap.glb", (gltf) => {
+    const loader = new OBJLoader();
+    loader.load("/models/astro/female-head.obj", (model) => {
       if (!container.isConnected) return;
       let source: THREE.Mesh | null = null;
       let largestVertexCount = 0;
-      gltf.scene.traverse((object) => {
+      model.traverse((object) => {
         if (!(object instanceof THREE.Mesh)) return;
         const vertexCount = object.geometry.getAttribute("position")?.count ?? 0;
         if (vertexCount > largestVertexCount) {
@@ -209,7 +204,18 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
         }
       });
       if (!source) return;
-      const geometry = source.geometry.clone();
+      const raw = source.geometry.index ? source.geometry.toNonIndexed() : source.geometry.clone();
+      const rawPosition = raw.getAttribute("position");
+      const cropped: number[] = [];
+      for (let i = 0; i < rawPosition.count; i += 3) {
+        if (rawPosition.getY(i) < 104 || rawPosition.getY(i + 1) < 104 || rawPosition.getY(i + 2) < 104) continue;
+        for (let j = 0; j < 3; j++) {
+          cropped.push(rawPosition.getX(i + j), rawPosition.getY(i + j), rawPosition.getZ(i + j));
+        }
+      }
+      raw.dispose();
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.Float32BufferAttribute(cropped, 3));
       geometry.computeBoundingBox();
       const bounds = geometry.boundingBox;
       if (!bounds) return;
@@ -217,7 +223,6 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const size = bounds.getSize(new THREE.Vector3());
       geometry.translate(-center.x, -center.y, -center.z);
       geometry.scale(2.62 / size.y, 2.62 / size.y, 2.62 / size.y);
-      geometry.rotateY(Math.PI);
       geometry.computeVertexNormals();
       const seeds = new Float32Array(geometry.getAttribute("position").count);
       for (let i = 0; i < seeds.length; i++) seeds[i] = Math.random();
@@ -305,7 +310,6 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       cancelAnimationFrame(raf);
       ro.disconnect();
       faceGeometry?.dispose();
-      ktx2Loader.dispose();
       pointMaterial.dispose();
       wireMaterial.dispose();
       sparkGeometry.dispose();
