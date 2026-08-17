@@ -148,7 +148,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-    camera.position.set(0, 0, 4.65);
+    camera.position.set(0, 0, 5.15);
 
     let renderer: THREE.WebGLRenderer;
     try {
@@ -207,10 +207,32 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       });
       if (!source) return;
       const raw = source.geometry.index ? source.geometry.toNonIndexed() : source.geometry.clone();
+      raw.computeBoundingBox();
+      const rawBounds = raw.boundingBox;
+      if (!rawBounds) {
+        raw.dispose();
+        return;
+      }
+      const rawCenter = rawBounds.getCenter(new THREE.Vector3());
+      const rawSize = rawBounds.getSize(new THREE.Vector3());
       const rawPosition = raw.getAttribute("position");
       const cropped: number[] = [];
       for (let i = 0; i < rawPosition.count; i += 3) {
-        if (rawPosition.getY(i) < 104 || rawPosition.getY(i + 1) < 104 || rawPosition.getY(i + 2) < 104) continue;
+        let keep = true;
+        for (let j = 0; j < 3; j++) {
+          const x = (rawPosition.getX(i + j) - rawCenter.x) / rawSize.x;
+          const y = (rawPosition.getY(i + j) - rawCenter.y) / rawSize.y;
+          const z = (rawPosition.getZ(i + j) - rawCenter.z) / rawSize.z;
+          // A referência é uma face digital frontal, não uma cabeça anatômica completa.
+          // Mantém a concha frontal e elimina orelhas, laterais traseiras, pescoço e busto.
+          const faceWidth = 0.37 - Math.max(0, y - 0.28) * 0.10 + Math.max(0, -y - 0.05) * 0.13;
+          const frontCut = -0.08 + Math.abs(x) * 0.34;
+          if (y < -0.34 || Math.abs(x) > faceWidth || z < frontCut) {
+            keep = false;
+            break;
+          }
+        }
+        if (!keep) continue;
         for (let j = 0; j < 3; j++) {
           cropped.push(rawPosition.getX(i + j), rawPosition.getY(i + j), rawPosition.getZ(i + j));
         }
@@ -224,11 +246,11 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const center = bounds.getCenter(new THREE.Vector3());
       const size = bounds.getSize(new THREE.Vector3());
       geometry.translate(-center.x, -center.y, -center.z);
-      geometry.scale(2.62 / size.y, 2.62 / size.y, 2.62 / size.y);
+      geometry.scale(2.78 / size.y, 2.92 / size.y, 2.50 / size.y);
       geometry.computeVertexNormals();
       const surface = new THREE.Mesh(geometry);
       const sampler = new MeshSurfaceSampler(surface).build();
-      const particleCount = 42000;
+      const particleCount = 22500;
       const particlePositions = new Float32Array(particleCount * 3);
       const particleNormals = new Float32Array(particleCount * 3);
       const point = new THREE.Vector3();
@@ -263,7 +285,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     sparkGeometry.setAttribute("position", new THREE.BufferAttribute(sparkPositions, 3));
     const sparkMaterial = new THREE.PointsMaterial({
       color: new THREE.Color(0.55, 0.85, 1), size: 0.013, transparent: true,
-      opacity: 0.48, blending: THREE.AdditiveBlending, depthWrite: false,
+      opacity: 0.34, blending: THREE.AdditiveBlending, depthWrite: false,
     });
     const sparks = new THREE.Points(sparkGeometry, sparkMaterial);
     scene.add(sparks);
