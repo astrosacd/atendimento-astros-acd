@@ -66,6 +66,7 @@ export default function Astro() {
   const audioElRef = useRef<HTMLAudioElement | null>(null);
   const playCtxRef = useRef<AudioContext | null>(null);
   const rafRef = useRef(0);
+  const assistantRequestRef = useRef(0);
 
   const stopMic = useCallback(() => {
     processorRef.current?.disconnect();
@@ -189,15 +190,24 @@ export default function Astro() {
   }, []);
 
   const ask = useCallback(async (text: string) => {
+    const requestId = ++assistantRequestRef.current;
     setState("thinking");
     setProcessingPhase("consulting");
     setReply("");
     try {
       const messages = [...history, { role: "user" as const, content: text }].slice(-12);
-      const { data, error } = await supabase.functions.invoke("astro-assistant", { body: { messages } });
-      if (error) throw new Error(error.message);
+      let result = await supabase.functions.invoke("astro-assistant", { body: { messages } });
+      // Uma falha transitória de rede não deve fazer o assistente simplesmente parar.
+      if (result.error) {
+        await new Promise((resolve) => setTimeout(resolve, 650));
+        result = await supabase.functions.invoke("astro-assistant", { body: { messages } });
+      }
+      if (requestId !== assistantRequestRef.current) return;
+      const { data, error } = result;
+      if (error) throw new Error(error.message || "Falha ao consultar o assistente");
       if (data?.error) throw new Error(data.error);
-      const answer: string = data?.reply ?? "";
+      const answer = typeof data?.reply === "string" ? data.reply.trim() : "";
+      if (!answer) throw new Error("A IA retornou uma resposta vazia");
       setReply(answer);
       setHistory([...messages, { role: "assistant" as const, content: answer }].slice(-12));
       await speak(answer);
@@ -270,19 +280,34 @@ export default function Astro() {
       chunksRef.current = [];
       silenceRef.current = 0;
       let spoke = false;
+      let speechSeconds = 0;
+      let elapsedSeconds = 0;
 
       node.onaudioprocess = (e) => {
         const input = e.inputBuffer.getChannelData(0);
         chunksRef.current.push(new Float32Array(input));
+        const chunkSeconds = input.length / ctx.sampleRate;
+        elapsedSeconds += chunkSeconds;
         let sum = 0;
         for (let i = 0; i < input.length; i++) sum += input[i] * input[i];
         const rms = Math.sqrt(sum / input.length);
         setListenLevel(Math.min(1, rms * 8));
 
-        if (rms > 0.02) { spoke = true; silenceRef.current = 0; }
+        if (rms > 0.012) {
+          spoke = true;
+          speechSeconds += chunkSeconds;
+          silenceRef.current = 0;
+        }
         else if (spoke) {
-          silenceRef.current += input.length / ctx.sampleRate;
-          if (silenceRef.current > 0.82) { node.onaudioprocess = null; finishRef.current(); }
+          silenceRef.current += chunkSeconds;
+          if (speechSeconds > 0.18 && silenceRef.current > 1.05) {
+            node.onaudioprocess = null;
+            finishRef.current();
+          }
+        }
+        if (elapsedSeconds > 20) {
+          node.onaudioprocess = null;
+          finishRef.current();
         }
       };
       source.connect(node);
