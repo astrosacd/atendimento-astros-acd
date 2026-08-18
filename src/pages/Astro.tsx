@@ -300,7 +300,7 @@ export default function Astro() {
         }
         else if (spoke) {
           silenceRef.current += chunkSeconds;
-          if (speechSeconds > 0.18 && silenceRef.current > 1.05) {
+          if (speechSeconds > 0.18 && silenceRef.current > 1.25) {
             node.onaudioprocess = null;
             finishRef.current();
           }
