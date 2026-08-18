@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { MeshSurfaceSampler } from "three/examples/jsm/math/MeshSurfaceSampler.js";
 
 interface ParticleFaceProps {
@@ -89,9 +88,9 @@ const POINT_FRAG = /* glsl */ `
     if (d > 0.5) discard;
     float core = smoothstep(0.5, 0.0, d);
 
-    vec3 base = mix(vec3(0.36, 0.66, 0.92), vec3(0.90, 0.98, 1.0), vGlow);
+    vec3 base = mix(vec3(0.63, 0.80, 0.90), vec3(1.0, 1.0, 1.0), vGlow);
     vec3 iri = spectrum(vIri);
-    vec3 color = mix(base, iri, 0.16 + vFresnel * 0.20);
+    vec3 color = mix(base, iri, 0.035 + vFresnel * 0.045);
     color += vec3(1.0) * vSpark * 0.60;
 
     float alpha = core * (0.40 + vGlow * 0.50 + vFresnel * 0.18 + vSpark * 0.42);
@@ -127,8 +126,8 @@ const WIRE_FRAG = /* glsl */ `
     return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.62, 0.46, 0.28)));
   }
   void main() {
-    vec3 color = mix(vec3(0.42, 0.72, 0.96), spectrum(vIri), 0.22);
-    gl_FragColor = vec4(color, 0.025 + vFresnel * 0.12);
+    vec3 color = mix(vec3(0.74, 0.88, 0.96), spectrum(vIri), 0.035);
+    gl_FragColor = vec4(color, 0.045 + vFresnel * 0.16);
   }
 `;
 
@@ -190,86 +189,89 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     const faceGroup = new THREE.Group();
     scene.add(faceGroup);
 
-    // Uma cabeça humana escaneada substitui a antiga máscara oval paramétrica.
-    // O material original não é usado: a própria topologia vira cristal, pontos e luz.
-    const loader = new OBJLoader();
-    loader.load("/models/astro/female-head.obj", (model) => {
-      if (!container.isConnected) return;
-      let source: THREE.Mesh | null = null;
-      let largestVertexCount = 0;
-      model.traverse((object) => {
-        if (!(object instanceof THREE.Mesh)) return;
-        const vertexCount = object.geometry.getAttribute("position")?.count ?? 0;
-        if (vertexCount > largestVertexCount) {
-          source = object;
-          largestVertexCount = vertexCount;
-        }
-      });
-      if (!source) return;
-      const raw = source.geometry.index ? source.geometry.toNonIndexed() : source.geometry.clone();
-      raw.computeBoundingBox();
-      const rawBounds = raw.boundingBox;
-      if (!rawBounds) {
-        raw.dispose();
-        return;
+    // Máscara digital construída a partir da silhueta do vídeo: testa larga,
+    // têmporas retas e mandíbula longa afunilando até o queixo.
+    const columns = 92;
+    const rows = 124;
+    const positions: number[] = [];
+    const indices: number[] = [];
+    const bell = (value: number, center: number, spread: number) =>
+      Math.exp(-Math.pow((value - center) / spread, 2));
+
+    for (let row = 0; row <= rows; row++) {
+      const v = row / rows;
+      const yNorm = 1 - v * 2;
+      const y = yNorm * 1.42;
+      // Contorno característico da referência, sem orelhas e sem crânio traseiro.
+      const width = yNorm > 0.35
+        ? 0.94 - Math.pow((yNorm - 0.35) / 0.65, 2) * 0.16
+        : 0.94 - Math.pow((0.35 - yNorm) / 1.35, 1.45) * 0.77;
+
+      for (let column = 0; column <= columns; column++) {
+        const u = column / columns * 2 - 1;
+        const x = u * width;
+        const edge = Math.sqrt(Math.max(0, 1 - u * u));
+        let z = 0.12 + edge * 0.31;
+
+        // Órbitas fundas e sobrancelhas quase horizontais, como no vídeo.
+        const leftEye = bell(x, -0.34, 0.22) * bell(y, 0.28, 0.15);
+        const rightEye = bell(x, 0.34, 0.22) * bell(y, 0.28, 0.15);
+        z -= (leftEye + rightEye) * 0.105;
+        z += (bell(x, -0.34, 0.25) + bell(x, 0.34, 0.25)) * bell(y, 0.49, 0.10) * 0.065;
+
+        // Nariz comprido e central, com ponta e asas discretas.
+        z += bell(x, 0, 0.16) * bell(y, 0.03, 0.50) * 0.31;
+        z += bell(x, 0, 0.22) * bell(y, -0.23, 0.15) * 0.13;
+        z -= bell(x, 0, 0.10) * bell(y, -0.34, 0.07) * 0.055;
+
+        // Filtro, lábios finos e sulco sob o lábio — expressão neutra da referência.
+        z -= bell(x, 0, 0.11) * bell(y, -0.48, 0.13) * 0.045;
+        z += bell(x, 0, 0.39) * bell(y, -0.62, 0.075) * 0.085;
+        z -= bell(x, 0, 0.34) * bell(y, -0.68, 0.035) * 0.055;
+        z += bell(x, 0, 0.30) * bell(y, -0.75, 0.065) * 0.055;
+        z -= bell(x, 0, 0.30) * bell(y, -0.91, 0.12) * 0.035;
+        z += bell(x, 0, 0.42) * bell(y, -1.16, 0.22) * 0.09;
+
+        // Maçãs do rosto e leves sulcos laterais revelam a face mesmo parada.
+        z += (bell(x, -0.49, 0.27) + bell(x, 0.49, 0.27)) * bell(y, -0.10, 0.36) * 0.075;
+        z -= (bell(x, -0.42, 0.13) + bell(x, 0.42, 0.13)) * bell(y, -0.48, 0.39) * 0.025;
+        positions.push(x, y, z);
       }
-      const rawCenter = rawBounds.getCenter(new THREE.Vector3());
-      const rawSize = rawBounds.getSize(new THREE.Vector3());
-      const rawPosition = raw.getAttribute("position");
-      const cropped: number[] = [];
-      for (let i = 0; i < rawPosition.count; i += 3) {
-        let keep = true;
-        for (let j = 0; j < 3; j++) {
-          const x = (rawPosition.getX(i + j) - rawCenter.x) / rawSize.x;
-          const y = (rawPosition.getY(i + j) - rawCenter.y) / rawSize.y;
-          const z = (rawPosition.getZ(i + j) - rawCenter.z) / rawSize.z;
-          // A referência é uma face digital frontal, não uma cabeça anatômica completa.
-          // Mantém a concha frontal e elimina orelhas, laterais traseiras, pescoço e busto.
-          const faceWidth = 0.37 - Math.max(0, y - 0.28) * 0.10 + Math.max(0, -y - 0.05) * 0.13;
-          const frontCut = -0.08 + Math.abs(x) * 0.34;
-          if (y < -0.34 || Math.abs(x) > faceWidth || z < frontCut) {
-            keep = false;
-            break;
-          }
-        }
-        if (!keep) continue;
-        for (let j = 0; j < 3; j++) {
-          cropped.push(rawPosition.getX(i + j), rawPosition.getY(i + j), rawPosition.getZ(i + j));
-        }
+    }
+
+    for (let row = 0; row < rows; row++) {
+      for (let column = 0; column < columns; column++) {
+        const a = row * (columns + 1) + column;
+        const b = a + columns + 1;
+        indices.push(a, b, a + 1, b, b + 1, a + 1);
       }
-      raw.dispose();
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute("position", new THREE.Float32BufferAttribute(cropped, 3));
-      geometry.computeBoundingBox();
-      const bounds = geometry.boundingBox;
-      if (!bounds) return;
-      const center = bounds.getCenter(new THREE.Vector3());
-      const size = bounds.getSize(new THREE.Vector3());
-      geometry.translate(-center.x, -center.y, -center.z);
-      geometry.scale(2.78 / size.y, 2.92 / size.y, 2.50 / size.y);
-      geometry.computeVertexNormals();
-      const surface = new THREE.Mesh(geometry);
-      const sampler = new MeshSurfaceSampler(surface).build();
-      const particleCount = 22500;
-      const particlePositions = new Float32Array(particleCount * 3);
-      const particleNormals = new Float32Array(particleCount * 3);
-      const point = new THREE.Vector3();
-      const normal = new THREE.Vector3();
-      for (let i = 0; i < particleCount; i++) {
-        sampler.sample(point, normal);
-        point.toArray(particlePositions, i * 3);
-        normal.toArray(particleNormals, i * 3);
-      }
-      const particles = new THREE.BufferGeometry();
-      particles.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
-      particles.setAttribute("normal", new THREE.BufferAttribute(particleNormals, 3));
-      const seeds = new Float32Array(particleCount);
-      for (let i = 0; i < seeds.length; i++) seeds[i] = Math.random();
-      particles.setAttribute("aSeed", new THREE.BufferAttribute(seeds, 1));
-      faceGeometry = geometry;
-      particleGeometry = particles;
-      faceGroup.add(new THREE.Mesh(geometry, wireMaterial), new THREE.Points(particles, pointMaterial));
-    });
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    const surface = new THREE.Mesh(geometry);
+    const sampler = new MeshSurfaceSampler(surface).build();
+    const particleCount = 30000;
+    const particlePositions = new Float32Array(particleCount * 3);
+    const particleNormals = new Float32Array(particleCount * 3);
+    const point = new THREE.Vector3();
+    const normal = new THREE.Vector3();
+    for (let i = 0; i < particleCount; i++) {
+      sampler.sample(point, normal);
+      point.toArray(particlePositions, i * 3);
+      normal.toArray(particleNormals, i * 3);
+    }
+    const particles = new THREE.BufferGeometry();
+    particles.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
+    particles.setAttribute("normal", new THREE.BufferAttribute(particleNormals, 3));
+    const seeds = new Float32Array(particleCount);
+    for (let i = 0; i < seeds.length; i++) seeds[i] = Math.random();
+    particles.setAttribute("aSeed", new THREE.BufferAttribute(seeds, 1));
+    faceGeometry = geometry;
+    particleGeometry = particles;
+    faceGroup.add(new THREE.Mesh(geometry, wireMaterial), new THREE.Points(particles, pointMaterial));
 
 
     const sparkCount = 2400;
