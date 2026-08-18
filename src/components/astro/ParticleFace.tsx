@@ -41,6 +41,7 @@ const FACE_VERT = /* glsl */ `
   varying float vFresnel;
   varying float vIri;
   varying float vSpark;
+  varying float vFeature;
   ${DEFORM}
   void main() {
     float mouth;
@@ -57,6 +58,15 @@ const FACE_VERT = /* glsl */ `
     float rim = clamp(dot(n, normalize(vec3(0.75, -0.15, 0.35))), 0.0, 1.0);
     float shade = pow(key, 1.5) * 0.85 + pow(rim, 3.0) * 0.30;
 
+    // Linhas faciais que permanecem legíveis na nuvem de pontos.
+    float eyes = exp(-pow((abs(p.x) - 0.34) * 5.0, 2.0) - pow((p.y - 0.28) * 9.5, 2.0));
+    float brows = exp(-pow((abs(p.x) - 0.34) * 4.2, 2.0) - pow((p.y - 0.48) * 13.0, 2.0));
+    float nose = exp(-pow(p.x * 8.0, 2.0) - pow((p.y + 0.02) * 2.1, 2.0));
+    float nostrils = exp(-pow(p.x * 4.2, 2.0) - pow((p.y + 0.35) * 15.0, 2.0));
+    float lips = exp(-pow(p.x * 2.9, 2.0) - pow((p.y + 0.66) * 18.0, 2.0));
+    float jawline = exp(-pow((abs(p.x) - (0.58 + p.y * 0.22)) * 11.0, 2.0)) * smoothstep(0.35, -1.15, p.y);
+    vFeature = clamp(eyes * 0.85 + brows * 0.45 + nose * 0.48 + nostrils * 0.55 + lips * 0.9 + jawline * 0.28, 0.0, 1.0);
+
     // iridescência: ângulo de visão + posição -> deslocamento de matiz (efeito cristal/espelho)
     vIri = fract(vFresnel * 1.35 + p.y * 0.22 + p.x * 0.10 + uTime * 0.035);
 
@@ -65,8 +75,8 @@ const FACE_VERT = /* glsl */ `
     vSpark = pow(tw, 6.0) * (0.30 + uAmp * 0.65) * (0.25 + shade);
 
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = (1.15 + shade * 1.15 + mouth * uAmp * 1.25 + vSpark) * (10.5 / -mv.z);
-    vGlow = clamp(0.20 + shade * 0.90 + mouth * uAmp * 0.75 + uListen * 0.16 + uThink * 0.12 + vFresnel * 0.30, 0.0, 1.0);
+    gl_PointSize = (0.92 + shade * 0.82 + vFeature * 1.05 + mouth * uAmp * 1.25 + vSpark) * (10.5 / -mv.z);
+    vGlow = clamp(0.13 + shade * 0.72 + vFeature * 0.92 + mouth * uAmp * 0.75 + uListen * 0.16 + uThink * 0.12 + vFresnel * 0.30, 0.0, 1.0);
 
   }
 `;
@@ -77,6 +87,7 @@ const POINT_FRAG = /* glsl */ `
   varying float vFresnel;
   varying float vIri;
   varying float vSpark;
+  varying float vFeature;
 
   vec3 spectrum(float t) {
     return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.62, 0.46, 0.28)));
@@ -91,9 +102,9 @@ const POINT_FRAG = /* glsl */ `
     vec3 base = mix(vec3(0.63, 0.80, 0.90), vec3(1.0, 1.0, 1.0), vGlow);
     vec3 iri = spectrum(vIri);
     vec3 color = mix(base, iri, 0.035 + vFresnel * 0.045);
-    color += vec3(1.0) * vSpark * 0.60;
+    color += vec3(1.0) * (vSpark * 0.60 + vFeature * 0.52);
 
-    float alpha = core * (0.40 + vGlow * 0.50 + vFresnel * 0.18 + vSpark * 0.42);
+    float alpha = core * (0.25 + vGlow * 0.52 + vFresnel * 0.18 + vSpark * 0.42 + vFeature * 0.30);
     gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0));
   }
 `;
@@ -206,29 +217,32 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const width = yNorm > 0.35
         ? 0.94 - Math.pow((yNorm - 0.35) / 0.65, 2) * 0.16
         : 0.94 - Math.pow((0.35 - yNorm) / 1.35, 1.45) * 0.77;
+      const crown = yNorm > 0.74
+        ? Math.sqrt(Math.max(0.14, 1 - Math.pow((yNorm - 0.74) / 0.29, 2)))
+        : 1;
 
       for (let column = 0; column <= columns; column++) {
         const u = column / columns * 2 - 1;
-        const x = u * width;
+        const x = u * width * crown;
         const edge = Math.sqrt(Math.max(0, 1 - u * u));
         let z = 0.12 + edge * 0.31;
 
         // Órbitas fundas e sobrancelhas quase horizontais, como no vídeo.
         const leftEye = bell(x, -0.34, 0.22) * bell(y, 0.28, 0.15);
         const rightEye = bell(x, 0.34, 0.22) * bell(y, 0.28, 0.15);
-        z -= (leftEye + rightEye) * 0.105;
-        z += (bell(x, -0.34, 0.25) + bell(x, 0.34, 0.25)) * bell(y, 0.49, 0.10) * 0.065;
+        z -= (leftEye + rightEye) * 0.21;
+        z += (bell(x, -0.34, 0.25) + bell(x, 0.34, 0.25)) * bell(y, 0.49, 0.10) * 0.12;
 
         // Nariz comprido e central, com ponta e asas discretas.
-        z += bell(x, 0, 0.16) * bell(y, 0.03, 0.50) * 0.31;
-        z += bell(x, 0, 0.22) * bell(y, -0.23, 0.15) * 0.13;
+        z += bell(x, 0, 0.16) * bell(y, 0.03, 0.50) * 0.46;
+        z += bell(x, 0, 0.22) * bell(y, -0.23, 0.15) * 0.20;
         z -= bell(x, 0, 0.10) * bell(y, -0.34, 0.07) * 0.055;
 
         // Filtro, lábios finos e sulco sob o lábio — expressão neutra da referência.
         z -= bell(x, 0, 0.11) * bell(y, -0.48, 0.13) * 0.045;
-        z += bell(x, 0, 0.39) * bell(y, -0.62, 0.075) * 0.085;
-        z -= bell(x, 0, 0.34) * bell(y, -0.68, 0.035) * 0.055;
-        z += bell(x, 0, 0.30) * bell(y, -0.75, 0.065) * 0.055;
+        z += bell(x, 0, 0.39) * bell(y, -0.62, 0.075) * 0.14;
+        z -= bell(x, 0, 0.34) * bell(y, -0.68, 0.035) * 0.09;
+        z += bell(x, 0, 0.30) * bell(y, -0.75, 0.065) * 0.09;
         z -= bell(x, 0, 0.30) * bell(y, -0.91, 0.12) * 0.035;
         z += bell(x, 0, 0.42) * bell(y, -1.16, 0.22) * 0.09;
 
@@ -253,7 +267,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     geometry.computeVertexNormals();
     const surface = new THREE.Mesh(geometry);
     const sampler = new MeshSurfaceSampler(surface).build();
-    const particleCount = 30000;
+    const particleCount = 18500;
     const particlePositions = new Float32Array(particleCount * 3);
     const particleNormals = new Float32Array(particleCount * 3);
     const point = new THREE.Vector3();
