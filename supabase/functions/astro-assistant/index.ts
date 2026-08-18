@@ -340,7 +340,9 @@ Deno.serve(async (req) => {
           messages: convo,
           tools,
           temperature: 0.25,
-          max_tokens: 220,
+          // Gemini 3 usa parte do orçamento para raciocínio e argumentos das tools.
+          // Um teto curto pode encerrar a rodada sem texto nem tool_call.
+          max_tokens: 1024,
         }),
       });
 
@@ -353,11 +355,16 @@ Deno.serve(async (req) => {
       }
 
       const data = await aiRes.json();
-      const msg = data?.choices?.[0]?.message;
+      const choice = data?.choices?.[0];
+      const msg = choice?.message;
       if (!msg) return json({ error: "Resposta inválida da IA" }, 502);
 
       const calls = msg.tool_calls ?? [];
       if (calls.length === 0) {
+        if (choice?.finish_reason === "length" && !(msg.content ?? "").toString().trim()) {
+          console.error("ASTRO AI response exhausted token budget without content");
+          return json({ error: "A resposta da IA foi interrompida. Tente novamente." }, 502);
+        }
         return json({ reply: (msg.content ?? "").toString().trim() || "Desculpe, não consegui responder." });
       }
 
