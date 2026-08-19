@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { MeshSurfaceSampler } from "three/examples/jsm/math/MeshSurfaceSampler.js";
 
 interface ParticleFaceProps {
@@ -201,14 +201,14 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     const faceGroup = new THREE.Group();
     scene.add(faceGroup);
 
-    // Malha facial humana real. A geometria anterior era paramétrica e produzia
-    // o queixo pontudo; esta preserva olhos, nariz, boca, maçãs e mandíbula.
-    const loader = new GLTFLoader();
-    loader.load("/models/astro/reference-head.glb", (gltf) => {
+    // Malha facial canônica frontal: somente a superfície do rosto, sem
+    // orelhas, crânio traseiro, cabelo, barba, pescoço ou busto.
+    const loader = new OBJLoader();
+    loader.load("/models/astro/canonical-face.obj", (model) => {
       if (!container.isConnected) return;
       let source: THREE.Mesh | null = null;
       let largestVertexCount = 0;
-      gltf.scene.traverse((object) => {
+      model.traverse((object) => {
         if (!(object instanceof THREE.Mesh)) return;
         const vertexCount = object.geometry.getAttribute("position")?.count ?? 0;
         if (vertexCount > largestVertexCount) {
@@ -218,7 +218,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       });
       if (!source) return;
 
-      const geometry = source.geometry.clone();
+      const geometry = source.geometry.index ? source.geometry.toNonIndexed() : source.geometry.clone();
       geometry.applyMatrix4(source.matrixWorld);
       geometry.computeBoundingBox();
       const bounds = geometry.boundingBox;
@@ -230,7 +230,9 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const size = bounds.getSize(new THREE.Vector3());
       geometry.translate(-center.x, -center.y, -center.z);
       const scale = 2.82 / size.y;
-      geometry.scale(scale, scale, scale);
+      // O modelo canônico usa +Z para frente; gira para a câmera e mantém
+      // a largura oval observada no vídeo, sem afinar artificialmente o queixo.
+      geometry.scale(scale * 0.96, scale, -scale);
       geometry.computeVertexNormals();
 
       const surface = new THREE.Mesh(geometry);
