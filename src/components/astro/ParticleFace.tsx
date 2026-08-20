@@ -79,8 +79,8 @@ const FACE_VERT = /* glsl */ `
     vSpark = pow(tw, 6.0) * (0.30 + uAmp * 0.65) * (0.25 + shade);
 
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = (0.82 + shade * 0.60 + vFeature * 0.86 + mouth * uAmp * 1.0 + vSpark * 0.7) * (10.5 / -mv.z);
-    vGlow = clamp(0.10 + shade * 0.62 + vFeature * 0.90 + mouth * uAmp * 0.65 + uListen * 0.14 + uThink * 0.10 + vFresnel * 0.24, 0.0, 1.0);
+    gl_PointSize = (0.98 + shade * 0.68 + vFeature * 0.92 + mouth * uAmp * 1.0 + vSpark * 0.7) * (10.5 / -mv.z);
+    vGlow = clamp(0.18 + shade * 0.68 + vFeature * 0.94 + mouth * uAmp * 0.65 + uListen * 0.14 + uThink * 0.10 + vFresnel * 0.24, 0.0, 1.0);
 
   }
 `;
@@ -109,7 +109,7 @@ const POINT_FRAG = /* glsl */ `
     vec3 color = mix(base, iri, 0.035 + vFresnel * 0.045);
     color += vec3(1.0) * (vSpark * 0.48 + vFeature * 0.42);
 
-    float alpha = core * (0.16 + vGlow * 0.46 + vFresnel * 0.15 + vSpark * 0.34 + vFeature * 0.30) * (1.0 - vVoid * 0.92);
+    float alpha = core * (0.26 + vGlow * 0.50 + vFresnel * 0.15 + vSpark * 0.34 + vFeature * 0.30) * (1.0 - vVoid * 0.92);
     gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0));
   }
 `;
@@ -242,9 +242,9 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
         const y = positions.getY(i);
         const normalizedY = THREE.MathUtils.clamp(y / 1.41, -1, 1);
         const jawTaper = normalizedY < 0.05
-          ? THREE.MathUtils.lerp(0.58, 1, (normalizedY + 1) / 1.05)
+          ? THREE.MathUtils.lerp(0.72, 1, (normalizedY + 1) / 1.05)
           : THREE.MathUtils.lerp(1, 0.91, (normalizedY - 0.05) / 0.95);
-        const chinRound = normalizedY < -0.72 ? 0.94 + (normalizedY + 1) * 0.10 : 1;
+        const chinRound = normalizedY < -0.78 ? 1.06 - (normalizedY + 1) * 0.08 : 1;
         positions.setX(i, positions.getX(i) * jawTaper * chinRound);
       }
       positions.needsUpdate = true;
@@ -254,7 +254,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const sampler = new MeshSurfaceSampler(surface).build();
       // Densidade semelhante à referência: a topologia triangular continua
       // visível em vez de virar uma superfície branca sólida.
-      const particleCount = 10500;
+      const particleCount = 15000;
       const particlePositions = new Float32Array(particleCount * 3);
       const particleNormals = new Float32Array(particleCount * 3);
       const point = new THREE.Vector3();
