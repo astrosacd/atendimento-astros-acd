@@ -105,9 +105,9 @@ const POINT_FRAG = /* glsl */ `
     vec3 base = mix(vec3(0.63, 0.80, 0.90), vec3(1.0, 1.0, 1.0), vGlow);
     vec3 iri = spectrum(vIri);
     vec3 color = mix(base, iri, 0.035 + vFresnel * 0.045);
-    color += vec3(1.0) * (vSpark * 0.48 + vFeature * 0.42);
+    color += vec3(1.0) * (vSpark * 0.40 + vFeature * 0.28);
 
-    float alpha = core * (0.26 + vGlow * 0.50 + vFresnel * 0.15 + vSpark * 0.34 + vFeature * 0.30) * (1.0 - vVoid * 0.92);
+    float alpha = core * (0.14 + vGlow * 0.40 + vFresnel * 0.12 + vSpark * 0.30 + vFeature * 0.22) * (1.0 - vVoid * 0.95);
     gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0));
   }
 `;
@@ -141,7 +141,7 @@ const WIRE_FRAG = /* glsl */ `
   }
   void main() {
     vec3 color = mix(vec3(0.74, 0.88, 0.96), spectrum(vIri), 0.035);
-    gl_FragColor = vec4(color, 0.13 + vFresnel * 0.25);
+    gl_FragColor = vec4(color, 0.30 + vFresnel * 0.34);
   }
 `;
 
@@ -234,15 +234,15 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const scale = 2.82 / size.y;
       // O vídeo usa uma máscara alongada: têmporas retas e mandíbula que
       // afunila progressivamente até um queixo arredondado.
-      geometry.scale(scale * 0.66, scale, -scale);
+      geometry.scale(scale * 0.76, scale, -scale);
       const positions = geometry.getAttribute("position");
       for (let i = 0; i < positions.count; i++) {
         const y = positions.getY(i);
         const normalizedY = THREE.MathUtils.clamp(y / 1.41, -1, 1);
         const jawTaper = normalizedY < 0.05
-          ? THREE.MathUtils.lerp(0.72, 1, (normalizedY + 1) / 1.05)
-          : THREE.MathUtils.lerp(1, 0.91, (normalizedY - 0.05) / 0.95);
-        const chinRound = normalizedY < -0.78 ? 1.06 - (normalizedY + 1) * 0.08 : 1;
+          ? THREE.MathUtils.lerp(0.86, 1, (normalizedY + 1) / 1.05)
+          : THREE.MathUtils.lerp(1, 0.95, (normalizedY - 0.05) / 0.95);
+        const chinRound = normalizedY < -0.82 ? 1.04 : 1;
         positions.setX(i, positions.getX(i) * jawTaper * chinRound);
       }
       positions.needsUpdate = true;
@@ -252,7 +252,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const sampler = new MeshSurfaceSampler(surface).build();
       // Densidade semelhante à referência: a topologia triangular continua
       // visível em vez de virar uma superfície branca sólida.
-      const particleCount = 15000;
+      const particleCount = 7000;
       const particlePositions = new Float32Array(particleCount * 3);
       const particleNormals = new Float32Array(particleCount * 3);
       const point = new THREE.Vector3();
@@ -286,8 +286,8 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     const sparkGeometry = new THREE.BufferGeometry();
     sparkGeometry.setAttribute("position", new THREE.BufferAttribute(sparkPositions, 3));
     const sparkMaterial = new THREE.PointsMaterial({
-      color: new THREE.Color(0.55, 0.85, 1), size: 0.013, transparent: true,
-      opacity: 0.34, blending: THREE.AdditiveBlending, depthWrite: false,
+      color: new THREE.Color(0.55, 0.85, 1), size: 0.010, transparent: true,
+      opacity: 0.26, blending: THREE.AdditiveBlending, depthWrite: false,
     });
     const sparks = new THREE.Points(sparkGeometry, sparkMaterial);
     scene.add(sparks);
