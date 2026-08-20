@@ -76,8 +76,8 @@ const FACE_VERT = /* glsl */ `
     vSpark = pow(tw, 6.0) * (0.30 + uAmp * 0.65) * (0.25 + shade);
 
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = (0.92 + shade * 0.82 + vFeature * 1.05 + mouth * uAmp * 1.25 + vSpark) * (10.5 / -mv.z);
-    vGlow = clamp(0.13 + shade * 0.72 + vFeature * 0.92 + mouth * uAmp * 0.75 + uListen * 0.16 + uThink * 0.12 + vFresnel * 0.30, 0.0, 1.0);
+    gl_PointSize = (1.08 + shade * 0.88 + vFeature * 1.28 + mouth * uAmp * 1.25 + vSpark) * (10.5 / -mv.z);
+    vGlow = clamp(0.25 + shade * 0.78 + vFeature * 1.15 + mouth * uAmp * 0.75 + uListen * 0.16 + uThink * 0.12 + vFresnel * 0.30, 0.0, 1.0);
 
   }
 `;
@@ -105,7 +105,7 @@ const POINT_FRAG = /* glsl */ `
     vec3 color = mix(base, iri, 0.035 + vFresnel * 0.045);
     color += vec3(1.0) * (vSpark * 0.60 + vFeature * 0.52);
 
-    float alpha = core * (0.25 + vGlow * 0.52 + vFresnel * 0.18 + vSpark * 0.42 + vFeature * 0.30);
+    float alpha = core * (0.38 + vGlow * 0.54 + vFresnel * 0.18 + vSpark * 0.42 + vFeature * 0.36);
     gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0));
   }
 `;
@@ -139,7 +139,7 @@ const WIRE_FRAG = /* glsl */ `
   }
   void main() {
     vec3 color = mix(vec3(0.74, 0.88, 0.96), spectrum(vIri), 0.035);
-    gl_FragColor = vec4(color, 0.045 + vFresnel * 0.16);
+    gl_FragColor = vec4(color, 0.075 + vFresnel * 0.19);
   }
 `;
 
@@ -232,7 +232,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const scale = 2.82 / size.y;
       // O modelo canônico usa +Z para frente; gira para a câmera e mantém
       // a largura oval observada no vídeo, sem afinar artificialmente o queixo.
-      geometry.scale(scale * 0.96, scale, -scale);
+      geometry.scale(scale * 0.70, scale, -scale);
       geometry.computeVertexNormals();
 
       const surface = new THREE.Mesh(geometry);
