@@ -60,29 +60,27 @@ const FACE_VERT = /* glsl */ `
     float rim = clamp(dot(n, normalize(vec3(0.75, -0.15, 0.35))), 0.0, 1.0);
     float shade = pow(key, 1.5) * 0.85 + pow(rim, 3.0) * 0.30;
 
-    // Linhas faciais que permanecem legíveis na nuvem de pontos.
+    // Linhas faciais discretas: apenas realçam relevo, sem virar manchas.
     float eyeRadius = length(vec2((abs(p.x) - 0.31) * 5.4, (p.y - 0.28) * 9.2));
-    float eyes = exp(-pow((eyeRadius - 0.78) * 4.2, 2.0));
-    vVoid = 1.0 - smoothstep(0.34, 0.72, eyeRadius);
+    vVoid = 1.0 - smoothstep(0.30, 0.62, eyeRadius);
     float brows = exp(-pow((abs(p.x) - 0.34) * 4.2, 2.0) - pow((p.y - 0.48) * 13.0, 2.0));
-    float nose = exp(-pow(p.x * 8.0, 2.0) - pow((p.y + 0.02) * 2.1, 2.0));
-    float nostrils = exp(-pow(p.x * 4.2, 2.0) - pow((p.y + 0.35) * 15.0, 2.0));
-    float lips = exp(-pow(p.x * 2.9, 2.0) - pow((p.y + 0.66) * 18.0, 2.0));
-    float jawline = exp(-pow((abs(p.x) - (0.58 + p.y * 0.22)) * 11.0, 2.0)) * smoothstep(0.35, -1.15, p.y);
-    vFeature = clamp(eyes * 0.85 + brows * 0.45 + nose * 0.48 + nostrils * 0.55 + lips * 0.9 + jawline * 0.28, 0.0, 1.0);
+    float nose = exp(-pow(p.x * 9.0, 2.0) - pow((p.y + 0.02) * 2.4, 2.0));
+    float lips = exp(-pow(p.x * 3.2, 2.0) - pow((p.y + 0.66) * 16.0, 2.0));
+    vFeature = clamp(brows * 0.30 + nose * 0.34 + lips * 0.45, 0.0, 1.0);
 
     // iridescência: ângulo de visão + posição -> deslocamento de matiz (efeito cristal/espelho)
     vIri = fract(vFresnel * 1.35 + p.y * 0.22 + p.x * 0.10 + uTime * 0.035);
 
     // cintilância individual das partículas
     float tw = sin(uTime * 3.2 + aSeed * 62.8) * 0.5 + 0.5;
-    vSpark = pow(tw, 6.0) * (0.30 + uAmp * 0.65) * (0.25 + shade);
+    vSpark = pow(tw, 8.0) * (0.25 + uAmp * 0.5) * (0.25 + shade);
 
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = (0.98 + shade * 0.68 + vFeature * 0.92 + mouth * uAmp * 1.0 + vSpark * 0.7) * (10.5 / -mv.z);
-    vGlow = clamp(0.18 + shade * 0.68 + vFeature * 0.94 + mouth * uAmp * 0.65 + uListen * 0.14 + uThink * 0.10 + vFresnel * 0.24, 0.0, 1.0);
+    gl_PointSize = (0.55 + shade * 0.30 + vFeature * 0.35 + mouth * uAmp * 0.6 + vSpark * 0.5) * (10.5 / -mv.z);
+    vGlow = clamp(0.12 + shade * 0.55 + vFeature * 0.60 + mouth * uAmp * 0.5 + uListen * 0.12 + uThink * 0.08 + vFresnel * 0.20, 0.0, 1.0);
 
   }
+
 `;
 
 const POINT_FRAG = /* glsl */ `
@@ -107,9 +105,9 @@ const POINT_FRAG = /* glsl */ `
     vec3 base = mix(vec3(0.63, 0.80, 0.90), vec3(1.0, 1.0, 1.0), vGlow);
     vec3 iri = spectrum(vIri);
     vec3 color = mix(base, iri, 0.035 + vFresnel * 0.045);
-    color += vec3(1.0) * (vSpark * 0.48 + vFeature * 0.42);
+    color += vec3(1.0) * (vSpark * 0.40 + vFeature * 0.28);
 
-    float alpha = core * (0.26 + vGlow * 0.50 + vFresnel * 0.15 + vSpark * 0.34 + vFeature * 0.30) * (1.0 - vVoid * 0.92);
+    float alpha = core * (0.14 + vGlow * 0.40 + vFresnel * 0.12 + vSpark * 0.30 + vFeature * 0.22) * (1.0 - vVoid * 0.95);
     gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0));
   }
 `;
@@ -143,7 +141,7 @@ const WIRE_FRAG = /* glsl */ `
   }
   void main() {
     vec3 color = mix(vec3(0.74, 0.88, 0.96), spectrum(vIri), 0.035);
-    gl_FragColor = vec4(color, 0.13 + vFresnel * 0.25);
+    gl_FragColor = vec4(color, 0.30 + vFresnel * 0.34);
   }
 `;
 
@@ -236,15 +234,15 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const scale = 2.82 / size.y;
       // O vídeo usa uma máscara alongada: têmporas retas e mandíbula que
       // afunila progressivamente até um queixo arredondado.
-      geometry.scale(scale * 0.66, scale, -scale);
+      geometry.scale(scale * 0.76, scale, -scale);
       const positions = geometry.getAttribute("position");
       for (let i = 0; i < positions.count; i++) {
         const y = positions.getY(i);
         const normalizedY = THREE.MathUtils.clamp(y / 1.41, -1, 1);
         const jawTaper = normalizedY < 0.05
-          ? THREE.MathUtils.lerp(0.72, 1, (normalizedY + 1) / 1.05)
-          : THREE.MathUtils.lerp(1, 0.91, (normalizedY - 0.05) / 0.95);
-        const chinRound = normalizedY < -0.78 ? 1.06 - (normalizedY + 1) * 0.08 : 1;
+          ? THREE.MathUtils.lerp(0.86, 1, (normalizedY + 1) / 1.05)
+          : THREE.MathUtils.lerp(1, 0.95, (normalizedY - 0.05) / 0.95);
+        const chinRound = normalizedY < -0.82 ? 1.04 : 1;
         positions.setX(i, positions.getX(i) * jawTaper * chinRound);
       }
       positions.needsUpdate = true;
@@ -254,7 +252,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const sampler = new MeshSurfaceSampler(surface).build();
       // Densidade semelhante à referência: a topologia triangular continua
       // visível em vez de virar uma superfície branca sólida.
-      const particleCount = 15000;
+      const particleCount = 7000;
       const particlePositions = new Float32Array(particleCount * 3);
       const particleNormals = new Float32Array(particleCount * 3);
       const point = new THREE.Vector3();
@@ -288,8 +286,8 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     const sparkGeometry = new THREE.BufferGeometry();
     sparkGeometry.setAttribute("position", new THREE.BufferAttribute(sparkPositions, 3));
     const sparkMaterial = new THREE.PointsMaterial({
-      color: new THREE.Color(0.55, 0.85, 1), size: 0.013, transparent: true,
-      opacity: 0.34, blending: THREE.AdditiveBlending, depthWrite: false,
+      color: new THREE.Color(0.55, 0.85, 1), size: 0.010, transparent: true,
+      opacity: 0.26, blending: THREE.AdditiveBlending, depthWrite: false,
     });
     const sparks = new THREE.Points(sparkGeometry, sparkMaterial);
     scene.add(sparks);
