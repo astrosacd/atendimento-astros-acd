@@ -44,10 +44,24 @@ const FACE_VERT = /* glsl */ `
   varying float vSpark;
   varying float vFeature;
   varying float vVoid;
+  varying float vPatch;
+  varying float vPatchHue;
   ${DEFORM}
+
+  float hash21(vec2 v) {
+    return fract(sin(dot(v, vec2(127.1, 311.7))) * 43758.5453123);
+  }
+
   void main() {
     float mouth;
     vec3 p = deform(position, uTime, uAmp, uListen, uThink, mouth);
+
+    // Placas poligonais coloridas (efeito espelho/vitral) que acendem e apagam
+    vec2 cell = floor(vec2(p.x, p.y) * 5.5);
+    float cellSeed = hash21(cell);
+    float pulse = sin(uTime * (0.55 + cellSeed * 1.4) + cellSeed * 40.0) * 0.5 + 0.5;
+    vPatch = smoothstep(0.55, 1.0, pulse) * (0.35 + uAmp * 0.65 + uListen * 0.25);
+    vPatchHue = fract(cellSeed + uTime * 0.05);
 
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
     vec3 n = normalize(normalMatrix * normal);
