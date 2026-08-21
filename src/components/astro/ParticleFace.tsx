@@ -63,10 +63,12 @@ const FACE_VERT = /* glsl */ `
     // Linhas faciais discretas: apenas realçam relevo, sem virar manchas.
     float eyeRadius = length(vec2((abs(p.x) - 0.31) * 5.4, (p.y - 0.28) * 9.2));
     vVoid = 1.0 - smoothstep(0.30, 0.62, eyeRadius);
+    // contorno das pálpebras (anel), não mancha cheia
+    float lids = exp(-pow((eyeRadius - 0.85) * 3.6, 2.0));
     float brows = exp(-pow((abs(p.x) - 0.34) * 4.2, 2.0) - pow((p.y - 0.48) * 13.0, 2.0));
     float nose = exp(-pow(p.x * 9.0, 2.0) - pow((p.y + 0.02) * 2.4, 2.0));
-    float lips = exp(-pow(p.x * 3.2, 2.0) - pow((p.y + 0.66) * 16.0, 2.0));
-    vFeature = clamp(brows * 0.30 + nose * 0.34 + lips * 0.45, 0.0, 1.0);
+    float lips = exp(-pow(p.x * 3.2, 2.0) - pow((p.y + 0.66) * 14.0, 2.0));
+    vFeature = clamp(lids * 0.55 + brows * 0.26 + nose * 0.36 + lips * 0.58, 0.0, 1.0);
 
     // iridescência: ângulo de visão + posição -> deslocamento de matiz (efeito cristal/espelho)
     vIri = fract(vFresnel * 1.35 + p.y * 0.22 + p.x * 0.10 + uTime * 0.035);
@@ -76,8 +78,8 @@ const FACE_VERT = /* glsl */ `
     vSpark = pow(tw, 8.0) * (0.25 + uAmp * 0.5) * (0.25 + shade);
 
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = (0.48 + shade * 0.26 + vFeature * 0.35 + mouth * uAmp * 0.6 + vSpark * 0.5) * (10.5 / -mv.z);
-    vGlow = clamp(0.12 + shade * 0.55 + vFeature * 0.60 + mouth * uAmp * 0.5 + uListen * 0.12 + uThink * 0.08 + vFresnel * 0.20, 0.0, 1.0);
+    gl_PointSize = (0.62 + shade * 0.34 + vFeature * 0.35 + mouth * uAmp * 0.6 + vSpark * 0.5) * (10.5 / -mv.z);
+    vGlow = clamp(0.16 + shade * 0.62 + vFeature * 0.60 + mouth * uAmp * 0.5 + uListen * 0.12 + uThink * 0.08 + vFresnel * 0.20, 0.0, 1.0);
 
   }
 
@@ -107,7 +109,7 @@ const POINT_FRAG = /* glsl */ `
     vec3 color = mix(base, iri, 0.035 + vFresnel * 0.045);
     color += vec3(1.0) * (vSpark * 0.40 + vFeature * 0.28);
 
-    float alpha = core * (0.10 + vGlow * 0.34 + vFresnel * 0.12 + vSpark * 0.30 + vFeature * 0.22) * (1.0 - vVoid * 0.95);
+    float alpha = core * (0.16 + vGlow * 0.52 + vFresnel * 0.12 + vSpark * 0.30 + vFeature * 0.22) * (1.0 - vVoid * 0.95);
     gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0));
   }
 `;
@@ -141,7 +143,7 @@ const WIRE_FRAG = /* glsl */ `
   }
   void main() {
     vec3 color = mix(vec3(0.74, 0.88, 0.96), spectrum(vIri), 0.035);
-    gl_FragColor = vec4(color, 0.16 + vFresnel * 0.22);
+    gl_FragColor = vec4(color, 0.13 + vFresnel * 0.20);
   }
 `;
 
