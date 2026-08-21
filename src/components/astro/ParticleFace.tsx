@@ -162,8 +162,8 @@ const WIRE_FRAG = /* glsl */ `
     return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.62, 0.46, 0.28)));
   }
   void main() {
-    vec3 color = mix(vec3(0.74, 0.88, 0.96), spectrum(vIri), 0.035);
-    gl_FragColor = vec4(color, 0.13 + vFresnel * 0.20);
+    vec3 color = mix(vec3(0.74, 0.88, 0.96), spectrum(vIri), 0.30 + vFresnel * 0.35);
+    gl_FragColor = vec4(color, 0.13 + vFresnel * 0.22);
   }
 `;
 
