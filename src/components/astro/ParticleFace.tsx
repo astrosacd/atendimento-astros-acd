@@ -107,6 +107,8 @@ const POINT_FRAG = /* glsl */ `
   varying float vSpark;
   varying float vFeature;
   varying float vVoid;
+  varying float vPatch;
+  varying float vPatchHue;
 
   vec3 spectrum(float t) {
     return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.62, 0.46, 0.28)));
@@ -119,11 +121,15 @@ const POINT_FRAG = /* glsl */ `
     float core = smoothstep(0.5, 0.0, d);
 
     vec3 base = mix(vec3(0.63, 0.80, 0.90), vec3(1.0, 1.0, 1.0), vGlow);
+    // espelho iridescente: matiz varia com o ângulo de visão
     vec3 iri = spectrum(vIri);
-    vec3 color = mix(base, iri, 0.035 + vFresnel * 0.045);
+    vec3 color = mix(base, iri, 0.18 + vFresnel * 0.45);
+    // placas poligonais coloridas (ciano / magenta / âmbar)
+    vec3 patchColor = spectrum(vPatchHue);
+    color = mix(color, patchColor, vPatch * 0.75);
     color += vec3(1.0) * (vSpark * 0.40 + vFeature * 0.28);
 
-    float alpha = core * (0.16 + vGlow * 0.52 + vFresnel * 0.12 + vSpark * 0.30 + vFeature * 0.22) * (1.0 - vVoid * 0.95);
+    float alpha = core * (0.16 + vGlow * 0.52 + vFresnel * 0.12 + vSpark * 0.30 + vFeature * 0.22 + vPatch * 0.22) * (1.0 - vVoid * 0.95);
     gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0));
   }
 `;
