@@ -76,7 +76,7 @@ const FACE_VERT = /* glsl */ `
     vSpark = pow(tw, 8.0) * (0.25 + uAmp * 0.5) * (0.25 + shade);
 
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = (0.55 + shade * 0.30 + vFeature * 0.35 + mouth * uAmp * 0.6 + vSpark * 0.5) * (10.5 / -mv.z);
+    gl_PointSize = (0.48 + shade * 0.26 + vFeature * 0.35 + mouth * uAmp * 0.6 + vSpark * 0.5) * (10.5 / -mv.z);
     vGlow = clamp(0.12 + shade * 0.55 + vFeature * 0.60 + mouth * uAmp * 0.5 + uListen * 0.12 + uThink * 0.08 + vFresnel * 0.20, 0.0, 1.0);
 
   }
@@ -107,7 +107,7 @@ const POINT_FRAG = /* glsl */ `
     vec3 color = mix(base, iri, 0.035 + vFresnel * 0.045);
     color += vec3(1.0) * (vSpark * 0.40 + vFeature * 0.28);
 
-    float alpha = core * (0.14 + vGlow * 0.40 + vFresnel * 0.12 + vSpark * 0.30 + vFeature * 0.22) * (1.0 - vVoid * 0.95);
+    float alpha = core * (0.10 + vGlow * 0.34 + vFresnel * 0.12 + vSpark * 0.30 + vFeature * 0.22) * (1.0 - vVoid * 0.95);
     gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0));
   }
 `;
@@ -141,7 +141,7 @@ const WIRE_FRAG = /* glsl */ `
   }
   void main() {
     vec3 color = mix(vec3(0.74, 0.88, 0.96), spectrum(vIri), 0.035);
-    gl_FragColor = vec4(color, 0.30 + vFresnel * 0.34);
+    gl_FragColor = vec4(color, 0.16 + vFresnel * 0.22);
   }
 `;
 
@@ -252,7 +252,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const sampler = new MeshSurfaceSampler(surface).build();
       // Densidade semelhante à referência: a topologia triangular continua
       // visível em vez de virar uma superfície branca sólida.
-      const particleCount = 7000;
+      const particleCount = 26000;
       const particlePositions = new Float32Array(particleCount * 3);
       const particleNormals = new Float32Array(particleCount * 3);
       const point = new THREE.Vector3();
