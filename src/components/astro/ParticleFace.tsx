@@ -44,10 +44,24 @@ const FACE_VERT = /* glsl */ `
   varying float vSpark;
   varying float vFeature;
   varying float vVoid;
+  varying float vPatch;
+  varying float vPatchHue;
   ${DEFORM}
+
+  float hash21(vec2 v) {
+    return fract(sin(dot(v, vec2(127.1, 311.7))) * 43758.5453123);
+  }
+
   void main() {
     float mouth;
     vec3 p = deform(position, uTime, uAmp, uListen, uThink, mouth);
+
+    // Placas poligonais coloridas (efeito espelho/vitral) que acendem e apagam
+    vec2 cell = floor(vec2(p.x, p.y) * 5.5);
+    float cellSeed = hash21(cell);
+    float pulse = sin(uTime * (0.55 + cellSeed * 1.4) + cellSeed * 40.0) * 0.5 + 0.5;
+    vPatch = smoothstep(0.42, 1.0, pulse) * (0.62 + uAmp * 0.5 + uListen * 0.2);
+    vPatchHue = fract(cellSeed + uTime * 0.05);
 
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
     vec3 n = normalize(normalMatrix * normal);
@@ -78,8 +92,8 @@ const FACE_VERT = /* glsl */ `
     vSpark = pow(tw, 8.0) * (0.25 + uAmp * 0.5) * (0.25 + shade);
 
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = (0.62 + shade * 0.34 + vFeature * 0.35 + mouth * uAmp * 0.6 + vSpark * 0.5) * (10.5 / -mv.z);
-    vGlow = clamp(0.16 + shade * 0.62 + vFeature * 0.60 + mouth * uAmp * 0.5 + uListen * 0.12 + uThink * 0.08 + vFresnel * 0.20, 0.0, 1.0);
+    gl_PointSize = (0.85 + shade * 0.5 + vFeature * 0.35 + mouth * uAmp * 0.6 + vSpark * 0.5) * (10.5 / -mv.z);
+    vGlow = clamp(0.26 + shade * 0.72 + vFeature * 0.60 + mouth * uAmp * 0.5 + uListen * 0.12 + uThink * 0.08 + vFresnel * 0.20, 0.0, 1.0);
 
   }
 
@@ -93,6 +107,8 @@ const POINT_FRAG = /* glsl */ `
   varying float vSpark;
   varying float vFeature;
   varying float vVoid;
+  varying float vPatch;
+  varying float vPatchHue;
 
   vec3 spectrum(float t) {
     return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.62, 0.46, 0.28)));
@@ -105,11 +121,15 @@ const POINT_FRAG = /* glsl */ `
     float core = smoothstep(0.5, 0.0, d);
 
     vec3 base = mix(vec3(0.63, 0.80, 0.90), vec3(1.0, 1.0, 1.0), vGlow);
+    // espelho iridescente: matiz varia com o ângulo de visão
     vec3 iri = spectrum(vIri);
-    vec3 color = mix(base, iri, 0.035 + vFresnel * 0.045);
+    vec3 color = mix(base, iri, 0.18 + vFresnel * 0.45);
+    // placas poligonais coloridas (ciano / magenta / âmbar)
+    vec3 patchColor = spectrum(vPatchHue);
+    color = mix(color, patchColor, vPatch * 0.75);
     color += vec3(1.0) * (vSpark * 0.40 + vFeature * 0.28);
 
-    float alpha = core * (0.16 + vGlow * 0.52 + vFresnel * 0.12 + vSpark * 0.30 + vFeature * 0.22) * (1.0 - vVoid * 0.95);
+    float alpha = core * (0.28 + vGlow * 0.62 + vFresnel * 0.18 + vSpark * 0.35 + vFeature * 0.30 + vPatch * 0.35) * (1.0 - vVoid * 0.95);
     gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0));
   }
 `;
@@ -142,8 +162,8 @@ const WIRE_FRAG = /* glsl */ `
     return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.62, 0.46, 0.28)));
   }
   void main() {
-    vec3 color = mix(vec3(0.74, 0.88, 0.96), spectrum(vIri), 0.035);
-    gl_FragColor = vec4(color, 0.13 + vFresnel * 0.20);
+    vec3 color = mix(vec3(0.74, 0.88, 0.96), spectrum(vIri), 0.30 + vFresnel * 0.35);
+    gl_FragColor = vec4(color, 0.30 + vFresnel * 0.38);
   }
 `;
 
