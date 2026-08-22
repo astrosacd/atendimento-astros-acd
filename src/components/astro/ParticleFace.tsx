@@ -44,24 +44,11 @@ const FACE_VERT = /* glsl */ `
   varying float vSpark;
   varying float vFeature;
   varying float vVoid;
-  varying float vPatch;
-  varying float vPatchHue;
   ${DEFORM}
-
-  float hash21(vec2 v) {
-    return fract(sin(dot(v, vec2(127.1, 311.7))) * 43758.5453123);
-  }
 
   void main() {
     float mouth;
     vec3 p = deform(position, uTime, uAmp, uListen, uThink, mouth);
-
-    // Placas poligonais coloridas (efeito espelho/vitral) que acendem e apagam
-    vec2 cell = floor(vec2(p.x, p.y) * 5.5);
-    float cellSeed = hash21(cell);
-    float pulse = sin(uTime * (0.55 + cellSeed * 1.4) + cellSeed * 40.0) * 0.5 + 0.5;
-    vPatch = smoothstep(0.42, 1.0, pulse) * (0.62 + uAmp * 0.5 + uListen * 0.2);
-    vPatchHue = fract(cellSeed + uTime * 0.05);
 
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
     vec3 n = normalize(normalMatrix * normal);
@@ -92,8 +79,8 @@ const FACE_VERT = /* glsl */ `
     vSpark = pow(tw, 8.0) * (0.25 + uAmp * 0.5) * (0.25 + shade);
 
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = (0.85 + shade * 0.5 + vFeature * 0.35 + mouth * uAmp * 0.6 + vSpark * 0.5) * (10.5 / -mv.z);
-    vGlow = clamp(0.26 + shade * 0.72 + vFeature * 0.60 + mouth * uAmp * 0.5 + uListen * 0.12 + uThink * 0.08 + vFresnel * 0.20, 0.0, 1.0);
+    gl_PointSize = (0.72 + shade * 0.42 + vFeature * 0.30 + mouth * uAmp * 0.5 + vSpark * 0.4) * (10.5 / -mv.z);
+    vGlow = clamp(0.20 + shade * 0.68 + vFeature * 0.52 + mouth * uAmp * 0.45 + uListen * 0.10 + uThink * 0.07 + vFresnel * 0.18, 0.0, 1.0);
 
   }
 
@@ -107,8 +94,6 @@ const POINT_FRAG = /* glsl */ `
   varying float vSpark;
   varying float vFeature;
   varying float vVoid;
-  varying float vPatch;
-  varying float vPatchHue;
 
   vec3 spectrum(float t) {
     return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.62, 0.46, 0.28)));
@@ -124,12 +109,9 @@ const POINT_FRAG = /* glsl */ `
     // espelho iridescente: matiz varia com o ângulo de visão
     vec3 iri = spectrum(vIri);
     vec3 color = mix(base, iri, 0.18 + vFresnel * 0.45);
-    // placas poligonais coloridas (ciano / magenta / âmbar)
-    vec3 patchColor = spectrum(vPatchHue);
-    color = mix(color, patchColor, vPatch * 0.75);
     color += vec3(1.0) * (vSpark * 0.40 + vFeature * 0.28);
 
-    float alpha = core * (0.28 + vGlow * 0.62 + vFresnel * 0.18 + vSpark * 0.35 + vFeature * 0.30 + vPatch * 0.35) * (1.0 - vVoid * 0.95);
+    float alpha = core * (0.13 + vGlow * 0.54 + vFresnel * 0.15 + vSpark * 0.30 + vFeature * 0.26) * (1.0 - vVoid * 0.95);
     gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0));
   }
 `;
@@ -163,7 +145,7 @@ const WIRE_FRAG = /* glsl */ `
   }
   void main() {
     vec3 color = mix(vec3(0.74, 0.88, 0.96), spectrum(vIri), 0.30 + vFresnel * 0.35);
-    gl_FragColor = vec4(color, 0.30 + vFresnel * 0.38);
+    gl_FragColor = vec4(color, 0.22 + vFresnel * 0.30);
   }
 `;
 
@@ -199,6 +181,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
 
     let faceGeometry: THREE.BufferGeometry | null = null;
     let particleGeometry: THREE.BufferGeometry | null = null;
+    let prismGeometry: THREE.BufferGeometry | null = null;
     const uniforms = {
       uTime: { value: 0 },
       uAmp: { value: 0 },
@@ -256,16 +239,18 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const scale = 2.82 / size.y;
       // O vídeo usa uma máscara alongada: têmporas retas e mandíbula que
       // afunila progressivamente até um queixo arredondado.
-      geometry.scale(scale * 0.76, scale, -scale);
+      geometry.scale(scale * 0.70, scale, -scale);
       const positions = geometry.getAttribute("position");
       for (let i = 0; i < positions.count; i++) {
         const y = positions.getY(i);
         const normalizedY = THREE.MathUtils.clamp(y / 1.41, -1, 1);
-        const jawTaper = normalizedY < 0.05
-          ? THREE.MathUtils.lerp(0.86, 1, (normalizedY + 1) / 1.05)
-          : THREE.MathUtils.lerp(1, 0.95, (normalizedY - 0.05) / 0.95);
-        const chinRound = normalizedY < -0.82 ? 1.04 : 1;
-        positions.setX(i, positions.getX(i) * jawTaper * chinRound);
+        // Silhueta da referência: testa quase reta, têmporas fechadas e
+        // mandíbula longa que termina em um queixo estreito, mas arredondado.
+        let contour = 1;
+        if (normalizedY > 0.62) contour = THREE.MathUtils.lerp(1.0, 0.91, (normalizedY - 0.62) / 0.38);
+        else if (normalizedY < 0.05) contour = THREE.MathUtils.lerp(0.55, 1.0, (normalizedY + 1) / 1.05);
+        if (normalizedY < -0.82) contour = THREE.MathUtils.lerp(0.62, 0.55, (-normalizedY - 0.82) / 0.18);
+        positions.setX(i, positions.getX(i) * contour);
       }
       positions.needsUpdate = true;
       geometry.computeVertexNormals();
@@ -274,7 +259,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const sampler = new MeshSurfaceSampler(surface).build();
       // Densidade semelhante à referência: a topologia triangular continua
       // visível em vez de virar uma superfície branca sólida.
-      const particleCount = 26000;
+      const particleCount = 9000;
       const particlePositions = new Float32Array(particleCount * 3);
       const particleNormals = new Float32Array(particleCount * 3);
       const point = new THREE.Vector3();
@@ -290,13 +275,51 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const seeds = new Float32Array(particleCount);
       for (let i = 0; i < seeds.length; i++) seeds[i] = Math.random();
       particles.setAttribute("aSeed", new THREE.BufferAttribute(seeds, 1));
+
+      // Facetas de espelho reais: poucos triângulos inteiros recebem cor,
+      // em vez de tingir milhares de pontos e transformar o rosto em ruído.
+      const prismPositions: number[] = [];
+      const prismColors: number[] = [];
+      const palette = [
+        new THREE.Color(0.05, 0.95, 0.78),
+        new THREE.Color(0.05, 0.72, 1.0),
+        new THREE.Color(0.96, 0.08, 0.28),
+        new THREE.Color(1.0, 0.48, 0.08),
+      ];
+      const sourcePositions = geometry.getAttribute("position");
+      for (let i = 0; i < sourcePositions.count; i += 3) {
+        const faceSeed = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1;
+        if (faceSeed < 0.905) continue;
+        const color = palette[Math.floor(faceSeed * 1000) % palette.length];
+        for (let corner = 0; corner < 3; corner++) {
+          const index = i + corner;
+          prismPositions.push(sourcePositions.getX(index), sourcePositions.getY(index), sourcePositions.getZ(index) + 0.006);
+          prismColors.push(color.r, color.g, color.b);
+        }
+      }
+      const prisms = new THREE.BufferGeometry();
+      prisms.setAttribute("position", new THREE.Float32BufferAttribute(prismPositions, 3));
+      prisms.setAttribute("color", new THREE.Float32BufferAttribute(prismColors, 3));
+      const prismMaterial = new THREE.MeshBasicMaterial({
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.62,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
       faceGeometry = geometry;
       particleGeometry = particles;
-      faceGroup.add(new THREE.Mesh(geometry, wireMaterial), new THREE.Points(particles, pointMaterial));
+      prismGeometry = prisms;
+      faceGroup.add(
+        new THREE.Mesh(geometry, wireMaterial),
+        new THREE.Mesh(prisms, prismMaterial),
+        new THREE.Points(particles, pointMaterial),
+      );
     });
 
 
-    const sparkCount = 2400;
+    const sparkCount = 1500;
     const sparkPositions = new Float32Array(sparkCount * 3);
     for (let i = 0; i < sparkCount; i++) {
       const angle = Math.random() * Math.PI * 2;
@@ -309,7 +332,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     sparkGeometry.setAttribute("position", new THREE.BufferAttribute(sparkPositions, 3));
     const sparkMaterial = new THREE.PointsMaterial({
       color: new THREE.Color(0.55, 0.85, 1), size: 0.010, transparent: true,
-      opacity: 0.26, blending: THREE.AdditiveBlending, depthWrite: false,
+      opacity: 0.20, blending: THREE.AdditiveBlending, depthWrite: false,
     });
     const sparks = new THREE.Points(sparkGeometry, sparkMaterial);
     scene.add(sparks);
@@ -375,6 +398,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       ro.disconnect();
       faceGeometry?.dispose();
       particleGeometry?.dispose();
+      prismGeometry?.dispose();
       pointMaterial.dispose();
       wireMaterial.dispose();
       sparkGeometry.dispose();
