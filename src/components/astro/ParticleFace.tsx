@@ -111,7 +111,7 @@ const POINT_FRAG = /* glsl */ `
     vec3 color = mix(base, iri, 0.18 + vFresnel * 0.45);
     color += vec3(1.0) * (vSpark * 0.40 + vFeature * 0.28);
 
-    float alpha = core * (0.13 + vGlow * 0.54 + vFresnel * 0.15 + vSpark * 0.30 + vFeature * 0.26) * (1.0 - vVoid * 0.95);
+    float alpha = core * (0.23 + vGlow * 0.58 + vFresnel * 0.16 + vSpark * 0.32 + vFeature * 0.30) * (1.0 - vVoid * 0.95);
     gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0));
   }
 `;
@@ -182,6 +182,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     let faceGeometry: THREE.BufferGeometry | null = null;
     let particleGeometry: THREE.BufferGeometry | null = null;
     let prismGeometry: THREE.BufferGeometry | null = null;
+    let prismMaterial: THREE.MeshBasicMaterial | null = null;
     const uniforms = {
       uTime: { value: 0 },
       uAmp: { value: 0 },
@@ -242,7 +243,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       geometry.scale(scale * 0.70, scale, -scale);
       const positions = geometry.getAttribute("position");
       for (let i = 0; i < positions.count; i++) {
-        const y = positions.getY(i);
+        let y = positions.getY(i);
         const normalizedY = THREE.MathUtils.clamp(y / 1.41, -1, 1);
         // Silhueta da referência: testa quase reta, têmporas fechadas e
         // mandíbula longa que termina em um queixo estreito, mas arredondado.
@@ -250,7 +251,9 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
         if (normalizedY > 0.62) contour = THREE.MathUtils.lerp(1.0, 0.91, (normalizedY - 0.62) / 0.38);
         else if (normalizedY < 0.05) contour = THREE.MathUtils.lerp(0.55, 1.0, (normalizedY + 1) / 1.05);
         if (normalizedY < -0.82) contour = THREE.MathUtils.lerp(0.62, 0.55, (-normalizedY - 0.82) / 0.18);
-        positions.setX(i, positions.getX(i) * contour);
+        // Comprime apenas o domo superior, deixando a testa mais reta.
+        if (normalizedY > 0.66) y = 0.93 + (y - 0.93) * 0.28;
+        positions.setXYZ(i, positions.getX(i) * contour, y, positions.getZ(i));
       }
       positions.needsUpdate = true;
       geometry.computeVertexNormals();
@@ -259,7 +262,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const sampler = new MeshSurfaceSampler(surface).build();
       // Densidade semelhante à referência: a topologia triangular continua
       // visível em vez de virar uma superfície branca sólida.
-      const particleCount = 9000;
+      const particleCount = 15000;
       const particlePositions = new Float32Array(particleCount * 3);
       const particleNormals = new Float32Array(particleCount * 3);
       const point = new THREE.Vector3();
@@ -289,7 +292,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const sourcePositions = geometry.getAttribute("position");
       for (let i = 0; i < sourcePositions.count; i += 3) {
         const faceSeed = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1;
-        if (faceSeed < 0.905) continue;
+        if (faceSeed < 0.974) continue;
         const color = palette[Math.floor(faceSeed * 1000) % palette.length];
         for (let corner = 0; corner < 3; corner++) {
           const index = i + corner;
@@ -300,10 +303,10 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const prisms = new THREE.BufferGeometry();
       prisms.setAttribute("position", new THREE.Float32BufferAttribute(prismPositions, 3));
       prisms.setAttribute("color", new THREE.Float32BufferAttribute(prismColors, 3));
-      const prismMaterial = new THREE.MeshBasicMaterial({
+      prismMaterial = new THREE.MeshBasicMaterial({
         vertexColors: true,
         transparent: true,
-        opacity: 0.62,
+        opacity: 0.72,
         side: THREE.DoubleSide,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
@@ -399,6 +402,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       faceGeometry?.dispose();
       particleGeometry?.dispose();
       prismGeometry?.dispose();
+      prismMaterial?.dispose();
       pointMaterial.dispose();
       wireMaterial.dispose();
       sparkGeometry.dispose();
