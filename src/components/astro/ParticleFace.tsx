@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
-import { MeshSurfaceSampler } from "three/examples/jsm/math/MeshSurfaceSampler.js";
 
 interface ParticleFaceProps {
   /** 0..1 — intensidade da fala (boca/ondas) */
@@ -56,7 +55,7 @@ const FACE_VERT = /* glsl */ `
     float ndv = clamp(dot(n, viewDir), 0.0, 1.0);
     vFresnel = pow(1.0 - ndv, 2.2);
 
-    // luz-chave: revela nariz, órbitas e lábios pelo relevo
+    // Luz-chave curta: no vídeo os pontos são prateados, sem banho colorido geral.
     float key = clamp(dot(n, normalize(vec3(-0.55, 0.62, 0.85))), 0.0, 1.0);
     float rim = clamp(dot(n, normalize(vec3(0.75, -0.15, 0.35))), 0.0, 1.0);
     float shade = pow(key, 1.5) * 0.85 + pow(rim, 3.0) * 0.30;
@@ -71,7 +70,7 @@ const FACE_VERT = /* glsl */ `
     float lips = exp(-pow(p.x * 3.2, 2.0) - pow((p.y + 0.66) * 14.0, 2.0));
     vFeature = clamp(lids * 0.55 + brows * 0.26 + nose * 0.36 + lips * 0.58, 0.0, 1.0);
 
-    // iridescência: ângulo de visão + posição -> deslocamento de matiz (efeito cristal/espelho)
+    // Reflexo frio muito discreto; a cor forte fica somente nas facetas espelhadas.
     vIri = fract(vFresnel * 1.35 + p.y * 0.22 + p.x * 0.10 + uTime * 0.035);
 
     // cintilância individual das partículas
@@ -79,8 +78,8 @@ const FACE_VERT = /* glsl */ `
     vSpark = pow(tw, 8.0) * (0.25 + uAmp * 0.5) * (0.25 + shade);
 
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = (0.72 + shade * 0.42 + vFeature * 0.30 + mouth * uAmp * 0.5 + vSpark * 0.4) * (10.5 / -mv.z);
-    vGlow = clamp(0.20 + shade * 0.68 + vFeature * 0.52 + mouth * uAmp * 0.45 + uListen * 0.10 + uThink * 0.07 + vFresnel * 0.18, 0.0, 1.0);
+    gl_PointSize = (0.88 + shade * 0.38 + vFeature * 0.12 + mouth * uAmp * 0.5 + vSpark * 0.35) * (10.5 / -mv.z);
+    vGlow = clamp(0.30 + shade * 0.64 + vFeature * 0.18 + mouth * uAmp * 0.45 + uListen * 0.10 + uThink * 0.07 + vFresnel * 0.18, 0.0, 1.0);
 
   }
 
@@ -105,13 +104,12 @@ const POINT_FRAG = /* glsl */ `
     if (d > 0.5) discard;
     float core = smoothstep(0.5, 0.0, d);
 
-    vec3 base = mix(vec3(0.63, 0.80, 0.90), vec3(1.0, 1.0, 1.0), vGlow);
-    // espelho iridescente: matiz varia com o ângulo de visão
+    vec3 base = mix(vec3(0.66, 0.72, 0.76), vec3(1.0, 1.0, 1.0), vGlow);
     vec3 iri = spectrum(vIri);
-    vec3 color = mix(base, iri, 0.18 + vFresnel * 0.45);
-    color += vec3(1.0) * (vSpark * 0.40 + vFeature * 0.28);
+    vec3 color = mix(base, iri, 0.025 + vFresnel * 0.075);
+    color += vec3(1.0) * (vSpark * 0.30 + vFeature * 0.08);
 
-    float alpha = core * (0.23 + vGlow * 0.58 + vFresnel * 0.16 + vSpark * 0.32 + vFeature * 0.30) * (1.0 - vVoid * 0.95);
+    float alpha = core * (0.42 + vGlow * 0.58 + vFresnel * 0.12 + vSpark * 0.28 + vFeature * 0.08) * (1.0 - vVoid * 0.72);
     gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0));
   }
 `;
@@ -144,8 +142,8 @@ const WIRE_FRAG = /* glsl */ `
     return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.62, 0.46, 0.28)));
   }
   void main() {
-    vec3 color = mix(vec3(0.74, 0.88, 0.96), spectrum(vIri), 0.30 + vFresnel * 0.35);
-    gl_FragColor = vec4(color, 0.22 + vFresnel * 0.30);
+    vec3 color = mix(vec3(0.66, 0.70, 0.73), spectrum(vIri), 0.025 + vFresnel * 0.07);
+    gl_FragColor = vec4(color, 0.055 + vFresnel * 0.095);
   }
 `;
 
@@ -209,6 +207,32 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     const faceGroup = new THREE.Group();
     scene.add(faceGroup);
 
+    const subdivideTriangles = (input: THREE.BufferGeometry, passes: number) => {
+      let vertices = Array.from(input.getAttribute("position").array as ArrayLike<number>);
+      for (let pass = 0; pass < passes; pass++) {
+        const next: number[] = [];
+        for (let i = 0; i < vertices.length; i += 9) {
+          const ax = vertices[i], ay = vertices[i + 1], az = vertices[i + 2];
+          const bx = vertices[i + 3], by = vertices[i + 4], bz = vertices[i + 5];
+          const cx = vertices[i + 6], cy = vertices[i + 7], cz = vertices[i + 8];
+          const abx = (ax + bx) / 2, aby = (ay + by) / 2, abz = (az + bz) / 2;
+          const bcx = (bx + cx) / 2, bcy = (by + cy) / 2, bcz = (bz + cz) / 2;
+          const cax = (cx + ax) / 2, cay = (cy + ay) / 2, caz = (cz + az) / 2;
+          next.push(
+            ax, ay, az, abx, aby, abz, cax, cay, caz,
+            abx, aby, abz, bx, by, bz, bcx, bcy, bcz,
+            cax, cay, caz, bcx, bcy, bcz, cx, cy, cz,
+            abx, aby, abz, bcx, bcy, bcz, cax, cay, caz,
+          );
+        }
+        vertices = next;
+      }
+      const output = new THREE.BufferGeometry();
+      output.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+      output.computeVertexNormals();
+      return output;
+    };
+
     // Malha facial canônica frontal: somente a superfície do rosto, sem
     // orelhas, crânio traseiro, cabelo, barba, pescoço ou busto.
     const loader = new OBJLoader();
@@ -240,7 +264,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const scale = 2.82 / size.y;
       // O vídeo usa uma máscara alongada: têmporas retas e mandíbula que
       // afunila progressivamente até um queixo arredondado.
-      geometry.scale(scale * 0.70, scale, -scale);
+      geometry.scale(scale * 0.63, scale, -scale);
       const positions = geometry.getAttribute("position");
       for (let i = 0; i < positions.count; i++) {
         let y = positions.getY(i);
@@ -248,34 +272,24 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
         // Silhueta da referência: testa quase reta, têmporas fechadas e
         // mandíbula longa que termina em um queixo estreito, mas arredondado.
         let contour = 1;
-        if (normalizedY > 0.62) contour = THREE.MathUtils.lerp(1.0, 0.91, (normalizedY - 0.62) / 0.38);
-        else if (normalizedY < 0.05) contour = THREE.MathUtils.lerp(0.55, 1.0, (normalizedY + 1) / 1.05);
-        if (normalizedY < -0.82) contour = THREE.MathUtils.lerp(0.62, 0.55, (-normalizedY - 0.82) / 0.18);
-        // Comprime apenas o domo superior, deixando a testa mais reta.
-        if (normalizedY > 0.66) y = 0.93 + (y - 0.93) * 0.28;
+        if (normalizedY > 0.62) contour = THREE.MathUtils.lerp(1.0, 0.82, (normalizedY - 0.62) / 0.38);
+        else if (normalizedY < 0.05) contour = THREE.MathUtils.lerp(0.46, 1.0, (normalizedY + 1) / 1.05);
+        if (normalizedY < -0.82) contour = THREE.MathUtils.lerp(0.54, 0.46, (-normalizedY - 0.82) / 0.18);
         positions.setXYZ(i, positions.getX(i) * contour, y, positions.getZ(i));
       }
       positions.needsUpdate = true;
       geometry.computeVertexNormals();
 
-      const surface = new THREE.Mesh(geometry);
-      const sampler = new MeshSurfaceSampler(surface).build();
-      // Densidade semelhante à referência: a topologia triangular continua
-      // visível em vez de virar uma superfície branca sólida.
-      const particleCount = 15000;
-      const particlePositions = new Float32Array(particleCount * 3);
-      const particleNormals = new Float32Array(particleCount * 3);
-      const point = new THREE.Vector3();
-      const normal = new THREE.Vector3();
-      for (let i = 0; i < particleCount; i++) {
-        sampler.sample(point, normal);
-        point.toArray(particlePositions, i * 3);
-        normal.toArray(particleNormals, i * 3);
-      }
+      // O rosto de referência é uma triangulação densa: cada ponto pertence a
+      // um vértice conectado. Subdividir preserva essa estrutura; amostragem
+      // aleatória sobre a superfície criava o aspecto de areia/ruído.
+      const denseGeometry = subdivideTriangles(geometry, 2);
+      const densePositions = denseGeometry.getAttribute("position");
+      const denseNormals = denseGeometry.getAttribute("normal");
       const particles = new THREE.BufferGeometry();
-      particles.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
-      particles.setAttribute("normal", new THREE.BufferAttribute(particleNormals, 3));
-      const seeds = new Float32Array(particleCount);
+      particles.setAttribute("position", densePositions.clone());
+      particles.setAttribute("normal", denseNormals.clone());
+      const seeds = new Float32Array(densePositions.count);
       for (let i = 0; i < seeds.length; i++) seeds[i] = Math.random();
       particles.setAttribute("aSeed", new THREE.BufferAttribute(seeds, 1));
 
@@ -289,10 +303,10 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
         new THREE.Color(0.96, 0.08, 0.28),
         new THREE.Color(1.0, 0.48, 0.08),
       ];
-      const sourcePositions = geometry.getAttribute("position");
+      const sourcePositions = denseGeometry.getAttribute("position");
       for (let i = 0; i < sourcePositions.count; i += 3) {
         const faceSeed = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1;
-        if (faceSeed < 0.974) continue;
+        if (faceSeed < 0.9975) continue;
         const color = palette[Math.floor(faceSeed * 1000) % palette.length];
         for (let corner = 0; corner < 3; corner++) {
           const index = i + corner;
@@ -306,23 +320,24 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       prismMaterial = new THREE.MeshBasicMaterial({
         vertexColors: true,
         transparent: true,
-        opacity: 0.72,
+        opacity: 0.66,
         side: THREE.DoubleSide,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       });
-      faceGeometry = geometry;
+      geometry.dispose();
+      faceGeometry = denseGeometry;
       particleGeometry = particles;
       prismGeometry = prisms;
       faceGroup.add(
-        new THREE.Mesh(geometry, wireMaterial),
+        new THREE.Mesh(denseGeometry, wireMaterial),
         new THREE.Mesh(prisms, prismMaterial),
         new THREE.Points(particles, pointMaterial),
       );
     });
 
 
-    const sparkCount = 1500;
+    const sparkCount = 620;
     const sparkPositions = new Float32Array(sparkCount * 3);
     for (let i = 0; i < sparkCount; i++) {
       const angle = Math.random() * Math.PI * 2;
@@ -335,7 +350,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
     sparkGeometry.setAttribute("position", new THREE.BufferAttribute(sparkPositions, 3));
     const sparkMaterial = new THREE.PointsMaterial({
       color: new THREE.Color(0.55, 0.85, 1), size: 0.010, transparent: true,
-      opacity: 0.20, blending: THREE.AdditiveBlending, depthWrite: false,
+      opacity: 0.14, blending: THREE.AdditiveBlending, depthWrite: false,
     });
     const sparks = new THREE.Points(sparkGeometry, sparkMaterial);
     scene.add(sparks);
@@ -391,7 +406,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
 
       sparks.rotation.z = t * (0.018 + cur.think * 0.07);
       sparks.rotation.y = -t * 0.025;
-      sparkMaterial.opacity = 0.30 + cur.listen * 0.18 + cur.amp * 0.38 + cur.think * 0.18;
+      sparkMaterial.opacity = 0.14 + cur.listen * 0.10 + cur.amp * 0.24 + cur.think * 0.10;
       renderer.render(scene, camera);
     };
     loop();
