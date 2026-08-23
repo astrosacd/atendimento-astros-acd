@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
+import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 interface ParticleFaceProps {
   /** 0..1 — intensidade da fala (boca/ondas) */
@@ -41,8 +42,6 @@ const FACE_VERT = /* glsl */ `
   varying float vFresnel;
   varying float vIri;
   varying float vSpark;
-  varying float vFeature;
-  varying float vVoid;
   ${DEFORM}
 
   void main() {
@@ -60,16 +59,6 @@ const FACE_VERT = /* glsl */ `
     float rim = clamp(dot(n, normalize(vec3(0.75, -0.15, 0.35))), 0.0, 1.0);
     float shade = pow(key, 1.5) * 0.85 + pow(rim, 3.0) * 0.30;
 
-    // Linhas faciais discretas: apenas realçam relevo, sem virar manchas.
-    float eyeRadius = length(vec2((abs(p.x) - 0.31) * 5.4, (p.y - 0.28) * 9.2));
-    vVoid = 1.0 - smoothstep(0.30, 0.62, eyeRadius);
-    // contorno das pálpebras (anel), não mancha cheia
-    float lids = exp(-pow((eyeRadius - 0.85) * 3.6, 2.0));
-    float brows = exp(-pow((abs(p.x) - 0.34) * 4.2, 2.0) - pow((p.y - 0.48) * 13.0, 2.0));
-    float nose = exp(-pow(p.x * 9.0, 2.0) - pow((p.y + 0.02) * 2.4, 2.0));
-    float lips = exp(-pow(p.x * 3.2, 2.0) - pow((p.y + 0.66) * 14.0, 2.0));
-    vFeature = clamp(lids * 0.55 + brows * 0.26 + nose * 0.36 + lips * 0.58, 0.0, 1.0);
-
     // Reflexo frio muito discreto; a cor forte fica somente nas facetas espelhadas.
     vIri = fract(vFresnel * 1.35 + p.y * 0.22 + p.x * 0.10 + uTime * 0.035);
 
@@ -78,8 +67,8 @@ const FACE_VERT = /* glsl */ `
     vSpark = pow(tw, 8.0) * (0.25 + uAmp * 0.5) * (0.25 + shade);
 
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = (0.88 + shade * 0.38 + vFeature * 0.12 + mouth * uAmp * 0.5 + vSpark * 0.35) * (10.5 / -mv.z);
-    vGlow = clamp(0.30 + shade * 0.64 + vFeature * 0.18 + mouth * uAmp * 0.45 + uListen * 0.10 + uThink * 0.07 + vFresnel * 0.18, 0.0, 1.0);
+    gl_PointSize = (1.05 + shade * 0.30 + mouth * uAmp * 0.36 + vSpark * 0.24) * (10.5 / -mv.z);
+    vGlow = clamp(0.24 + shade * 0.58 + mouth * uAmp * 0.28 + uListen * 0.08 + uThink * 0.06 + vFresnel * 0.14, 0.0, 1.0);
 
   }
 
@@ -91,8 +80,6 @@ const POINT_FRAG = /* glsl */ `
   varying float vFresnel;
   varying float vIri;
   varying float vSpark;
-  varying float vFeature;
-  varying float vVoid;
 
   vec3 spectrum(float t) {
     return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.62, 0.46, 0.28)));
@@ -107,9 +94,9 @@ const POINT_FRAG = /* glsl */ `
     vec3 base = mix(vec3(0.66, 0.72, 0.76), vec3(1.0, 1.0, 1.0), vGlow);
     vec3 iri = spectrum(vIri);
     vec3 color = mix(base, iri, 0.025 + vFresnel * 0.075);
-    color += vec3(1.0) * (vSpark * 0.30 + vFeature * 0.08);
+    color += vec3(1.0) * vSpark * 0.22;
 
-    float alpha = core * (0.42 + vGlow * 0.58 + vFresnel * 0.12 + vSpark * 0.28 + vFeature * 0.08) * (1.0 - vVoid * 0.72);
+    float alpha = core * (0.34 + vGlow * 0.48 + vFresnel * 0.10 + vSpark * 0.20);
     gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0));
   }
 `;
@@ -229,8 +216,12 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       }
       const output = new THREE.BufferGeometry();
       output.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
-      output.computeVertexNormals();
-      return output;
+      // A subdivisão gera o mesmo vértice uma vez para cada triângulo vizinho.
+      // Fundi-los evita pontos sobrepostos e as faixas claras vistas no rosto.
+      const merged = mergeVertices(output, 0.00001);
+      output.dispose();
+      merged.computeVertexNormals();
+      return merged;
     };
 
     // Malha facial canônica frontal: somente a superfície do rosto, sem
@@ -264,17 +255,16 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const scale = 2.82 / size.y;
       // O vídeo usa uma máscara alongada: têmporas retas e mandíbula que
       // afunila progressivamente até um queixo arredondado.
-      geometry.scale(scale * 0.63, scale, -scale);
+       geometry.scale(scale * 0.68, scale, -scale);
       const positions = geometry.getAttribute("position");
       for (let i = 0; i < positions.count; i++) {
         let y = positions.getY(i);
         const normalizedY = THREE.MathUtils.clamp(y / 1.41, -1, 1);
-        // Silhueta da referência: testa quase reta, têmporas fechadas e
-        // mandíbula longa que termina em um queixo estreito, mas arredondado.
+         // Silhueta oval alongada, sem comprimir a base até formar uma ponta.
         let contour = 1;
-        if (normalizedY > 0.62) contour = THREE.MathUtils.lerp(1.0, 0.82, (normalizedY - 0.62) / 0.38);
-        else if (normalizedY < 0.05) contour = THREE.MathUtils.lerp(0.46, 1.0, (normalizedY + 1) / 1.05);
-        if (normalizedY < -0.82) contour = THREE.MathUtils.lerp(0.54, 0.46, (-normalizedY - 0.82) / 0.18);
+         if (normalizedY > 0.70) contour = THREE.MathUtils.lerp(1.0, 0.90, (normalizedY - 0.70) / 0.30);
+         else if (normalizedY < 0.02) contour = THREE.MathUtils.lerp(0.68, 1.0, (normalizedY + 1) / 1.02);
+         if (normalizedY < -0.84) contour = THREE.MathUtils.lerp(0.72, 0.68, (-normalizedY - 0.84) / 0.16);
         positions.setXYZ(i, positions.getX(i) * contour, y, positions.getZ(i));
       }
       positions.needsUpdate = true;
@@ -303,10 +293,11 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
         new THREE.Color(0.96, 0.08, 0.28),
         new THREE.Color(1.0, 0.48, 0.08),
       ];
-      const sourcePositions = denseGeometry.getAttribute("position");
+       const prismSource = denseGeometry.toNonIndexed();
+       const sourcePositions = prismSource.getAttribute("position");
       for (let i = 0; i < sourcePositions.count; i += 3) {
         const faceSeed = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1;
-        if (faceSeed < 0.9975) continue;
+         if (faceSeed < 0.9990) continue;
         const color = palette[Math.floor(faceSeed * 1000) % palette.length];
         for (let corner = 0; corner < 3; corner++) {
           const index = i + corner;
@@ -317,10 +308,11 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const prisms = new THREE.BufferGeometry();
       prisms.setAttribute("position", new THREE.Float32BufferAttribute(prismPositions, 3));
       prisms.setAttribute("color", new THREE.Float32BufferAttribute(prismColors, 3));
+       prismSource.dispose();
       prismMaterial = new THREE.MeshBasicMaterial({
         vertexColors: true,
         transparent: true,
-        opacity: 0.66,
+         opacity: 0.54,
         side: THREE.DoubleSide,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
