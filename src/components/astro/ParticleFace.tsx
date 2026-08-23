@@ -78,8 +78,8 @@ const FACE_VERT = /* glsl */ `
     vSpark = pow(tw, 8.0) * (0.25 + uAmp * 0.5) * (0.25 + shade);
 
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = (0.72 + shade * 0.42 + vFeature * 0.30 + mouth * uAmp * 0.5 + vSpark * 0.4) * (10.5 / -mv.z);
-    vGlow = clamp(0.20 + shade * 0.68 + vFeature * 0.52 + mouth * uAmp * 0.45 + uListen * 0.10 + uThink * 0.07 + vFresnel * 0.18, 0.0, 1.0);
+    gl_PointSize = (0.88 + shade * 0.38 + vFeature * 0.12 + mouth * uAmp * 0.5 + vSpark * 0.35) * (10.5 / -mv.z);
+    vGlow = clamp(0.30 + shade * 0.64 + vFeature * 0.18 + mouth * uAmp * 0.45 + uListen * 0.10 + uThink * 0.07 + vFresnel * 0.18, 0.0, 1.0);
 
   }
 
@@ -107,9 +107,9 @@ const POINT_FRAG = /* glsl */ `
     vec3 base = mix(vec3(0.66, 0.72, 0.76), vec3(1.0, 1.0, 1.0), vGlow);
     vec3 iri = spectrum(vIri);
     vec3 color = mix(base, iri, 0.025 + vFresnel * 0.075);
-    color += vec3(1.0) * (vSpark * 0.30 + vFeature * 0.20);
+    color += vec3(1.0) * (vSpark * 0.30 + vFeature * 0.08);
 
-    float alpha = core * (0.34 + vGlow * 0.62 + vFresnel * 0.12 + vSpark * 0.28 + vFeature * 0.20) * (1.0 - vVoid * 0.88);
+    float alpha = core * (0.42 + vGlow * 0.58 + vFresnel * 0.12 + vSpark * 0.28 + vFeature * 0.08) * (1.0 - vVoid * 0.72);
     gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0));
   }
 `;
@@ -143,7 +143,7 @@ const WIRE_FRAG = /* glsl */ `
   }
   void main() {
     vec3 color = mix(vec3(0.66, 0.70, 0.73), spectrum(vIri), 0.025 + vFresnel * 0.07);
-    gl_FragColor = vec4(color, 0.13 + vFresnel * 0.18);
+    gl_FragColor = vec4(color, 0.055 + vFresnel * 0.095);
   }
 `;
 
@@ -264,7 +264,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const scale = 2.82 / size.y;
       // O vídeo usa uma máscara alongada: têmporas retas e mandíbula que
       // afunila progressivamente até um queixo arredondado.
-      geometry.scale(scale * 0.70, scale, -scale);
+      geometry.scale(scale * 0.63, scale, -scale);
       const positions = geometry.getAttribute("position");
       for (let i = 0; i < positions.count; i++) {
         let y = positions.getY(i);
@@ -272,11 +272,9 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
         // Silhueta da referência: testa quase reta, têmporas fechadas e
         // mandíbula longa que termina em um queixo estreito, mas arredondado.
         let contour = 1;
-        if (normalizedY > 0.62) contour = THREE.MathUtils.lerp(1.0, 0.91, (normalizedY - 0.62) / 0.38);
-        else if (normalizedY < 0.05) contour = THREE.MathUtils.lerp(0.55, 1.0, (normalizedY + 1) / 1.05);
-        if (normalizedY < -0.82) contour = THREE.MathUtils.lerp(0.62, 0.55, (-normalizedY - 0.82) / 0.18);
-        // Comprime apenas o domo superior, deixando a testa mais reta.
-        if (normalizedY > 0.66) y = 0.93 + (y - 0.93) * 0.28;
+        if (normalizedY > 0.62) contour = THREE.MathUtils.lerp(1.0, 0.82, (normalizedY - 0.62) / 0.38);
+        else if (normalizedY < 0.05) contour = THREE.MathUtils.lerp(0.46, 1.0, (normalizedY + 1) / 1.05);
+        if (normalizedY < -0.82) contour = THREE.MathUtils.lerp(0.54, 0.46, (-normalizedY - 0.82) / 0.18);
         positions.setXYZ(i, positions.getX(i) * contour, y, positions.getZ(i));
       }
       positions.needsUpdate = true;
@@ -308,7 +306,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       const sourcePositions = denseGeometry.getAttribute("position");
       for (let i = 0; i < sourcePositions.count; i += 3) {
         const faceSeed = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1;
-        if (faceSeed < 0.989) continue;
+        if (faceSeed < 0.9975) continue;
         const color = palette[Math.floor(faceSeed * 1000) % palette.length];
         for (let corner = 0; corner < 3; corner++) {
           const index = i + corner;
@@ -322,7 +320,7 @@ export function ParticleFace({ amplitude, listening, state }: ParticleFaceProps)
       prismMaterial = new THREE.MeshBasicMaterial({
         vertexColors: true,
         transparent: true,
-        opacity: 0.58,
+        opacity: 0.66,
         side: THREE.DoubleSide,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
