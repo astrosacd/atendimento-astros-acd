@@ -26,6 +26,16 @@ interface MonitoredStatusDisplayProps {
   onViewRow: (row: any) => void;
 }
 
+// Get status display value from row
+const getStatusValue = (row: any) => {
+  const val = row['excluido_da_base'] || row['Excluido_Da_Base'] || row['status'] || row['Status'];
+  if (val && typeof val === 'object' && 'value' in val) {
+    return val.value || '-';
+  }
+  return val?.toString() || '-';
+};
+
+
 export function MonitoredStatusDisplay({ baserowFields, onEditRow, onViewRow }: MonitoredStatusDisplayProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
