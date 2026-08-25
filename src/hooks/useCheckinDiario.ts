@@ -42,6 +42,9 @@ export function useCheckins(filter?: { since?: string; numero?: string }) {
       if (error) throw error;
       return (data || []) as unknown as Checkin[];
     },
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 
