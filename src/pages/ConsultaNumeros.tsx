@@ -448,79 +448,69 @@ export default function ConsultaNumeros() {
     setCurrentPage(1);
   }, [statusFilters]);
 
-  // Query numbers from local cache (fast, no external API calls!)
-  const { data: queryResult, isLoading, refetch, error: queryError } = useQuery({
-    queryKey: ['consulta-numeros', appliedSearchQuery, statusFilters, currentPage, pageSize, canQuery],
-    queryFn: async () => {
-      if (!canQuery) {
-        return { success: true, data: [], pagination: { count: 0, page: 1, pageSize, totalPages: 0 } };
-      }
+  // Cache local compartilhado (uma única requisição para todo o módulo).
+  const {
+    data: cacheRows = [],
+    isLoading,
+    refetch,
+    error: queryError,
+  } = useConsultaNumerosCacheRows(canQuery);
 
-      // Fetch all data from local cache
-      const { data: cacheData, error: cacheError, count } = await supabase
-        .from('consulta_numeros_cache')
-        .select('baserow_row_id, row_data', { count: 'exact' });
+  // Filtro/ordenação/paginação em memória — trocar de página ou de filtro
+  // não dispara mais um novo download da tabela inteira.
+  const queryResult = useMemo(() => {
+    if (!canQuery) {
+      return { success: true, data: [] as any[], pagination: { count: 0, page: 1, pageSize, totalPages: 0 } };
+    }
 
-      if (cacheError) {
-        console.error('Cache query error:', cacheError);
-        throw cacheError;
-      }
+    let results = (cacheRows || [])
+      .map((row: any) => ({
+        id: row.baserow_row_id,
+        ...row.row_data,
+      }))
+      .sort((a: any, b: any) => a.id - b.id);
 
-      // Transform cache data to expected format and sort by baserow_row_id (numeric order)
-      let results = (cacheData || [])
-        .map((row: any) => ({
-          id: row.baserow_row_id,
-          ...row.row_data,
-        }))
-        .sort((a: any, b: any) => a.id - b.id);
-
-      // Client-side search filter
-      if (appliedSearchQuery) {
-        const searchLower = appliedSearchQuery.toLowerCase();
-        results = results.filter((row: any) => {
-          return Object.values(row).some((val) => {
-            if (!val) return false;
-            if (typeof val === 'object' && 'value' in val) {
-              return String(val.value).toLowerCase().includes(searchLower);
-            }
-            return String(val).toLowerCase().includes(searchLower);
-          });
+    // Client-side search filter
+    if (appliedSearchQuery) {
+      const searchLower = appliedSearchQuery.toLowerCase();
+      results = results.filter((row: any) => {
+        return Object.values(row).some((val) => {
+          if (!val) return false;
+          if (typeof val === 'object' && 'value' in (val as any)) {
+            return String((val as any).value).toLowerCase().includes(searchLower);
+          }
+          return String(val).toLowerCase().includes(searchLower);
         });
-      }
+      });
+    }
 
-      // Client-side status filter
-      if (statusFilters.length > 0) {
-        results = results.filter((row: any) => {
-          const statusVal =
-            row['excluido_da_base']?.value ||
-            row['excluido_da_base'] ||
-            row['Excluido_Da_Base']?.value ||
-            row['Excluido_Da_Base'] ||
-            row['status']?.value ||
-            row['status'] ||
-            '';
-          const normalizedStatus = typeof statusVal === 'string' ? statusVal.trim() : '';
-          return statusFilters.some((f) => f.toLowerCase() === normalizedStatus.toLowerCase());
-        });
-      }
+    // Client-side status filter
+    if (statusFilters.length > 0) {
+      results = results.filter((row: any) => {
+        const statusVal =
+          row['excluido_da_base']?.value ||
+          row['excluido_da_base'] ||
+          row['Excluido_Da_Base']?.value ||
+          row['Excluido_Da_Base'] ||
+          row['status']?.value ||
+          row['status'] ||
+          '';
+        const normalizedStatus = typeof statusVal === 'string' ? statusVal.trim() : '';
+        return statusFilters.some((f) => f.toLowerCase() === normalizedStatus.toLowerCase());
+      });
+    }
 
-      // Client-side pagination
-      const totalCount = results.length;
-      const totalPages = pageSize > 0 ? Math.ceil(totalCount / pageSize) : 0;
-      const from = (currentPage - 1) * pageSize;
-      const paginatedResults = results.slice(from, from + pageSize);
+    const totalCount = results.length;
+    const totalPages = pageSize > 0 ? Math.ceil(totalCount / pageSize) : 0;
+    const from = (currentPage - 1) * pageSize;
 
-      return {
-        success: true,
-        data: paginatedResults,
-        pagination: { count: totalCount, page: currentPage, pageSize, totalPages },
-      };
-    },
-    enabled: true,
-    retry: 1,
-    staleTime: 30 * 1000,
-    gcTime: 5 * 60 * 1000,
-  });
+    return {
+      success: true,
+      data: results.slice(from, from + pageSize),
+      pagination: { count: totalCount, page: currentPage, pageSize, totalPages },
+    };
+  }, [cacheRows, canQuery, appliedSearchQuery, statusFilters, currentPage, pageSize]);
+
   const hasCachedRows = (queryResult?.pagination?.count ?? 0) > 0;
 
   // Only block the UI when we truly have no cached data.
