@@ -172,29 +172,17 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
       console.log(
         `[consulta-numeros-reminder] Outside operating hours (${currentHour}:${String(currentMinute).padStart(2,'0')}, allowed: ${startHour}:00-${endHour}:59)`
       );
-
-      await supabase.from('consulta_numeros_reminder_logs').insert({
-        channel: 'cron_check',
-        status: 'outside_hours',
-        numbers_count: 0,
-        status_monitored: (config.status_to_monitor || []).join(', '),
-      });
-
+      // NÃO grava log no banco: o cron roda a cada minuto e isso gerava milhares
+      // de linhas inúteis (apenas console.log já dá visibilidade).
       return { success: true, message: 'Outside operating hours' };
     }
 
     if (!config.cron_days.includes(currentDay)) {
       console.log(`[consulta-numeros-reminder] Not a configured day (${currentDay}, allowed: ${config.cron_days.join(',')})`);
-
-      await supabase.from('consulta_numeros_reminder_logs').insert({
-        channel: 'cron_check',
-        status: 'outside_day',
-        numbers_count: 0,
-        status_monitored: (config.status_to_monitor || []).join(', '),
-      });
-
+      // NÃO grava log no banco (mesmo motivo acima).
       return { success: true, message: 'Not a configured day' };
     }
+
     
     // Check if we already sent successfully this hour (deduplication)
     // This prevents flooding if the cron runs multiple times in the 0-4 minute window.
