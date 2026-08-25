@@ -21,6 +21,7 @@ import { ValidacaoSmsTab } from '@/components/consulta-numeros/ValidacaoSmsTab';
 import { MonitoredStatusDisplay } from '@/components/consulta-numeros/MonitoredStatusDisplay';
 import { QrScansTab } from '@/components/consulta-numeros/QrScansTab';
 import { useInsurancePaymentStatusHybrid } from '@/hooks/useInsurance';
+import { useConsultaNumerosCacheRows } from '@/hooks/useConsultaNumerosCacheRows';
 import {
   DropdownMenu,
   DropdownMenuContent,

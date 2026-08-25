@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Bell, ChevronRight, Loader2 } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useConsultaNumerosCacheRows } from '@/hooks/useConsultaNumerosCacheRows';
 
 export function MonitoredNumbersCard() {
   const navigate = useNavigate();
@@ -31,34 +32,25 @@ export function MonitoredNumbersCard() {
   const monitoredStatuses = reminderConfig?.status_to_monitor || [];
   const isReminderActive = reminderConfig?.is_active || false;
 
-  // Fetch count of numbers with monitored statuses from local cache
-  const { data: totalCount = 0, isLoading: countLoading } = useQuery({
-    queryKey: ['monitored-numbers-count', monitoredStatuses],
-    queryFn: async () => {
-      if (!monitoredStatuses.length) return 0;
+  // Fetch count of numbers with monitored statuses from local cache (shared query)
+  const { data: cacheData = [], isLoading: countLoading } = useConsultaNumerosCacheRows(
+    monitoredStatuses.length > 0
+  );
 
-      const { data: cacheData, error } = await supabase
-        .from('consulta_numeros_cache')
-        .select('baserow_row_id, row_data');
+  const totalCount = useMemo(() => {
+    if (!monitoredStatuses.length) return 0;
+    return (cacheData || []).filter((row: any) => {
+      const statusVal =
+        row.row_data?.['excluido_da_base']?.value ||
+        row.row_data?.['excluido_da_base'] ||
+        row.row_data?.['status']?.value ||
+        row.row_data?.['status'] ||
+        '';
+      const normalizedStatus = typeof statusVal === 'string' ? statusVal.trim() : '';
+      return monitoredStatuses.some((s: string) => s.toLowerCase() === normalizedStatus.toLowerCase());
+    }).length;
+  }, [cacheData, monitoredStatuses]);
 
-      if (error) return 0;
-
-      const matching = (cacheData || []).filter((row: any) => {
-        const statusVal =
-          row.row_data?.['excluido_da_base']?.value ||
-          row.row_data?.['excluido_da_base'] ||
-          row.row_data?.['status']?.value ||
-          row.row_data?.['status'] ||
-          '';
-        const normalizedStatus = typeof statusVal === 'string' ? statusVal.trim() : '';
-        return monitoredStatuses.some((s: string) => s.toLowerCase() === normalizedStatus.toLowerCase());
-      });
-
-      return matching.length;
-    },
-    enabled: monitoredStatuses.length > 0,
-    staleTime: 2 * 60 * 1000,
-  });
 
   const isLoading = configLoading || countLoading;
 
