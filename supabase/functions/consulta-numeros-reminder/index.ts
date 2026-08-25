@@ -456,13 +456,26 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
   if (matchingRows.length === 0) {
     console.log(`[consulta-numeros-reminder] No numbers found with monitored statuses - skipping notifications`);
     
-    // Log even when no numbers found (for visibility)
-    await supabase.from('consulta_numeros_reminder_logs').insert({
-      channel: 'cron_check',
-      status: 'no_numbers',
-      numbers_count: 0,
-      status_monitored: config.status_to_monitor.join(', '),
-    });
+    // Log "nenhum número" no máximo 1x a cada 6 horas (antes era 1x por minuto,
+    // o que inflava o banco com milhares de linhas repetidas).
+    const seisHorasAtras = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+    const { data: recentNoNumbers } = await supabase
+      .from('consulta_numeros_reminder_logs')
+      .select('id')
+      .eq('channel', 'cron_check')
+      .eq('status', 'no_numbers')
+      .gte('sent_at', seisHorasAtras)
+      .limit(1);
+
+    if (!recentNoNumbers || recentNoNumbers.length === 0) {
+      await supabase.from('consulta_numeros_reminder_logs').insert({
+        channel: 'cron_check',
+        status: 'no_numbers',
+        numbers_count: 0,
+        status_monitored: config.status_to_monitor.join(', '),
+      });
+    }
+
     
     return { 
       success: true, 
