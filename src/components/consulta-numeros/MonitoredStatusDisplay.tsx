@@ -9,6 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { AlertTriangle, ChevronDown, ChevronUp, Edit, Eye, RefreshCw, Loader2, Bell } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
+import { useConsultaNumerosCacheRows } from '@/hooks/useConsultaNumerosCacheRows';
 
 interface LastStatusCache {
   [rowId: number]: string | null;
@@ -48,49 +49,35 @@ export function MonitoredStatusDisplay({ baserowFields, onEditRow, onViewRow }: 
   const monitoredStatuses = reminderConfig?.status_to_monitor || [];
   const isReminderActive = reminderConfig?.is_active || false;
 
-  // Fetch numbers with monitored statuses from local cache
-  const { data: monitoredNumbers = [], isLoading, refetch } = useQuery({
-    queryKey: ['monitored-numbers', monitoredStatuses],
-    queryFn: async () => {
-      if (!monitoredStatuses.length) return [];
+  // Numbers with monitored statuses, derived from the shared local cache query
+  const { data: cacheData = [], isLoading, refetch } = useConsultaNumerosCacheRows(
+    isOpen && monitoredStatuses.length > 0
+  );
 
-      // Query from local cache
-      const { data: cacheData, error } = await supabase
-        .from('consulta_numeros_cache')
-        .select('baserow_row_id, row_data');
+  const monitoredNumbers = useMemo(() => {
+    if (!monitoredStatuses.length) return [] as any[];
+    return (cacheData || [])
+      .map((row: any) => ({
+        id: row.baserow_row_id,
+        ...row.row_data,
+      }))
+      .filter((row: any) => {
+        const statusVal =
+          row['excluido_da_base']?.value ||
+          row['excluido_da_base'] ||
+          row['Excluido_Da_Base']?.value ||
+          row['Excluido_Da_Base'] ||
+          row['status']?.value ||
+          row['status'] ||
+          row['Status']?.value ||
+          row['Status'] ||
+          '';
+        const normalizedStatus = typeof statusVal === 'string' ? statusVal.trim() : '';
+        return monitoredStatuses.some((s: string) => s.toLowerCase() === normalizedStatus.toLowerCase());
+      })
+      .map((row: any) => ({ ...row, _monitoredStatus: getStatusValue(row) }));
+  }, [cacheData, monitoredStatuses]);
 
-      if (error) {
-        console.error('Error fetching cached numbers:', error);
-        return [];
-      }
-
-      // Filter by monitored statuses
-      const allNumbers = (cacheData || [])
-        .map((row: any) => ({
-          id: row.baserow_row_id,
-          ...row.row_data,
-        }))
-        .filter((row: any) => {
-          const statusVal =
-            row['excluido_da_base']?.value ||
-            row['excluido_da_base'] ||
-            row['Excluido_Da_Base']?.value ||
-            row['Excluido_Da_Base'] ||
-            row['status']?.value ||
-            row['status'] ||
-            row['Status']?.value ||
-            row['Status'] ||
-            '';
-          const normalizedStatus = typeof statusVal === 'string' ? statusVal.trim() : '';
-          return monitoredStatuses.some((s: string) => s.toLowerCase() === normalizedStatus.toLowerCase());
-        })
-        .map((row: any) => ({ ...row, _monitoredStatus: getStatusValue(row) }));
-
-      return allNumbers;
-    },
-    enabled: isOpen && monitoredStatuses.length > 0,
-    staleTime: 2 * 60 * 1000,
-  });
 
   // Pre-fetch last status for monitored numbers when they're loaded
   useEffect(() => {
