@@ -194,7 +194,7 @@ export function CheckinInlineDialog({
                 </p>
               </div>
             )}
-            {modelosComVagas.length === 0 && !isExterno && (
+            {modelosComVagas.every((o) => o.livres <= 0) && !isExterno && (
               <p className="text-[10px] text-muted-foreground mt-1">
                 Nenhum modelo com vaga disponível — selecione "Sem modelo" se for aparelho externo.
               </p>
