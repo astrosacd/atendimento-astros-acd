@@ -21,6 +21,7 @@ export interface SearchableSelectOption {
   value: string;
   label: string;
   tooltip?: React.ReactNode;
+  disabled?: boolean;
 }
 
 interface SearchableSelectProps {
