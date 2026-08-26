@@ -172,7 +172,8 @@ export function CheckinInlineDialog({
                 { value: "__externo__", label: "📦 Aparelho externo" },
                 ...modelosComVagas.map((o) => ({
                   value: o.modelo.id,
-                  label: `${o.modelo.nome} · ${o.ocupados}/${o.capacidade}${o.livres > 0 ? ` · falta ${o.livres}` : ""}`,
+                  label: `${o.modelo.nome} · ${o.ocupados}/${o.capacidade}${o.livres > 0 ? ` · falta ${o.livres}` : " · cheio"}`,
+                  disabled: o.livres <= 0 && o.modelo.id !== defaultModeloId,
                 })),
               ]}
             />
