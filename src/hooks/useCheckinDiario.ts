@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMemo } from "react";
-import { useQrScanConfig, useAutoHospedadoNumbers } from "@/hooks/useQrScan";
+import { useQrScanConfig } from "@/hooks/useQrScan";
 
 export type TipoSlot = "normal" | "business" | "clone";
 export type StatusConexao = "conectado" | "desconectado" | "desconectado_cliente";
@@ -92,9 +92,9 @@ export function useCreateCheckin() {
  * (janela configurável em dias, último por número).
  *
  * Regra de ocupação:
- *  - Check-in com status_conexao = "conectado" sempre ocupa.
- *  - Auto-hospedados (lista QR Scans) ocupam independente do status de conexão,
- *    pois o aparelho físico continua alocado àquele número.
+ *  - Apenas o último check-in com status_conexao = "conectado" ocupa vaga.
+ *  - "Desconectado do Cliente" e "Desconectado/Banido" não bloqueiam modelo
+ *    para novo check-in, mesmo quando o número está marcado como auto-hospedado.
  */
 export function useActiveCheckinsByModelo() {
   const { data: config } = useQrScanConfig();
@@ -105,15 +105,8 @@ export function useActiveCheckinsByModelo() {
     return d.toISOString().slice(0, 10);
   }, [windowDays]);
   const { data: checkins = [] } = useCheckins({ since });
-  const { data: autoHosp = [] } = useAutoHospedadoNumbers();
 
   return useMemo(() => {
-    const autoHospNumeros = new Set<string>();
-    for (const a of autoHosp as any[]) {
-      const n = String(a?.row_data?.numero ?? a?.numero ?? "");
-      if (n) autoHospNumeros.add(n);
-    }
-
     const seenNumero = new Set<string>();
     const ocupados = new Map<string, { total: number; normal: number; business: number; clone: number; numbers: Set<string> }>();
 
@@ -121,9 +114,8 @@ export function useActiveCheckinsByModelo() {
       if (seenNumero.has(c.numero)) continue;
       seenNumero.add(c.numero);
       if (!c.modelo_id) continue;
-      const isAutoHosp = autoHospNumeros.has(c.numero);
       const conectado = c.status_conexao === "conectado";
-      if (!conectado && !isAutoHosp) continue;
+      if (!conectado) continue;
       const cur = ocupados.get(c.modelo_id) ?? { total: 0, normal: 0, business: 0, clone: 0, numbers: new Set<string>() };
       cur.total += 1;
       cur[c.tipo_slot] += 1;
@@ -131,5 +123,5 @@ export function useActiveCheckinsByModelo() {
       ocupados.set(c.modelo_id, cur);
     }
     return ocupados;
-  }, [checkins, autoHosp]);
+  }, [checkins]);
 }
