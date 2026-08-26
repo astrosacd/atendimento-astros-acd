@@ -760,7 +760,7 @@ export default function AdminNumerosAquecimento() {
                       {modelosList.map((modelo) => {
                         const count = numeros.filter(n => n.modelo_id === modelo.id).length;
                         const apareceCheckin = modelo.aparece_no_checkin !== false;
-                        const extraModelo = extraOcupadosByModelo?.get(modelo.id)?.total ?? 0;
+                        const extraModelo = checkinExtraByModelo?.get(modelo.id)?.total ?? 0;
                         const ocupadosModelo = count + extraModelo;
                         const cheioModelo =
                           modelo.capacidade_whatsapp > 0 && ocupadosModelo >= modelo.capacidade_whatsapp;
