@@ -9766,6 +9766,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      purge_old_logs: { Args: never; Returns: Json }
       record_proposal_view: {
         Args: {
           p_event_data?: Json
