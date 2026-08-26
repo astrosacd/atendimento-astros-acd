@@ -760,8 +760,18 @@ export default function AdminNumerosAquecimento() {
                       {modelosList.map((modelo) => {
                         const count = numeros.filter(n => n.modelo_id === modelo.id).length;
                         const apareceCheckin = modelo.aparece_no_checkin !== false;
+                        const extraModelo = extraOcupadosByModelo?.get(modelo.id)?.total ?? 0;
+                        const ocupadosModelo = count + extraModelo;
+                        const cheioModelo =
+                          modelo.capacidade_whatsapp > 0 && ocupadosModelo >= modelo.capacidade_whatsapp;
                         return (
-                          <div key={modelo.id} className="flex items-center justify-between p-2 border rounded-lg">
+                          <div
+                            key={modelo.id}
+                            className={cn(
+                              "flex items-center justify-between p-2 border rounded-lg",
+                              cheioModelo && "opacity-60 bg-muted/40"
+                            )}
+                          >
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-medium">{modelo.nome}</span>
                               {modelo.marca && (
@@ -770,6 +780,16 @@ export default function AdminNumerosAquecimento() {
                               <Badge variant="outline" className="text-xs">
                                 {count} número{count !== 1 ? 's' : ''}
                               </Badge>
+                              {modelo.capacidade_whatsapp > 0 && (
+                                <Badge variant="outline" className="text-[10px]">
+                                  {ocupadosModelo}/{modelo.capacidade_whatsapp}
+                                </Badge>
+                              )}
+                              {cheioModelo && (
+                                <Badge variant="destructive" className="text-[10px]">
+                                  cheio
+                                </Badge>
+                              )}
                               {!apareceCheckin && (
                                 <Badge variant="secondary" className="text-[10px]">
                                   Oculto no check-in
