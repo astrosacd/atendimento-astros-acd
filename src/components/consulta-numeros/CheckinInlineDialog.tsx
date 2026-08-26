@@ -100,8 +100,11 @@ export function CheckinInlineDialog({
         const livres = Math.max(0, m.capacidade_whatsapp - ocupados);
         return { modelo: m, ocupados, capacidade: m.capacidade_whatsapp, livres };
       })
-      .filter((o) => o.livres > 0 || o.modelo.id === defaultModeloId)
-      .sort((a, b) => a.modelo.nome.localeCompare(b.modelo.nome));
+      // Mantém também os modelos cheios na lista (aparecem desabilitados como "cheio")
+      .sort((a, b) => {
+        if ((a.livres > 0) !== (b.livres > 0)) return a.livres > 0 ? -1 : 1;
+        return a.modelo.nome.localeCompare(b.modelo.nome);
+      });
   }, [modelos, numeros, statusList, ocupadosByModelo, defaultModeloId]);
 
   const selectedModelo = modelos.find((m) => m.id === modeloId);
