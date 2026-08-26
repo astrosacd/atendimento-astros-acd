@@ -68,6 +68,7 @@ import { CapacityBanner } from '@/components/numeros-aquecimento/CapacityBanner'
 import { useActiveCheckinsByModelo } from '@/hooks/useCheckinDiario';
 import { toast } from 'sonner';
 import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
+import { cn } from '@/lib/utils';
 
 // Color map for status badges
 const statusColorMap: Record<string, string> = {
