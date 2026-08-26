@@ -21,6 +21,7 @@ export interface SearchableSelectOption {
   value: string;
   label: string;
   tooltip?: React.ReactNode;
+  disabled?: boolean;
 }
 
 interface SearchableSelectProps {
@@ -90,11 +91,16 @@ export function SearchableSelect({
                 <CommandItem
                   key={option.value}
                   value={option.label}
+                  disabled={option.disabled}
                   onSelect={() => {
+                    if (option.disabled) return;
                     onValueChange(option.value === value ? "" : option.value);
                     setOpen(false);
                   }}
-                  className="flex items-center"
+                  className={cn(
+                    "flex items-center",
+                    option.disabled && "opacity-50 cursor-not-allowed"
+                  )}
                 >
                   <Check
                     className={cn(

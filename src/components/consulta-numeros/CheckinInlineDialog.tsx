@@ -100,8 +100,11 @@ export function CheckinInlineDialog({
         const livres = Math.max(0, m.capacidade_whatsapp - ocupados);
         return { modelo: m, ocupados, capacidade: m.capacidade_whatsapp, livres };
       })
-      .filter((o) => o.livres > 0 || o.modelo.id === defaultModeloId)
-      .sort((a, b) => a.modelo.nome.localeCompare(b.modelo.nome));
+      // Mantém também os modelos cheios na lista (aparecem desabilitados como "cheio")
+      .sort((a, b) => {
+        if ((a.livres > 0) !== (b.livres > 0)) return a.livres > 0 ? -1 : 1;
+        return a.modelo.nome.localeCompare(b.modelo.nome);
+      });
   }, [modelos, numeros, statusList, ocupadosByModelo, defaultModeloId]);
 
   const selectedModelo = modelos.find((m) => m.id === modeloId);
@@ -169,7 +172,8 @@ export function CheckinInlineDialog({
                 { value: "__externo__", label: "📦 Aparelho externo" },
                 ...modelosComVagas.map((o) => ({
                   value: o.modelo.id,
-                  label: `${o.modelo.nome} · ${o.ocupados}/${o.capacidade}${o.livres > 0 ? ` · falta ${o.livres}` : ""}`,
+                  label: `${o.modelo.nome} · ${o.ocupados}/${o.capacidade}${o.livres > 0 ? ` · falta ${o.livres}` : " · cheio"}`,
+                  disabled: o.livres <= 0 && o.modelo.id !== defaultModeloId,
                 })),
               ]}
             />
@@ -190,7 +194,7 @@ export function CheckinInlineDialog({
                 </p>
               </div>
             )}
-            {modelosComVagas.length === 0 && !isExterno && (
+            {modelosComVagas.every((o) => o.livres <= 0) && !isExterno && (
               <p className="text-[10px] text-muted-foreground mt-1">
                 Nenhum modelo com vaga disponível — selecione "Sem modelo" se for aparelho externo.
               </p>
