@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -95,17 +96,39 @@ import CentralSMS from "./pages/CentralSMS";
 import FilaExecutando from "./pages/FilaExecutando";
 import FilaSMSExecutando from "./pages/FilaSMSExecutando";
 import AdminHorarioComercial from "./pages/AdminHorarioComercial";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 
 
 const queryClient = new QueryClient();
 
 function AppRoutes() {
   const { user, isApproved, isLoading } = useAuth();
+  const [loadingDelayed, setLoadingDelayed] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingDelayed(false);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => setLoadingDelayed(true), 8000);
+    return () => window.clearTimeout(timeoutId);
+  }, [isLoading]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background p-6 text-center">
         <div className="animate-pulse text-primary">Carregando...</div>
+        {loadingDelayed && (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">O servidor está demorando mais que o normal.</p>
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Tentar novamente
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
