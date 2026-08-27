@@ -126,6 +126,11 @@ export default function Auth() {
   // Buscar o código de acesso correto
   useEffect(() => {
     const fetchCorrectCode = async () => {
+      const timeoutId = window.setTimeout(() => {
+        setCorrectCode('astros2024');
+        setIsVerifyingCode(false);
+      }, 8000);
+
       try {
         const { data, error } = await supabase.rpc('get_auth_access_code');
         if (!error && data) {
@@ -137,6 +142,7 @@ export default function Auth() {
       } catch (err) {
         setCorrectCode('astros2024');
       } finally {
+        window.clearTimeout(timeoutId);
         setIsVerifyingCode(false);
       }
     };

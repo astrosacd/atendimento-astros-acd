@@ -20,6 +20,28 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const AUTH_TIMEOUT_MS = 12000;
+
+function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timeoutId = window.setTimeout(
+      () => reject(new Error(`${label} excedeu ${AUTH_TIMEOUT_MS / 1000}s`)),
+      AUTH_TIMEOUT_MS,
+    );
+
+    promise.then(
+      (value) => {
+        window.clearTimeout(timeoutId);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timeoutId);
+        reject(error);
+      },
+    );
+  });
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -36,23 +58,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserData = async (userId: string) => {
     try {
-      // Fetch role
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
+      const [roleResult, profileResult] = await withTimeout(
+        Promise.all([
+          supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', userId)
+            .maybeSingle(),
+          supabase
+            .from('profiles')
+            .select('approval_status, is_blocked, blocked_reason')
+            .eq('user_id', userId)
+            .maybeSingle(),
+        ]),
+        'Consulta de acesso',
+      );
+
+      const { data: roleData, error: roleError } = roleResult;
+      const { data: profileData, error: profileError } = profileResult;
 
       if (roleError) {
         console.error('Error fetching user role:', roleError);
       }
-
-      // Fetch approval status and blocked status
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('approval_status, is_blocked, blocked_reason')
-        .eq('user_id', userId)
-        .maybeSingle();
 
       if (profileError) {
         console.error('Error fetching profile:', profileError);
@@ -80,7 +107,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await withTimeout(
+          supabase.auth.getSession(),
+          'Inicialização da sessão',
+        );
         
         if (!isMounted) return;
 
