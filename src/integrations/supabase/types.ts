@@ -9569,6 +9569,7 @@ export type Database = {
       execute_horario_bloqueios_cleanup: { Args: never; Returns: undefined }
       execute_instagram_spy_cron: { Args: never; Returns: undefined }
       execute_instagram_token_auto_refresh: { Args: never; Returns: undefined }
+      execute_minute_automations_dispatcher: { Args: never; Returns: undefined }
       execute_process_automations: { Args: never; Returns: undefined }
       execute_reports_analysis_cron: { Args: never; Returns: undefined }
       execute_scheduled_proposal_sends: { Args: never; Returns: undefined }
