@@ -60,7 +60,6 @@ import PropostaEditor from "./pages/PropostaEditor";
 import PropostasConfig from "./pages/PropostasConfig";
 import Followups from "./pages/Followups";
 import Despesas from "./pages/Despesas";
-import KanbanClientes from "./pages/KanbanClientes";
 import LeadHunter from "./pages/LeadHunter";
 import Agenda from "./pages/Agenda";
 import GeradorLinkPagamento from "./pages/GeradorLinkPagamento";
@@ -75,7 +74,6 @@ import CredenciaisPublica from "./pages/public/CredenciaisPublica";
 import LinkPagamentoPublico from "./pages/public/LinkPagamentoPublico";
 import ValidacaoSmsPublica from "./pages/public/ValidacaoSmsPublica";
 import ResultadoSmsPublico from "./pages/public/ResultadoSmsPublico";
-import SharedKanban from "./pages/public/SharedKanban";
 
 import TemporaryAccessHandler from "./pages/public/TemporaryAccessHandler";
 import SocialReportPublico from "./pages/public/SocialReportPublico";
@@ -215,7 +213,6 @@ function AppRoutes() {
       
       {/* Despesas Route */}
       <Route path="/despesas" element={<ProtectedRoute permission="view_despesas"><Despesas /></ProtectedRoute>} />
-      <Route path="/kanban" element={<ProtectedRoute permission="view_pipeline"><KanbanClientes /></ProtectedRoute>} />
       <Route path="/lead-hunter" element={<ProtectedRoute permission="view_lead_hunter"><LeadHunter /></ProtectedRoute>} />
       <Route path="/agenda" element={<ProtectedRoute permission="view_agenda"><Agenda /></ProtectedRoute>} />
       <Route path="/link-pagamento" element={<ProtectedRoute permission="view_payment_links"><GeradorLinkPagamento /></ProtectedRoute>} />
@@ -251,7 +248,6 @@ function AppRoutes() {
       <Route path="/link-pagamento/:token" element={<LinkPagamentoPublico />} />
       <Route path="/validacao-sms/:token" element={<ValidacaoSmsPublica />} />
       <Route path="/resultado-sms/:token" element={<ResultadoSmsPublico />} />
-      <Route path="/public/pipeline/:token" element={<SharedKanban />} />
       <Route path="/access/:token" element={<TemporaryAccessHandler />} />
       
       <Route path="/r/social/:token" element={<SocialReportPublico />} />

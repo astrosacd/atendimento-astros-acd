@@ -24,7 +24,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatCPFOrCNPJ, formatPhone } from '@/utils/formatters';
 import { isInternationalPhoneNumber } from '@/utils/phoneInternational';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ProductSelector } from '@/components/kanban/ProductSelector';
+import { ProductSelector } from '@/components/products/ProductSelector';
 
 import {
   Sheet,

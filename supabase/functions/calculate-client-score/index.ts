@@ -68,7 +68,6 @@ serve(async (req) => {
           purchasesRes,
           recoveryRes,
           followupsRes,
-          pipelineRes,
           tasksRes,
         ] = await Promise.all([
           supabase
@@ -102,12 +101,6 @@ serve(async (req) => {
             .order("scheduled_at", { ascending: false })
             .limit(30),
           supabase
-            .from("client_pipeline")
-            .select("stage_id, updated_at, created_at")
-            .eq("cliente_id", cliente.id)
-            .order("updated_at", { ascending: false })
-            .limit(10),
-          supabase
             .from("client_tasks")
             .select("status, priority, due_date, completed_at")
             .eq("cliente_id", cliente.id)
@@ -120,7 +113,6 @@ serve(async (req) => {
         const purchases = purchasesRes.data || [];
         const recovery = recoveryRes.data || [];
         const followups = followupsRes.data || [];
-        const pipeline = pipelineRes.data || [];
         const tasks = tasksRes.data || [];
 
         // Métricas básicas
@@ -194,7 +186,6 @@ serve(async (req) => {
           recovery_convertidas: recoveryConvertidos,
           recovery_falhas: recoveryFalhas,
           tarefas_vencidas: tarefasVencidas,
-          esta_no_pipeline: pipeline.length > 0,
         };
 
         // Pedir análise para a IA

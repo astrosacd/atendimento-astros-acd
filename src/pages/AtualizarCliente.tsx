@@ -19,7 +19,7 @@ import { ClientLicensesManager } from '@/components/ClientLicensesManager';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrencyInput, parseCurrency, formatCurrencyDisplay } from '@/utils/formatters';
 import { PhoneInputWithCountry } from '@/components/PhoneInputWithCountry';
-import { ProductSelector } from '@/components/kanban/ProductSelector';
+import { ProductSelector } from '@/components/products/ProductSelector';
 import {
   AlertDialog,
   AlertDialogAction,

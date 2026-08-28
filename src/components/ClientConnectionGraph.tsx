@@ -29,7 +29,6 @@ const CATEGORY_META: Record<GraphCategory, { label: string; short: string; icon:
   logo:        { label: 'Logos',        short: 'Logos',    icon: Image,         tokenBg: 'bg-pink-500',      tokenText: 'text-white', line: 'hsl(330 80% 60%)' },
   credencial:  { label: 'Credenciais',  short: 'Cred.',    icon: Lock,          tokenBg: 'bg-red-600',       tokenText: 'text-white', line: 'hsl(0 75% 50%)' },
   recuperacao: { label: 'Recuperação',  short: 'Recup.',   icon: RotateCcw,     tokenBg: 'bg-lime-600',      tokenText: 'text-white', line: 'hsl(85 70% 45%)' },
-  pipeline:    { label: 'Pipeline',     short: 'Pipe.',    icon: GitBranch,     tokenBg: 'bg-fuchsia-500',   tokenText: 'text-white', line: 'hsl(292 80% 60%)' },
   historico:   { label: 'Histórico',    short: 'Hist.',    icon: History,       tokenBg: 'bg-stone-500',     tokenText: 'text-white', line: 'hsl(33 10% 50%)' },
   ia:          { label: 'IA Insights',  short: 'IA',       icon: Sparkles,      tokenBg: 'bg-purple-600',    tokenText: 'text-white', line: 'hsl(270 75% 55%)' },
   grupo:       { label: 'Grupos WPP',   short: 'Grupos',   icon: Users,         tokenBg: 'bg-green-600',     tokenText: 'text-white', line: 'hsl(142 70% 40%)' },
@@ -39,7 +38,7 @@ const TOTAL_KEY: Record<Exclude<GraphCategory, 'center'>, keyof import('@/hooks/
   compra: 'compras', proposta: 'propostas', pagamento: 'pagamentos', cobranca: 'cobrancas',
   tarefa: 'tarefas', chamado: 'chamados', evento: 'eventos', followup: 'followups',
   licenca: 'licencas', arquivo: 'arquivos', logo: 'logos', credencial: 'credenciais',
-  recuperacao: 'recuperacoes', pipeline: 'pipelines', historico: 'historicos', ia: 'ias', grupo: 'grupos',
+  recuperacao: 'recuperacoes', historico: 'historicos', ia: 'ias', grupo: 'grupos',
 };
 
 interface PositionedNode extends GraphNode {

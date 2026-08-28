@@ -24,7 +24,7 @@ import { useDuplicateCheck } from '@/hooks/useDuplicateCheck';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { DuplicateClientWarning } from '@/components/DuplicateClientWarning';
 import { AlertTriangle, Package } from 'lucide-react';
-import { ProductSelector } from '@/components/kanban/ProductSelector';
+import { ProductSelector } from '@/components/products/ProductSelector';
 import { ClientLicensesManager } from "@/components/ClientLicensesManager";
 import { isInternationalPhoneNumber } from '@/utils/phoneInternational';
 const clienteSchema = z.object({

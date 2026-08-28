@@ -125,7 +125,6 @@ export function RecentActivityCard() {
       case 'despesa': return <TrendingDown className="h-4 w-4" />;
       case 'followup': return <Send className="h-4 w-4" />;
       case 'admin': return <Shield className="h-4 w-4" />;
-      case 'pipeline': return <LayoutDashboard className="h-4 w-4" />;
       case 'contato': return <Phone className="h-4 w-4" />;
       case 'chamado': return <HelpCircle className="h-4 w-4" />;
       default: return <Info className="h-4 w-4" />;

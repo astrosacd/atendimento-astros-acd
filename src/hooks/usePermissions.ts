@@ -197,12 +197,6 @@ export function usePermissions() {
   const canManageFollowupConfig = () => hasPermission('manage_followup_config');
   const canManageFollowupWebhooks = () => hasPermission('manage_followup_webhooks');
 
-  // Pipeline permissions
-  const canViewPipeline = () => hasPermission('view_pipeline');
-  const canManagePipelineStages = () => hasPermission('manage_pipeline_stages');
-  const canManagePipelineAutomations = () => hasPermission('manage_pipeline_automations');
-  const canManagePipelineChatwoot = () => hasPermission('manage_pipeline_chatwoot');
-  const canSharePipeline = () => hasPermission('share_pipeline');
 
   // Lead Hunter permissions
   const canViewLeadHunter = () => hasPermission('view_lead_hunter');
@@ -234,7 +228,6 @@ export function usePermissions() {
   const canManageApprovals = () => hasPermission('manage_approvals');
   const canViewAutomations = () => hasPermission('view_automations');
   const canManageAutomations = () => hasPermission('manage_automations');
-  const canViewAutomationLogs = () => hasPermission('view_automation_logs');
   const canViewChat = () => hasPermission('view_chat');
   const canManageChat = () => hasPermission('manage_chat');
   const canViewWhatsappInstances = () => hasPermission('view_whatsapp_instances');
@@ -388,12 +381,6 @@ export function usePermissions() {
     canDeleteFollowups,
     canManageFollowupConfig,
     canManageFollowupWebhooks,
-    // Pipeline
-    canViewPipeline,
-    canManagePipelineStages,
-    canManagePipelineAutomations,
-    canManagePipelineChatwoot,
-    canSharePipeline,
     // Lead Hunter
     canViewLeadHunter,
     canManageLeadHunterLeads,
@@ -433,7 +420,6 @@ export function usePermissions() {
     canManageApprovals,
     canViewAutomations,
     canManageAutomations,
-    canViewAutomationLogs,
     canViewChat,
     canManageChat,
     canViewWhatsappInstances,
