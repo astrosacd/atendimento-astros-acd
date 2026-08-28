@@ -1697,17 +1697,13 @@ export type Database = {
           converted_at: string | null
           id: string
           is_lead: boolean | null
-          last_ai_update: string | null
           last_interaction_at: string | null
           lead_email: string | null
           lead_name: string | null
           lead_phone: string | null
           lead_produto: string | null
-          lead_score: number | null
-          lead_score_reason: string | null
           moved_at: string
           moved_by: string | null
-          next_action_suggestion: string | null
           notes: string | null
           stage_id: string | null
         }
@@ -1717,17 +1713,13 @@ export type Database = {
           converted_at?: string | null
           id?: string
           is_lead?: boolean | null
-          last_ai_update?: string | null
           last_interaction_at?: string | null
           lead_email?: string | null
           lead_name?: string | null
           lead_phone?: string | null
           lead_produto?: string | null
-          lead_score?: number | null
-          lead_score_reason?: string | null
           moved_at?: string
           moved_by?: string | null
-          next_action_suggestion?: string | null
           notes?: string | null
           stage_id?: string | null
         }
@@ -1737,17 +1729,13 @@ export type Database = {
           converted_at?: string | null
           id?: string
           is_lead?: boolean | null
-          last_ai_update?: string | null
           last_interaction_at?: string | null
           lead_email?: string | null
           lead_name?: string | null
           lead_phone?: string | null
           lead_produto?: string | null
-          lead_score?: number | null
-          lead_score_reason?: string | null
           moved_at?: string
           moved_by?: string | null
-          next_action_suggestion?: string | null
           notes?: string | null
           stage_id?: string | null
         }
@@ -6349,39 +6337,6 @@ export type Database = {
         }
         Relationships: []
       }
-      pipeline_ai_config: {
-        Row: {
-          api_key: string | null
-          created_at: string
-          enabled: boolean
-          id: string
-          model: string
-          prompt_template: string
-          provider: string
-          updated_at: string
-        }
-        Insert: {
-          api_key?: string | null
-          created_at?: string
-          enabled?: boolean
-          id?: string
-          model?: string
-          prompt_template?: string
-          provider?: string
-          updated_at?: string
-        }
-        Update: {
-          api_key?: string | null
-          created_at?: string
-          enabled?: boolean
-          id?: string
-          model?: string
-          prompt_template?: string
-          provider?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       pipeline_chatwoot_config: {
         Row: {
           account_id: string | null
@@ -8112,75 +8067,6 @@ export type Database = {
           },
         ]
       }
-      sales_forecasts: {
-        Row: {
-          cold_leads: number
-          confidence_pct: number
-          created_at: string
-          generated_at: string
-          generated_by: string | null
-          hot_leads: number
-          id: string
-          opportunities: Json | null
-          period_end: string
-          period_start: string
-          pipeline_value_brl: number
-          pipeline_value_usd: number
-          predicted_revenue_brl: number
-          predicted_revenue_usd: number
-          raw_analysis: Json | null
-          reasoning: string | null
-          recommended_actions: Json | null
-          risks: Json | null
-          total_leads: number
-          warm_leads: number
-        }
-        Insert: {
-          cold_leads?: number
-          confidence_pct?: number
-          created_at?: string
-          generated_at?: string
-          generated_by?: string | null
-          hot_leads?: number
-          id?: string
-          opportunities?: Json | null
-          period_end: string
-          period_start: string
-          pipeline_value_brl?: number
-          pipeline_value_usd?: number
-          predicted_revenue_brl?: number
-          predicted_revenue_usd?: number
-          raw_analysis?: Json | null
-          reasoning?: string | null
-          recommended_actions?: Json | null
-          risks?: Json | null
-          total_leads?: number
-          warm_leads?: number
-        }
-        Update: {
-          cold_leads?: number
-          confidence_pct?: number
-          created_at?: string
-          generated_at?: string
-          generated_by?: string | null
-          hot_leads?: number
-          id?: string
-          opportunities?: Json | null
-          period_end?: string
-          period_start?: string
-          pipeline_value_brl?: number
-          pipeline_value_usd?: number
-          predicted_revenue_brl?: number
-          predicted_revenue_usd?: number
-          raw_analysis?: Json | null
-          reasoning?: string | null
-          recommended_actions?: Json | null
-          risks?: Json | null
-          total_leads?: number
-          warm_leads?: number
-        }
-        Relationships: []
-      }
       shared_access_tokens: {
         Row: {
           created_at: string
@@ -9800,7 +9686,6 @@ export type Database = {
         Returns: boolean
       }
       trigger_auto_sync_consulta_numeros: { Args: never; Returns: undefined }
-      update_all_lead_scores: { Args: never; Returns: undefined }
       update_automations_cron_schedule: {
         Args: { p_hour: number; p_minute: number }
         Returns: boolean
