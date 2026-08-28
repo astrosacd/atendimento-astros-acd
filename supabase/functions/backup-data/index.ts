@@ -148,7 +148,7 @@ serve(async (req: Request) => {
     // Filter tables
     const heavyTables = [
       "audit_logs", "billing_logs", "chat_messages", "client_history", 
-      "proposal_views", "integration_logs", "automation_logs", 
+      "proposal_views", "integration_logs", 
       "client_followup_logs", "client_ai_logs", "client_recovery_webhook_logs",
       "consulta_numeros_history", "divulgador_operation_logs", 
       "divulgador_send_logs", "lead_hunter_leads", "lead_hunter_logs", 
