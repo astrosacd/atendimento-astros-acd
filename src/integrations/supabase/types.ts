@@ -227,90 +227,6 @@ export type Database = {
           },
         ]
       }
-      automation_logs: {
-        Row: {
-          action_taken: string
-          cliente_id: string | null
-          created_at: string
-          id: string
-          result: string | null
-          rule_id: string
-        }
-        Insert: {
-          action_taken: string
-          cliente_id?: string | null
-          created_at?: string
-          id?: string
-          result?: string | null
-          rule_id: string
-        }
-        Update: {
-          action_taken?: string
-          cliente_id?: string | null
-          created_at?: string
-          id?: string
-          result?: string | null
-          rule_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "automation_logs_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "automation_logs_rule_id_fkey"
-            columns: ["rule_id"]
-            isOneToOne: false
-            referencedRelation: "automation_rules"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      automation_rules: {
-        Row: {
-          action_config: Json | null
-          action_type: string
-          created_at: string
-          description: string | null
-          id: string
-          is_active: boolean | null
-          last_run_at: string | null
-          name: string
-          trigger_config: Json | null
-          trigger_type: string
-          updated_at: string
-        }
-        Insert: {
-          action_config?: Json | null
-          action_type: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          last_run_at?: string | null
-          name: string
-          trigger_config?: Json | null
-          trigger_type: string
-          updated_at?: string
-        }
-        Update: {
-          action_config?: Json | null
-          action_type?: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          last_run_at?: string | null
-          name?: string
-          trigger_config?: Json | null
-          trigger_type?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       baserow_integrations: {
         Row: {
           api_token: string
@@ -1686,72 +1602,6 @@ export type Database = {
             columns: ["parent_payment_id"]
             isOneToOne: false
             referencedRelation: "client_payments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      client_pipeline: {
-        Row: {
-          chatwoot_conversation_id: number | null
-          cliente_id: string | null
-          converted_at: string | null
-          id: string
-          is_lead: boolean | null
-          last_interaction_at: string | null
-          lead_email: string | null
-          lead_name: string | null
-          lead_phone: string | null
-          lead_produto: string | null
-          moved_at: string
-          moved_by: string | null
-          notes: string | null
-          stage_id: string | null
-        }
-        Insert: {
-          chatwoot_conversation_id?: number | null
-          cliente_id?: string | null
-          converted_at?: string | null
-          id?: string
-          is_lead?: boolean | null
-          last_interaction_at?: string | null
-          lead_email?: string | null
-          lead_name?: string | null
-          lead_phone?: string | null
-          lead_produto?: string | null
-          moved_at?: string
-          moved_by?: string | null
-          notes?: string | null
-          stage_id?: string | null
-        }
-        Update: {
-          chatwoot_conversation_id?: number | null
-          cliente_id?: string | null
-          converted_at?: string | null
-          id?: string
-          is_lead?: boolean | null
-          last_interaction_at?: string | null
-          lead_email?: string | null
-          lead_name?: string | null
-          lead_phone?: string | null
-          lead_produto?: string | null
-          moved_at?: string
-          moved_by?: string | null
-          notes?: string | null
-          stage_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "client_pipeline_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: true
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "client_pipeline_stage_id_fkey"
-            columns: ["stage_id"]
-            isOneToOne: false
-            referencedRelation: "pipeline_stages"
             referencedColumns: ["id"]
           },
         ]
@@ -6337,105 +6187,6 @@ export type Database = {
         }
         Relationships: []
       }
-      pipeline_chatwoot_config: {
-        Row: {
-          account_id: string | null
-          chatwoot_api_key: string | null
-          chatwoot_url: string | null
-          created_at: string | null
-          enabled: boolean | null
-          id: string
-          inbox_id: string | null
-          sync_conversations: boolean | null
-          sync_leads: boolean | null
-          updated_at: string | null
-        }
-        Insert: {
-          account_id?: string | null
-          chatwoot_api_key?: string | null
-          chatwoot_url?: string | null
-          created_at?: string | null
-          enabled?: boolean | null
-          id?: string
-          inbox_id?: string | null
-          sync_conversations?: boolean | null
-          sync_leads?: boolean | null
-          updated_at?: string | null
-        }
-        Update: {
-          account_id?: string | null
-          chatwoot_api_key?: string | null
-          chatwoot_url?: string | null
-          created_at?: string | null
-          enabled?: boolean | null
-          id?: string
-          inbox_id?: string | null
-          sync_conversations?: boolean | null
-          sync_leads?: boolean | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      pipeline_stages: {
-        Row: {
-          color: string | null
-          created_at: string
-          id: string
-          is_default: boolean | null
-          name: string
-          order_index: number
-          updated_at: string
-        }
-        Insert: {
-          color?: string | null
-          created_at?: string
-          id?: string
-          is_default?: boolean | null
-          name: string
-          order_index?: number
-          updated_at?: string
-        }
-        Update: {
-          color?: string | null
-          created_at?: string
-          id?: string
-          is_default?: boolean | null
-          name?: string
-          order_index?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      pipeline_temporary_links: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          expires_at: string | null
-          id: string
-          label: string | null
-          token: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          expires_at?: string | null
-          id?: string
-          label?: string | null
-          token: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          expires_at?: string | null
-          id?: string
-          label?: string | null
-          token?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       plano_ferramentas: {
         Row: {
           created_at: string
@@ -9456,7 +9207,6 @@ export type Database = {
       execute_instagram_spy_cron: { Args: never; Returns: undefined }
       execute_instagram_token_auto_refresh: { Args: never; Returns: undefined }
       execute_minute_automations_dispatcher: { Args: never; Returns: undefined }
-      execute_process_automations: { Args: never; Returns: undefined }
       execute_reports_analysis_cron: { Args: never; Returns: undefined }
       execute_scheduled_proposal_sends: { Args: never; Returns: undefined }
       execute_weekly_renewals_report: { Args: never; Returns: undefined }
@@ -9540,10 +9290,6 @@ export type Database = {
           job_name: string
           schedule: string
         }[]
-      }
-      get_pipeline_data_by_token: {
-        Args: { link_token: string }
-        Returns: Json
       }
       get_proposal_by_share_token: {
         Args: { p_share_token: string }
