@@ -15,7 +15,6 @@ export type ActivityType =
   | 'despesa'
   | 'followup'
   | 'admin'
-  | 'pipeline'
   | 'contato'
   | 'chamado';
 

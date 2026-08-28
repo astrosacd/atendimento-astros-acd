@@ -35,7 +35,6 @@ export function ProtectedRoute({ children, adminOnly = false, permission }: Prot
     location.pathname.startsWith('/propostas') ||
     location.pathname.startsWith('/followups') ||
     location.pathname.startsWith('/despesas') ||
-    location.pathname.startsWith('/kanban') ||
     location.pathname.startsWith('/lead-hunter') ||
     location.pathname.startsWith('/agenda') ||
     location.pathname.startsWith('/link-pagamento') ||
