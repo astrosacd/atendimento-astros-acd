@@ -4877,7 +4877,7 @@ Menu lateral → **Link de Pagamento**`
           title: "O que são Automações?",
           content: `As **Automações** permitem disparar ações baseadas em gatilhos:
           
-- **Gatilho**: O que inicia a automação (ex: novo cliente, mudança de etapa no pipeline)
+- **Gatilho**: O que inicia a automação
 - **Condição**: Filtros para a regra (ex: apenas se o valor for > 1000)
 - **Ação**: O que o sistema deve fazer (ex: enviar WhatsApp, criar tarefa)`
         },
