@@ -228,7 +228,6 @@ export function usePermissions() {
   const canManageApprovals = () => hasPermission('manage_approvals');
   const canViewAutomations = () => hasPermission('view_automations');
   const canManageAutomations = () => hasPermission('manage_automations');
-  const canViewAutomationLogs = () => hasPermission('view_automation_logs');
   const canViewChat = () => hasPermission('view_chat');
   const canManageChat = () => hasPermission('manage_chat');
   const canViewWhatsappInstances = () => hasPermission('view_whatsapp_instances');
@@ -421,7 +420,6 @@ export function usePermissions() {
     canManageApprovals,
     canViewAutomations,
     canManageAutomations,
-    canViewAutomationLogs,
     canViewChat,
     canManageChat,
     canViewWhatsappInstances,
