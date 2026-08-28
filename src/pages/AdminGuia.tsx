@@ -147,8 +147,6 @@ const categoryToPermission: Record<string, string> = {
   'despesas-visao-geral': 'view_guia_despesas',
   'despesas-recorrencia': 'view_guia_despesas',
   'revendedor-visao-geral': 'view_guia_revendedor',
-  'pipeline-visao-geral': 'view_guia_pipeline',
-  'pipeline-automacoes': 'view_guia_pipeline',
   'lead-hunter-visao-geral': 'view_guia_lead_hunter',
   'lead-hunter-campanhas': 'view_guia_lead_hunter',
   'lead-hunter-busca': 'view_guia_lead_hunter',
@@ -344,14 +342,6 @@ const AdminGuia = () => {
       color: "text-sky-400",
       categories: ["revendedor-visao-geral"],
       permissionKey: "view_guia_revendedor"
-    },
-    {
-      id: "pipeline",
-      title: "Pipeline",
-      icon: Columns,
-      color: "text-indigo-400",
-      categories: ["pipeline-visao-geral", "pipeline-automacoes"],
-      permissionKey: "view_guia_pipeline"
     },
     {
       id: "lead-hunter",
@@ -4462,124 +4452,6 @@ Acesse **Painel Administrativo** → **Permissões**
         "Organize planos por nível de recursos para facilitar upsell",
         "Mantenha planos inativos para referência histórica",
         "Descreva claramente os recursos de cada plano para evitar dúvidas"
-      ]
-    },
-    {
-      id: "pipeline-visao-geral",
-      title: "Pipeline de Clientes (Kanban)",
-      icon: Columns,
-      color: "text-indigo-400",
-      bgColor: "bg-indigo-500/10",
-      description: "Gerencie clientes e leads em um quadro Kanban com etapas personalizáveis",
-      steps: [
-        {
-          title: "O que é o Pipeline?",
-          content: `O **Pipeline** é um quadro Kanban para visualizar o funil de vendas:
-
-- **Etapas personalizáveis**: Crie colunas como "Prospecção", "Negociação", "Fechado"
-- **Leads e Clientes**: Arraste leads entre as etapas conforme avançam no funil
-- **Conversão**: Converta leads em clientes cadastrados com um clique
-- **Automações**: Crie regras automáticas para mover leads entre etapas
-- **Notas**: Adicione observações e acompanhamentos em cada card
-
-**Acessar:**
-Menu lateral → **Pipeline**`
-        },
-        {
-          title: "Gerenciar Etapas",
-          content: `**Criar e organizar etapas do funil:**
-
-1. Acesse **Pipeline** → clique em **"Gerenciar Etapas"**
-2. Clique em **"Nova Etapa"**
-3. Preencha:
-   - **Nome**: Identificação da etapa (ex: "Qualificação")
-   - **Cor**: Cor do cabeçalho da coluna
-   - **Ordem**: Posição no quadro
-4. Salve a etapa
-
-**Dica:** Ordene as etapas da esquerda para direita seguindo o fluxo natural de vendas.`
-        },
-        {
-          title: "Adicionar Leads",
-          content: `**Criar novo lead no Pipeline:**
-
-1. No quadro Kanban, clique em **"+ Novo Lead"**
-2. Preencha os dados:
-   - **Nome**: Nome do lead
-   - **Email**: Email de contato
-   - **Telefone**: WhatsApp
-   - **Produto**: Interesse do lead
-   - **Notas**: Observações iniciais
-3. O lead aparece na primeira etapa do funil
-
-**Mover entre etapas:**
-Arraste e solte o card entre as colunas para avançar o lead no funil.`
-        },
-        {
-          title: "Converter Lead em Cliente",
-          content: `Quando um lead fecha negócio:
-
-1. No card do lead, clique em **"Converter"**
-2. Os dados são preenchidos automaticamente
-3. Complete os dados obrigatórios (CPF, valor, etc.)
-4. O lead é convertido em **cliente cadastrado** no CRM
-5. O card mostra badge "Convertido" no Pipeline
-
-**Importante:** A conversão cria um registro completo em Clientes.`
-        }
-      ],
-      tips: [
-        "Use etapas claras que reflitam seu processo de vendas real",
-        "Mova leads rapidamente entre etapas para manter o funil atualizado",
-        "Adicione notas em cada interação com o lead",
-        "Revise leads parados em uma etapa por muito tempo",
-        "Configure automações para agilizar movimentos repetitivos"
-      ]
-    },
-    {
-      id: "pipeline-automacoes",
-      title: "Automações do Pipeline",
-      icon: Zap,
-      color: "text-indigo-400",
-      bgColor: "bg-indigo-500/10",
-      description: "Configure regras automáticas para o Pipeline",
-      steps: [
-        {
-          title: "Criar regras de automação",
-          content: `**Automatize ações no Pipeline:**
-
-1. Acesse **Pipeline** → aba **"Automações"**
-2. Clique em **"Nova Regra"**
-3. Configure:
-   - **Nome**: Identificação da regra
-   - **Gatilho**: Quando a regra dispara (ex: lead entra em etapa X)
-   - **Ação**: O que acontece (ex: enviar WhatsApp, mover para outra etapa)
-   - **Condições**: Filtros adicionais
-
-**Exemplos de automações:**
-- Lead entra em "Negociação" → Enviar mensagem de boas-vindas
-- Lead fica 7 dias em "Proposta Enviada" → Mover para "Follow-up"
-- Lead é convertido → Notificar gerente por WhatsApp`
-        },
-        {
-          title: "Permissões do Pipeline",
-          content: `**Configurar em Permissões do Sistema:**
-
-**Permissões disponíveis:**
-- **view_pipeline**: Visualizar o quadro Kanban
-- **manage_pipeline_stages**: Criar e editar etapas
-- **manage_pipeline_automations**: Configurar regras de automação
-
-**Recomendações:**
-- **Vendedor**: view_pipeline + manage_pipeline_stages
-- **Admin**: Todas as permissões
-- **Visualizador**: Apenas view_pipeline`
-        }
-      ],
-      tips: [
-        "Comece com automações simples e vá adicionando complexidade",
-        "Teste regras com um lead de teste antes de ativar para todos",
-        "Monitore os logs de automação para verificar se as regras estão funcionando"
       ]
     },
     {
