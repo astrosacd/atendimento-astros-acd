@@ -118,7 +118,7 @@ export function useClientConnectionGraph(clienteId: string | null) {
           sb.from('client_logos').select('id, file_name, description, created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(15),
           sb.from('client_social_credentials').select('id, platform, login, created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20),
           sb.from('client_recovery_attempts').select('id, canal, status, data_envio, converteu').eq('cliente_id', clienteId).order('data_envio', { ascending: false }).limit(20),
-          sb.from('client_pipeline').select('id, stage_id, lead_score, moved_at, is_lead').eq('cliente_id', clienteId).maybeSingle(),
+          sb.from('client_pipeline').select('id, stage_id, moved_at, is_lead').eq('cliente_id', clienteId).maybeSingle(),
           sb.from('client_history').select('id, action, changed_by_email, created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(15),
           sb.from('client_ai_logs').select('id, mode, model, created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(15),
           sb.from('client_whatsapp_groups').select('id, group_name, status, created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(15),
@@ -176,7 +176,7 @@ export function useClientConnectionGraph(clienteId: string | null) {
             {
               id: `pipeline-${pipelineRes.data.id}`,
               label: cap(stageName),
-              sublabel: pipelineRes.data.lead_score ? `Score ${pipelineRes.data.lead_score}` : pipelineRes.data.is_lead ? 'Lead' : 'Cliente',
+              sublabel: pipelineRes.data.is_lead ? 'Lead' : 'Cliente',
               category: 'pipeline',
               date: fmt(pipelineRes.data.moved_at),
             },

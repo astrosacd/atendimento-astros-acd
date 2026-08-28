@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { SalesForecastCard } from '@/components/dashboard/SalesForecastCard';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -1744,9 +1743,6 @@ const AdminCobranca = () => {
                 </CardContent>
               </Card>
             </div>
-
-            {/* Previsão IA do Pipeline (Centralizada) */}
-            <SalesForecastCard />
 
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
