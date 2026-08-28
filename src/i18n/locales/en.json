@@ -172,8 +172,7 @@
     "guide": "Guide",
     "help": "Help",
     "language": "Language",
-    "systemManagement": "Management System",
-    "iaIntelligence": "AI Intelligence"
+    "systemManagement": "Management System"
   },
   "user": {
     "administrator": "Administrator",
@@ -1528,28 +1527,6 @@
       "passwordTooShort": "Password must be at least 6 characters.",
       "serverError": "Error connecting to server.",
       "failedToCreate": "Failed to create user. Try again."
-    }
-  },
-  "ia": {
-    "title": "Artificial Intelligence",
-    "subtitle": "Manage predictive AI tools and automation for your pipeline.",
-    "tabs": {
-      "forecast": "Revenue Forecast",
-      "settings": "Settings"
-    },
-    "howItWorks": {
-      "title": "How does Predictive AI work?",
-      "desc1": "Our AI analyzes your entire sales funnel (Kanban), considering:",
-      "item1": "Total value of opportunities in each stage.",
-      "item2": "Historical conversion probability of each stage.",
-      "item3": "Engagement and notes recorded in leads.",
-      "item4": "Seasonality and trends in your market.",
-      "result": "Result: \"Based on your history, you should close $ X thousand in the next 30 days.\""
-    },
-    "forecastSettings": {
-      "title": "Forecast Settings",
-      "desc": "Adjust the parameters that AI uses to calculate the predicted revenue.",
-      "comingSoon": "Advanced forecasting settings will be available soon. Currently, the AI uses the global high-precision model."
     }
   }
 }

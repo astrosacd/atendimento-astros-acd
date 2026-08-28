@@ -51,7 +51,6 @@ import AdminChamadosWebhooks from "./pages/AdminChamadosWebhooks";
 import AdminChamadosApiKeys from "./pages/AdminChamadosApiKeys";
 import AdminChamadosGuia from "./pages/AdminChamadosGuia";
 import AdminRelatorios from "./pages/AdminRelatorios";
-import AdminIA from "./pages/AdminIA";
 
 import AdminHealthDashboard from "./pages/AdminHealthDashboard";
 import AdminSegurancaPagamento from "./pages/AdminSegurancaPagamento";
@@ -199,9 +198,6 @@ function AppRoutes() {
       
       {/* Relatórios Route */}
       <Route path="/admin/relatorios" element={<ProtectedRoute permission="view_reports"><AdminRelatorios /></ProtectedRoute>} />
-      
-      {/* AI Intelligence Route */}
-      <Route path="/admin/ia" element={<ProtectedRoute permission="view_sales_forecast"><AdminIA /></ProtectedRoute>} />
       
       <Route path="/admin/saude" element={<ProtectedRoute permission="manage_system_health"><AdminHealthDashboard /></ProtectedRoute>} />
       <Route path="/admin/horario-comercial" element={<ProtectedRoute adminOnly><AdminHorarioComercial /></ProtectedRoute>} />

@@ -172,8 +172,7 @@
     "guide": "Guía",
     "help": "Ayuda",
     "language": "Idioma",
-    "systemManagement": "Sistema de Gestión",
-    "iaIntelligence": "Inteligencia IA"
+    "systemManagement": "Sistema de Gestión"
   },
   "user": {
     "administrator": "Administrador",
@@ -1528,28 +1527,6 @@
       "passwordTooShort": "La contraseña debe tener al menos 6 caracteres.",
       "serverError": "Error al conectar con el servidor.",
       "failedToCreate": "Error al crear usuario. Intente nuevamente."
-    }
-  },
-  "ia": {
-    "title": "Inteligencia Artificial",
-    "subtitle": "Administre las herramientas de IA predictiva y automatización de su pipeline.",
-    "tabs": {
-      "forecast": "Previsión de Ingresos",
-      "settings": "Configuración"
-    },
-    "howItWorks": {
-      "title": "¿Cómo funciona la IA predictiva?",
-      "desc1": "Nuestra IA analiza todo su embudo de ventas (Kanban), considerando:",
-      "item1": "Valor total de las oportunidades en cada etapa.",
-      "item2": "Probabilidad de conversión histórica de cada etapa.",
-      "item3": "Compromiso y notas registradas en los leads.",
-      "item4": "Estacionalidad y tendencias en su mercado.",
-      "result": "Resultado: \"Según su historial, debería cerrar $ X mil en los próximos 30 días.\""
-    },
-    "forecastSettings": {
-      "title": "Configuración de Previsión",
-      "desc": "Ajuste los parámetros que la IA utiliza para calcular los ingresos previstos.",
-      "comingSoon": "Las configuraciones avanzadas de previsión estarán disponibles pronto. Actualmente, la IA utiliza el modelo global de alta precisión."
     }
   }
 }

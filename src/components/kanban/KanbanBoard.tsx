@@ -16,10 +16,9 @@ import {
 import { 
   RefreshCw, Search, UserPlus, MoreVertical, ArrowRight, Trash2,
   Package, Calendar, DollarSign, Check, ChevronsUpDown, UserRoundPlus, ArrowRightCircle,
-  BrainCircuit, Sparkles, MessageSquarePlus, Activity
+  MessageSquarePlus
 } from 'lucide-react';
-import { differenceInDays, formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { differenceInDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { LeadFormDialog } from './LeadFormDialog';
 import { ConvertLeadDialog } from './ConvertLeadDialog';
@@ -36,12 +35,10 @@ interface KanbanBoardProps {
   onAddLead?: (stageId: string, lead: { name: string; phone: string; email: string; produto: string }) => Promise<void>;
   onConvertLead?: (data: any) => Promise<void>;
   onRefresh: () => void;
-  onUpdateAIScore?: (pipelineId: string) => Promise<void>;
-  onUpdateAllScores?: () => Promise<void>;
 }
 
 export function KanbanBoard({ 
-  stages, clients, allClients, loading, isReadOnly = false, onMoveClient, onMovePipelineItem, onRemoveClient, onAddLead, onConvertLead, onRefresh, onUpdateAIScore, onUpdateAllScores 
+  stages, clients, allClients, loading, isReadOnly = false, onMoveClient, onMovePipelineItem, onRemoveClient, onAddLead, onConvertLead, onRefresh
 }: KanbanBoardProps) {
   const [search, setSearch] = useState('');
   const [addingToStage, setAddingToStage] = useState<string | null>(null);
@@ -141,17 +138,6 @@ export function KanbanBoard({
         <Button variant="ghost" size="sm" onClick={onRefresh} title="Atualizar dados">
           <RefreshCw className="h-4 w-4" />
         </Button>
-        {!isReadOnly && onUpdateAllScores && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={onUpdateAllScores} 
-            title="Atualizar Scores de IA (Todos)"
-            className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-          >
-            <Sparkles className="h-4 w-4" />
-          </Button>
-        )}
         <span className="text-xs text-muted-foreground">
           {registeredCount} clientes · {leadsCount} leads · {allClients.length} total
         </span>
@@ -276,21 +262,6 @@ export function KanbanBoard({
                               {isLead && (
                                 <Badge variant="outline" className="text-[9px] px-1 py-0 border-amber-500/50 text-amber-600">Lead</Badge>
                               )}
-                              {pc.lead_score !== null && (
-                                <Badge 
-                                  variant="secondary" 
-                                  className={cn(
-                                    "text-[9px] px-1.5 py-0 gap-1 font-bold",
-                                    pc.lead_score >= 80 ? "bg-green-500/10 text-green-600 border-green-500/20" :
-                                    pc.lead_score >= 50 ? "bg-blue-500/10 text-blue-600 border-blue-500/20" :
-                                    "bg-slate-500/10 text-slate-600 border-slate-500/20"
-                                  )}
-                                  title={pc.lead_score_reason || 'Score de IA'}
-                                >
-                                  <Sparkles className="h-2.5 w-2.5" />
-                                  {pc.lead_score}%
-                                </Badge>
-                              )}
                             </div>
                             {product && (
                               <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
@@ -310,14 +281,6 @@ export function KanbanBoard({
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="bg-card border-border">
-                                <DropdownMenuItem
-                                  onClick={() => onUpdateAIScore?.(pc.id)}
-                                  className="text-xs gap-2 text-blue-600 dark:text-blue-400"
-                                >
-                                  <BrainCircuit className="h-3 w-3" />
-                                  Atualizar Score IA
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
                                 {stages.filter(s => s.id !== stage.id).map(s => (
                                   <DropdownMenuItem
                                     key={s.id}
@@ -352,23 +315,6 @@ export function KanbanBoard({
                             </DropdownMenu>
                           )}
                         </div>
-
-                        {pc.next_action_suggestion && (
-                          <div className="mt-2 p-1.5 rounded bg-primary/5 border border-primary/10">
-                            <div className="flex items-center gap-1.5 text-[10px] font-semibold text-primary mb-1">
-                              <Activity className="h-3 w-3" />
-                              SUGESTÃO IA
-                            </div>
-                            <p className="text-[10px] text-foreground leading-tight">
-                              {pc.next_action_suggestion}
-                            </p>
-                            {pc.last_ai_update && (
-                              <p className="text-[8px] text-muted-foreground mt-1 text-right">
-                                Atualizado {formatDistanceToNow(new Date(pc.last_ai_update), { addSuffix: true, locale: ptBR })}
-                              </p>
-                            )}
-                          </div>
-                        )}
 
                         {!isLead && pc.cliente && (
                           <>

@@ -6,11 +6,9 @@ import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { KanbanStageManager } from '@/components/kanban/KanbanStageManager';
 import { AutomationRulesPanel } from '@/components/kanban/AutomationRulesPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Columns3, Settings2, Zap, MessageSquare, Share2, Brain, Sparkles } from 'lucide-react';
+import { Columns3, Settings2, Zap, MessageSquare, Share2 } from 'lucide-react';
 import { ChatwootIntegration } from '@/components/kanban/ChatwootIntegration';
 import { KanbanShareManager } from '@/components/kanban/KanbanShareManager';
-import { KanbanAIConfig } from '@/components/kanban/KanbanAIConfig';
-import { SalesForecastCard } from '@/components/dashboard/SalesForecastCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -34,10 +32,6 @@ export interface PipelineClient {
   lead_email: string | null;
   lead_produto: string | null;
   converted_at: string | null;
-  lead_score: number | null;
-  lead_score_reason: string | null;
-  next_action_suggestion: string | null;
-  last_ai_update: string | null;
   last_interaction_at: string | null;
   cliente: {
     id: string;
@@ -57,8 +51,6 @@ export default function KanbanClientes() {
   const { 
     canManagePipelineStages, 
     canManagePipelineAutomations,
-    canViewPipelineAI,
-    
     canManagePipelineChatwoot,
     canSharePipeline
   } = usePermissions();
@@ -181,75 +173,6 @@ export default function KanbanClientes() {
     await loadData();
   };
 
-  const updateAIScore = async (pipelineId: string) => {
-    const item = clients.find(c => c.id === pipelineId);
-    if (!item) return;
-
-    setLoading(true);
-    try {
-      // Check if we have Chatwoot data in notes
-      const hasChatwootData = item.notes?.includes('Última conversa Chatwoot:');
-      
-      // In a real app, this would call an Edge Function that uses OpenAI
-      // For now, we enhance the simulation based on available data
-      
-      let score = Math.floor(Math.random() * 40) + 50; // Base 50-90
-      let reason = "Interação padrão do lead.";
-      let suggestion = "Enviar mensagem de acompanhamento.";
-
-      if (hasChatwootData) {
-        score += 10;
-        reason = "Lead ativo no Chatwoot com interações recentes analisadas.";
-        suggestion = "Analisar histórico do Chatwoot e responder dúvidas específicas.";
-      } else if (item.lead_phone || item.lead_email) {
-        score += 5;
-        reason = "Lead com informações de contato completas.";
-      }
-
-      const { error } = await supabase
-        .from('client_pipeline')
-        .update({
-          lead_score: Math.min(score, 100),
-          lead_score_reason: reason,
-          next_action_suggestion: suggestion,
-          last_ai_update: new Date().toISOString()
-        })
-        .eq('id', pipelineId);
-
-      if (error) throw error;
-      toast.success('Análise de IA concluída para ' + (item.lead_name || 'este lead'));
-      await loadData();
-    } catch (err) {
-      console.error(err);
-      toast.error('Erro ao processar análise de IA');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const updateAllAIScores = async () => {
-    setLoading(true);
-    try {
-      // First try to invoke the Edge Function for actual AI analysis if configured
-      const { error: functionError } = await supabase.functions.invoke('update-lead-scores');
-
-      // Fallback or secondary update using RPC if needed
-      if (functionError) {
-        console.warn('Edge function error, falling back to RPC simulation:', functionError);
-        const { error: rpcError } = await supabase.rpc('update_all_lead_scores');
-        if (rpcError) throw rpcError;
-      }
-      
-      toast.success('Scores de todos os clientes atualizados com sucesso');
-      await loadData();
-    } catch (err) {
-      console.error(err);
-      toast.error('Erro ao atualizar scores em massa');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <DashboardLayout>
       <div className="p-4 md:p-6 space-y-4">
@@ -265,11 +188,6 @@ export default function KanbanClientes() {
             <TabsTrigger value="kanban" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
               <Columns3 className="h-4 w-4" /> Kanban
             </TabsTrigger>
-            {(isAdmin || canViewPipelineAI()) && (
-              <TabsTrigger value="forecast" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-                <Sparkles className="h-4 w-4" /> Previsão IA
-              </TabsTrigger>
-            )}
             {(isAdmin || canManagePipelineStages()) && (
               <TabsTrigger value="stages" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
                 <Settings2 className="h-4 w-4" /> Etapas
@@ -283,11 +201,6 @@ export default function KanbanClientes() {
             {(isAdmin || canManagePipelineChatwoot()) && (
               <TabsTrigger value="chatwoot" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
                 <MessageSquare className="h-4 w-4" /> Chatwoot
-              </TabsTrigger>
-            )}
-            {(isAdmin || canViewPipelineAI()) && (
-              <TabsTrigger value="ai" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-                <Brain className="h-4 w-4" /> Config. IA
               </TabsTrigger>
             )}
             {(isAdmin || canSharePipeline()) && (
@@ -309,16 +222,8 @@ export default function KanbanClientes() {
               onAddLead={addLead}
               onConvertLead={convertLead}
               onRefresh={loadData}
-              onUpdateAIScore={updateAIScore}
-              onUpdateAllScores={updateAllAIScores}
             />
           </TabsContent>
-
-          {(isAdmin || canViewPipelineAI()) && (
-            <TabsContent value="forecast">
-              <SalesForecastCard />
-            </TabsContent>
-          )}
 
           {(isAdmin || canManagePipelineStages()) && (
             <TabsContent value="stages">
@@ -333,11 +238,6 @@ export default function KanbanClientes() {
           {(isAdmin || canManagePipelineChatwoot()) && (
             <TabsContent value="chatwoot">
               <ChatwootIntegration onRefresh={loadData} />
-            </TabsContent>
-          )}
-          {(isAdmin || canViewPipelineAI()) && (
-            <TabsContent value="ai">
-              <KanbanAIConfig />
             </TabsContent>
           )}
           {(isAdmin || canSharePipeline()) && (
