@@ -16,7 +16,6 @@ export type GraphCategory =
   | 'logo'
   | 'credencial'
   | 'recuperacao'
-  | 'pipeline'
   | 'historico'
   | 'ia'
   | 'grupo';
@@ -45,7 +44,6 @@ export interface GraphTotals {
   logos: number;
   credenciais: number;
   recuperacoes: number;
-  pipelines: number;
   historicos: number;
   ias: number;
   grupos: number;
@@ -101,7 +99,6 @@ export function useClientConnectionGraph(clienteId: string | null) {
           logosRes,
           credenciaisRes,
           recuperacoesRes,
-          pipelineRes,
           historicoRes,
           iaRes,
           gruposRes,
@@ -118,7 +115,6 @@ export function useClientConnectionGraph(clienteId: string | null) {
           sb.from('client_logos').select('id, file_name, description, created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(15),
           sb.from('client_social_credentials').select('id, platform, login, created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20),
           sb.from('client_recovery_attempts').select('id, canal, status, data_envio, converteu').eq('cliente_id', clienteId).order('data_envio', { ascending: false }).limit(20),
-          sb.from('client_pipeline').select('id, stage_id, moved_at, is_lead').eq('cliente_id', clienteId).maybeSingle(),
           sb.from('client_history').select('id, action, changed_by_email, created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(15),
           sb.from('client_ai_logs').select('id, mode, model, created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(15),
           sb.from('client_whatsapp_groups').select('id, group_name, status, created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(15),
@@ -158,29 +154,6 @@ export function useClientConnectionGraph(clienteId: string | null) {
             .order('start_time', { ascending: false })
             .limit(20);
           eventos = eventosData || [];
-        }
-
-        // Buscar nome do estágio do pipeline
-        let pipelineNodes: GraphNode[] = [];
-        if (pipelineRes.data) {
-          let stageName = 'Pipeline';
-          if (pipelineRes.data.stage_id) {
-            const { data: stage } = await sb
-              .from('pipeline_stages')
-              .select('name')
-              .eq('id', pipelineRes.data.stage_id)
-              .maybeSingle();
-            if (stage?.name) stageName = stage.name;
-          }
-          pipelineNodes = [
-            {
-              id: `pipeline-${pipelineRes.data.id}`,
-              label: cap(stageName),
-              sublabel: pipelineRes.data.is_lead ? 'Lead' : 'Cliente',
-              category: 'pipeline',
-              date: fmt(pipelineRes.data.moved_at),
-            },
-          ];
         }
 
         const center: GraphNode = {
@@ -345,7 +318,6 @@ export function useClientConnectionGraph(clienteId: string | null) {
           ...logos,
           ...credenciais,
           ...recuperacoes,
-          ...pipelineNodes,
           ...historicos,
           ...ias,
           ...grupos,
@@ -374,7 +346,6 @@ export function useClientConnectionGraph(clienteId: string | null) {
             logos: logos.length,
             credenciais: credenciais.length,
             recuperacoes: recuperacoes.length,
-            pipelines: pipelineNodes.length,
             historicos: historicos.length,
             ias: ias.length,
             grupos: grupos.length,
