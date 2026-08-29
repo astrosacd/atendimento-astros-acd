@@ -11,7 +11,8 @@ interface FunnelData {
 
 export function ConversionFunnelCard() {
   const [data, setData] = useState<FunnelData>({ views: 0, checkout: 0, sales: 0 });
-  const [_loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+
 
   useEffect(() => {
     const fetchFunnelData = async () => {
