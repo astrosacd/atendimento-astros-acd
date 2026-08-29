@@ -65,7 +65,19 @@ export function ConversionFunnelCard() {
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {loading ? (
+          <div className="space-y-4 animate-pulse">
+            <div className="h-3 w-full bg-muted rounded-full" />
+            <div className="h-3 w-2/3 bg-muted rounded-full" />
+            <div className="h-3 w-1/3 bg-muted rounded-full" />
+          </div>
+        ) : data.views === 0 && data.checkout === 0 && data.sales === 0 ? (
+          <p className="text-xs text-muted-foreground py-6 text-center">
+            Nenhum acesso ou pedido de checkout registrado nos últimos 30 dias.
+          </p>
+        ) : (
         <div className="space-y-6">
+
           {/* Views */}
           <div className="relative">
             <div className="flex justify-between text-xs mb-1">
