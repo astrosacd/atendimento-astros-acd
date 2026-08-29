@@ -195,38 +195,16 @@ export function useDashboardStats() {
       const clientesRegistroSemValor = clientes?.filter(c => c.cobranca_ativa === false && (c.valor || 0) === 0).length || 0;
       const clientesRegistro = clientesRegistroComValor.length;
 
-      // Cancelados nos últimos 30 dias: cliente com tag 'cancelado' + cobranca_ativa=false,
-      // cuja última transição de cobranca_ativa (via client_history) ocorreu na janela.
-      // Usa allClientes (inclui os marcados como excluir_metricas), para bater com a listagem.
-      let canceladosUltimos30d = 0;
-      try {
-        const canceladosAtuais = (allClientes || []).filter(
-          (c: any) =>
-            c.cobranca_ativa === false &&
-            Array.isArray(c.tags) &&
-            c.tags.some((t: string) => t?.toLowerCase() === 'cancelado')
-        );
-        if (canceladosAtuais.length > 0) {
-          const ids = canceladosAtuais.map((c: any) => c.id);
-          const { data: histRows } = await supabase
-            .from('client_history')
-            .select('cliente_id, created_at')
-            .in('cliente_id', ids)
-            .in('action', ['update', 'updated'])
-            .contains('changed_fields', ['cobranca_ativa'])
-            .gte('created_at', thirtyDaysAgo.toISOString());
-          const setIds = new Set((histRows || []).map((h: any) => h.cliente_id));
-          // Fallback: sem histórico, considera updated_at do cliente dentro da janela
-          canceladosAtuais.forEach((c: any) => {
-            if (!setIds.has(c.id) && c.updated_at && new Date(c.updated_at) >= thirtyDaysAgo) {
-              setIds.add(c.id);
-            }
-          });
-          canceladosUltimos30d = setIds.size;
-        }
-      } catch (e) {
-        console.error('[Dashboard] Erro ao calcular cancelados 30d:', e);
-      }
+      // Cancelados: regra única e determinística — tag 'cancelado' + cobranca_ativa=false,
+      // dentro do escopo de métricas (ignora cadastros marcados como excluir_metricas).
+      // A mesma regra é aplicada na listagem (/consultar?filter=cancelados).
+      const clientesCancelados = (clientes || []).filter(
+        (c: any) =>
+          c.cobranca_ativa === false &&
+          Array.isArray(c.tags) &&
+          c.tags.some((t: string) => t?.toLowerCase() === 'cancelado')
+      ).length;
+
 
 
       const vendasClientesBrl = clientesRegistroComValor
