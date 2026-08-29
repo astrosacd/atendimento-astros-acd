@@ -177,13 +177,16 @@ export default function ConsultarCliente() {
   const loadAllClientes = async () => {
     const data = await fetchClientes();
     setAllClientes(data);
-    
-    // If inadimplente filter is active, auto-filter results
+
+    // Filtros vindos do Dashboard usam o MESMO escopo das métricas:
+    // cadastros marcados como "excluir das métricas" ficam de fora.
+    const metricScope = data.filter(c => !(c as any).excluir_metricas);
+
     const filter = searchParams.get('filter');
     if (filter === 'inadimplente') {
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const filtered = data.filter(cliente => {
+      const filtered = metricScope.filter(cliente => {
         if (!cliente.cobranca_ativa || !cliente.data_renovacao) return false;
         const renovacaoStr = String(cliente.data_renovacao).slice(0, 10);
         return renovacaoStr < todayStr;
@@ -191,7 +194,7 @@ export default function ConsultarCliente() {
       setResults(filtered);
     } else if (filter === 'registro-sem-valor') {
       // Filter registro clients without value
-      const filtered = data.filter(cliente => {
+      const filtered = metricScope.filter(cliente => {
         return cliente.cobranca_ativa === false && (!cliente.valor || cliente.valor === 0);
       });
       setResults(filtered);
@@ -201,19 +204,20 @@ export default function ConsultarCliente() {
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       const nextWeekDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7);
       const nextWeekStr = `${nextWeekDate.getFullYear()}-${String(nextWeekDate.getMonth() + 1).padStart(2, '0')}-${String(nextWeekDate.getDate()).padStart(2, '0')}`;
-      const filtered = data.filter(cliente => {
+      const filtered = metricScope.filter(cliente => {
         if (!cliente.data_renovacao || cliente.cobranca_ativa !== true) return false;
         const renovacaoStr = String(cliente.data_renovacao).slice(0, 10);
         return renovacaoStr >= todayStr && renovacaoStr <= nextWeekStr;
       });
       setResults(filtered);
     } else if (filter === 'cancelados') {
-      const filtered = data.filter(cliente => {
+      const filtered = metricScope.filter(cliente => {
         const tags = Array.isArray(cliente.tags) ? cliente.tags : [];
         return cliente.cobranca_ativa === false && tags.some((t: string) => t?.toLowerCase() === 'cancelado');
       });
       setResults(filtered);
     }
+
   };
 
   const loadAvailableTags = async () => {
