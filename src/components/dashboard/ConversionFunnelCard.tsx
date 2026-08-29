@@ -119,7 +119,9 @@ export function ConversionFunnelCard() {
             </div>
           </div>
         </div>
+        )}
       </CardContent>
+
     </Card>
   );
 }
