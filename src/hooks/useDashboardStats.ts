@@ -54,6 +54,7 @@ export interface DashboardStats {
   criticalQuotas: number;
   divulgadorErrors: number;
   clientesCancelados: number;
+  canceladosUltimos30d: number;
 }
 
 export interface UrgentTasksState {
@@ -101,6 +102,7 @@ const INITIAL_STATS: DashboardStats = {
   criticalQuotas: 0,
   divulgadorErrors: 0,
   clientesCancelados: 0,
+  canceladosUltimos30d: 0,
 };
 
 function getClientesPorMes(clientes: any[]) {
