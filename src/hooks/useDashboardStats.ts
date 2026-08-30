@@ -200,12 +200,23 @@ export function useDashboardStats() {
       // Cancelados: regra única e determinística — tag 'cancelado' + cobranca_ativa=false,
       // dentro do escopo de métricas (ignora cadastros marcados como excluir_metricas).
       // A mesma regra é aplicada na listagem (/consultar?filter=cancelados).
-      const clientesCancelados = (clientes || []).filter(
+      const canceladosLista = (clientes || []).filter(
         (c: any) =>
           c.cobranca_ativa === false &&
           Array.isArray(c.tags) &&
           c.tags.some((t: string) => t?.toLowerCase() === 'cancelado')
-      ).length;
+      );
+      const clientesCancelados = canceladosLista.length;
+
+      // Cancelados nos últimos 30 dias: usa a coluna cancelado_em (gravada
+      // automaticamente no momento do cancelamento via trigger no banco).
+      const cutoff30d = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const canceladosUltimos30d = canceladosLista.filter((c: any) => {
+        if (!c.cancelado_em) return false;
+        return new Date(c.cancelado_em) >= cutoff30d;
+      }).length;
+
+
 
 
 
@@ -489,6 +500,7 @@ export function useDashboardStats() {
         criticalQuotas: criticalQuotasCount,
         divulgadorErrors: divulgadorErrorsCount,
         clientesCancelados,
+        canceladosUltimos30d,
       });
     };
 
