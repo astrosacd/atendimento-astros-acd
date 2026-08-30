@@ -2146,6 +2146,7 @@ export type Database = {
       }
       clientes: {
         Row: {
+          cancelado_em: string | null
           ciclo_cobranca: string
           cobranca_ativa: boolean
           cpf: string | null
@@ -2172,6 +2173,7 @@ export type Database = {
           valor: number
         }
         Insert: {
+          cancelado_em?: string | null
           ciclo_cobranca?: string
           cobranca_ativa?: boolean
           cpf?: string | null
@@ -2198,6 +2200,7 @@ export type Database = {
           valor: number
         }
         Update: {
+          cancelado_em?: string | null
           ciclo_cobranca?: string
           cobranca_ativa?: boolean
           cpf?: string | null
