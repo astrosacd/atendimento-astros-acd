@@ -197,10 +197,11 @@ export function useDashboardStats() {
       const clientesRegistroSemValor = clientes?.filter(c => c.cobranca_ativa === false && (c.valor || 0) === 0).length || 0;
       const clientesRegistro = clientesRegistroComValor.length;
 
-      // Cancelados: regra única e determinística — tag 'cancelado' + cobranca_ativa=false,
-      // dentro do escopo de métricas (ignora cadastros marcados como excluir_metricas).
+      // Cancelados: regra única e determinística — tag 'cancelado' + cobranca_ativa=false.
+      // Cancelados contam SEMPRE, mesmo quando marcados como excluir_metricas
+      // (a exclusão de métricas vale para receita/relatórios, não para cancelamentos).
       // A mesma regra é aplicada na listagem (/consultar?filter=cancelados).
-      const canceladosLista = (clientes || []).filter(
+      const canceladosLista = (allClientes || []).filter(
         (c: any) =>
           c.cobranca_ativa === false &&
           Array.isArray(c.tags) &&
