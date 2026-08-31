@@ -209,13 +209,10 @@ export function useDashboardStats() {
       );
       const clientesCancelados = canceladosLista.length;
 
-      // Cancelados nos últimos 30 dias: usa a coluna cancelado_em (gravada
-      // automaticamente no momento do cancelamento via trigger no banco).
-      const cutoff30d = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-      const canceladosUltimos30d = canceladosLista.filter((c: any) => {
-        if (!c.cancelado_em) return false;
-        return new Date(c.cancelado_em) >= cutoff30d;
-      }).length;
+      // Cancelados nos últimos 30 dias: mantido como 0 (métrica removida do card a pedido do usuário).
+      const canceladosUltimos30d = 0;
+
+
 
 
 

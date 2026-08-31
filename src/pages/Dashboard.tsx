@@ -426,7 +426,7 @@ export default function Dashboard() {
             <Card
               className="bg-gradient-to-br from-rose-500/10 to-rose-500/5 border-rose-500/20 hover:border-rose-500/40 transition-colors cursor-pointer group"
               onClick={() => navigate('/consultar?filter=cancelados')}
-              title="Clientes cancelados (tag 'cancelado' + cobrança inativa). Não inclui cadastros marcados como fora das métricas. Clique para ver todos."
+              title="Clientes cancelados (tag 'cancelado' + cobrança inativa). Clique para ver todos."
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
@@ -434,16 +434,8 @@ export default function Dashboard() {
                     <XCircle className="h-6 w-6 text-rose-500" />
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-end gap-3">
-                      <div>
-                        <p className="text-3xl font-bold text-foreground font-display">{stats.clientesCancelados}</p>
-                        <p className="text-xs text-muted-foreground">Cancelados (total)</p>
-                      </div>
-                      <div className="mb-0.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-center">
-                        <p className="text-sm font-bold text-rose-500 font-display leading-tight">{stats.canceladosUltimos30d}</p>
-                        <p className="text-[10px] text-muted-foreground leading-tight">últimos 30 dias</p>
-                      </div>
-                    </div>
+                    <p className="text-3xl font-bold text-foreground font-display">{stats.clientesCancelados}</p>
+                    <p className="text-xs text-muted-foreground">Cancelados</p>
                   </div>
                 </div>
               </CardContent>
