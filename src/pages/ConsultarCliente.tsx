@@ -211,7 +211,8 @@ export default function ConsultarCliente() {
       });
       setResults(filtered);
     } else if (filter === 'cancelados') {
-      const filtered = metricScope.filter(cliente => {
+      // Cancelados aparecem todos, mesmo com excluir_metricas (fora do escopo de receita, mas contam aqui)
+      const filtered = data.filter(cliente => {
         const tags = Array.isArray(cliente.tags) ? cliente.tags : [];
         return cliente.cobranca_ativa === false && tags.some((t: string) => t?.toLowerCase() === 'cancelado');
       });
