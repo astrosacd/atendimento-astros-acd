@@ -7,6 +7,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-temp-access-token, x-cron-call",
 };
 
+// Remove acentos e caracteres nao-ASCII dos headers de email para evitar
+// que o assunto apareca codificado (=?utf-8?Q?...) no cliente de email.
+function toAsciiHeader(input: string): string {
+  try {
+    return input
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^\x20-\x7E]/g, '');
+  } catch {
+    return input.replace(/[^\x20-\x7E]/g, '');
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
