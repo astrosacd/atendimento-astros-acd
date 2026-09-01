@@ -28,6 +28,14 @@ serve(async (req: Request) => {
       .select("*")
       .eq("is_active", true);
 
+    // Recupera follow-ups presos em "processing" (execução anterior morreu no meio)
+    const staleCutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    await supabase
+      .from("client_followups")
+      .update({ status: "pending" })
+      .eq("status", "processing")
+      .lt("updated_at", staleCutoff);
+
     // Pick a specific follow-up when manually retrying, otherwise process the queue one at a time.
     let followupsQuery = supabase
       .from("client_followups")
@@ -58,7 +66,36 @@ serve(async (req: Request) => {
     }
 
     const followup = followups[0];
+
+    // Trava atômica: só segue quem conseguir mudar pending -> processing.
+    // Evita envio duplicado quando o cron de 1 minuto sobrepõe uma execução lenta.
+    const { data: claimed, error: claimError } = await supabase
+      .from("client_followups")
+      .update({ status: "processing" })
+      .eq("id", followup.id)
+      .eq("status", "pending")
+      .select("id")
+      .maybeSingle();
+
+    if (claimError) {
+      console.error("❌ Erro ao travar followup:", claimError);
+      return new Response(JSON.stringify({ error: claimError.message }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!claimed) {
+      console.log(`⏭️ Followup ${followup.id} já está sendo processado por outra execução`);
+      return new Response(
+        JSON.stringify({ processed: 0, message: "Follow-up já está sendo processado" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     console.log(`📨 Processando followup da fila: ${followup.id}`);
+
+
 
     // Fetch send config for email/whatsapp credentials
     const { data: config } = await supabase
