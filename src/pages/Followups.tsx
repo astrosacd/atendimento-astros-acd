@@ -69,6 +69,7 @@ import { ptBR } from 'date-fns/locale';
 
 const statusMap: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   pending: { label: 'Agendado', color: 'bg-amber-100 text-amber-700', icon: <Clock className="h-3 w-3" /> },
+  processing: { label: 'Enviando...', color: 'bg-indigo-100 text-indigo-700', icon: <Send className="h-3 w-3" /> },
   sent: { label: 'Enviado', color: 'bg-blue-100 text-blue-700', icon: <Send className="h-3 w-3" /> },
   completed: { label: 'Concluído', color: 'bg-green-100 text-green-700', icon: <CheckCircle className="h-3 w-3" /> },
   cancelled: { label: 'Cancelado', color: 'bg-gray-100 text-gray-500', icon: <XCircle className="h-3 w-3" /> },
