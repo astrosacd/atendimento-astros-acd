@@ -337,7 +337,7 @@ serve(async (req) => {
               });
 
               await smtpClient.send({
-                from: `Agenda Astros <${notifyGmailUser}>`,
+                from: `${toAsciiHeader('Agenda Astros')} <${notifyGmailUser}>`,
                 to: event.client_email,
                 subject,
                 html: emailHtml,
