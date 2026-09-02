@@ -353,6 +353,7 @@ export default function Followups() {
             <SelectContent>
               <SelectItem value="all">Todos os status</SelectItem>
               <SelectItem value="pending">Agendado</SelectItem>
+              <SelectItem value="processing">Enviando</SelectItem>
               <SelectItem value="sent">Enviado</SelectItem>
               <SelectItem value="completed">Concluído</SelectItem>
               <SelectItem value="cancelled">Cancelado</SelectItem>
