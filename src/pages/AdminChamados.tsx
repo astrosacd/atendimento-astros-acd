@@ -239,7 +239,12 @@ const AdminChamados = () => {
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: ChamadoStatus }) => {
       const updateData: Record<string, unknown> = { status };
-      if (status === 'fechado') updateData.closed_at = new Date().toISOString();
+      // Encerramento = resolvido OU fechado. Reabertura limpa a data.
+      if (status === 'fechado' || status === 'resolvido') {
+        updateData.closed_at = new Date().toISOString();
+      } else {
+        updateData.closed_at = null;
+      }
       const { error } = await supabase.from('chamados').update(updateData as never).eq('id', id);
       if (error) throw error;
     },
