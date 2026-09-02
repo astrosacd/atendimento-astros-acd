@@ -515,9 +515,14 @@ serve(async (req) => {
         }
       }
       
-      // Set closed_at if status is fechado
-      if (updateData.status === 'fechado' && currentData.status !== 'fechado') {
-        updateData.closed_at = new Date().toISOString();
+      // Encerramento = resolvido OU fechado; reabertura limpa a data
+      const encerrados = ['fechado', 'resolvido'];
+      if (updateData.status && updateData.status !== currentData.status) {
+        if (encerrados.includes(updateData.status as string)) {
+          updateData.closed_at = new Date().toISOString();
+        } else if (encerrados.includes(currentData.status as string)) {
+          updateData.closed_at = null;
+        }
       }
       
       const { data, error } = await supabase
