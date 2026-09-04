@@ -708,6 +708,8 @@ export default function ExtratoInvestimento() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );
