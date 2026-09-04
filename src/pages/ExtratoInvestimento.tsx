@@ -298,7 +298,7 @@ export default function ExtratoInvestimento() {
     referencia: referencia.trim(),
     itens_unicos: itensUnicos.map(({ uid, origem, source_label, recorrente, selected, ...rest }) => rest),
     itens_mensais: itensMensais.map(({ uid, origem, source_label, recorrente, selected, ...rest }) => rest),
-    total_investido_historico: totalInvestidoHist || (totalUnico),
+    total_investido_historico: totalUnico,
   });
 
   const baixarLog = async (channel: 'download' | 'whatsapp' | 'email') => {
@@ -354,7 +354,7 @@ export default function ExtratoInvestimento() {
           mensagem: undefined,
           pdf_base64: pdfBase64,
           file_name: fileName,
-          total_investido: totalInvestidoHist,
+          total_investido: totalUnico,
           total_mensal: totalMensal,
         },
       });
@@ -584,7 +584,7 @@ export default function ExtratoInvestimento() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                 <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
                   <p className="text-xs text-muted-foreground">Total Investido</p>
-                  <p className="text-xl font-extrabold text-amber-600">{fmtBRL(totalInvestidoHist || totalUnico)}</p>
+                  <p className="text-xl font-extrabold text-amber-600">{fmtBRL(totalUnico)}</p>
                 </div>
                 <div className="p-3 rounded-lg bg-muted/50">
                   <p className="text-xs text-muted-foreground">Recorrência Mensal</p>
