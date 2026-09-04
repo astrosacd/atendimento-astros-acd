@@ -20,7 +20,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClientes } from '@/hooks/useClientes';
-import { FileText, Loader2, FileDown, Plus, Trash2, MessageSquare, Mail, Eye } from 'lucide-react';
+import { FileText, Loader2, FileDown, Plus, Trash2, MessageSquare, Mail, Eye, XCircle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TermoCancelamentoTab } from '@/components/extrato/TermoCancelamentoTab';
 import {
   Dialog,
   DialogContent,
