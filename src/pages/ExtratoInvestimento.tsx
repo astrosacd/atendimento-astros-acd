@@ -380,6 +380,21 @@ export default function ExtratoInvestimento() {
           </div>
         </div>
 
+        <Tabs defaultValue="extrato" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="extrato" className="gap-2">
+              <FileText className="h-4 w-4" /> Extrato de Investimento
+            </TabsTrigger>
+            <TabsTrigger value="termo" className="gap-2">
+              <XCircle className="h-4 w-4" /> Termo de Cancelamento
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="termo" className="space-y-6 mt-0">
+            <TermoCancelamentoTab clientes={clientes} loadingClientes={loadingClientes} />
+          </TabsContent>
+
+          <TabsContent value="extrato" className="space-y-6 mt-0">
         {/* 1. Seleção via filtro */}
         <Card>
           <CardHeader><CardTitle className="text-base">1. Selecionar cliente cadastrado</CardTitle></CardHeader>
