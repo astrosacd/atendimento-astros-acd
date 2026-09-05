@@ -1165,7 +1165,7 @@ export function QrScansTab() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="border-blue-500 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white hover:border-blue-500 dark:hover:bg-blue-600 dark:hover:text-white transition-colors"
+                                  className="border-blue-500 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white hover:border-blue-600 dark:hover:bg-blue-500 dark:hover:text-white transition-colors"
                                   onClick={() => setConfirmInsuranceTarget(n)}
                                 >
                                   <Shield className="h-4 w-4 mr-1" /> Acionar Seguro
@@ -1491,7 +1491,7 @@ export function QrScansTab() {
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      className="border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+                                      className="border-blue-500 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white hover:border-blue-600 dark:hover:bg-blue-500 dark:hover:text-white transition-colors"
                                       onClick={() => {
                                         setInsuranceTarget({
                                           baserow_row_id: n.baserow_row_id,
