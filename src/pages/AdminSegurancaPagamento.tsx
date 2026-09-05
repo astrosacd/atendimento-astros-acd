@@ -1292,6 +1292,15 @@ export default function AdminSegurancaPagamento() {
             </div>
           )}
 
+          {renewalChoiceDialog.payment && firstPaymentIds.has(renewalChoiceDialog.payment.id) && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+              <strong>Primeiro pagamento deste cliente.</strong> O ciclo não avança nesta aprovação — a data
+              cadastrada ({renewalChoiceDialog.payment.cliente?.data_renovacao ? isoToBR(String(renewalChoiceDialog.payment.cliente.data_renovacao)) : '—'})
+              será mantida e é essa que o cliente vai receber no recibo.
+            </div>
+          )}
+
+
           {(() => {
             const isMensal = renewalChoiceDialog.payment?.cliente?.ciclo_cobranca === 'mensal';
             const anchorBtn = (
