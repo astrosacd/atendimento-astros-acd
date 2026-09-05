@@ -11,7 +11,20 @@ interface ReceiptRequest {
   clienteId: string;
   paymentId?: string;
   paidAt?: string;
+  /** Data (YYYY-MM-DD) da próxima renovação já calculada por quem chamou. */
+  nextRenewalDate?: string;
 }
+
+/** Formata datas sem depender do fuso do runtime (evita erro de 1 dia). */
+const formatDateBR = (value: string): string => {
+  if (!value) return '—';
+  const iso = String(value).slice(0, 10);
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('pt-BR', { timeZone: 'America/Fortaleza' });
+};
+
 
 interface Cliente {
   id: string;
