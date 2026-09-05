@@ -323,7 +323,7 @@ serve(async (req) => {
     if (cliente?.id && cliente?.cobranca_ativa !== false) {
       try {
         const { data, error } = await supabase.functions.invoke("send-receipt", {
-          body: { clienteId: cliente.id, paymentId, paidAt },
+          body: { clienteId: cliente.id, paymentId, paidAt, nextRenewalDate: receiptRenewalDate },
         });
         if (error) {
           receiptError = error.message ?? String(error);
