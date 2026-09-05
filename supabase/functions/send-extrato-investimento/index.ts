@@ -215,10 +215,10 @@ serve(async (req) => {
         });
       }
 
-      const html = body.mensagem?.trim()
-        ? buildDefaultEmailHTML({ ...body, /* keep template, inject extra message */ })
-            .replace("Conforme solicitado, segue em anexo o", `${body.mensagem.trim().replace(/\n/g, "<br/>")}<br/><br/>Conforme solicitado, segue em anexo o`)
-        : buildDefaultEmailHTML(body);
+      const html = buildDefaultEmailHTML(body);
+      const subject = sanitizeSubject(
+        body.assunto?.trim() || `Extrato de Investimento - ${body.referencia}`,
+      );
 
       const client = new SMTPClient({
         connection: {
