@@ -92,9 +92,10 @@ export function useCreateCheckin() {
  * (janela configurável em dias, último por número).
  *
  * Regra de ocupação:
- *  - Apenas o último check-in com status_conexao = "conectado" ocupa vaga.
- *  - "Desconectado do Cliente" e "Desconectado/Banido" não bloqueiam modelo
- *    para novo check-in, mesmo quando o número está marcado como auto-hospedado.
+ *  - "conectado" ocupa vaga (ativo no aparelho e no cliente).
+ *  - "desconectado_cliente" TAMBÉM ocupa vaga: o chip continua ativo no
+ *    aparelho, apenas não está vinculado ao cliente.
+ *  - "desconectado" (banido/removido) libera a vaga.
  */
 export function useActiveCheckinsByModelo() {
   const { data: config } = useQrScanConfig();
@@ -114,8 +115,10 @@ export function useActiveCheckinsByModelo() {
       if (seenNumero.has(c.numero)) continue;
       seenNumero.add(c.numero);
       if (!c.modelo_id) continue;
-      const conectado = c.status_conexao === "conectado";
-      if (!conectado) continue;
+      const ocupaSlot =
+        c.status_conexao === "conectado" || c.status_conexao === "desconectado_cliente";
+      if (!ocupaSlot) continue;
+
       const cur = ocupados.get(c.modelo_id) ?? { total: 0, normal: 0, business: 0, clone: 0, numbers: new Set<string>() };
       cur.total += 1;
       cur[c.tipo_slot] += 1;
