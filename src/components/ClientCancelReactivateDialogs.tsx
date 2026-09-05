@@ -290,6 +290,12 @@ export function CancelClientDialog({ cliente, open, onOpenChange, onSuccess }: P
                 {excluirMetricas && (
                   <li>Marca como <strong>excluído das métricas</strong> (sai também de totais/IA)</li>
                 )}
+                {excluirMetricas && hasPayments === false && (
+                  <li className="text-amber-600">
+                    <AlertTriangle className="inline h-3 w-3 mr-1" />
+                    Cliente <strong>legado</strong> sem pagamentos — será removido de todas as métricas
+                  </li>
+                )}
                 <li>Fica registrado no histórico com o motivo informado</li>
               </ul>
               <span className="block text-xs pt-1">
