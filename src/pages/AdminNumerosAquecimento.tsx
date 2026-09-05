@@ -1404,13 +1404,30 @@ function NumeroActionsMenu({
       return;
     }
 
+    if (!voltarEstoqueModeloId) {
+      toast.error('Selecione o modelo do aparelho para o retorno');
+      return;
+    }
+
+    const escolhido = modelosVagasRetorno.find((o) => o.modelo.id === voltarEstoqueModeloId);
+    if (escolhido && escolhido.livres <= 0) {
+      toast.error(`Modelo "${escolhido.modelo.nome}" está cheio (${escolhido.ocupados}/${escolhido.capacidade}). Escolha outro modelo.`);
+      return;
+    }
+
     onUpdate({
       status_id: ativoStatusId,
+      modelo_id: voltarEstoqueModeloId,
       observacoes: '', // Limpa os dados do cliente anterior ao voltar para o estoque
     });
     setConfirmVoltarEstoqueOpen(false);
-    toast.success('Número voltou para o estoque com sucesso');
+    toast.success(
+      escolhido
+        ? `Número voltou para o estoque no modelo ${escolhido.modelo.nome}`
+        : 'Número voltou para o estoque com sucesso'
+    );
   };
+
 
   const handleDelete = () => {
     if (!deleteMotivo.trim()) {
