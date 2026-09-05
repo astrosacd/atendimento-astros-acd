@@ -53,7 +53,7 @@ import {
 
 interface RowItem extends ExtratoItemV2 {
   uid: string;
-  origem: 'cliente' | 'purchase' | 'manual';
+  origem: 'cliente' | 'purchase' | 'payment' | 'manual';
   source_label: string;
   recorrente: boolean;
   selected: boolean;
