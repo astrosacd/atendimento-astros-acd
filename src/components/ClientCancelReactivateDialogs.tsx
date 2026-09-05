@@ -55,13 +55,37 @@ export function CancelClientDialog({ cliente, open, onOpenChange, onSuccess }: P
   const [excluirMetricas, setExcluirMetricas] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [hasPayments, setHasPayments] = useState<boolean | null>(null);
+  const [checkingPayments, setCheckingPayments] = useState(false);
 
   useEffect(() => {
     if (open) {
       setMotivo('');
       setExcluirMetricas(false);
       setShowConfirm(false);
+      setHasPayments(null);
     }
+  }, [open, cliente?.id]);
+
+  // Verifica se o cliente tem histórico de pagamento para detectar legados
+  useEffect(() => {
+    if (!open || !cliente) return;
+    const checkPayments = async () => {
+      setCheckingPayments(true);
+      try {
+        const { count, error } = await supabase
+          .from('client_payments')
+          .select('*', { count: 'exact', head: true })
+          .eq('cliente_id', cliente.id);
+        if (error) throw error;
+        setHasPayments((count ?? 0) > 0);
+      } catch {
+        setHasPayments(null);
+      } finally {
+        setCheckingPayments(false);
+      }
+    };
+    checkPayments();
   }, [open, cliente?.id]);
 
   const validate = () => {
@@ -183,7 +207,7 @@ export function CancelClientDialog({ cliente, open, onOpenChange, onSuccess }: P
               <Checkbox
                 checked={excluirMetricas}
                 onCheckedChange={(v) => setExcluirMetricas(v === true)}
-                disabled={saving}
+                disabled={saving || checkingPayments}
                 className="mt-0.5"
               />
               <div className="space-y-0.5">
@@ -196,6 +220,35 @@ export function CancelClientDialog({ cliente, open, onOpenChange, onSuccess }: P
                 </p>
               </div>
             </label>
+
+            {/* Alerta extra para legados sem pagamento */}
+            {excluirMetricas && hasPayments === false && (
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-600 flex gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-semibold">Cliente legado detectado — tem certeza?</p>
+                  <p className="text-amber-600/90">
+                    Esse cliente não possui nenhum pagamento registrado no sistema. Marcar essa opção
+                    vai removê-lo completamente das métricas (Total de Clientes, MRR, relatórios e IA).
+                    Só faça isso se ele realmente for um cadastro legado do sistema antigo.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Aviso se já tiver pagamento e marcar */}
+            {excluirMetricas && hasPayments === true && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive flex gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-semibold">Esse cliente já gerou receita</p>
+                  <p className="text-destructive/90">
+                    Ele possui pagamentos registrados. Excluí-lo das métricas vai esconder receita real
+                    do MRR e dos relatórios. Recomendamos deixar desmarcado para manter o churn fiel.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2">
@@ -236,6 +289,12 @@ export function CancelClientDialog({ cliente, open, onOpenChange, onSuccess }: P
                 <li>Interrompe todas as <strong>cobranças automáticas</strong></li>
                 {excluirMetricas && (
                   <li>Marca como <strong>excluído das métricas</strong> (sai também de totais/IA)</li>
+                )}
+                {excluirMetricas && hasPayments === false && (
+                  <li className="text-amber-600">
+                    <AlertTriangle className="inline h-3 w-3 mr-1" />
+                    Cliente <strong>legado</strong> sem pagamentos — será removido de todas as métricas
+                  </li>
                 )}
                 <li>Fica registrado no histórico com o motivo informado</li>
               </ul>
