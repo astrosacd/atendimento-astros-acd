@@ -203,11 +203,18 @@ export default function AdminSegurancaPagamento() {
       if ((data as any)?.error) throw new Error((data as any).message || (data as any).error);
 
       const receiptInfo = (data as any)?.receipt;
+      const renewalInfo = (data as any)?.renewal;
+      const comunicada = renewalInfo?.communicated ? isoToBR(String(renewalInfo.communicated)) : null;
+      const renewalMsg = comunicada
+        ? renewalInfo?.skipped_first_payment
+          ? ` Próxima renovação mantida em ${comunicada} (primeiro pagamento).`
+          : ` Próxima renovação: ${comunicada}.`
+        : '';
       const receiptMsg =
         action === 'approve'
           ? receiptInfo?.sent
-            ? 'Cliente renovado e recibo enviado.'
-            : `Cliente renovado, mas o envio do recibo falhou${receiptInfo?.error ? `: ${receiptInfo.error}` : '.'}`
+            ? `Cliente renovado e recibo enviado.${renewalMsg}`
+            : `Cliente renovado, mas o envio do recibo falhou${receiptInfo?.error ? `: ${receiptInfo.error}` : '.'}${renewalMsg}`
           : 'Pagamento marcado como rejeitado. Cliente NÃO foi renovado.';
 
       toast({
@@ -229,8 +236,31 @@ export default function AdminSegurancaPagamento() {
     }
   };
 
+  // Verifica se este é o primeiro pagamento pago do cliente (nesse caso o ciclo não avança)
+  const checkFirstPayment = async (payment: any) => {
+    const clienteId = payment?.cliente?.id || payment?.cliente_id;
+    if (!clienteId) return;
+    try {
+      const { count } = await supabase
+        .from('client_payments')
+        .select('id', { count: 'exact', head: true })
+        .eq('cliente_id', clienteId)
+        .eq('status', 'paid')
+        .neq('id', payment.id);
+      setFirstPaymentIds((prev) => {
+        const next = new Set(prev);
+        if ((count ?? 0) === 0) next.add(payment.id);
+        else next.delete(payment.id);
+        return next;
+      });
+    } catch {
+      /* preview apenas — falha silenciosa */
+    }
+  };
+
   const handleApproval = async (payment: any, action: 'approve' | 'reject') => {
     const isSuspicious = SUSPICIOUS.has(payment.ocr_status);
+    if (action === 'approve') await checkFirstPayment(payment);
     // Suspeitos OU rejeição → sempre pedem motivo via Dialog
     if (isSuspicious || action === 'reject') {
       setApprovalDialog({ open: true, payment, action, reason: '', renewalMode: null });
@@ -243,6 +273,7 @@ export default function AdminSegurancaPagamento() {
     }
     await performApproval(payment.id, action);
   };
+
 
   const fetchConfig = async () => {
     try {
