@@ -26,6 +26,8 @@ import {
   useQrScanConfig,
   useMonthlyCounters,
   useQrScanHistory,
+  useAutoHospedadoNumbers,
+  useToggleAutoHospedado,
 } from "@/hooks/useQrScan";
 
 import { PAYMENT_METHOD_LABELS } from "@/constants/qrScan";
@@ -49,6 +51,10 @@ export function RegisterScanQuickDialog({
   const { data: counters } = useMonthlyCounters();
   const { data: history = [] } = useQrScanHistory();
   const registerScan = useRegisterScan();
+  const { data: autoHospedados = [], isLoading: loadingAuto } = useAutoHospedadoNumbers();
+  const toggleAutoHospedado = useToggleAutoHospedado();
+  const isAutoHospedado = autoHospedados.some((n) => n.baserow_row_id === baserowRowId);
+
 
   const [step, setStep] = useState<"initial" | "payment">("initial");
   const [obs, setObs] = useState("");
@@ -137,7 +143,32 @@ export function RegisterScanQuickDialog({
 
         {step === "initial" && (
           <div className="space-y-3">
-            {limitReached ? (
+            {!loadingAuto && !isAutoHospedado ? (
+              <div className="p-3 rounded-md bg-amber-500/10 border border-amber-500/40 text-sm space-y-2">
+                <div className="flex gap-2 items-start">
+                  <AlertCircle className="h-4 w-4 mt-0.5 text-amber-600 shrink-0" />
+                  <div>
+                    Este número <strong>não está marcado como auto-hospedado</strong>. O registro de escaneamento de QR só vale para números auto-hospedados.
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={toggleAutoHospedado.isPending}
+                  onClick={async () => {
+                    try {
+                      await toggleAutoHospedado.mutateAsync({ baserowRowId, value: true });
+                      toast({ title: "Número marcado como auto-hospedado" });
+                    } catch (e: any) {
+                      toast({ title: "Erro", description: e?.message ?? "Falha ao marcar", variant: "destructive" });
+                    }
+                  }}
+                >
+                  {toggleAutoHospedado.isPending && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
+                  Marcar como auto-hospedado
+                </Button>
+              </div>
+            ) : limitReached ? (
               <div className="p-3 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-sm flex gap-2 items-start">
                 <CheckCircle2 className="h-4 w-4 mt-0.5 text-emerald-600 shrink-0" />
                 <div>
@@ -229,7 +260,7 @@ export function RegisterScanQuickDialog({
           <Button variant="ghost" onClick={() => handleClose(false)}>
             {generatedUrl ? "Fechar" : "Cancelar"}
           </Button>
-          {!generatedUrl && !limitReached && !pendingToday && (
+          {!generatedUrl && !limitReached && !pendingToday && isAutoHospedado && (
             <Button onClick={handleSubmit} disabled={registerScan.isPending}>
               {registerScan.isPending && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
               {step === "payment" ? "Confirmar cobrança" : "📲 Registrar escaneamento"}
