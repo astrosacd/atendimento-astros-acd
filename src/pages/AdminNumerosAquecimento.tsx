@@ -1397,6 +1397,30 @@ function NumeroActionsMenu({
     setConfirmVendaOpen(false);
   };
 
+  // Modelos com vagas para escolher no retorno ao estoque
+  const checkinOcupadosRetorno = useActiveCheckinsByModelo();
+  const modelosVagasRetorno = useMemo(() => {
+    const vendidoId = statusList.find((s) => s.nome === 'Vendido')?.id;
+    const estoque = vendidoId
+      ? existingNumeros.filter((n) => n.status_id !== vendidoId && n.id !== numero.id)
+      : existingNumeros.filter((n) => n.id !== numero.id);
+
+    return modelosList
+      .map((m) => {
+        const internos = new Set(estoque.filter((n) => n.modelo_id === m.id).map((n) => n.numero));
+        const extras = (checkinOcupadosRetorno.get(m.id) as { numbers?: Set<string> } | undefined)?.numbers ?? new Set<string>();
+        const ocupados = new Set([...internos, ...extras]).size;
+        const capacidade = m.capacidade_whatsapp ?? 0;
+        const livres = capacidade > 0 ? Math.max(0, capacidade - ocupados) : 1;
+        return { modelo: m, ocupados, capacidade, livres };
+      })
+      .sort((a, b) => {
+        if ((a.livres > 0) !== (b.livres > 0)) return a.livres > 0 ? -1 : 1;
+        return a.modelo.nome.localeCompare(b.modelo.nome, 'pt-BR');
+      });
+  }, [modelosList, existingNumeros, statusList, checkinOcupadosRetorno, numero.id]);
+
+
   const handleVoltarEstoque = () => {
     const ativoStatusId = statusList.find(s => s.nome === 'Ativo')?.id;
     if (!ativoStatusId) {
