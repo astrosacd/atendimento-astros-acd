@@ -343,7 +343,14 @@ serve(async (req) => {
         action: "approved",
         paidAt,
         approval_override: isSuspicious,
+        renewal: {
+          mode: effectiveRenewalMode,
+          applied: newRenewalDate,
+          communicated: receiptRenewalDate,
+          skipped_first_payment: renewalSkippedFirstPayment,
+        },
         receipt: { sent: !receiptError, error: receiptError, details: receiptResult },
+
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
