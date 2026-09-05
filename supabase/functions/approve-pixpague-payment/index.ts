@@ -275,6 +275,7 @@ serve(async (req) => {
 
     // 3) Renovação: Calcular a nova data ANTES do recibo
     let newRenewalDate: string | null = null;
+    let renewalSkippedFirstPayment = false;
     if (cliente?.id && cliente?.cobranca_ativa !== false && cliente?.data_renovacao && cliente?.ciclo_cobranca) {
       const { count: priorPaidCount } = await supabase
         .from("client_payments")
@@ -285,32 +286,35 @@ serve(async (req) => {
 
       const isFirstPayment = (priorPaidCount ?? 0) === 0;
 
-      if (!isFirstPayment) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const currentVenc = new Date(`${cliente.data_renovacao}T00:00:00`);
+      if (isFirstPayment) {
+        renewalSkippedFirstPayment = true;
+        console.log(`[approve-pixpague] Primeiro pagamento do cliente ${cliente.id}: mantém data_renovacao ${cliente.data_renovacao}`);
+      } else {
         const months = CYCLE_MONTHS[cliente.ciclo_cobranca] || 1;
-        
+
         // Regra padrão (anchor): mantém a âncora do cliente (data_renovacao + N meses),
         // independente de pagamento atrasado/antecipado. Isso preserva MRR/churn.
-        // Quando operador escolhe "from_today", ou é REATIVAÇÃO (serviço estava pausado),
-        // conta a partir de hoje.
-        const useFromToday = effectiveRenewalMode === "from_today" || reactivatedNow;
-        const baseDate = useFromToday ? today : currentVenc;
-        
-        const renewalDate = new Date(baseDate);
-        renewalDate.setMonth(renewalDate.getMonth() + months);
-        newRenewalDate = renewalDate.toISOString().split("T")[0];
+        // "from_today" recalcula a partir de hoje. A escolha explícita do operador
+        // SEMPRE prevalece — reativação só força "hoje" quando nada foi escolhido.
+        const useFromToday =
+          effectiveRenewalMode === "from_today" || (reactivatedNow && !renewalModeExplicit);
+        const baseDate = useFromToday ? todayLocalISO() : String(cliente.data_renovacao).slice(0, 10);
+
+        newRenewalDate = addMonthsSafe(baseDate, months);
 
         await supabase
           .from("clientes")
           .update({ data_renovacao: newRenewalDate })
           .eq("id", cliente.id);
 
-        console.log(`[approve-pixpague] Renovação (cliente ${cliente.id}): ${cliente.data_renovacao} -> ${newRenewalDate}`);
+        console.log(`[approve-pixpague] Renovação (cliente ${cliente.id}, modo ${useFromToday ? "from_today" : "anchor"}): ${cliente.data_renovacao} -> ${newRenewalDate}`);
       }
     }
+
+    // Data que será comunicada ao cliente no recibo (fonte única da verdade)
+    const receiptRenewalDate: string | null =
+      newRenewalDate ?? (cliente?.data_renovacao ? String(cliente.data_renovacao).slice(0, 10) : null);
+
 
     // 4) Enviar recibo (agora com a data_renovacao já atualizada no banco se necessário)
     let receiptResult: any = null;
