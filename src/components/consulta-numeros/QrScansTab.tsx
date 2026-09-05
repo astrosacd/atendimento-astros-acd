@@ -2327,7 +2327,9 @@ export function QrScansTab() {
                   // Registrar também no histórico de scans como 'gratis' (via seguro)
                   // para liberar o número hoje — apenas se for auto-hospedado,
                   // pois o registro de scan exige auto-hospedagem.
-                  if (target.auto_hospedado) {
+                  // undefined = veio da lista de auto-hospedados (check-ins), então registra.
+                  const isAutoHospedado = target.auto_hospedado !== false;
+                  if (isAutoHospedado) {
                     await registerScan.mutateAsync({
                       baserow_row_id: target.baserow_row_id,
                       observacao: `[SEGURO] ${insuranceObs}`,
@@ -2336,7 +2338,7 @@ export function QrScansTab() {
 
                   toast({
                     title: "✅ Seguro acionado com sucesso",
-                    description: target.auto_hospedado
+                    description: isAutoHospedado
                       ? "O número foi liberado para escaneamento hoje."
                       : "Acionamento registrado no histórico de seguros do cliente.",
                   });
