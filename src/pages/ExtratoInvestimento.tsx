@@ -159,13 +159,14 @@ export default function ExtratoInvestimento() {
             .in('cliente_id', idsRel)
         : { data: [] as any[] };
 
-      // 3) Soma dos payments aprovados → Total investido histórico
+      // 3) Pagamentos já quitados (mensalidades pagas)
       const { data: paymentsArr } = idsRel.length
         ? await supabase
             .from('client_payments')
-            .select('amount, status, cliente_id')
+            .select('id, amount, status, cliente_id, payment_type, paid_at, billing_date')
             .in('cliente_id', idsRel)
             .in('status', ['paid', 'approved'])
+            .order('paid_at', { ascending: false })
         : { data: [] as any[] };
 
       const totalPagamentos = (paymentsArr || []).reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
