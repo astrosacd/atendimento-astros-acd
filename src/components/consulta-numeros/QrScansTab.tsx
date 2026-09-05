@@ -1495,6 +1495,7 @@ export function QrScansTab() {
                                       onClick={() => {
                                         setInsuranceTarget({
                                           baserow_row_id: n.baserow_row_id,
+                                          auto_hospedado: n.auto_hospedado,
                                           row_data: { numero: n.numero, nome: n.cliente_nome },
                                         });
                                         setInsuranceObs("");
