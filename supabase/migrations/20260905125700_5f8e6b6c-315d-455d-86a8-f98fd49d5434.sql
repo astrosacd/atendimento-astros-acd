@@ -1,0 +1,2 @@
+ALTER TABLE public.client_followups DROP CONSTRAINT IF EXISTS client_followups_status_check;
+ALTER TABLE public.client_followups ADD CONSTRAINT client_followups_status_check CHECK (status = ANY (ARRAY['pending'::text, 'processing'::text, 'sent'::text, 'completed'::text, 'cancelled'::text, 'failed'::text, 'resolved'::text]));
