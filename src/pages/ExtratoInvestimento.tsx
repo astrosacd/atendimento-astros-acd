@@ -501,60 +501,69 @@ export default function ExtratoInvestimento() {
               )}
 
               {items.map((it) => (
-                <div key={it.uid} className="p-3 border rounded-lg bg-card space-y-2">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Checkbox checked={it.selected} onCheckedChange={() => toggle(it.uid)} />
-                    <Badge variant={it.recorrente ? 'default' : 'secondary'} className="text-[10px]">
-                      {it.recorrente ? 'MENSAL' : 'ÚNICO'}
-                    </Badge>
-                    <Input
-                      className="flex-1 min-w-[200px]"
-                      placeholder="Nome do produto/serviço"
-                      value={it.nome}
-                      onChange={(e) => updateItem(it.uid, { nome: e.target.value })}
-                    />
-                    {it.obs_interna && (
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            title="Observação interna deste cadastro (somente você)"
-                            className="text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-96 max-h-[60vh] overflow-y-auto" side="left">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2 pb-2 border-b">
-                              <Eye className="h-4 w-4 text-amber-600" />
-                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                Observação interna
+                <div key={it.uid} className="p-4 md:p-5 border rounded-xl bg-card space-y-4">
+                  {/* Cabeçalho do item: identificação + ações */}
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-start">
+                    <div className="flex items-center gap-3 pt-1">
+                      <Checkbox checked={it.selected} onCheckedChange={() => toggle(it.uid)} />
+                      <Badge variant={it.recorrente ? 'default' : 'secondary'} className="text-[10px] whitespace-nowrap">
+                        {it.recorrente ? 'MENSAL' : 'ÚNICO'}
+                      </Badge>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <Label className="text-xs text-muted-foreground">Nome do produto/serviço</Label>
+                      <Input
+                        className="mt-1"
+                        placeholder="Nome do produto/serviço"
+                        value={it.nome}
+                        onChange={(e) => updateItem(it.uid, { nome: e.target.value })}
+                      />
+                    </div>
+                    <div className="flex items-center gap-1 self-end sm:self-start">
+                      {it.obs_interna && (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Observação interna deste cadastro (somente você)"
+                              className="text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-96 max-h-[60vh] overflow-y-auto" side="left">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 pb-2 border-b">
+                                <Eye className="h-4 w-4 text-amber-600" />
+                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                  Observação interna
+                                </p>
+                              </div>
+                              {it.obs_origem_nome && (
+                                <p className="text-[11px] text-muted-foreground">
+                                  Cadastro: <strong>{it.obs_origem_nome}</strong>
+                                </p>
+                              )}
+                              <p className="text-sm whitespace-pre-wrap">{it.obs_interna}</p>
+                              <p className="text-[10px] text-muted-foreground italic pt-2 border-t">
+                                Visível somente para você. Use para extrair texto e colar no campo
+                                "Observação para o cliente" abaixo (esse sim aparece no PDF).
                               </p>
                             </div>
-                            {it.obs_origem_nome && (
-                              <p className="text-[11px] text-muted-foreground">
-                                Cadastro: <strong>{it.obs_origem_nome}</strong>
-                              </p>
-                            )}
-                            <p className="text-sm whitespace-pre-wrap">{it.obs_interna}</p>
-                            <p className="text-[10px] text-muted-foreground italic pt-2 border-t">
-                              Visível somente para você. Use para extrair texto e colar no campo
-                              "Observação para o cliente" abaixo (esse sim aparece no PDF).
-                            </p>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    )}
-                    <Button size="icon" variant="ghost" onClick={() => removeItem(it.uid)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                      <Button size="icon" variant="ghost" onClick={() => removeItem(it.uid)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-6 gap-2 pl-8">
-                    <div className="col-span-2">
-                      <Label className="text-[10px]">Tipo do produto</Label>
+                  {/* Corpo do item: campos organizados */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+                    <div className="sm:col-span-2 lg:col-span-2">
+                      <Label className="text-xs">Tipo do produto</Label>
                       <Select
                         value={it.product_type}
                         onValueChange={(v: ProductType) => updateItem(it.uid, {
@@ -562,7 +571,7 @@ export default function ExtratoInvestimento() {
                           unidade_label: unidadeForType(v),
                         })}
                       >
-                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="h-10 mt-1"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {(Object.keys(PRODUCT_TYPE_LABEL) as ProductType[]).map((k) => (
                             <SelectItem key={k} value={k}>{PRODUCT_TYPE_LABEL[k]}</SelectItem>
@@ -571,45 +580,45 @@ export default function ExtratoInvestimento() {
                       </Select>
                     </div>
                     <div>
-                      <Label className="text-[10px]">Qtd.</Label>
-                      <Input type="number" min={1} value={it.quantidade}
+                      <Label className="text-xs">Qtd.</Label>
+                      <Input type="number" min={1} value={it.quantidade} className="h-10 mt-1"
                         onChange={(e) => updateItem(it.uid, { quantidade: Number(e.target.value) || 0 })} />
                     </div>
                     <div>
-                      <Label className="text-[10px]">Unidade</Label>
-                      <Input value={it.unidade_label ?? ''} onChange={(e) => updateItem(it.uid, { unidade_label: e.target.value })} />
+                      <Label className="text-xs">Unidade</Label>
+                      <Input value={it.unidade_label ?? ''} className="h-10 mt-1" onChange={(e) => updateItem(it.uid, { unidade_label: e.target.value })} />
                     </div>
                     <div>
-                      <Label className="text-[10px]">Valor unit.</Label>
-                      <Input type="number" step="0.01" value={it.valor_unitario}
+                      <Label className="text-xs">Valor unit.</Label>
+                      <Input type="number" step="0.01" value={it.valor_unitario} className="h-10 mt-1"
                         onChange={(e) => updateItem(it.uid, { valor_unitario: Number(e.target.value) || 0 })} />
                     </div>
-                    <div className="text-right">
-                      <Label className="text-[10px]">Total</Label>
-                      <div className="h-9 flex items-center justify-end font-bold text-amber-600">
-                        {fmtBRL(it.quantidade * it.valor_unitario)}{it.recorrente && <span className="text-[10px] text-muted-foreground ml-1">/mês</span>}
+                    <div className="sm:text-right">
+                      <Label className="text-xs">Total</Label>
+                      <div className="h-10 flex items-center sm:justify-end font-bold text-amber-600 mt-1">
+                        {fmtBRL(it.quantidade * it.valor_unitario)}{it.recorrente && <span className="text-xs text-muted-foreground ml-1">/mês</span>}
                       </div>
                     </div>
 
-                    <div>
-                      <Label className="text-[10px]">Data da compra</Label>
-                      <Input type="date" value={it.data_compra || ''}
+                    <div className="sm:col-span-2 lg:col-span-2">
+                      <Label className="text-xs">Data da compra</Label>
+                      <Input type="date" value={it.data_compra || ''} className="h-10 mt-1"
                         onChange={(e) => updateItem(it.uid, { data_compra: e.target.value || null })} />
                     </div>
                     {it.recorrente && (
                       <>
-                        <div>
-                          <Label className="text-[10px]">Próx. renovação</Label>
-                          <Input type="date" value={it.data_renovacao || ''}
+                        <div className="sm:col-span-2 lg:col-span-2">
+                          <Label className="text-xs">Próx. renovação</Label>
+                          <Input type="date" value={it.data_renovacao || ''} className="h-10 mt-1"
                             onChange={(e) => updateItem(it.uid, {
                               data_renovacao: e.target.value || null,
                               status: computeStatus(e.target.value),
                             })} />
                         </div>
-                        <div>
-                          <Label className="text-[10px]">Status</Label>
+                        <div className="sm:col-span-2 lg:col-span-2">
+                          <Label className="text-xs">Status</Label>
                           <Select value={it.status || 'em_dia'} onValueChange={(v: StatusRenovacao) => updateItem(it.uid, { status: v })}>
-                            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="h-10 mt-1"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="em_dia">Em dia</SelectItem>
                               <SelectItem value="proxima">Renova em breve</SelectItem>
@@ -619,14 +628,14 @@ export default function ExtratoInvestimento() {
                         </div>
                       </>
                     )}
-                    <div className="col-span-2 md:col-span-6">
-                      <Label className="text-[10px] flex items-center gap-1">
+                    <div className="sm:col-span-2 lg:col-span-6">
+                      <Label className="text-xs flex items-center gap-1">
                         Observação para o cliente
-                        <span className="text-muted-foreground font-normal">(aparece no PDF)</span>
+                        <span className="text-muted-foreground font-normal text-[11px]">(aparece no PDF)</span>
                       </Label>
                       <Textarea
                         rows={2}
-                        className="text-xs resize-none"
+                        className="text-sm resize-none mt-1"
                         value={it.descricao || ''}
                         onChange={(e) => updateItem(it.uid, { descricao: e.target.value })}
                         placeholder="Ex.: Inclui suporte técnico 24/7 e backup diário."

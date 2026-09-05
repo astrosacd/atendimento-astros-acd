@@ -287,7 +287,7 @@ export function TermoCancelamentoTab({ clientes, loadingClientes }: Props) {
       {clienteId && (
         <>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <CardTitle className="text-base">2. Serviço(s) cancelado(s)</CardTitle>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -298,34 +298,39 @@ export function TermoCancelamentoTab({ clientes, loadingClientes }: Props) {
                 <Plus className="h-3 w-3 mr-1" /> Adicionar serviço
               </Button>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-4">
               {servicos.length === 0 && (
                 <p className="text-sm text-muted-foreground py-6 text-center">
                   Nenhum serviço. Use o botão acima para adicionar.
                 </p>
               )}
               {servicos.map((s) => (
-                <div key={s.uid} className="p-3 border rounded-lg bg-card grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
-                  <div className="md:col-span-1 flex items-center gap-2 pb-2">
-                    <Checkbox checked={s.selected} onCheckedChange={() => update(s.uid, { selected: !s.selected })} />
-                    {s.selected && <Badge variant="destructive" className="text-[9px]">CANC.</Badge>}
+                <div key={s.uid} className="p-4 md:p-5 border rounded-xl bg-card space-y-4">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-start">
+                    <div className="flex items-center gap-3 pt-1">
+                      <Checkbox checked={s.selected} onCheckedChange={() => update(s.uid, { selected: !s.selected })} />
+                      {s.selected && <Badge variant="destructive" className="text-[10px] whitespace-nowrap">CANC.</Badge>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <Label className="text-xs text-muted-foreground">Serviço</Label>
+                      <Input className="mt-1" value={s.nome} placeholder="Nome do serviço" onChange={(e) => update(s.uid, { nome: e.target.value })} />
+                    </div>
+                    <div className="flex items-center gap-1 self-end sm:self-start">
+                      <Button size="icon" variant="ghost" onClick={() => remove(s.uid)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="md:col-span-5">
-                    <Label className="text-[10px]">Serviço</Label>
-                    <Input value={s.nome} placeholder="Nome do serviço" onChange={(e) => update(s.uid, { nome: e.target.value })} />
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label className="text-[10px]">Valor anterior</Label>
-                    <Input type="number" step="0.01" value={s.valor} onChange={(e) => update(s.uid, { valor: Number(e.target.value) || 0 })} />
-                  </div>
-                  <div className="md:col-span-3">
-                    <Label className="text-[10px]">Contratado em</Label>
-                    <Input type="date" value={s.data_contratacao || ''} onChange={(e) => update(s.uid, { data_contratacao: e.target.value || null })} />
-                  </div>
-                  <div className="md:col-span-1 flex justify-end">
-                    <Button size="icon" variant="ghost" onClick={() => remove(s.uid)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-xs">Valor anterior</Label>
+                      <Input type="number" step="0.01" value={s.valor} className="h-10 mt-1" onChange={(e) => update(s.uid, { valor: Number(e.target.value) || 0 })} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Contratado em</Label>
+                      <Input type="date" value={s.data_contratacao || ''} className="h-10 mt-1" onChange={(e) => update(s.uid, { data_contratacao: e.target.value || null })} />
+                    </div>
                   </div>
                 </div>
               ))}
