@@ -140,7 +140,11 @@ export default function AdminSegurancaPagamento() {
     payment: null,
   });
 
+  // IDs de pagamentos que são o PRIMEIRO pago do cliente (não avançam o ciclo)
+  const [firstPaymentIds, setFirstPaymentIds] = useState<Set<string>>(new Set());
+
   const SUSPICIOUS = new Set(['duplicate', 'mismatch', 'divergent', 'invalid']);
+
 
   const CYCLE_MONTHS_UI: Record<string, number> = {
     mensal: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12,
