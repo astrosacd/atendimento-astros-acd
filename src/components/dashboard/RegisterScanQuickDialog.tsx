@@ -260,7 +260,7 @@ export function RegisterScanQuickDialog({
           <Button variant="ghost" onClick={() => handleClose(false)}>
             {generatedUrl ? "Fechar" : "Cancelar"}
           </Button>
-          {!generatedUrl && !limitReached && !pendingToday && (
+          {!generatedUrl && !limitReached && !pendingToday && isAutoHospedado && (
             <Button onClick={handleSubmit} disabled={registerScan.isPending}>
               {registerScan.isPending && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
               {step === "payment" ? "Confirmar cobrança" : "📲 Registrar escaneamento"}
