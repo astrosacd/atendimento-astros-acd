@@ -69,8 +69,8 @@ const generateProfessionalEmailHTML = (
 ): string => {
   const currencySymbol = cliente.moeda === 'USD' ? '$' : 'R$';
   const formattedValue = `${currencySymbol} ${cliente.valor.toFixed(2)}`;
-  const paidDate = new Date(paidAt).toLocaleDateString('pt-BR');
-  const renewalDate = new Date(nextRenewal).toLocaleDateString('pt-BR');
+  const paidDate = formatDateBR(paidAt);
+  const renewalDate = formatDateBR(nextRenewal);
   const normalizedCompany = (companyName || '').trim();
   const companyLine =
     normalizedCompany && normalizeCompanyLabel(normalizedCompany) !== 'sistema de gestao'
@@ -214,8 +214,8 @@ const generateProfessionalWhatsAppMessage = (
 ): string => {
   const currencySymbol = cliente.moeda === 'USD' ? '$' : 'R$';
   const formattedValue = `${currencySymbol} ${cliente.valor.toFixed(2)}`;
-  const paidDate = new Date(paidAt).toLocaleDateString('pt-BR');
-  const renewalDate = new Date(nextRenewal).toLocaleDateString('pt-BR');
+  const paidDate = formatDateBR(paidAt);
+  const renewalDate = formatDateBR(nextRenewal);
   const normalizedCompany = (companyName || '').trim();
   const companyBlock =
     normalizedCompany && normalizeCompanyLabel(normalizedCompany) !== 'sistema de gestao'
@@ -367,7 +367,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { clienteId, paymentId, paidAt }: ReceiptRequest = await req.json();
+    const { clienteId, paymentId, paidAt, nextRenewalDate }: ReceiptRequest = await req.json();
 
     if (!clienteId) {
       return new Response(
@@ -427,6 +427,10 @@ serve(async (req) => {
     }
 
     const paymentDate = paidAt || new Date().toISOString();
+    // Data comunicada ao cliente: prioriza a data recebida de quem aprovou (fonte única da verdade),
+    // com fallback para o que está no cadastro.
+    const renewalForReceipt = (nextRenewalDate || cliente.data_renovacao || '') as string;
+    console.log(`   Próxima renovação (recibo): ${renewalForReceipt} (recebida: ${nextRenewalDate || 'n/a'} | banco: ${cliente.data_renovacao})`);
     const rawCompanyName = (config.billing_sender_name || config.receipt_company_name || '').trim();
     const companyName = rawCompanyName && normalizeCompanyLabel(rawCompanyName) !== 'sistema de gestao' ? rawCompanyName : '';
     const receiptNumber = `REC-${Date.now().toString(36).toUpperCase()}`;
@@ -457,7 +461,7 @@ serve(async (req) => {
       
       if (gmailUser && gmailPassword && cliente.email) {
         // Generate professional HTML email
-        const emailHtml = generateProfessionalEmailHTML(cliente, paymentDate, cliente.data_renovacao, companyName, receiptNumber);
+        const emailHtml = generateProfessionalEmailHTML(cliente, paymentDate, renewalForReceipt, companyName, receiptNumber);
         const emailSubject = `✅ Recibo de Pagamento - ${cliente.produto}`;
         
         const emailResult = await sendEmailViaSMTP(gmailUser, gmailPassword, senderName, cliente.email, emailSubject, emailHtml);
@@ -495,7 +499,7 @@ serve(async (req) => {
       
       if (instance && cliente.numero) {
         // Generate professional WhatsApp message
-        const whatsappMessage = generateProfessionalWhatsAppMessage(cliente, paymentDate, cliente.data_renovacao, companyName, receiptNumber);
+        const whatsappMessage = generateProfessionalWhatsAppMessage(cliente, paymentDate, renewalForReceipt, companyName, receiptNumber);
         
         const whatsappResult = await sendWhatsAppMessage(
           instance.api_url,
