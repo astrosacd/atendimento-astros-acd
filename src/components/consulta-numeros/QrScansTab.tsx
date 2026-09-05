@@ -2313,7 +2313,8 @@ export function QrScansTab() {
                   const target = insuranceTarget.row_data ? {
                     baserow_row_id: insuranceTarget.baserow_row_id,
                     numero: insuranceTarget.row_data.numero,
-                    cliente_nome: insuranceTarget.row_data.nome || insuranceTarget.row_data.cliente
+                    cliente_nome: insuranceTarget.row_data.nome || insuranceTarget.row_data.cliente,
+                    auto_hospedado: insuranceTarget.auto_hospedado,
                   } : insuranceTarget;
 
                   await registerInsurance.mutateAsync({
@@ -2324,15 +2325,20 @@ export function QrScansTab() {
                   });
 
                   // Registrar também no histórico de scans como 'gratis' (via seguro)
-                  // para liberar o número hoje.
-                  await registerScan.mutateAsync({
-                    baserow_row_id: target.baserow_row_id,
-                    observacao: `[SEGURO] ${insuranceObs}`,
-                  });
+                  // para liberar o número hoje — apenas se for auto-hospedado,
+                  // pois o registro de scan exige auto-hospedagem.
+                  if (target.auto_hospedado) {
+                    await registerScan.mutateAsync({
+                      baserow_row_id: target.baserow_row_id,
+                      observacao: `[SEGURO] ${insuranceObs}`,
+                    });
+                  }
 
                   toast({
                     title: "✅ Seguro acionado com sucesso",
-                    description: "O número foi liberado para escaneamento hoje.",
+                    description: target.auto_hospedado
+                      ? "O número foi liberado para escaneamento hoje."
+                      : "Acionamento registrado no histórico de seguros do cliente.",
                   });
                   setInsuranceDialogOpen(false);
                 } catch (e: any) {
