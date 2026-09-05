@@ -1794,7 +1794,13 @@ function NumeroActionsMenu({
       </Dialog>
       
       {/* Voltar para o estoque Confirmation Dialog */}
-      <Dialog open={confirmVoltarEstoqueOpen} onOpenChange={setConfirmVoltarEstoqueOpen}>
+      <Dialog
+        open={confirmVoltarEstoqueOpen}
+        onOpenChange={(v) => {
+          setConfirmVoltarEstoqueOpen(v);
+          if (v) setVoltarEstoqueModeloId('');
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1802,10 +1808,30 @@ function NumeroActionsMenu({
               Retornar ao Estoque
             </DialogTitle>
             <DialogDescription>
-              Deseja realmente retornar o número <strong>{numero.numero}</strong> para o estoque? 
-              Isso limpará as observações atuais do cliente e mudará o status para "Ativo".
+              Retornar o número <strong>{numero.numero}</strong> para o estoque: escolha em qual aparelho ele vai ficar.
+              As observações do cliente serão limpas e o status muda para "Ativo".
             </DialogDescription>
           </DialogHeader>
+
+          <div className="space-y-2 py-2">
+            <Label>Modelo do aparelho *</Label>
+            <SearchableSelect
+              value={voltarEstoqueModeloId}
+              onValueChange={setVoltarEstoqueModeloId}
+              placeholder="Selecione um modelo disponível"
+              searchPlaceholder="Buscar modelo…"
+              emptyMessage="Nenhum modelo encontrado"
+              options={modelosVagasRetorno.map((o) => ({
+                value: o.modelo.id,
+                label: `${o.modelo.nome}${o.capacidade > 0 ? ` · ${o.ocupados}/${o.capacidade}${o.livres > 0 ? ` · falta ${o.livres}` : ' · cheio'}` : ''}`,
+                disabled: o.capacidade > 0 && o.livres <= 0,
+              }))}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Modelos cheios aparecem desabilitados. O modelo escolhido substitui o modelo antigo do número.
+            </p>
+          </div>
+
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setConfirmVoltarEstoqueOpen(false)}>
               Cancelar
@@ -1813,10 +1839,12 @@ function NumeroActionsMenu({
             <Button 
               className="bg-blue-600 hover:bg-blue-700 text-white"
               onClick={handleVoltarEstoque}
+              disabled={!voltarEstoqueModeloId}
             >
               Confirmar Retorno
             </Button>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
     </>
