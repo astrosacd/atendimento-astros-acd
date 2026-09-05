@@ -17,6 +17,24 @@ const CYCLE_MONTHS: Record<string, number> = {
   mensal: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12,
 };
 
+// Soma meses sem "estourar" o mês (31/01 + 1 mês = 28/02, e não 03/03).
+const addMonthsSafe = (isoDate: string, months: number): string => {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const targetMonthIndex = (m - 1) + months;
+  const targetYear = y + Math.floor(targetMonthIndex / 12);
+  const targetMonth = ((targetMonthIndex % 12) + 12) % 12;
+  const lastDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+  const day = Math.min(d, lastDay);
+  return `${targetYear}-${String(targetMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+};
+
+// "Hoje" no fuso do negócio (America/Fortaleza), evitando virada de dia por UTC.
+const todayLocalISO = (): string =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Fortaleza", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
+
+
 // OCR statuses que exigem justificativa para serem aprovados
 const SUSPICIOUS_OCR_STATUSES = new Set(["duplicate", "mismatch", "divergent"]);
 
