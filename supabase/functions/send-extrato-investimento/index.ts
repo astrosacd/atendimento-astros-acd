@@ -16,6 +16,7 @@ interface Body {
   referencia: string;
   destino: string;
   mensagem?: string;
+  assunto?: string;
   pdf_base64: string;
   file_name: string;
   total_investido?: number;
@@ -44,8 +45,23 @@ function buildDefaultWhatsAppMessage(b: Body): string {
   return linhas.join("\n");
 }
 
+// Assunto curto e ASCII-safe: subjects longos com caracteres especiais (—, ·)
+// quebram o folding de headers MIME e o cliente exibe o e-mail como texto cru.
+function sanitizeSubject(s: string): string {
+  return s
+    .replace(/[—–]/g, "-")
+    .replace(/[·•]/g, "-")
+    .replace(/[^\x20-\x7EÀ-ÿ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+}
+
 function buildDefaultEmailHTML(b: Body): string {
   const greet = `Prezado(a) ${b.cliente_nome.split(" ")[0] || ""},`;
+  const customIntro = b.mensagem?.trim()
+    ? `<p style="font-size:14px;line-height:1.6;margin:0 0 16px;">${b.mensagem.trim().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</p>`
+    : "";
   const valorTotal = b.total_investido && b.total_investido > 0
     ? `<p style="margin:8px 0;font-size:15px;"><strong>Total investido:</strong> ${fmtBRL(b.total_investido)}</p>` : "";
   const mensal = b.total_mensal && b.total_mensal > 0
@@ -58,10 +74,10 @@ function buildDefaultEmailHTML(b: Body): string {
       </div>
       <div style="padding:28px;color:#1F2937;">
         <p style="font-size:16px;margin:0 0 12px;">${greet}</p>
-        <p style="font-size:14px;line-height:1.6;margin:0 0 16px;">
+        ${customIntro || `<p style="font-size:14px;line-height:1.6;margin:0 0 16px;">
           Conforme solicitado, segue em anexo o <strong>extrato consolidado</strong> do seu investimento conosco.
           Este documento reúne todos os serviços contratados, recorrências ativas e o valor total já investido.
-        </p>
+        </p>`}
         <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px;padding:14px;margin:16px 0;">
           <p style="margin:0 0 6px;font-size:12px;color:#6B7280;text-transform:uppercase;letter-spacing:1px;"><strong>Referência</strong></p>
           <p style="margin:0;font-size:15px;color:#0B1733;"><strong>${b.referencia}</strong></p>
@@ -199,10 +215,10 @@ serve(async (req) => {
         });
       }
 
-      const html = body.mensagem?.trim()
-        ? buildDefaultEmailHTML({ ...body, /* keep template, inject extra message */ })
-            .replace("Conforme solicitado, segue em anexo o", `${body.mensagem.trim().replace(/\n/g, "<br/>")}<br/><br/>Conforme solicitado, segue em anexo o`)
-        : buildDefaultEmailHTML(body);
+      const html = buildDefaultEmailHTML(body);
+      const subject = sanitizeSubject(
+        body.assunto?.trim() || `Extrato de Investimento - ${body.referencia}`,
+      );
 
       const client = new SMTPClient({
         connection: {
@@ -215,7 +231,7 @@ serve(async (req) => {
         await client.send({
           from: `${senderName} <${gmailUser}>`,
           to: body.destino,
-          subject: `Extrato de Investimento — ${body.referencia}`,
+          subject,
           content: "Este email requer um cliente com suporte a HTML.",
           html,
           attachments: [{
