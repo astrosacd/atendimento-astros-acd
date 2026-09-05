@@ -53,7 +53,7 @@ import {
 
 interface RowItem extends ExtratoItemV2 {
   uid: string;
-  origem: 'cliente' | 'purchase' | 'manual';
+  origem: 'cliente' | 'purchase' | 'payment' | 'manual';
   source_label: string;
   recorrente: boolean;
   selected: boolean;
@@ -159,13 +159,14 @@ export default function ExtratoInvestimento() {
             .in('cliente_id', idsRel)
         : { data: [] as any[] };
 
-      // 3) Soma dos payments aprovados → Total investido histórico
+      // 3) Pagamentos já quitados (mensalidades pagas)
       const { data: paymentsArr } = idsRel.length
         ? await supabase
             .from('client_payments')
-            .select('amount, status, cliente_id')
+            .select('id, amount, status, cliente_id, payment_type, paid_at, billing_date')
             .in('cliente_id', idsRel)
             .in('status', ['paid', 'approved'])
+            .order('paid_at', { ascending: false })
         : { data: [] as any[] };
 
       const totalPagamentos = (paymentsArr || []).reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
@@ -222,6 +223,32 @@ export default function ExtratoInvestimento() {
           data_renovacao: null,
           status: 'unico',
           descricao: p.descricao || undefined,
+        });
+      });
+
+      // Mensalidades já pagas (histórico de pagamentos quitados)
+      const nomePorCliente = new Map<string, string>(
+        (clientesRel || []).map((c: any) => [c.id, c.produto || c.nome || 'Serviço']),
+      );
+      (paymentsArr || []).forEach((p: any) => {
+        const base = nomePorCliente.get(p.cliente_id) || 'Serviço';
+        const dataRef = (p.paid_at || p.billing_date || '').slice(0, 10) || null;
+        const tipo = inferirTipo(base);
+        rows.push({
+          uid: `pay-${p.id}`,
+          origem: 'payment',
+          source_label: `Mensalidade paga${dataRef ? ` · ${dataRef.split('-').reverse().join('/')}` : ''}`,
+          recorrente: false,
+          selected: true,
+          nome: `${base} — mensalidade paga`,
+          product_type: tipo,
+          quantidade: 1,
+          valor_unitario: Number(p.amount || 0),
+          unidade_label: unidadeForType(tipo),
+          data_compra: dataRef,
+          data_renovacao: null,
+          status: 'unico',
+          descricao: p.payment_type ? `Pagamento via ${p.payment_type}` : undefined,
         });
       });
 
