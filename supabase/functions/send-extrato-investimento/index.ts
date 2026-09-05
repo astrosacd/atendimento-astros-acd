@@ -74,10 +74,10 @@ function buildDefaultEmailHTML(b: Body): string {
       </div>
       <div style="padding:28px;color:#1F2937;">
         <p style="font-size:16px;margin:0 0 12px;">${greet}</p>
-        <p style="font-size:14px;line-height:1.6;margin:0 0 16px;">
+        ${customIntro || `<p style="font-size:14px;line-height:1.6;margin:0 0 16px;">
           Conforme solicitado, segue em anexo o <strong>extrato consolidado</strong> do seu investimento conosco.
           Este documento reúne todos os serviços contratados, recorrências ativas e o valor total já investido.
-        </p>
+        </p>`}
         <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px;padding:14px;margin:16px 0;">
           <p style="margin:0 0 6px;font-size:12px;color:#6B7280;text-transform:uppercase;letter-spacing:1px;"><strong>Referência</strong></p>
           <p style="margin:0;font-size:15px;color:#0B1733;"><strong>${b.referencia}</strong></p>
