@@ -26,6 +26,8 @@ import {
   useQrScanConfig,
   useMonthlyCounters,
   useQrScanHistory,
+  useAutoHospedadoNumbers,
+  useToggleAutoHospedado,
 } from "@/hooks/useQrScan";
 
 import { PAYMENT_METHOD_LABELS } from "@/constants/qrScan";
