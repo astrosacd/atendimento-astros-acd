@@ -230,10 +230,35 @@ export default function ExtratoInvestimento() {
       const nomePorCliente = new Map<string, string>(
         (clientesRel || []).map((c: any) => [c.id, c.produto || c.nome || 'Serviço']),
       );
+      // Anti-duplicidade: se já existe uma compra única / cadastro com o mesmo
+      // valor e data próxima (<= 3 dias), o pagamento é o MESMO dinheiro.
+      const dias = (a: string, b: string) =>
+        Math.abs((new Date(a).getTime() - new Date(b).getTime()) / 86400000);
+      const jaLancados: { valor: number; data: string | null }[] = [];
+      (purchasesArr || []).forEach((p: any) =>
+        jaLancados.push({ valor: Number(p.valor || 0), data: (p.data_compra || '').slice(0, 10) || null }),
+      );
+      (clientesRel || []).forEach((c: any) => {
+        if (Number(c.valor || 0) > 0 && !c.cobranca_ativa)
+          jaLancados.push({ valor: Number(c.valor || 0), data: (c.created_at || '').slice(0, 10) || null });
+      });
+
       (paymentsArr || []).forEach((p: any) => {
         const base = nomePorCliente.get(p.cliente_id) || 'Serviço';
         const dataRef = (p.paid_at || p.billing_date || '').slice(0, 10) || null;
+        const valorPag = Number(p.amount || 0);
+        const idxDup = jaLancados.findIndex(
+          (l) =>
+            Math.abs(l.valor - valorPag) < 0.01 &&
+            (!l.data || !dataRef ? false : dias(l.data, dataRef) <= 3),
+        );
+        if (idxDup >= 0) {
+          // consome a correspondência para não descartar pagamentos repetidos legítimos
+          jaLancados.splice(idxDup, 1);
+          return;
+        }
         const tipo = inferirTipo(base);
+
         rows.push({
           uid: `pay-${p.id}`,
           origem: 'payment',
