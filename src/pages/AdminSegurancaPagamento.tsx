@@ -1150,6 +1150,13 @@ export default function AdminSegurancaPagamento() {
                 Base da próxima renovação
                 <span className="text-destructive">*</span>
               </Label>
+              {approvalDialog.payment && firstPaymentIds.has(approvalDialog.payment.id) && (
+                <p className="text-[11px] rounded border border-amber-500/40 bg-amber-500/10 p-2 text-amber-700 dark:text-amber-300">
+                  <strong>Primeiro pagamento deste cliente.</strong> O ciclo não avança agora — a data cadastrada
+                  ({isoToBR(String(approvalDialog.payment.cliente?.data_renovacao))}) será mantida e enviada no recibo.
+                </p>
+              )}
+
               <div className="space-y-1.5">
                 <label className="flex items-start gap-2 cursor-pointer text-sm">
                   <input
