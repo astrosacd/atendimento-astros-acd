@@ -231,7 +231,7 @@ serve(async (req) => {
         await client.send({
           from: `${senderName} <${gmailUser}>`,
           to: body.destino,
-          subject: `Extrato de Investimento — ${body.referencia}`,
+          subject,
           content: "Este email requer um cliente com suporte a HTML.",
           html,
           attachments: [{
