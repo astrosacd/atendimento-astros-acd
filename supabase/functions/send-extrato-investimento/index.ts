@@ -80,9 +80,7 @@ function buildDefaultEmailHTML(b: Body): string {
         </p>`}
         <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px;padding:14px;margin:16px 0;">
           <p style="margin:0 0 6px;font-size:12px;color:#6B7280;text-transform:uppercase;letter-spacing:1px;"><strong>Referência</strong></p>
-          <p style="margin:0;font-size:15px;color:#0B1733;"><strong>${b.referencia}</strong></p>
-          ${valorTotal}
-          ${mensal}
+          <p style="margin:0;font-size:15px;color:#0B1733;"><strong>${b.referencia}</strong></p>${valorTotal}${mensal}
         </div>
         <p style="font-size:14px;line-height:1.6;margin:16px 0 0;">
           Em caso de dúvidas, basta responder a este e-mail ou nos chamar pelo WhatsApp.
