@@ -140,22 +140,47 @@ export default function AdminSegurancaPagamento() {
     payment: null,
   });
 
+  // IDs de pagamentos que são o PRIMEIRO pago do cliente (não avançam o ciclo)
+  const [firstPaymentIds, setFirstPaymentIds] = useState<Set<string>>(new Set());
+
   const SUSPICIOUS = new Set(['duplicate', 'mismatch', 'divergent', 'invalid']);
+
 
   const CYCLE_MONTHS_UI: Record<string, number> = {
     mensal: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12,
   };
 
+  // Mesmas regras usadas na Edge Function (evita divergência entre preview e envio)
+  const addMonthsSafe = (isoDate: string, months: number): string => {
+    const [y, m, d] = isoDate.slice(0, 10).split('-').map(Number);
+    const targetIndex = (m - 1) + months;
+    const targetYear = y + Math.floor(targetIndex / 12);
+    const targetMonth = ((targetIndex % 12) + 12) % 12;
+    const lastDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+    const day = Math.min(d, lastDay);
+    return `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  };
+
+  const todayLocalISO = (): string =>
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Fortaleza', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date());
+
+  const isoToBR = (iso: string) => {
+    const [y, m, d] = iso.slice(0, 10).split('-');
+    return `${d}/${m}/${y}`;
+  };
+
   const calcRenewalPreview = (payment: any, mode: 'anchor' | 'from_today'): string | null => {
     const c = payment?.cliente;
     if (!c?.data_renovacao || !c?.ciclo_cobranca) return null;
+    // Primeiro pagamento não avança o ciclo: a data cadastrada é mantida.
+    if (firstPaymentIds.has(payment?.id)) return isoToBR(String(c.data_renovacao));
     const months = CYCLE_MONTHS_UI[c.ciclo_cobranca] || 1;
-    const base = mode === 'from_today'
-      ? new Date(new Date().setHours(0, 0, 0, 0))
-      : new Date(`${c.data_renovacao}T00:00:00`);
-    base.setMonth(base.getMonth() + months);
-    return base.toLocaleDateString('pt-BR');
+    const base = mode === 'from_today' ? todayLocalISO() : String(c.data_renovacao).slice(0, 10);
+    return isoToBR(addMonthsSafe(base, months));
   };
+
 
   const performApproval = async (
     paymentId: string,
@@ -178,11 +203,18 @@ export default function AdminSegurancaPagamento() {
       if ((data as any)?.error) throw new Error((data as any).message || (data as any).error);
 
       const receiptInfo = (data as any)?.receipt;
+      const renewalInfo = (data as any)?.renewal;
+      const comunicada = renewalInfo?.communicated ? isoToBR(String(renewalInfo.communicated)) : null;
+      const renewalMsg = comunicada
+        ? renewalInfo?.skipped_first_payment
+          ? ` Próxima renovação mantida em ${comunicada} (primeiro pagamento).`
+          : ` Próxima renovação: ${comunicada}.`
+        : '';
       const receiptMsg =
         action === 'approve'
           ? receiptInfo?.sent
-            ? 'Cliente renovado e recibo enviado.'
-            : `Cliente renovado, mas o envio do recibo falhou${receiptInfo?.error ? `: ${receiptInfo.error}` : '.'}`
+            ? `Cliente renovado e recibo enviado.${renewalMsg}`
+            : `Cliente renovado, mas o envio do recibo falhou${receiptInfo?.error ? `: ${receiptInfo.error}` : '.'}${renewalMsg}`
           : 'Pagamento marcado como rejeitado. Cliente NÃO foi renovado.';
 
       toast({
@@ -204,8 +236,31 @@ export default function AdminSegurancaPagamento() {
     }
   };
 
+  // Verifica se este é o primeiro pagamento pago do cliente (nesse caso o ciclo não avança)
+  const checkFirstPayment = async (payment: any) => {
+    const clienteId = payment?.cliente?.id || payment?.cliente_id;
+    if (!clienteId) return;
+    try {
+      const { count } = await supabase
+        .from('client_payments')
+        .select('id', { count: 'exact', head: true })
+        .eq('cliente_id', clienteId)
+        .eq('status', 'paid')
+        .neq('id', payment.id);
+      setFirstPaymentIds((prev) => {
+        const next = new Set(prev);
+        if ((count ?? 0) === 0) next.add(payment.id);
+        else next.delete(payment.id);
+        return next;
+      });
+    } catch {
+      /* preview apenas — falha silenciosa */
+    }
+  };
+
   const handleApproval = async (payment: any, action: 'approve' | 'reject') => {
     const isSuspicious = SUSPICIOUS.has(payment.ocr_status);
+    if (action === 'approve') await checkFirstPayment(payment);
     // Suspeitos OU rejeição → sempre pedem motivo via Dialog
     if (isSuspicious || action === 'reject') {
       setApprovalDialog({ open: true, payment, action, reason: '', renewalMode: null });
@@ -218,6 +273,7 @@ export default function AdminSegurancaPagamento() {
     }
     await performApproval(payment.id, action);
   };
+
 
   const fetchConfig = async () => {
     try {
@@ -1094,6 +1150,13 @@ export default function AdminSegurancaPagamento() {
                 Base da próxima renovação
                 <span className="text-destructive">*</span>
               </Label>
+              {approvalDialog.payment && firstPaymentIds.has(approvalDialog.payment.id) && (
+                <p className="text-[11px] rounded border border-amber-500/40 bg-amber-500/10 p-2 text-amber-700 dark:text-amber-300">
+                  <strong>Primeiro pagamento deste cliente.</strong> O ciclo não avança agora — a data cadastrada
+                  ({isoToBR(String(approvalDialog.payment.cliente?.data_renovacao))}) será mantida e enviada no recibo.
+                </p>
+              )}
+
               <div className="space-y-1.5">
                 <label className="flex items-start gap-2 cursor-pointer text-sm">
                   <input
@@ -1235,6 +1298,15 @@ export default function AdminSegurancaPagamento() {
               </div>
             </div>
           )}
+
+          {renewalChoiceDialog.payment && firstPaymentIds.has(renewalChoiceDialog.payment.id) && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+              <strong>Primeiro pagamento deste cliente.</strong> O ciclo não avança nesta aprovação — a data
+              cadastrada ({renewalChoiceDialog.payment.cliente?.data_renovacao ? isoToBR(String(renewalChoiceDialog.payment.cliente.data_renovacao)) : '—'})
+              será mantida e é essa que o cliente vai receber no recibo.
+            </div>
+          )}
+
 
           {(() => {
             const isMensal = renewalChoiceDialog.payment?.cliente?.ciclo_cobranca === 'mensal';

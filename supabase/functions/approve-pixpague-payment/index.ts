@@ -17,6 +17,24 @@ const CYCLE_MONTHS: Record<string, number> = {
   mensal: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12,
 };
 
+// Soma meses sem "estourar" o mês (31/01 + 1 mês = 28/02, e não 03/03).
+const addMonthsSafe = (isoDate: string, months: number): string => {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const targetMonthIndex = (m - 1) + months;
+  const targetYear = y + Math.floor(targetMonthIndex / 12);
+  const targetMonth = ((targetMonthIndex % 12) + 12) % 12;
+  const lastDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+  const day = Math.min(d, lastDay);
+  return `${targetYear}-${String(targetMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+};
+
+// "Hoje" no fuso do negócio (America/Fortaleza), evitando virada de dia por UTC.
+const todayLocalISO = (): string =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Fortaleza", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
+
+
 // OCR statuses que exigem justificativa para serem aprovados
 const SUSPICIOUS_OCR_STATUSES = new Set(["duplicate", "mismatch", "divergent"]);
 
@@ -29,8 +47,10 @@ serve(async (req) => {
     const { paymentId, action, approvalReason, rejectionReason, renewalMode } = JSON.parse(rawBody);
     // renewalMode: "anchor" (default) mantém a data âncora do cliente (data_renovacao + ciclo),
     //              "from_today" recalcula a partir de hoje (use quando o serviço foi pausado).
+    const renewalModeExplicit = renewalMode === "from_today" || renewalMode === "anchor";
     const effectiveRenewalMode: "anchor" | "from_today" =
       renewalMode === "from_today" ? "from_today" : "anchor";
+
     if (!paymentId || !action) {
       return new Response(JSON.stringify({ error: "paymentId and action required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -255,6 +275,7 @@ serve(async (req) => {
 
     // 3) Renovação: Calcular a nova data ANTES do recibo
     let newRenewalDate: string | null = null;
+    let renewalSkippedFirstPayment = false;
     if (cliente?.id && cliente?.cobranca_ativa !== false && cliente?.data_renovacao && cliente?.ciclo_cobranca) {
       const { count: priorPaidCount } = await supabase
         .from("client_payments")
@@ -265,32 +286,35 @@ serve(async (req) => {
 
       const isFirstPayment = (priorPaidCount ?? 0) === 0;
 
-      if (!isFirstPayment) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const currentVenc = new Date(`${cliente.data_renovacao}T00:00:00`);
+      if (isFirstPayment) {
+        renewalSkippedFirstPayment = true;
+        console.log(`[approve-pixpague] Primeiro pagamento do cliente ${cliente.id}: mantém data_renovacao ${cliente.data_renovacao}`);
+      } else {
         const months = CYCLE_MONTHS[cliente.ciclo_cobranca] || 1;
-        
+
         // Regra padrão (anchor): mantém a âncora do cliente (data_renovacao + N meses),
         // independente de pagamento atrasado/antecipado. Isso preserva MRR/churn.
-        // Quando operador escolhe "from_today", ou é REATIVAÇÃO (serviço estava pausado),
-        // conta a partir de hoje.
-        const useFromToday = effectiveRenewalMode === "from_today" || reactivatedNow;
-        const baseDate = useFromToday ? today : currentVenc;
-        
-        const renewalDate = new Date(baseDate);
-        renewalDate.setMonth(renewalDate.getMonth() + months);
-        newRenewalDate = renewalDate.toISOString().split("T")[0];
+        // "from_today" recalcula a partir de hoje. A escolha explícita do operador
+        // SEMPRE prevalece — reativação só força "hoje" quando nada foi escolhido.
+        const useFromToday =
+          effectiveRenewalMode === "from_today" || (reactivatedNow && !renewalModeExplicit);
+        const baseDate = useFromToday ? todayLocalISO() : String(cliente.data_renovacao).slice(0, 10);
+
+        newRenewalDate = addMonthsSafe(baseDate, months);
 
         await supabase
           .from("clientes")
           .update({ data_renovacao: newRenewalDate })
           .eq("id", cliente.id);
 
-        console.log(`[approve-pixpague] Renovação (cliente ${cliente.id}): ${cliente.data_renovacao} -> ${newRenewalDate}`);
+        console.log(`[approve-pixpague] Renovação (cliente ${cliente.id}, modo ${useFromToday ? "from_today" : "anchor"}): ${cliente.data_renovacao} -> ${newRenewalDate}`);
       }
     }
+
+    // Data que será comunicada ao cliente no recibo (fonte única da verdade)
+    const receiptRenewalDate: string | null =
+      newRenewalDate ?? (cliente?.data_renovacao ? String(cliente.data_renovacao).slice(0, 10) : null);
+
 
     // 4) Enviar recibo (agora com a data_renovacao já atualizada no banco se necessário)
     let receiptResult: any = null;
@@ -299,7 +323,7 @@ serve(async (req) => {
     if (cliente?.id && cliente?.cobranca_ativa !== false) {
       try {
         const { data, error } = await supabase.functions.invoke("send-receipt", {
-          body: { clienteId: cliente.id, paymentId, paidAt },
+          body: { clienteId: cliente.id, paymentId, paidAt, nextRenewalDate: receiptRenewalDate },
         });
         if (error) {
           receiptError = error.message ?? String(error);
@@ -319,7 +343,14 @@ serve(async (req) => {
         action: "approved",
         paidAt,
         approval_override: isSuspicious,
+        renewal: {
+          mode: effectiveRenewalMode,
+          applied: newRenewalDate,
+          communicated: receiptRenewalDate,
+          skipped_first_payment: renewalSkippedFirstPayment,
+        },
         receipt: { sent: !receiptError, error: receiptError, details: receiptResult },
+
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
