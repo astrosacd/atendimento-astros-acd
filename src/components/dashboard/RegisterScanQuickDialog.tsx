@@ -51,6 +51,10 @@ export function RegisterScanQuickDialog({
   const { data: counters } = useMonthlyCounters();
   const { data: history = [] } = useQrScanHistory();
   const registerScan = useRegisterScan();
+  const { data: autoHospedados = [], isLoading: loadingAuto } = useAutoHospedadoNumbers();
+  const toggleAutoHospedado = useToggleAutoHospedado();
+  const isAutoHospedado = autoHospedados.some((n) => n.baserow_row_id === baserowRowId);
+
 
   const [step, setStep] = useState<"initial" | "payment">("initial");
   const [obs, setObs] = useState("");
