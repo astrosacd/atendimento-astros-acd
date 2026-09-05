@@ -16,6 +16,7 @@ interface Body {
   referencia: string;
   destino: string;
   mensagem?: string;
+  assunto?: string;
   pdf_base64: string;
   file_name: string;
   total_investido?: number;
@@ -44,8 +45,23 @@ function buildDefaultWhatsAppMessage(b: Body): string {
   return linhas.join("\n");
 }
 
+// Assunto curto e ASCII-safe: subjects longos com caracteres especiais (—, ·)
+// quebram o folding de headers MIME e o cliente exibe o e-mail como texto cru.
+function sanitizeSubject(s: string): string {
+  return s
+    .replace(/[—–]/g, "-")
+    .replace(/[·•]/g, "-")
+    .replace(/[^\x20-\x7EÀ-ÿ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+}
+
 function buildDefaultEmailHTML(b: Body): string {
   const greet = `Prezado(a) ${b.cliente_nome.split(" ")[0] || ""},`;
+  const customIntro = b.mensagem?.trim()
+    ? `<p style="font-size:14px;line-height:1.6;margin:0 0 16px;">${b.mensagem.trim().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</p>`
+    : "";
   const valorTotal = b.total_investido && b.total_investido > 0
     ? `<p style="margin:8px 0;font-size:15px;"><strong>Total investido:</strong> ${fmtBRL(b.total_investido)}</p>` : "";
   const mensal = b.total_mensal && b.total_mensal > 0
