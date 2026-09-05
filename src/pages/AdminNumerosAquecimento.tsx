@@ -1307,6 +1307,7 @@ function NumeroActionsMenu({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [confirmBanOpen, setConfirmBanOpen] = useState(false);
   const [confirmVoltarEstoqueOpen, setConfirmVoltarEstoqueOpen] = useState(false);
+  const [voltarEstoqueModeloId, setVoltarEstoqueModeloId] = useState<string>('');
   const [deleteMotivo, setDeleteMotivo] = useState('');
   const [modeloId, setModeloId] = useState(numero.modelo_id || '');
   const [statusId, setStatusId] = useState(numero.status_id || '');
@@ -1396,6 +1397,30 @@ function NumeroActionsMenu({
     setConfirmVendaOpen(false);
   };
 
+  // Modelos com vagas para escolher no retorno ao estoque
+  const checkinOcupadosRetorno = useActiveCheckinsByModelo();
+  const modelosVagasRetorno = useMemo(() => {
+    const vendidoId = statusList.find((s) => s.nome === 'Vendido')?.id;
+    const estoque = vendidoId
+      ? existingNumeros.filter((n) => n.status_id !== vendidoId && n.id !== numero.id)
+      : existingNumeros.filter((n) => n.id !== numero.id);
+
+    return modelosList
+      .map((m) => {
+        const internos = new Set(estoque.filter((n) => n.modelo_id === m.id).map((n) => n.numero));
+        const extras = (checkinOcupadosRetorno.get(m.id) as { numbers?: Set<string> } | undefined)?.numbers ?? new Set<string>();
+        const ocupados = new Set([...internos, ...extras]).size;
+        const capacidade = m.capacidade_whatsapp ?? 0;
+        const livres = capacidade > 0 ? Math.max(0, capacidade - ocupados) : 1;
+        return { modelo: m, ocupados, capacidade, livres };
+      })
+      .sort((a, b) => {
+        if ((a.livres > 0) !== (b.livres > 0)) return a.livres > 0 ? -1 : 1;
+        return a.modelo.nome.localeCompare(b.modelo.nome, 'pt-BR');
+      });
+  }, [modelosList, existingNumeros, statusList, checkinOcupadosRetorno, numero.id]);
+
+
   const handleVoltarEstoque = () => {
     const ativoStatusId = statusList.find(s => s.nome === 'Ativo')?.id;
     if (!ativoStatusId) {
@@ -1403,13 +1428,30 @@ function NumeroActionsMenu({
       return;
     }
 
+    if (!voltarEstoqueModeloId) {
+      toast.error('Selecione o modelo do aparelho para o retorno');
+      return;
+    }
+
+    const escolhido = modelosVagasRetorno.find((o) => o.modelo.id === voltarEstoqueModeloId);
+    if (escolhido && escolhido.livres <= 0) {
+      toast.error(`Modelo "${escolhido.modelo.nome}" está cheio (${escolhido.ocupados}/${escolhido.capacidade}). Escolha outro modelo.`);
+      return;
+    }
+
     onUpdate({
       status_id: ativoStatusId,
+      modelo_id: voltarEstoqueModeloId,
       observacoes: '', // Limpa os dados do cliente anterior ao voltar para o estoque
     });
     setConfirmVoltarEstoqueOpen(false);
-    toast.success('Número voltou para o estoque com sucesso');
+    toast.success(
+      escolhido
+        ? `Número voltou para o estoque no modelo ${escolhido.modelo.nome}`
+        : 'Número voltou para o estoque com sucesso'
+    );
   };
+
 
   const handleDelete = () => {
     if (!deleteMotivo.trim()) {
@@ -1752,7 +1794,13 @@ function NumeroActionsMenu({
       </Dialog>
       
       {/* Voltar para o estoque Confirmation Dialog */}
-      <Dialog open={confirmVoltarEstoqueOpen} onOpenChange={setConfirmVoltarEstoqueOpen}>
+      <Dialog
+        open={confirmVoltarEstoqueOpen}
+        onOpenChange={(v) => {
+          setConfirmVoltarEstoqueOpen(v);
+          if (v) setVoltarEstoqueModeloId('');
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1760,10 +1808,30 @@ function NumeroActionsMenu({
               Retornar ao Estoque
             </DialogTitle>
             <DialogDescription>
-              Deseja realmente retornar o número <strong>{numero.numero}</strong> para o estoque? 
-              Isso limpará as observações atuais do cliente e mudará o status para "Ativo".
+              Retornar o número <strong>{numero.numero}</strong> para o estoque: escolha em qual aparelho ele vai ficar.
+              As observações do cliente serão limpas e o status muda para "Ativo".
             </DialogDescription>
           </DialogHeader>
+
+          <div className="space-y-2 py-2">
+            <Label>Modelo do aparelho *</Label>
+            <SearchableSelect
+              value={voltarEstoqueModeloId}
+              onValueChange={setVoltarEstoqueModeloId}
+              placeholder="Selecione um modelo disponível"
+              searchPlaceholder="Buscar modelo…"
+              emptyMessage="Nenhum modelo encontrado"
+              options={modelosVagasRetorno.map((o) => ({
+                value: o.modelo.id,
+                label: `${o.modelo.nome}${o.capacidade > 0 ? ` · ${o.ocupados}/${o.capacidade}${o.livres > 0 ? ` · falta ${o.livres}` : ' · cheio'}` : ''}`,
+                disabled: o.capacidade > 0 && o.livres <= 0,
+              }))}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Modelos cheios aparecem desabilitados. O modelo escolhido substitui o modelo antigo do número.
+            </p>
+          </div>
+
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setConfirmVoltarEstoqueOpen(false)}>
               Cancelar
@@ -1771,10 +1839,12 @@ function NumeroActionsMenu({
             <Button 
               className="bg-blue-600 hover:bg-blue-700 text-white"
               onClick={handleVoltarEstoque}
+              disabled={!voltarEstoqueModeloId}
             >
               Confirmar Retorno
             </Button>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
     </>
