@@ -240,12 +240,13 @@ export function TermoCancelamentoTab({ clientes, loadingClientes }: Props) {
           cliente_id: clienteId || undefined,
           cliente_nome: clienteNome.trim(),
           referencia: `Termo de Cancelamento · ${protocolo}`,
+          assunto: `Termo de Cancelamento - ${protocolo}`,
           destino: channel === 'whatsapp' ? numero.trim() : email.trim(),
           mensagem:
-            `Olá, ${clienteNome.trim().split(' ')[0]}. Segue em anexo o Termo de Cancelamento do(s) serviço(s) ` +
-            `${selecionados.map((s) => s.nome).join(', ')}, com efeito a partir de ${new Date(
-              `${dataCancelamento}T00:00:00`,
-            ).toLocaleDateString('pt-BR')}. Protocolo ${protocolo}.`,
+            `Olá, ${clienteNome.trim().split(' ')[0]}. Segue em anexo o Termo de Cancelamento ` +
+            `referente a ${selecionados.length} ${selecionados.length === 1 ? 'serviço contratado' : 'serviços contratados'}, ` +
+            `com efeito a partir de ${new Date(`${dataCancelamento}T00:00:00`).toLocaleDateString('pt-BR')}. ` +
+            `Protocolo ${protocolo}. A relação completa dos serviços consta no PDF anexo. Qualquer dúvida, estamos à disposição.`,
           pdf_base64: pdfBase64,
           file_name: fileName(),
         },
