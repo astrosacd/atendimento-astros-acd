@@ -146,16 +146,37 @@ export default function AdminSegurancaPagamento() {
     mensal: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12,
   };
 
+  // Mesmas regras usadas na Edge Function (evita divergência entre preview e envio)
+  const addMonthsSafe = (isoDate: string, months: number): string => {
+    const [y, m, d] = isoDate.slice(0, 10).split('-').map(Number);
+    const targetIndex = (m - 1) + months;
+    const targetYear = y + Math.floor(targetIndex / 12);
+    const targetMonth = ((targetIndex % 12) + 12) % 12;
+    const lastDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+    const day = Math.min(d, lastDay);
+    return `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  };
+
+  const todayLocalISO = (): string =>
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Fortaleza', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date());
+
+  const isoToBR = (iso: string) => {
+    const [y, m, d] = iso.slice(0, 10).split('-');
+    return `${d}/${m}/${y}`;
+  };
+
   const calcRenewalPreview = (payment: any, mode: 'anchor' | 'from_today'): string | null => {
     const c = payment?.cliente;
     if (!c?.data_renovacao || !c?.ciclo_cobranca) return null;
+    // Primeiro pagamento não avança o ciclo: a data cadastrada é mantida.
+    if (firstPaymentIds.has(payment?.id)) return isoToBR(String(c.data_renovacao));
     const months = CYCLE_MONTHS_UI[c.ciclo_cobranca] || 1;
-    const base = mode === 'from_today'
-      ? new Date(new Date().setHours(0, 0, 0, 0))
-      : new Date(`${c.data_renovacao}T00:00:00`);
-    base.setMonth(base.getMonth() + months);
-    return base.toLocaleDateString('pt-BR');
+    const base = mode === 'from_today' ? todayLocalISO() : String(c.data_renovacao).slice(0, 10);
+    return isoToBR(addMonthsSafe(base, months));
   };
+
 
   const performApproval = async (
     paymentId: string,
