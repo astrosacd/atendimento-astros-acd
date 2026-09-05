@@ -47,8 +47,10 @@ serve(async (req) => {
     const { paymentId, action, approvalReason, rejectionReason, renewalMode } = JSON.parse(rawBody);
     // renewalMode: "anchor" (default) mantém a data âncora do cliente (data_renovacao + ciclo),
     //              "from_today" recalcula a partir de hoje (use quando o serviço foi pausado).
+    const renewalModeExplicit = renewalMode === "from_today" || renewalMode === "anchor";
     const effectiveRenewalMode: "anchor" | "from_today" =
       renewalMode === "from_today" ? "from_today" : "anchor";
+
     if (!paymentId || !action) {
       return new Response(JSON.stringify({ error: "paymentId and action required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
