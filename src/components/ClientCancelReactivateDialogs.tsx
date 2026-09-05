@@ -55,13 +55,37 @@ export function CancelClientDialog({ cliente, open, onOpenChange, onSuccess }: P
   const [excluirMetricas, setExcluirMetricas] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [hasPayments, setHasPayments] = useState<boolean | null>(null);
+  const [checkingPayments, setCheckingPayments] = useState(false);
 
   useEffect(() => {
     if (open) {
       setMotivo('');
       setExcluirMetricas(false);
       setShowConfirm(false);
+      setHasPayments(null);
     }
+  }, [open, cliente?.id]);
+
+  // Verifica se o cliente tem histórico de pagamento para detectar legados
+  useEffect(() => {
+    if (!open || !cliente) return;
+    const checkPayments = async () => {
+      setCheckingPayments(true);
+      try {
+        const { count, error } = await supabase
+          .from('client_payments')
+          .select('*', { count: 'exact', head: true })
+          .eq('cliente_id', cliente.id);
+        if (error) throw error;
+        setHasPayments((count ?? 0) > 0);
+      } catch {
+        setHasPayments(null);
+      } finally {
+        setCheckingPayments(false);
+      }
+    };
+    checkPayments();
   }, [open, cliente?.id]);
 
   const validate = () => {
