@@ -1371,7 +1371,7 @@ function NumeroActionsMenu({
 
     const updates: Partial<NumeroAquecimento> = {};
     if (canEdit && modeloId !== numero.modelo_id) updates.modelo_id = modeloId || null;
-    if (canEdit && tipoWhatsapp !== numero.tipo_whatsapp) updates.tipo_whatsapp = tipoWhatsapp;
+    if (canEdit && tipoWhatsapp && tipoWhatsapp !== numero.tipo_whatsapp) updates.tipo_whatsapp = tipoWhatsapp;
     if (canChangeStatus && statusId !== numero.status_id) updates.status_id = statusId || null;
     
     const finalObs = extraObs ? extraObs : observacoes;
@@ -1549,7 +1549,7 @@ function NumeroActionsMenu({
                   <Label>Tipo WhatsApp *</Label>
                   <Select value={tipoWhatsapp} onValueChange={(v) => setTipoWhatsapp(v as 'normal' | 'business')}>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Selecione o tipo de WhatsApp" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="normal">📱 WhatsApp Normal</SelectItem>
