@@ -1453,6 +1453,7 @@ function NumeroActionsMenu({
     onUpdate({
       status_id: ativoStatusId,
       modelo_id: voltarEstoqueModeloId,
+      tipo_whatsapp: voltarEstoqueTipo,
       observacoes: '', // Limpa os dados do cliente anterior ao voltar para o estoque
     });
     setConfirmVoltarEstoqueOpen(false);
@@ -1846,6 +1847,19 @@ function NumeroActionsMenu({
             </p>
           </div>
 
+          <div className="space-y-2 py-2">
+            <Label>Tipo WhatsApp *</Label>
+            <Select value={voltarEstoqueTipo} onValueChange={(v) => setVoltarEstoqueTipo(v as 'normal' | 'business')}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo de WhatsApp" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal">📱 WhatsApp Normal</SelectItem>
+                <SelectItem value="business">💼 WhatsApp Business</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setConfirmVoltarEstoqueOpen(false)}>
               Cancelar
@@ -1853,7 +1867,7 @@ function NumeroActionsMenu({
             <Button 
               className="bg-blue-600 hover:bg-blue-700 text-white"
               onClick={handleVoltarEstoque}
-              disabled={!voltarEstoqueModeloId}
+              disabled={!voltarEstoqueModeloId || !voltarEstoqueTipo}
             >
               Confirmar Retorno
             </Button>
