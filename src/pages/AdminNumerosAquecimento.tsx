@@ -1334,6 +1334,11 @@ function NumeroActionsMenu({
       return;
     }
 
+    if (canEdit && !tipoWhatsapp) {
+      toast.error('Selecione o tipo de WhatsApp (Normal ou Business)');
+      return;
+    }
+
     const vendidoStatusId = statusList.find((s) => s.nome === 'Vendido')?.id;
     const isVendidoNow = statusId === vendidoStatusId && numero.status_id !== vendidoStatusId;
 
