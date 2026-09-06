@@ -1308,10 +1308,11 @@ function NumeroActionsMenu({
   const [confirmBanOpen, setConfirmBanOpen] = useState(false);
   const [confirmVoltarEstoqueOpen, setConfirmVoltarEstoqueOpen] = useState(false);
   const [voltarEstoqueModeloId, setVoltarEstoqueModeloId] = useState<string>('');
+  const [voltarEstoqueTipo, setVoltarEstoqueTipo] = useState<'normal' | 'business' | ''>('');
   const [deleteMotivo, setDeleteMotivo] = useState('');
   const [modeloId, setModeloId] = useState(numero.modelo_id || '');
   const [statusId, setStatusId] = useState(numero.status_id || '');
-  const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business'>(numero.tipo_whatsapp || 'normal');
+  const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business' | ''>('');
   const [observacoes, setObservacoes] = useState(numero.observacoes || '');
   const [nomeCliente, setNomeCliente] = useState('');
   const [whatsappCliente, setWhatsappCliente] = useState('');
