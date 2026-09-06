@@ -2006,10 +2006,15 @@ function CreateModeloDialog({ onCreate }: { onCreate: (data: any) => void }) {
   const [descricao, setDescricao] = useState('');
   const [capacidade, setCapacidade] = useState(3);
   const [apareceCheckin, setApareceCheckin] = useState(true);
+  const [tipoWhatsapp, setTipoWhatsapp] = useState<'' | 'normal' | 'business'>('');
 
   const handleSubmit = () => {
     if (!nome) {
       toast.error('Nome é obrigatório');
+      return;
+    }
+    if (!tipoWhatsapp) {
+      toast.error('Selecione o tipo de WhatsApp (Normal ou Business)');
       return;
     }
     if (capacidade < 1 || capacidade > 20) {
@@ -2022,6 +2027,7 @@ function CreateModeloDialog({ onCreate }: { onCreate: (data: any) => void }) {
       descricao: descricao || undefined,
       capacidade_whatsapp: capacidade,
       aparece_no_checkin: apareceCheckin,
+      tipo_whatsapp: tipoWhatsapp,
     });
     setOpen(false);
     setNome('');
@@ -2029,6 +2035,7 @@ function CreateModeloDialog({ onCreate }: { onCreate: (data: any) => void }) {
     setDescricao('');
     setCapacidade(3);
     setApareceCheckin(true);
+    setTipoWhatsapp('');
   };
 
   return (

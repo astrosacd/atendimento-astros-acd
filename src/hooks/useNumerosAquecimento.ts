@@ -37,6 +37,7 @@ export interface NumeroModelo {
   descricao: string | null;
   capacidade_whatsapp: number;
   aparece_no_checkin: boolean;
+  tipo_whatsapp: 'normal' | 'business' | null;
   created_at: string;
   updated_at: string;
 }
