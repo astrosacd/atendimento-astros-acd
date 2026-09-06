@@ -1856,7 +1856,11 @@ function NumeroActionsMenu({
             <Label>Modelo do aparelho *</Label>
             <SearchableSelect
               value={voltarEstoqueModeloId}
-              onValueChange={setVoltarEstoqueModeloId}
+              onValueChange={(v) => {
+                setVoltarEstoqueModeloId(v);
+                const m = modelosList.find((mo) => mo.id === v);
+                if (m?.tipo_whatsapp) setVoltarEstoqueTipo(m.tipo_whatsapp);
+              }}
               placeholder="Selecione um modelo disponível"
               searchPlaceholder="Buscar modelo…"
               emptyMessage="Nenhum modelo encontrado"
@@ -1873,7 +1877,11 @@ function NumeroActionsMenu({
 
           <div className="space-y-2 py-2">
             <Label>Tipo WhatsApp *</Label>
-            <Select value={voltarEstoqueTipo} onValueChange={(v) => setVoltarEstoqueTipo(v as 'normal' | 'business')}>
+            <Select
+              value={voltarEstoqueTipo}
+              onValueChange={(v) => setVoltarEstoqueTipo(v as 'normal' | 'business')}
+              disabled={!!modelosList.find((mo) => mo.id === voltarEstoqueModeloId)?.tipo_whatsapp}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o tipo de WhatsApp" />
               </SelectTrigger>
@@ -1882,6 +1890,11 @@ function NumeroActionsMenu({
                 <SelectItem value="business">💼 WhatsApp Business</SelectItem>
               </SelectContent>
             </Select>
+            {modelosList.find((mo) => mo.id === voltarEstoqueModeloId)?.tipo_whatsapp && (
+              <p className="text-[11px] text-muted-foreground">
+                Tipo definido automaticamente pelo modelo selecionado
+              </p>
+            )}
           </div>
 
           <DialogFooter className="gap-2">
