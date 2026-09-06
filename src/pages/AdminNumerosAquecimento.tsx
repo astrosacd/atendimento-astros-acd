@@ -2120,8 +2120,13 @@ function EditModeloDialog({ modelo, onUpdate }: { modelo: NumeroModelo; onUpdate
   const [descricao, setDescricao] = useState(modelo.descricao || '');
   const [capacidade, setCapacidade] = useState(modelo.capacidade_whatsapp || 3);
   const [apareceCheckin, setApareceCheckin] = useState(modelo.aparece_no_checkin !== false);
+  const [tipoWhatsapp, setTipoWhatsapp] = useState<'' | 'normal' | 'business'>(modelo.tipo_whatsapp || '');
 
   const handleSubmit = () => {
+    if (!tipoWhatsapp) {
+      toast.error('Selecione o tipo de WhatsApp (Normal ou Business)');
+      return;
+    }
     if (capacidade < 1 || capacidade > 20) {
       toast.error('Capacidade deve ser entre 1 e 20');
       return;
@@ -2132,6 +2137,7 @@ function EditModeloDialog({ modelo, onUpdate }: { modelo: NumeroModelo; onUpdate
       descricao: descricao || null,
       capacidade_whatsapp: capacidade,
       aparece_no_checkin: apareceCheckin,
+      tipo_whatsapp: tipoWhatsapp,
     });
     setOpen(false);
   };
