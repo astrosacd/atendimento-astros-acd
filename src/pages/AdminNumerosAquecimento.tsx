@@ -485,7 +485,10 @@ export default function AdminNumerosAquecimento() {
                           paginatedNumerosEstoque.map((numero) => {
                             const status = statusList.find(s => s.id === numero.status_id);
                             const modelo = numero.modelo;
-                            const ocupadosModelo = modelo ? numeros.filter(n => n.modelo_id === modelo.id && n.status_id !== vendidoStatusId).length : 0;
+                            const ocupadosModelo = modelo
+                              ? numerosTotais.filter(n => n.modelo_id === modelo.id && n.status_id !== vendidoStatusId).length
+                                + (checkinExtraByModelo?.get(modelo.id)?.total ?? 0)
+                              : 0;
                             return (
                               <TableRow key={numero.id}>
                                 <TableCell className="font-medium">
