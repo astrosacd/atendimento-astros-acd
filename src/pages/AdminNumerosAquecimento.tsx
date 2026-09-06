@@ -226,7 +226,7 @@ export default function AdminNumerosAquecimento() {
               <CreateNumeroDialog 
                 statusList={statusList} 
                 modelosList={modelosList} 
-                existingNumeros={numeros}
+                existingNumeros={numerosTotais}
                 extraOcupadosByModelo={checkinExtraByModelo}
                 onCreate={createNumero.mutate}
                 isCreating={createNumero.isPending}
@@ -529,7 +529,7 @@ export default function AdminNumerosAquecimento() {
                                     numero={numero}
                                     statusList={statusList}
                                     modelosList={modelosList}
-                                    existingNumeros={numeros}
+                                    existingNumeros={numerosTotais}
                                     canEdit={canEdit}
                                     canChangeStatus={canChangeStatus}
                                     canChangeObs={canChangeObs}
@@ -640,7 +640,7 @@ export default function AdminNumerosAquecimento() {
                                     numero={numero}
                                     statusList={statusList}
                                     modelosList={modelosList}
-                                    existingNumeros={numeros}
+                                    existingNumeros={numerosTotais}
                                     canEdit={canEdit}
                                     canChangeStatus={canChangeStatus}
                                     canChangeObs={canChangeObs}
