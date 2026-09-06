@@ -759,10 +759,16 @@ export default function AdminNumerosAquecimento() {
                   <ScrollArea className="flex-1">
                     <div className="space-y-2 pr-2">
                       {modelosList.map((modelo) => {
-                        const count = numeros.filter(n => n.modelo_id === modelo.id).length;
+                        const vendidoStatusIdModelo = statusList.find(s => s.nome === 'Vendido')?.id;
+                        const numerosDoModelo = numerosTotais.filter(n => n.modelo_id === modelo.id);
+                        const count = numerosDoModelo.length;
+                        // Vendidos não ocupam vaga no aparelho
+                        const countOcupando = numerosDoModelo.filter(
+                          n => !vendidoStatusIdModelo || n.status_id !== vendidoStatusIdModelo
+                        ).length;
                         const apareceCheckin = modelo.aparece_no_checkin !== false;
                         const extraModelo = checkinExtraByModelo?.get(modelo.id)?.total ?? 0;
-                        const ocupadosModelo = count + extraModelo;
+                        const ocupadosModelo = countOcupando + extraModelo;
                         const cheioModelo =
                           modelo.capacidade_whatsapp > 0 && ocupadosModelo >= modelo.capacidade_whatsapp;
                         return (
