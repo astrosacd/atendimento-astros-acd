@@ -1,0 +1,2 @@
+ALTER TABLE public.numeros_aquecimento_modelos ADD COLUMN tipo_whatsapp TEXT;
+ALTER TABLE public.numeros_aquecimento_modelos ADD CONSTRAINT numeros_aquecimento_modelos_tipo_whatsapp_check CHECK (tipo_whatsapp IS NULL OR tipo_whatsapp IN ('normal', 'business'));
