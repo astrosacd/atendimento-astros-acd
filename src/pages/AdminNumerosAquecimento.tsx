@@ -1215,8 +1215,27 @@ function CreateNumeroDialog({
             />
           </div>
           <div>
+            <Label>Modelo</Label>
+            <SearchableSelect
+              options={modeloOptions}
+              value={modeloId}
+              onValueChange={(v) => {
+                setModeloId(v);
+                const m = modelosList.find((mo) => mo.id === v);
+                if (m?.tipo_whatsapp) setTipoWhatsapp(m.tipo_whatsapp);
+              }}
+              placeholder="Selecione o modelo"
+              searchPlaceholder="Buscar modelo..."
+              emptyMessage="Nenhum modelo encontrado."
+            />
+          </div>
+          <div>
             <Label>Tipo WhatsApp *</Label>
-            <Select value={tipoWhatsapp} onValueChange={(v) => setTipoWhatsapp(v as 'normal' | 'business')}>
+            <Select
+              value={tipoWhatsapp}
+              onValueChange={(v) => setTipoWhatsapp(v as 'normal' | 'business')}
+              disabled={!!modelosList.find((mo) => mo.id === modeloId)?.tipo_whatsapp}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
@@ -1225,17 +1244,11 @@ function CreateNumeroDialog({
                 <SelectItem value="business">💼 WhatsApp Business</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-          <div>
-            <Label>Modelo</Label>
-            <SearchableSelect
-              options={modeloOptions}
-              value={modeloId}
-              onValueChange={setModeloId}
-              placeholder="Selecione o modelo"
-              searchPlaceholder="Buscar modelo..."
-              emptyMessage="Nenhum modelo encontrado."
-            />
+            {modelosList.find((mo) => mo.id === modeloId)?.tipo_whatsapp && (
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Tipo definido automaticamente pelo modelo selecionado
+              </p>
+            )}
           </div>
           <div>
             <Label>Status</Label>
