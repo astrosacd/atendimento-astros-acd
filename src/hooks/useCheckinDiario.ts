@@ -3,6 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMemo } from "react";
 import { useQrScanConfig } from "@/hooks/useQrScan";
+import { useConsultaNumerosCacheRows } from "@/hooks/useConsultaNumerosCacheRows";
+import { useNumerosAquecimento, useNumerosStatus } from "@/hooks/useNumerosAquecimento";
+
+const onlyDigits = (v: string) => (v || "").replace(/\D/g, "");
 
 export type TipoSlot = "normal" | "business" | "clone";
 export type StatusConexao = "conectado" | "desconectado" | "desconectado_cliente";
