@@ -2063,6 +2063,21 @@ function CreateModeloDialog({ onCreate }: { onCreate: (data: any) => void }) {
             <Input value={marca} onChange={(e) => setMarca(e.target.value)} placeholder="Ex: Samsung, Apple" />
           </div>
           <div>
+            <Label>Tipo WhatsApp *</Label>
+            <Select value={tipoWhatsapp} onValueChange={(v) => setTipoWhatsapp(v as 'normal' | 'business')}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo de WhatsApp" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal">📱 WhatsApp Normal</SelectItem>
+                <SelectItem value="business">💼 WhatsApp Business</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Os números cadastrados neste modelo herdam este tipo automaticamente
+            </p>
+          </div>
+          <div>
             <Label>Capacidade de WhatsApp *</Label>
             <Input
               type="number"
