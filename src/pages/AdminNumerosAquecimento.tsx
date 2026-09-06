@@ -1439,6 +1439,11 @@ function NumeroActionsMenu({
       return;
     }
 
+    if (!voltarEstoqueTipo) {
+      toast.error('Selecione o tipo de WhatsApp (Normal ou Business)');
+      return;
+    }
+
     const escolhido = modelosVagasRetorno.find((o) => o.modelo.id === voltarEstoqueModeloId);
     if (escolhido && escolhido.livres <= 0) {
       toast.error(`Modelo "${escolhido.modelo.nome}" está cheio (${escolhido.ocupados}/${escolhido.capacidade}). Escolha outro modelo.`);
@@ -1804,7 +1809,10 @@ function NumeroActionsMenu({
         open={confirmVoltarEstoqueOpen}
         onOpenChange={(v) => {
           setConfirmVoltarEstoqueOpen(v);
-          if (v) setVoltarEstoqueModeloId('');
+          if (v) {
+            setVoltarEstoqueModeloId('');
+            setVoltarEstoqueTipo('');
+          }
         }}
       >
         <DialogContent>
