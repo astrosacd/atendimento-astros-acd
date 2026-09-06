@@ -796,6 +796,15 @@ export default function AdminNumerosAquecimento() {
                                   Oculto no check-in
                                 </Badge>
                               )}
+                              {modelo.tipo_whatsapp ? (
+                                <Badge variant="outline" className="text-[10px]">
+                                  {modelo.tipo_whatsapp === 'business' ? '💼 Business' : '📱 Normal'}
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-400">
+                                  Tipo não definido
+                                </Badge>
+                              )}
                             </div>
                             {canManageModelos && (
                               <div className="flex items-center gap-1">
