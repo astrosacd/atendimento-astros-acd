@@ -2092,7 +2092,7 @@ function CreateModeloDialog({ onCreate }: { onCreate: (data: any) => void }) {
           Novo Modelo
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Criar Modelo</DialogTitle>
           <DialogDescription>
@@ -2195,7 +2195,7 @@ function EditModeloDialog({ modelo, onUpdate }: { modelo: NumeroModelo; onUpdate
           <Edit className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Modelo</DialogTitle>
         </DialogHeader>
