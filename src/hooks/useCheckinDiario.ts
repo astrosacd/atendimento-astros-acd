@@ -96,6 +96,12 @@ export function useCreateCheckin() {
  *  - "desconectado_cliente" TAMBÉM ocupa vaga: o chip continua ativo no
  *    aparelho, apenas não está vinculado ao cliente.
  *  - "desconectado" (banido/removido) libera a vaga.
+ *
+ * Filtros obrigatórios (evitam vaga ocupada "fantasma"):
+ *  - Só contam números marcados como AUTO-HOSPEDADOS no cache de Consulta
+ *    Números. Número hospedado pelo próprio cliente não ocupa aparelho nosso.
+ *  - Números que já estão no estoque (Status de Números, exceto "Vendido")
+ *    são ignorados aqui, pois já são contados pela própria lista de estoque.
  */
 export function useActiveCheckinsByModelo() {
   const { data: config } = useQrScanConfig();
@@ -106,6 +112,30 @@ export function useActiveCheckinsByModelo() {
     return d.toISOString().slice(0, 10);
   }, [windowDays]);
   const { data: checkins = [] } = useCheckins({ since });
+  const { data: cacheRows = [] } = useConsultaNumerosCacheRows();
+  const { data: numerosEstoque = [] } = useNumerosAquecimento();
+  const { data: statusList = [] } = useNumerosStatus();
+
+  const autoHospedados = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of cacheRows) {
+      if (!r.auto_hospedado) continue;
+      const num = onlyDigits(String(r.row_data?.numero ?? ''));
+      if (num) set.add(num);
+    }
+    return set;
+  }, [cacheRows]);
+
+  const noEstoque = useMemo(() => {
+    const vendidoId = statusList.find((s) => s.nome === 'Vendido')?.id;
+    const set = new Set<string>();
+    for (const n of numerosEstoque) {
+      if (vendidoId && n.status_id === vendidoId) continue;
+      const num = onlyDigits(String(n.numero ?? ''));
+      if (num) set.add(num);
+    }
+    return set;
+  }, [numerosEstoque, statusList]);
 
   return useMemo(() => {
     const seenNumero = new Set<string>();
@@ -119,6 +149,12 @@ export function useActiveCheckinsByModelo() {
         c.status_conexao === "conectado" || c.status_conexao === "desconectado_cliente";
       if (!ocupaSlot) continue;
 
+      const num = onlyDigits(c.numero);
+      // Não é auto-hospedado → não ocupa aparelho nosso
+      if (!autoHospedados.has(num)) continue;
+      // Já contabilizado pelo estoque → evita contagem em dobro
+      if (noEstoque.has(num)) continue;
+
       const cur = ocupados.get(c.modelo_id) ?? { total: 0, normal: 0, business: 0, clone: 0, numbers: new Set<string>() };
       cur.total += 1;
       cur[c.tipo_slot] += 1;
@@ -126,5 +162,6 @@ export function useActiveCheckinsByModelo() {
       ocupados.set(c.modelo_id, cur);
     }
     return ocupados;
-  }, [checkins]);
+  }, [checkins, autoHospedados, noEstoque]);
 }
+
