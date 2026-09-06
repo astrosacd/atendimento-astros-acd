@@ -796,6 +796,15 @@ export default function AdminNumerosAquecimento() {
                                   Oculto no check-in
                                 </Badge>
                               )}
+                              {modelo.tipo_whatsapp ? (
+                                <Badge variant="outline" className="text-[10px]">
+                                  {modelo.tipo_whatsapp === 'business' ? '💼 Business' : '📱 Normal'}
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-400">
+                                  Tipo não definido
+                                </Badge>
+                              )}
                             </div>
                             {canManageModelos && (
                               <div className="flex items-center gap-1">
@@ -1215,8 +1224,27 @@ function CreateNumeroDialog({
             />
           </div>
           <div>
+            <Label>Modelo</Label>
+            <SearchableSelect
+              options={modeloOptions}
+              value={modeloId}
+              onValueChange={(v) => {
+                setModeloId(v);
+                const m = modelosList.find((mo) => mo.id === v);
+                if (m?.tipo_whatsapp) setTipoWhatsapp(m.tipo_whatsapp);
+              }}
+              placeholder="Selecione o modelo"
+              searchPlaceholder="Buscar modelo..."
+              emptyMessage="Nenhum modelo encontrado."
+            />
+          </div>
+          <div>
             <Label>Tipo WhatsApp *</Label>
-            <Select value={tipoWhatsapp} onValueChange={(v) => setTipoWhatsapp(v as 'normal' | 'business')}>
+            <Select
+              value={tipoWhatsapp}
+              onValueChange={(v) => setTipoWhatsapp(v as 'normal' | 'business')}
+              disabled={!!modelosList.find((mo) => mo.id === modeloId)?.tipo_whatsapp}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
@@ -1225,17 +1253,11 @@ function CreateNumeroDialog({
                 <SelectItem value="business">💼 WhatsApp Business</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-          <div>
-            <Label>Modelo</Label>
-            <SearchableSelect
-              options={modeloOptions}
-              value={modeloId}
-              onValueChange={setModeloId}
-              placeholder="Selecione o modelo"
-              searchPlaceholder="Buscar modelo..."
-              emptyMessage="Nenhum modelo encontrado."
-            />
+            {modelosList.find((mo) => mo.id === modeloId)?.tipo_whatsapp && (
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Tipo definido automaticamente pelo modelo selecionado
+              </p>
+            )}
           </div>
           <div>
             <Label>Status</Label>
@@ -1552,8 +1574,30 @@ function NumeroActionsMenu({
             {canEdit && (
               <>
                 <div>
+                  <Label>Modelo</Label>
+                  <SearchableSelect
+                    options={modelosList.map((modelo) => ({
+                      value: modelo.id,
+                      label: modelo.nome,
+                    }))}
+                    value={modeloId}
+                    onValueChange={(v) => {
+                      setModeloId(v);
+                      const m = modelosList.find((mo) => mo.id === v);
+                      if (m?.tipo_whatsapp) setTipoWhatsapp(m.tipo_whatsapp);
+                    }}
+                    placeholder="Selecione o modelo"
+                    searchPlaceholder="Buscar modelo..."
+                    emptyMessage="Nenhum modelo encontrado."
+                  />
+                </div>
+                <div>
                   <Label>Tipo WhatsApp *</Label>
-                  <Select value={tipoWhatsapp} onValueChange={(v) => setTipoWhatsapp(v as 'normal' | 'business')}>
+                  <Select
+                    value={tipoWhatsapp}
+                    onValueChange={(v) => setTipoWhatsapp(v as 'normal' | 'business')}
+                    disabled={!!modelosList.find((mo) => mo.id === modeloId)?.tipo_whatsapp}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o tipo de WhatsApp" />
                     </SelectTrigger>
@@ -1562,24 +1606,13 @@ function NumeroActionsMenu({
                       <SelectItem value="business">💼 WhatsApp Business</SelectItem>
                     </SelectContent>
                   </Select>
+                  {modelosList.find((mo) => mo.id === modeloId)?.tipo_whatsapp && (
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Tipo definido automaticamente pelo modelo selecionado
+                    </p>
+                  )}
                 </div>
               </>
-            )}
-            {canEdit && (
-              <div>
-                <Label>Modelo</Label>
-                <SearchableSelect
-                  options={modelosList.map((modelo) => ({
-                    value: modelo.id,
-                    label: modelo.nome,
-                  }))}
-                  value={modeloId}
-                  onValueChange={setModeloId}
-                  placeholder="Selecione o modelo"
-                  searchPlaceholder="Buscar modelo..."
-                  emptyMessage="Nenhum modelo encontrado."
-                />
-              </div>
             )}
             {canChangeStatus && (
               <div>
@@ -1832,7 +1865,11 @@ function NumeroActionsMenu({
             <Label>Modelo do aparelho *</Label>
             <SearchableSelect
               value={voltarEstoqueModeloId}
-              onValueChange={setVoltarEstoqueModeloId}
+              onValueChange={(v) => {
+                setVoltarEstoqueModeloId(v);
+                const m = modelosList.find((mo) => mo.id === v);
+                if (m?.tipo_whatsapp) setVoltarEstoqueTipo(m.tipo_whatsapp);
+              }}
               placeholder="Selecione um modelo disponível"
               searchPlaceholder="Buscar modelo…"
               emptyMessage="Nenhum modelo encontrado"
@@ -1849,7 +1886,11 @@ function NumeroActionsMenu({
 
           <div className="space-y-2 py-2">
             <Label>Tipo WhatsApp *</Label>
-            <Select value={voltarEstoqueTipo} onValueChange={(v) => setVoltarEstoqueTipo(v as 'normal' | 'business')}>
+            <Select
+              value={voltarEstoqueTipo}
+              onValueChange={(v) => setVoltarEstoqueTipo(v as 'normal' | 'business')}
+              disabled={!!modelosList.find((mo) => mo.id === voltarEstoqueModeloId)?.tipo_whatsapp}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o tipo de WhatsApp" />
               </SelectTrigger>
@@ -1858,6 +1899,11 @@ function NumeroActionsMenu({
                 <SelectItem value="business">💼 WhatsApp Business</SelectItem>
               </SelectContent>
             </Select>
+            {modelosList.find((mo) => mo.id === voltarEstoqueModeloId)?.tipo_whatsapp && (
+              <p className="text-[11px] text-muted-foreground">
+                Tipo definido automaticamente pelo modelo selecionado
+              </p>
+            )}
           </div>
 
           <DialogFooter className="gap-2">
@@ -2006,10 +2052,15 @@ function CreateModeloDialog({ onCreate }: { onCreate: (data: any) => void }) {
   const [descricao, setDescricao] = useState('');
   const [capacidade, setCapacidade] = useState(3);
   const [apareceCheckin, setApareceCheckin] = useState(true);
+  const [tipoWhatsapp, setTipoWhatsapp] = useState<'' | 'normal' | 'business'>('');
 
   const handleSubmit = () => {
     if (!nome) {
       toast.error('Nome é obrigatório');
+      return;
+    }
+    if (!tipoWhatsapp) {
+      toast.error('Selecione o tipo de WhatsApp (Normal ou Business)');
       return;
     }
     if (capacidade < 1 || capacidade > 20) {
@@ -2022,6 +2073,7 @@ function CreateModeloDialog({ onCreate }: { onCreate: (data: any) => void }) {
       descricao: descricao || undefined,
       capacidade_whatsapp: capacidade,
       aparece_no_checkin: apareceCheckin,
+      tipo_whatsapp: tipoWhatsapp,
     });
     setOpen(false);
     setNome('');
@@ -2029,6 +2081,7 @@ function CreateModeloDialog({ onCreate }: { onCreate: (data: any) => void }) {
     setDescricao('');
     setCapacidade(3);
     setApareceCheckin(true);
+    setTipoWhatsapp('');
   };
 
   return (
@@ -2054,6 +2107,21 @@ function CreateModeloDialog({ onCreate }: { onCreate: (data: any) => void }) {
           <div>
             <Label>Marca</Label>
             <Input value={marca} onChange={(e) => setMarca(e.target.value)} placeholder="Ex: Samsung, Apple" />
+          </div>
+          <div>
+            <Label>Tipo WhatsApp *</Label>
+            <Select value={tipoWhatsapp} onValueChange={(v) => setTipoWhatsapp(v as 'normal' | 'business')}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo de WhatsApp" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal">📱 WhatsApp Normal</SelectItem>
+                <SelectItem value="business">💼 WhatsApp Business</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Os números cadastrados neste modelo herdam este tipo automaticamente
+            </p>
           </div>
           <div>
             <Label>Capacidade de WhatsApp *</Label>
@@ -2098,8 +2166,13 @@ function EditModeloDialog({ modelo, onUpdate }: { modelo: NumeroModelo; onUpdate
   const [descricao, setDescricao] = useState(modelo.descricao || '');
   const [capacidade, setCapacidade] = useState(modelo.capacidade_whatsapp || 3);
   const [apareceCheckin, setApareceCheckin] = useState(modelo.aparece_no_checkin !== false);
+  const [tipoWhatsapp, setTipoWhatsapp] = useState<'' | 'normal' | 'business'>(modelo.tipo_whatsapp || '');
 
   const handleSubmit = () => {
+    if (!tipoWhatsapp) {
+      toast.error('Selecione o tipo de WhatsApp (Normal ou Business)');
+      return;
+    }
     if (capacidade < 1 || capacidade > 20) {
       toast.error('Capacidade deve ser entre 1 e 20');
       return;
@@ -2110,6 +2183,7 @@ function EditModeloDialog({ modelo, onUpdate }: { modelo: NumeroModelo; onUpdate
       descricao: descricao || null,
       capacidade_whatsapp: capacidade,
       aparece_no_checkin: apareceCheckin,
+      tipo_whatsapp: tipoWhatsapp,
     });
     setOpen(false);
   };
@@ -2133,6 +2207,21 @@ function EditModeloDialog({ modelo, onUpdate }: { modelo: NumeroModelo; onUpdate
           <div>
             <Label>Marca</Label>
             <Input value={marca} onChange={(e) => setMarca(e.target.value)} />
+          </div>
+          <div>
+            <Label>Tipo WhatsApp *</Label>
+            <Select value={tipoWhatsapp} onValueChange={(v) => setTipoWhatsapp(v as 'normal' | 'business')}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo de WhatsApp" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal">📱 WhatsApp Normal</SelectItem>
+                <SelectItem value="business">💼 WhatsApp Business</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Os números cadastrados neste modelo herdam este tipo automaticamente
+            </p>
           </div>
           <div>
             <Label>Capacidade de WhatsApp *</Label>
