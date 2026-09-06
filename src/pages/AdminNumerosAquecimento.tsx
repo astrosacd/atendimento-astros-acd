@@ -1308,10 +1308,11 @@ function NumeroActionsMenu({
   const [confirmBanOpen, setConfirmBanOpen] = useState(false);
   const [confirmVoltarEstoqueOpen, setConfirmVoltarEstoqueOpen] = useState(false);
   const [voltarEstoqueModeloId, setVoltarEstoqueModeloId] = useState<string>('');
+  const [voltarEstoqueTipo, setVoltarEstoqueTipo] = useState<'normal' | 'business' | ''>('');
   const [deleteMotivo, setDeleteMotivo] = useState('');
   const [modeloId, setModeloId] = useState(numero.modelo_id || '');
   const [statusId, setStatusId] = useState(numero.status_id || '');
-  const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business'>(numero.tipo_whatsapp || 'normal');
+  const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business' | ''>('');
   const [observacoes, setObservacoes] = useState(numero.observacoes || '');
   const [nomeCliente, setNomeCliente] = useState('');
   const [whatsappCliente, setWhatsappCliente] = useState('');
@@ -1330,6 +1331,11 @@ function NumeroActionsMenu({
     if (isVendido) {
       toast.error('Números vendidos não podem ser alterados');
       setEditOpen(false);
+      return;
+    }
+
+    if (canEdit && !tipoWhatsapp) {
+      toast.error('Selecione o tipo de WhatsApp (Normal ou Business)');
       return;
     }
 
@@ -1365,7 +1371,7 @@ function NumeroActionsMenu({
 
     const updates: Partial<NumeroAquecimento> = {};
     if (canEdit && modeloId !== numero.modelo_id) updates.modelo_id = modeloId || null;
-    if (canEdit && tipoWhatsapp !== numero.tipo_whatsapp) updates.tipo_whatsapp = tipoWhatsapp;
+    if (canEdit && tipoWhatsapp && tipoWhatsapp !== numero.tipo_whatsapp) updates.tipo_whatsapp = tipoWhatsapp;
     if (canChangeStatus && statusId !== numero.status_id) updates.status_id = statusId || null;
     
     const finalObs = extraObs ? extraObs : observacoes;
@@ -1433,6 +1439,11 @@ function NumeroActionsMenu({
       return;
     }
 
+    if (!voltarEstoqueTipo) {
+      toast.error('Selecione o tipo de WhatsApp (Normal ou Business)');
+      return;
+    }
+
     const escolhido = modelosVagasRetorno.find((o) => o.modelo.id === voltarEstoqueModeloId);
     if (escolhido && escolhido.livres <= 0) {
       toast.error(`Modelo "${escolhido.modelo.nome}" está cheio (${escolhido.ocupados}/${escolhido.capacidade}). Escolha outro modelo.`);
@@ -1442,6 +1453,7 @@ function NumeroActionsMenu({
     onUpdate({
       status_id: ativoStatusId,
       modelo_id: voltarEstoqueModeloId,
+      tipo_whatsapp: voltarEstoqueTipo,
       observacoes: '', // Limpa os dados do cliente anterior ao voltar para o estoque
     });
     setConfirmVoltarEstoqueOpen(false);
@@ -1543,7 +1555,7 @@ function NumeroActionsMenu({
                   <Label>Tipo WhatsApp *</Label>
                   <Select value={tipoWhatsapp} onValueChange={(v) => setTipoWhatsapp(v as 'normal' | 'business')}>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Selecione o tipo de WhatsApp" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="normal">📱 WhatsApp Normal</SelectItem>
@@ -1798,7 +1810,10 @@ function NumeroActionsMenu({
         open={confirmVoltarEstoqueOpen}
         onOpenChange={(v) => {
           setConfirmVoltarEstoqueOpen(v);
-          if (v) setVoltarEstoqueModeloId('');
+          if (v) {
+            setVoltarEstoqueModeloId('');
+            setVoltarEstoqueTipo('');
+          }
         }}
       >
         <DialogContent>
@@ -1832,6 +1847,19 @@ function NumeroActionsMenu({
             </p>
           </div>
 
+          <div className="space-y-2 py-2">
+            <Label>Tipo WhatsApp *</Label>
+            <Select value={voltarEstoqueTipo} onValueChange={(v) => setVoltarEstoqueTipo(v as 'normal' | 'business')}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo de WhatsApp" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal">📱 WhatsApp Normal</SelectItem>
+                <SelectItem value="business">💼 WhatsApp Business</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setConfirmVoltarEstoqueOpen(false)}>
               Cancelar
@@ -1839,7 +1867,7 @@ function NumeroActionsMenu({
             <Button 
               className="bg-blue-600 hover:bg-blue-700 text-white"
               onClick={handleVoltarEstoque}
-              disabled={!voltarEstoqueModeloId}
+              disabled={!voltarEstoqueModeloId || !voltarEstoqueTipo}
             >
               Confirmar Retorno
             </Button>
