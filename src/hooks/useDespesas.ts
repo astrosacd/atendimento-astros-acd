@@ -128,11 +128,11 @@ export function useDespesas() {
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
 
-    // Filter for current month
+    // Filter for current month (parse YYYY-MM-DD as local date to avoid UTC month shift)
     const despesasDoMes = despesasList.filter(d => {
-      const vencimento = new Date(d.data_vencimento);
-      return vencimento.getMonth() === currentMonth && 
-             vencimento.getFullYear() === currentYear &&
+      const [y, m] = (d.data_vencimento as string).split('-').map(Number);
+      return (m || 0) - 1 === currentMonth && 
+             (y || 0) === currentYear &&
              d.status !== 'cancelado';
     });
 
