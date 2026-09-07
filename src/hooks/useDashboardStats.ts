@@ -50,8 +50,6 @@ export interface DashboardStats {
   instagramTokenExpiring: boolean;
   instagramTokenExpiryDate: string | null;
   pagamentosPendentes: number;
-  offlineIntegrations: number;
-  criticalQuotas: number;
   divulgadorErrors: number;
   clientesCancelados: number;
   canceladosUltimos30d: number;
@@ -98,8 +96,6 @@ const INITIAL_STATS: DashboardStats = {
   instagramTokenExpiring: false,
   instagramTokenExpiryDate: null,
   pagamentosPendentes: 0,
-  offlineIntegrations: 0,
-  criticalQuotas: 0,
   divulgadorErrors: 0,
   clientesCancelados: 0,
   canceladosUltimos30d: 0,
@@ -311,20 +307,7 @@ export function useDashboardStats() {
       let instagramTokenExpiryDate: string | null = null;
       let pagamentosPendentes = 0;
 
-      let offlineIntegrations = 0;
-      let criticalQuotasCount = 0;
       let divulgadorErrorsCount = 0;
-
-      if (hasPermission('manage_system_health')) {
-        const { data: statusData } = await supabase.from('integration_status').select('status');
-        offlineIntegrations = statusData?.filter(s => s.status === 'offline').length || 0;
-
-        const { data: quotasData } = await supabase.from('api_quotas').select('current_value, max_value, alert_threshold');
-        criticalQuotasCount = quotasData?.filter(q => {
-          const percentage = q.max_value ? (q.current_value / q.max_value) * 100 : 0;
-          return percentage > (100 - (q.alert_threshold || 20));
-        }).length || 0;
-      }
 
       if (isAdmin) {
         const { data: igSettings } = await supabase
@@ -494,8 +477,6 @@ export function useDashboardStats() {
         instagramTokenExpiring,
         instagramTokenExpiryDate,
         pagamentosPendentes,
-        offlineIntegrations,
-        criticalQuotas: criticalQuotasCount,
         divulgadorErrors: divulgadorErrorsCount,
         clientesCancelados,
         canceladosUltimos30d,

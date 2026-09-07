@@ -17,7 +17,6 @@ import {
   BookOpen,
   UserPlus,
   Package,
-  Activity,
   Server,
   Clock,
   Palette,
@@ -85,14 +84,6 @@ const Admin = () => {
       icon: BookOpen,
       path: '/admin/guia',
       color: 'from-cyan-500/20 to-cyan-600/10',
-    },
-    {
-      key: 'systemHealth',
-      title: 'Saúde do Sistema',
-      description: 'Monitoramento em tempo real de integrações, APIs e limites de crédito.',
-      icon: Activity,
-      path: '/admin/saude',
-      color: 'from-emerald-500/20 to-emerald-600/10',
     },
     {
       key: 'identidadeVisual',
@@ -196,7 +187,6 @@ const Admin = () => {
             .filter(module => {
               if (module.key === 'manageUsers') return hasPermission('manage_users');
               if (module.key === 'systemPermissions') return hasPermission('manage_permissions');
-              if (module.key === 'systemHealth') return hasPermission('manage_system_health');
               if (module.key === 'mcp') return hasPermission('view_mcp_config');
               if (module.key === 'horarioComercial') return hasPermission('manage_horario_comercial');
               return true;
