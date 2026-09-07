@@ -37,7 +37,6 @@ import { ConversionFunnelCard } from '@/components/dashboard/ConversionFunnelCar
 import { RevenueGoalCard } from '@/components/dashboard/RevenueGoalCard';
 import { ChurnRateCard } from '@/components/dashboard/ChurnRateCard';
 import { RevenueByCurrencyCard } from '@/components/dashboard/RevenueByCurrencyCard';
-import { SystemHealthCard } from '@/components/dashboard/SystemHealthCard';
 import { BusinessHoursStatusCard } from '@/components/dashboard/BusinessHoursStatusCard';
 import { LigacoesAgendadasCard } from '@/components/dashboard/LigacoesAgendadasCard';
 import { AlertsCenter } from '@/components/dashboard/sections/AlertsCenter';
@@ -198,18 +197,6 @@ export default function Dashboard() {
           pulse: true,
         }
       : null,
-    hasPermission('manage_system_health') && (stats.offlineIntegrations > 0 || stats.criticalQuotas > 0)
-      ? {
-          id: 'system-health',
-          title: 'Saúde do Sistema com Alertas',
-          description: `${stats.offlineIntegrations > 0 ? `${stats.offlineIntegrations} integração(ões) offline. ` : ''}${stats.criticalQuotas > 0 ? `${stats.criticalQuotas} cota(s) crítica(s).` : ''}`,
-          count: stats.offlineIntegrations + stats.criticalQuotas,
-          onClick: () => navigate('/admin/saude'),
-          tone: stats.offlineIntegrations > 0 ? 'critical' as const : 'warning' as const,
-          icon: ShieldCheck,
-          pulse: true,
-        }
-      : null,
     failedFollowups.length > 0
       ? {
           id: 'followups-failed',
@@ -330,7 +317,6 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <LigacoesAgendadasCard />
             <BusinessHoursStatusCard />
-            {hasPermission('manage_system_health') && <SystemHealthCard />}
             {hasPermission('view_quick_number_search') && <QuickNumberSearch />}
             {isAdmin && (
               <>

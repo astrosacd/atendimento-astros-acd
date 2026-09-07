@@ -1,6 +1,6 @@
 // Cron diário passivo: notifica gestores via WhatsApp quando token Instagram
 // expira em menos de 7 dias (ou já expirou). NÃO tenta renovar — apenas alerta.
-// Complementa `instagram-token-auto-refresh` (que renova) e `system-health-check`
+// Complementa `instagram-token-auto-refresh` (que renova)
 // (que exibe status no dashboard).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";

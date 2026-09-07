@@ -250,7 +250,6 @@ export function usePermissions() {
   const canManageInstagramEspionage = () => hasPermission('manage_instagram_espionage');
   const canManageTemporaryAccess = () => hasPermission('manage_temporary_access');
   const canViewGuiaInstagram = () => hasPermission('view_guia_instagram');
-  const canManageSystemHealth = () => hasPermission('manage_system_health');
   const canManageHorarioComercial = () => hasPermission('manage_horario_comercial');
 
   // Instagram extended permissions
@@ -437,7 +436,6 @@ export function usePermissions() {
     canManageTemporaryAccess,
     canViewGuiaInstagram,
     canViewInstagramReports,
-    canManageSystemHealth,
     canManageHorarioComercial,
     canManageAutoReplyInstagram,
     canManageSocialMediaReports,
