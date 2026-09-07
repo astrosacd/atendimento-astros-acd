@@ -89,48 +89,6 @@ export type Database = {
         }
         Relationships: []
       }
-      api_quotas: {
-        Row: {
-          alert_threshold: number | null
-          api_name: string
-          created_at: string
-          current_value: number
-          display_name: string
-          id: string
-          is_active: boolean | null
-          last_updated: string | null
-          limit_type: string
-          max_value: number | null
-          updated_at: string
-        }
-        Insert: {
-          alert_threshold?: number | null
-          api_name: string
-          created_at?: string
-          current_value?: number
-          display_name: string
-          id?: string
-          is_active?: boolean | null
-          last_updated?: string | null
-          limit_type: string
-          max_value?: number | null
-          updated_at?: string
-        }
-        Update: {
-          alert_threshold?: number | null
-          api_name?: string
-          created_at?: string
-          current_value?: number
-          display_name?: string
-          id?: string
-          is_active?: boolean | null
-          last_updated?: string | null
-          limit_type?: string
-          max_value?: number | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       approval_history: {
         Row: {
           action: string
@@ -4834,48 +4792,6 @@ export type Database = {
           integration_name?: string
           message?: string | null
           status?: string
-        }
-        Relationships: []
-      }
-      integration_status: {
-        Row: {
-          category: string
-          created_at: string
-          display_name: string
-          error_message: string | null
-          id: string
-          integration_name: string
-          last_check: string | null
-          metadata: Json | null
-          response_time_ms: number | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          category: string
-          created_at?: string
-          display_name: string
-          error_message?: string | null
-          id?: string
-          integration_name: string
-          last_check?: string | null
-          metadata?: Json | null
-          response_time_ms?: number | null
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          category?: string
-          created_at?: string
-          display_name?: string
-          error_message?: string | null
-          id?: string
-          integration_name?: string
-          last_check?: string | null
-          metadata?: Json | null
-          response_time_ms?: number | null
-          status?: string
-          updated_at?: string
         }
         Relationships: []
       }
