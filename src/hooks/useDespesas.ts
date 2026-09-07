@@ -366,8 +366,8 @@ export function useDespesas() {
     // Existing expenses in the target month (used to prevent duplicates)
     const existingKeysInTargetMonth = new Set<string>();
     for (const d of despesas) {
-      const venc = new Date(d.data_vencimento);
-      if (venc.getMonth() === targetMonthNum && venc.getFullYear() === targetYear && d.status !== 'cancelado') {
+      const [vy, vm] = (d.data_vencimento as string).split('-').map(Number);
+      if ((vm || 0) - 1 === targetMonthNum && (vy || 0) === targetYear && d.status !== 'cancelado') {
         existingKeysInTargetMonth.add(getRecurringKey(d));
       }
     }
@@ -378,8 +378,8 @@ export function useDespesas() {
     const toCreate = templates
       .filter((tpl) => !existingKeysInTargetMonth.has(getRecurringKey(tpl)))
       .map((tpl) => {
-        const originalDate = new Date(tpl.data_vencimento);
-        const day = Math.min(originalDate.getDate(), lastDayOfTargetMonth);
+        const originalDay = Number((tpl.data_vencimento as string).split('-')[2]) || 1;
+        const day = Math.min(originalDay, lastDayOfTargetMonth);
         const newDate = new Date(targetYear, targetMonthNum, day);
 
         return {
