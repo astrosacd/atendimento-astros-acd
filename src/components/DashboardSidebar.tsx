@@ -171,7 +171,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, signOut, user } = useAuth();
-  const { canCreateClients, canUpdateClients, canDeleteClients, canViewClientGraph, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador, canViewNumeros, canViewConsultaNumeros, canViewGuia, canViewGateway, canViewChamados, canViewRevendedor, canViewReports, canViewDespesas, canViewFollowups, canViewProposals, canViewAgenda, canViewPaymentLinks, canViewPaymentSecurity, canViewCentralAjuda, canManagePredefinedProducts, hasPermission } = usePermissions();
+  const { canCreateClients, canUpdateClients, canDeleteClients, canViewClientGraph, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador, canViewNumeros, canViewConsultaNumeros, canViewGuia, canViewGateway, canViewChamados, canViewRevendedor, canViewReports, canViewDespesas, canViewFollowups, canViewProposals, canViewAgenda, canViewPaymentLinks, canViewPaymentSecurity, canManagePredefinedProducts, hasPermission } = usePermissions();
   const { t } = useTranslation();
   const navRef = useRef<HTMLDivElement | null>(null);
 
@@ -262,7 +262,6 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
         { title: t('sidebar.tasks'), icon: ListTodo, path: '/tarefas', color: 'text-amber-500', gradient: 'from-amber-500 to-orange-500' },
         { title: t('sidebar.followups'), icon: CalendarClock, path: '/followups', adminOnly: !canViewFollowups(), color: 'text-violet-500', gradient: 'from-violet-500 to-purple-500' },
         { title: t('sidebar.tickets'), icon: Ticket, path: '/admin/chamados', adminOnly: !canViewChamados(), color: 'text-orange-500', gradient: 'from-orange-500 to-amber-500' },
-        { title: 'Central de Ajuda', icon: HelpCircle, path: '/central-ajuda', adminOnly: !canViewCentralAjuda(), color: 'text-sky-400', gradient: 'from-sky-400 to-blue-500' },
       ]
     },
     {

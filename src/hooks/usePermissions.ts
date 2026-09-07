@@ -236,9 +236,6 @@ export function usePermissions() {
   const canViewPaymentSecurity = () => hasPermission('view_payment_security');
   const canRegisterPixpaguePayment = () => hasPermission('register_pixpague_payment');
 
-  // Central de Ajuda
-  const canViewCentralAjuda = () => hasPermission('view_central_ajuda');
-
   // Gestão de Produtos Predefinidos
   const canManagePredefinedProducts = () => hasPermission('manage_predefined_products');
 
@@ -425,8 +422,6 @@ export function usePermissions() {
     canManageWhatsappInstances,
     canViewPaymentSecurity,
     canRegisterPixpaguePayment,
-    // Central de Ajuda
-    canViewCentralAjuda,
     canManagePredefinedProducts,
     canViewInstagram,
     canCreateInstagramPost,
