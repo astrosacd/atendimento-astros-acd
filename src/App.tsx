@@ -52,7 +52,6 @@ import AdminChamadosApiKeys from "./pages/AdminChamadosApiKeys";
 import AdminChamadosGuia from "./pages/AdminChamadosGuia";
 import AdminRelatorios from "./pages/AdminRelatorios";
 
-import AdminHealthDashboard from "./pages/AdminHealthDashboard";
 import AdminSegurancaPagamento from "./pages/AdminSegurancaPagamento";
 import Tarefas from "./pages/Tarefas";
 import Propostas from "./pages/Propostas";
@@ -197,7 +196,6 @@ function AppRoutes() {
       {/* Relatórios Route */}
       <Route path="/admin/relatorios" element={<ProtectedRoute permission="view_reports"><AdminRelatorios /></ProtectedRoute>} />
       
-      <Route path="/admin/saude" element={<ProtectedRoute permission="manage_system_health"><AdminHealthDashboard /></ProtectedRoute>} />
       <Route path="/admin/horario-comercial" element={<ProtectedRoute adminOnly><AdminHorarioComercial /></ProtectedRoute>} />
       
       {/* Tarefas Route */}
