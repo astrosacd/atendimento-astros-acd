@@ -1573,7 +1573,24 @@ function NumeroActionsMenu({
       </DropdownMenu>
 
       {/* Edit Dialog */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+      <Dialog
+        open={editOpen}
+        onOpenChange={(open) => {
+          if (open) {
+            // Pré-preenche com os dados atuais do número (e o tipo do modelo, se houver)
+            const modeloAtual = modelosList.find((mo) => mo.id === numero.modelo_id);
+            setModeloId(numero.modelo_id || '');
+            setStatusId(numero.status_id || '');
+            setTipoWhatsapp(
+              (modeloAtual?.tipo_whatsapp as 'normal' | 'business' | undefined) ||
+                (numero.tipo_whatsapp as 'normal' | 'business' | undefined) ||
+                ''
+            );
+            setObservacoes(numero.observacoes || '');
+          }
+          setEditOpen(open);
+        }}
+      >
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Número</DialogTitle>
