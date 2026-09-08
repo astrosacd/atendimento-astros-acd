@@ -1343,7 +1343,9 @@ function NumeroActionsMenu({
   const [deleteMotivo, setDeleteMotivo] = useState('');
   const [modeloId, setModeloId] = useState(numero.modelo_id || '');
   const [statusId, setStatusId] = useState(numero.status_id || '');
-  const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business' | ''>('');
+  const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business' | ''>(
+    (numero.tipo_whatsapp as 'normal' | 'business' | undefined) || ''
+  );
   const [observacoes, setObservacoes] = useState(numero.observacoes || '');
   const [nomeCliente, setNomeCliente] = useState('');
   const [whatsappCliente, setWhatsappCliente] = useState('');
