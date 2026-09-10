@@ -1686,7 +1686,9 @@ function NumeroActionsMenu({
             )}
             {canChangeObs && (
               <div className="space-y-2">
-                <Label>Observações</Label>
+                <Label>
+                  Observações <span className="text-destructive">*</span>
+                </Label>
                 {obsChanges.length > 0 && (
                   <div className="border rounded-lg">
                     <div className="p-2 bg-muted/50 border-b text-xs font-medium text-muted-foreground flex items-center gap-1">
@@ -1719,11 +1721,18 @@ function NumeroActionsMenu({
                     </ScrollArea>
                   </div>
                 )}
-                <Textarea 
+                <Textarea
                   value={observacoes}
-                  onChange={(e) => setObservacoes(e.target.value)}
+                  onChange={(e) => {
+                    setObservacoes(e.target.value);
+                    if (e.target.value.trim()) setObservacaoError(false);
+                  }}
                   placeholder="Nova observação..."
+                  className={observacaoError ? 'border-destructive focus-visible:ring-destructive' : ''}
                 />
+                {observacaoError && (
+                  <p className="text-xs text-destructive">Informe uma observação para salvar a alteração.</p>
+                )}
               </div>
             )}
           </div>
