@@ -1373,6 +1373,13 @@ function NumeroActionsMenu({
       return;
     }
 
+    if (canChangeObs && !observacoes.trim()) {
+      setObservacaoError(true);
+      toast.error('Informe uma observação para salvar a alteração');
+      return;
+    }
+    setObservacaoError(false);
+
     const vendidoStatusId = statusList.find((s) => s.nome === 'Vendido')?.id;
     const isVendidoNow = statusId === vendidoStatusId && numero.status_id !== vendidoStatusId;
 
