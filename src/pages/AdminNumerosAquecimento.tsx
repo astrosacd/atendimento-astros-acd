@@ -1738,7 +1738,12 @@ function NumeroActionsMenu({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave}>Salvar</Button>
+            <Button
+              onClick={handleSave}
+              disabled={canChangeObs && !observacoes.trim()}
+            >
+              Salvar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
