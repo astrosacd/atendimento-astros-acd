@@ -1346,7 +1346,8 @@ function NumeroActionsMenu({
   const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business' | ''>(
     (numero.tipo_whatsapp as 'normal' | 'business' | undefined) || ''
   );
-  const [observacoes, setObservacoes] = useState(numero.observacoes || '');
+  const [observacoes, setObservacoes] = useState('');
+  const [observacaoError, setObservacaoError] = useState(false);
   const [nomeCliente, setNomeCliente] = useState('');
   const [whatsappCliente, setWhatsappCliente] = useState('');
   const [tipoSeguro, setTipoSeguro] = useState<'COM SEGURO' | 'SEM SEGURO' | ''>('');
@@ -1371,6 +1372,13 @@ function NumeroActionsMenu({
       toast.error('Selecione o tipo de WhatsApp (Normal ou Business)');
       return;
     }
+
+    if (canChangeObs && !observacoes.trim()) {
+      setObservacaoError(true);
+      toast.error('Informe uma observação para salvar a alteração');
+      return;
+    }
+    setObservacaoError(false);
 
     const vendidoStatusId = statusList.find((s) => s.nome === 'Vendido')?.id;
     const isVendidoNow = statusId === vendidoStatusId && numero.status_id !== vendidoStatusId;
@@ -1588,7 +1596,9 @@ function NumeroActionsMenu({
                 (numero.tipo_whatsapp as 'normal' | 'business' | undefined) ||
                 ''
             );
-            setObservacoes(numero.observacoes || '');
+            // Observação deve ser preenchimento manual: sempre começa vazio
+            setObservacoes('');
+            setObservacaoError(false);
           }
           setEditOpen(open);
         }}
@@ -1676,7 +1686,9 @@ function NumeroActionsMenu({
             )}
             {canChangeObs && (
               <div className="space-y-2">
-                <Label>Observações</Label>
+                <Label>
+                  Observações <span className="text-destructive">*</span>
+                </Label>
                 {obsChanges.length > 0 && (
                   <div className="border rounded-lg">
                     <div className="p-2 bg-muted/50 border-b text-xs font-medium text-muted-foreground flex items-center gap-1">
@@ -1709,17 +1721,29 @@ function NumeroActionsMenu({
                     </ScrollArea>
                   </div>
                 )}
-                <Textarea 
+                <Textarea
                   value={observacoes}
-                  onChange={(e) => setObservacoes(e.target.value)}
+                  onChange={(e) => {
+                    setObservacoes(e.target.value);
+                    if (e.target.value.trim()) setObservacaoError(false);
+                  }}
                   placeholder="Nova observação..."
+                  className={observacaoError ? 'border-destructive focus-visible:ring-destructive' : ''}
                 />
+                {observacaoError && (
+                  <p className="text-xs text-destructive">Informe uma observação para salvar a alteração.</p>
+                )}
               </div>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave}>Salvar</Button>
+            <Button
+              onClick={handleSave}
+              disabled={canChangeObs && !observacoes.trim()}
+            >
+              Salvar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
