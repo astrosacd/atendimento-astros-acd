@@ -1588,7 +1588,9 @@ function NumeroActionsMenu({
                 (numero.tipo_whatsapp as 'normal' | 'business' | undefined) ||
                 ''
             );
-            setObservacoes(numero.observacoes || '');
+            // Observação deve ser preenchimento manual: sempre começa vazio
+            setObservacoes('');
+            setObservacaoError(false);
           }
           setEditOpen(open);
         }}
