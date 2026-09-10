@@ -1346,7 +1346,8 @@ function NumeroActionsMenu({
   const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business' | ''>(
     (numero.tipo_whatsapp as 'normal' | 'business' | undefined) || ''
   );
-  const [observacoes, setObservacoes] = useState(numero.observacoes || '');
+  const [observacoes, setObservacoes] = useState('');
+  const [observacaoError, setObservacaoError] = useState(false);
   const [nomeCliente, setNomeCliente] = useState('');
   const [whatsappCliente, setWhatsappCliente] = useState('');
   const [tipoSeguro, setTipoSeguro] = useState<'COM SEGURO' | 'SEM SEGURO' | ''>('');
