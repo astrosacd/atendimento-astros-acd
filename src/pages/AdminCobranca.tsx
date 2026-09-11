@@ -1336,31 +1336,45 @@ const AdminCobranca = () => {
                                   {getStatusBadge(log.status, log.resolution)}
                                 </TableCell>
                                 <TableCell>
-                                  {log.cliente_observacoes && (
+                                  {(log.cliente_observacoes || log.error_message) && (
                                     <Dialog>
                                       <DialogTrigger asChild>
                                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-primary">
                                           <Search className="h-4 w-4" />
                                         </Button>
                                       </DialogTrigger>
-                                      <DialogContent className="bg-card border-border">
+                                      <DialogContent className="bg-card border-border max-w-2xl max-h-[85vh] overflow-y-auto">
                                         <DialogHeader>
                                           <DialogTitle className="flex items-center gap-2">
                                             <Info className="h-5 w-5 text-primary" />
-                                            Observações do Cliente
+                                            Detalhes do Envio
                                           </DialogTitle>
                                           <DialogDescription>
                                             {log.cliente_nome}
                                           </DialogDescription>
                                         </DialogHeader>
-                                        <div className="mt-4 p-4 rounded-lg bg-muted/50 border border-border">
-                                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                                            {log.cliente_observacoes}
-                                          </p>
+                                        <div className="mt-4 space-y-4">
+                                          {log.error_message && (
+                                            <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30">
+                                              <p className="text-xs font-semibold text-red-400 mb-2">Motivo do erro</p>
+                                              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words text-red-300">
+                                                {log.error_message}
+                                              </p>
+                                            </div>
+                                          )}
+                                          {log.cliente_observacoes && (
+                                            <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                                              <p className="text-xs font-semibold text-muted-foreground mb-2">Observações do Cliente</p>
+                                              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                                                {log.cliente_observacoes}
+                                              </p>
+                                            </div>
+                                          )}
                                         </div>
                                       </DialogContent>
                                     </Dialog>
                                   )}
+
                                 </TableCell>
                               </TableRow>
                             ))
@@ -3681,31 +3695,53 @@ const AdminCobranca = () => {
                                     )}
                                   </TableCell>
                                   <TableCell className="text-center">
-                                    {log.cliente_observacoes && (
+                                    {(log.cliente_observacoes || log.error_message || log.resolution_note) && (
                                       <Dialog>
                                         <DialogTrigger asChild>
                                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-primary">
                                             <Search className="h-4 w-4" />
                                           </Button>
                                         </DialogTrigger>
-                                        <DialogContent className="bg-card border-border">
+                                        <DialogContent className="bg-card border-border max-w-2xl max-h-[85vh] overflow-y-auto">
                                           <DialogHeader>
                                             <DialogTitle className="flex items-center gap-2">
                                               <Info className="h-5 w-5 text-primary" />
-                                              Observações do Cliente
+                                              Detalhes do Envio
                                             </DialogTitle>
                                             <DialogDescription>
                                               {log.cliente_nome}
                                             </DialogDescription>
                                           </DialogHeader>
-                                          <div className="mt-4 p-4 rounded-lg bg-muted/50 border border-border">
-                                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                                              {log.cliente_observacoes}
-                                            </p>
+                                          <div className="mt-4 space-y-4">
+                                            {log.error_message && (
+                                              <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30">
+                                                <p className="text-xs font-semibold text-red-400 mb-2">Motivo do erro</p>
+                                                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words text-red-300">
+                                                  {log.error_message}
+                                                </p>
+                                              </div>
+                                            )}
+                                            {log.resolution_note && (
+                                              <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                                                <p className="text-xs font-semibold text-emerald-400 mb-2">Resolução</p>
+                                                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                                                  {log.resolution_note}
+                                                </p>
+                                              </div>
+                                            )}
+                                            {log.cliente_observacoes && (
+                                              <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                                                <p className="text-xs font-semibold text-muted-foreground mb-2">Observações do Cliente</p>
+                                                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                                                  {log.cliente_observacoes}
+                                                </p>
+                                              </div>
+                                            )}
                                           </div>
                                         </DialogContent>
                                       </Dialog>
                                     )}
+
                                   </TableCell>
                                   <TableCell>
                                     <div className="flex items-center gap-2 flex-wrap">
