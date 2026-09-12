@@ -1361,6 +1361,9 @@ function NumeroActionsMenu({
   // Determinar se pode excluir este número específico
   const canDeleteThisNumber = isVendido ? canDeleteSold : canDelete;
 
+  const vendidoStatusId = statusList.find((s) => s.nome === 'Vendido')?.id;
+  const isVendidoSelected = statusId === vendidoStatusId;
+
   const handleSave = () => {
     if (isVendido) {
       toast.error('Números vendidos não podem ser alterados');
@@ -1373,15 +1376,15 @@ function NumeroActionsMenu({
       return;
     }
 
-    if (canChangeObs && !observacoes.trim()) {
+    // Observação obrigatória apenas quando o status não for "Vendido"
+    if (canChangeObs && !isVendidoSelected && !observacoes.trim()) {
       setObservacaoError(true);
       toast.error('Informe uma observação para salvar a alteração');
       return;
     }
     setObservacaoError(false);
 
-    const vendidoStatusId = statusList.find((s) => s.nome === 'Vendido')?.id;
-    const isVendidoNow = statusId === vendidoStatusId && numero.status_id !== vendidoStatusId;
+    const isVendidoNow = isVendidoSelected && numero.status_id !== vendidoStatusId;
 
     if (isVendidoNow) {
       setConfirmVendaOpen(true);
@@ -1684,7 +1687,7 @@ function NumeroActionsMenu({
                 )}
               </div>
             )}
-            {canChangeObs && (
+            {canChangeObs && !isVendidoSelected && (
               <div className="space-y-2">
                 <Label>
                   Observações <span className="text-destructive">*</span>
@@ -1740,7 +1743,7 @@ function NumeroActionsMenu({
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
             <Button
               onClick={handleSave}
-              disabled={canChangeObs && !observacoes.trim()}
+              disabled={canChangeObs && !isVendidoSelected && !observacoes.trim()}
             >
               Salvar
             </Button>
