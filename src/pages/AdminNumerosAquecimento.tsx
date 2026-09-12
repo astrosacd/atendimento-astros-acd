@@ -1687,7 +1687,7 @@ function NumeroActionsMenu({
                 )}
               </div>
             )}
-            {canChangeObs && (
+            {canChangeObs && !isVendidoSelected && (
               <div className="space-y-2">
                 <Label>
                   Observações <span className="text-destructive">*</span>
@@ -1743,7 +1743,7 @@ function NumeroActionsMenu({
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
             <Button
               onClick={handleSave}
-              disabled={canChangeObs && !observacoes.trim()}
+              disabled={canChangeObs && !isVendidoSelected && !observacoes.trim()}
             >
               Salvar
             </Button>
