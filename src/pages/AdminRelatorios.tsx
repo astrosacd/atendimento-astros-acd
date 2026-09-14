@@ -465,14 +465,16 @@ export default function AdminRelatorios() {
 
       const clientesAtivosInicioCount = ativosInicio.size;
 
-      const perdidosNoMes = Array.from(ativosInicio).filter(identificador => {
-        const assinaturasDoCliente = universo.filter(c => (c.cpf || c.nome) === identificador);
-        const temAssinaturaAtivaNoFim = assinaturasDoCliente.some(c => {
-          const renovacao = parseISO(c.data_renovacao);
-          return renovacao >= monthEnd;
-        });
-        return !temAssinaturaAtivaNoFim;
-      }).length;
+      // Perdidos = cancelamento registrado dentro do mês (agrupado por CPF/Nome)
+      const perdidosNoMes = new Set(
+        clientesCancelados
+          .filter(c => {
+            if (!c.cancelado_em) return false;
+            const cancelado = parseISO(c.cancelado_em);
+            return cancelado >= monthStart && cancelado <= monthEnd;
+          })
+          .map(c => c.cpf || c.nome)
+      ).size;
 
       const taxaChurn = clientesAtivosInicioCount > 0 ? (perdidosNoMes / clientesAtivosInicioCount) * 100 : 0;
 
