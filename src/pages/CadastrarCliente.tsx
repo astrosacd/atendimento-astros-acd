@@ -78,6 +78,7 @@ export default function CadastrarCliente() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [clienteType, setClienteType] = useState<ClienteType>(null);
+  const [dataAgendamento, setDataAgendamento] = useState<string>('');
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [countryCode, setCountryCode] = useState('BR');
@@ -230,6 +231,16 @@ export default function CadastrarCliente() {
         data_renovacao: new Date().toISOString().split('T')[0],
         plano: 'Nenhum',
         moeda: 'BRL'
+      }));
+    } else if (clienteType === 'agendado') {
+      setFormData(prev => ({
+        ...prev,
+        cobranca_ativa: false,
+        data_renovacao: new Date().toISOString().split('T')[0],
+        plano: 'Nenhum',
+        moeda: 'BRL',
+        tipo: prev.tipo || 'cliente',
+        excluir_metricas: false,
       }));
     }
   }, [clienteType]);
