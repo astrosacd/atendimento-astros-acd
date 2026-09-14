@@ -667,7 +667,7 @@ export default function CadastrarCliente() {
         
         setShowConfirmation(false);
         setShowSuccess(true);
-        logActivity(`Cadastrou novo cliente: ${formData.nome}`, 'cliente', `Tipo: ${clienteType === 'registro' ? 'Registro' : 'Mensal'}`);
+        logActivity(`Cadastrou novo cliente: ${formData.nome}`, 'cliente', `Tipo: ${clienteType === 'registro' ? 'Registro' : clienteType === 'agendado' ? 'Agendado' : 'Mensal'}`);
       }
     } finally {
       setIsSaving(false);
@@ -695,6 +695,7 @@ export default function CadastrarCliente() {
       ciclo_cobranca: '' as any,
     });
     setUploadedFiles([]);
+    setDataAgendamento('');
     setPixProof(null);
     setPaymentMethod('');
     setPaymentLinkUrl('');
