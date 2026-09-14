@@ -7,6 +7,27 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-temp-access-token",
 };
 
+/**
+ * Tipo de cliente — usado para separar o relatório:
+ * - mensal:   cobrança recorrente (entra em MRR/renovação)
+ * - registro: venda única, sem renovação (não tem "próxima renovação")
+ * - agendado: serviço marcado, ainda não é cliente (só previsão)
+ */
+type TipoCliente = "mensal" | "registro" | "agendado";
+
+function classificarCliente(c: any): TipoCliente {
+  if (!c) return "registro";
+  if (c.status_cliente === "agendado") return "agendado";
+  if (c.cobranca_ativa === true || (c.ciclo_cobranca && String(c.ciclo_cobranca).trim() !== "")) return "mensal";
+  return "registro";
+}
+
+const TIPO_LABEL: Record<TipoCliente, string> = {
+  mensal: "🔁 Mensal",
+  registro: "🧾 Registro (venda única)",
+  agendado: "📅 Agendado",
+};
+
 interface RenewalItem {
   cliente_id: string | null;
   nome: string;
@@ -16,7 +37,9 @@ interface RenewalItem {
   moeda: string | null;
   data_anterior: string | null;
   data_nova: string | null;
+  tipo: TipoCliente;
 }
+
 
 interface PaymentItem {
   cliente_id: string | null;
@@ -28,6 +51,7 @@ interface PaymentItem {
   paid_at: string;
   data_anterior: string | null;
   data_nova: string | null;
+  tipo: TipoCliente;
 }
 
 function fmtCurrency(value: number, moeda: string = "BRL") {
@@ -77,7 +101,7 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
     const ids = Array.from(new Set(histRows.map((r: any) => r.cliente_id).filter(Boolean)));
     const { data: clientes } = await supabase
       .from("clientes")
-      .select("id, nome, produto, plano, valor, moeda")
+      .select("id, nome, produto, plano, valor, moeda, cobranca_ativa, ciclo_cobranca, status_cliente")
       .in("id", ids);
     const clienteMap = new Map<string, any>((clientes || []).map((c: any) => [c.id, c]));
 
@@ -99,6 +123,7 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
         moeda: nxt?.moeda ?? c.moeda ?? "BRL",
         data_anterior: dataAnterior,
         data_nova: dataNova,
+        tipo: classificarCliente(c),
       });
     }
   }
@@ -116,7 +141,7 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
     const ids = Array.from(new Set(payRows.map((p: any) => p.cliente_id).filter(Boolean)));
     const { data: clientes } = await supabase
       .from("clientes")
-      .select("id, nome, produto, moeda, data_renovacao")
+      .select("id, nome, produto, moeda, data_renovacao, cobranca_ativa, ciclo_cobranca, status_cliente")
       .in("id", ids);
     const clienteMap = new Map<string, any>((clientes || []).map((c: any) => [c.id, c]));
     const renewalByCliente = new Map<string, RenewalItem>();
@@ -140,6 +165,7 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
         paid_at: p.paid_at,
         data_anterior: renewal?.data_anterior || p.billing_date || null,
         data_nova: renewal?.data_nova || c?.data_renovacao || null,
+        tipo: classificarCliente(c),
       });
     }
   }
@@ -276,6 +302,11 @@ function buildTextReport(opts: {
   if (totals.totalUSD > 0 || totalsPrev.totalUSD > 0) {
     lines.push(`• Valor USD: ${fmtCurrency(totals.totalUSD, "USD")} (anterior: ${fmtCurrency(totals.totalUSD, "USD")}, ${pctChange(totals.totalUSD, totalsPrev.totalUSD)})`);
   }
+  {
+    const recBRL = current.payments.filter((p) => p.tipo === "mensal" && (p.moeda || "BRL") === "BRL").reduce((s, p) => s + p.amount, 0);
+    const uniBRL = current.payments.filter((p) => p.tipo !== "mensal" && (p.moeda || "BRL") === "BRL").reduce((s, p) => s + p.amount, 0);
+    lines.push(`• Recorrente (mensal): ${fmtCurrency(recBRL, "BRL")} | Venda única (registro): ${fmtCurrency(uniBRL, "BRL")}`);
+  }
   if (current.churnRisk.length > 0) {
     lines.push(`⚠️ *Em atraso na semana:* ${current.churnRisk.length} cliente(s) venceram sem renovação/pagamento (receita em risco — ainda não é churn).`);
   }
@@ -283,14 +314,15 @@ function buildTextReport(opts: {
 
   if (includeRenewals) {
     lines.push(`━━━━━━━━━━━━━━━━━━━`);
-    lines.push(`*🔄 Renovações de Clientes (${current.renewals.length})*`);
+    lines.push(`*🔄 Renovações de Clientes Mensais (${current.renewals.length})*`);
+    lines.push(`_Só clientes recorrentes têm renovação. Registro (venda única) e Agendado não renovam._`);
     lines.push(`Total BRL: ${fmtCurrency(totals.renewalsBRL, "BRL")}${totals.renewalsUSD > 0 ? ` | USD: ${fmtCurrency(totals.renewalsUSD, "USD")}` : ""}`);
     lines.push("");
     if (current.renewals.length === 0) {
       lines.push(`_Nenhuma renovação registrada nesta semana._`);
     } else {
       for (const r of current.renewals) {
-        lines.push(`• *${r.nome}*`);
+        lines.push(`• *${r.nome}* — ${TIPO_LABEL[r.tipo]}`);
         lines.push(`   Produto: ${r.produto || "-"}${r.plano ? ` (${r.plano})` : ""}`);
         lines.push(`   Valor: ${fmtCurrency(Number(r.valor) || 0, r.moeda || "BRL")}`);
         lines.push(`   Data anterior: ${fmtDate(r.data_anterior)} → Nova data: ${fmtDate(r.data_nova)}`);
@@ -300,20 +332,50 @@ function buildTextReport(opts: {
   }
 
   if (includePayments) {
+    const mensais = current.payments.filter((p) => p.tipo === "mensal");
+    const unicas = current.payments.filter((p) => p.tipo !== "mensal");
+    const somaBRL = (arr: PaymentItem[]) => arr.filter((p) => (p.moeda || "BRL") === "BRL").reduce((s, p) => s + p.amount, 0);
+    const somaUSD = (arr: PaymentItem[]) => arr.filter((p) => p.moeda === "USD").reduce((s, p) => s + p.amount, 0);
+
     lines.push(`━━━━━━━━━━━━━━━━━━━`);
     lines.push(`*💰 Pagamentos Efetivados (${current.payments.length})*`);
     lines.push(`Total BRL: ${fmtCurrency(totals.paymentsBRL, "BRL")}${totals.paymentsUSD > 0 ? ` | USD: ${fmtCurrency(totals.paymentsUSD, "USD")}` : ""}`);
     lines.push("");
-    if (current.payments.length === 0) {
-      lines.push(`_Nenhum pagamento efetivado nesta semana._`);
+
+    // --- Mensais (recorrentes) ---
+    lines.push(`*🔁 Mensais / Recorrentes (${mensais.length})*`);
+    lines.push(`Total BRL: ${fmtCurrency(somaBRL(mensais), "BRL")}${somaUSD(mensais) > 0 ? ` | USD: ${fmtCurrency(somaUSD(mensais), "USD")}` : ""}`);
+    lines.push("");
+    if (mensais.length === 0) {
+      lines.push(`_Nenhum pagamento de mensalidade nesta semana._`);
+      lines.push("");
     } else {
-      for (const p of current.payments) {
+      for (const p of mensais) {
         lines.push(`• *${p.nome}*`);
         lines.push(`   Produto: ${p.produto || "-"}`);
         lines.push(`   Valor: ${fmtCurrency(p.amount, p.moeda || "BRL")} (${p.payment_type})`);
         lines.push(`   Pago em: ${fmtDate(p.paid_at)}`);
         lines.push(`   Data antiga: ${fmtDate(p.data_anterior)}`);
         lines.push(`   Nova renovação: ${fmtDate(p.data_nova)}`);
+        lines.push("");
+      }
+    }
+
+    // --- Vendas únicas (Registro) ---
+    lines.push(`*🧾 Vendas Únicas — Registro (${unicas.length})*`);
+    lines.push(`_Venda avulsa, só registrada no sistema: não tem renovação e não entra em MRR._`);
+    lines.push(`Total BRL: ${fmtCurrency(somaBRL(unicas), "BRL")}${somaUSD(unicas) > 0 ? ` | USD: ${fmtCurrency(somaUSD(unicas), "USD")}` : ""}`);
+    lines.push("");
+    if (unicas.length === 0) {
+      lines.push(`_Nenhuma venda única nesta semana._`);
+      lines.push("");
+    } else {
+      for (const p of unicas) {
+        lines.push(`• *${p.nome}*`);
+        lines.push(`   Produto: ${p.produto || "-"}`);
+        lines.push(`   Valor: ${fmtCurrency(p.amount, p.moeda || "BRL")} (${p.payment_type})`);
+        lines.push(`   Pago em: ${fmtDate(p.paid_at)}`);
+        lines.push(`   Sem renovação (venda única)`);
         lines.push("");
       }
     }
