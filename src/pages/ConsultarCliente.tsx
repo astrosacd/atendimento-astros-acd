@@ -1048,7 +1048,16 @@ export default function ConsultarCliente() {
                                         <span>Histórico de compras</span>
                                       </DropdownMenuItem>
                                     )}
-                                    {cliente.cobranca_ativa === false && (
+                                    {isAgendado && (
+                                      <DropdownMenuItem
+                                        onClick={() => setConverterTarget(cliente)}
+                                        className="gap-2"
+                                      >
+                                        <CalendarClock className="h-4 w-4 text-sky-500" />
+                                        <span>Converter cliente</span>
+                                      </DropdownMenuItem>
+                                    )}
+                                    {cliente.cobranca_ativa === false && !isAgendado && (
                                       <DropdownMenuItem
                                         onClick={() => navigate(`/atualizar?id=${cliente.id}`)}
                                         className="gap-2"
