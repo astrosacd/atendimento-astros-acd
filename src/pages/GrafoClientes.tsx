@@ -6,6 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { Network, Sparkles } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
+import { resolveClienteSituacao, ClienteSituacao } from '@/hooks/useClientConnectionGraph';
+
+const SITUACAO_LABEL: Record<ClienteSituacao, string> = {
+  cancelado: 'Cancelado',
+  inadimplente: 'Inadimplente',
+  agendado: 'Agendado',
+  registro: 'Registro',
+  ativo: 'Ativo',
+};
 
 export default function GrafoClientes() {
   const [searchParams, setSearchParams] = useSearchParams();
