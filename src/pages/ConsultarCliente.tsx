@@ -123,6 +123,7 @@ export default function ConsultarCliente() {
   const [duplicateTarget, setDuplicateTarget] = useState<Cliente | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Cliente | null>(null);
   const [reactivateTarget, setReactivateTarget] = useState<Cliente | null>(null);
+  const [converterTarget, setConverterTarget] = useState<Cliente | null>(null);
   
   // Quick edit state
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
@@ -279,13 +280,16 @@ export default function ConsultarCliente() {
       
       // Client type filter
       if (filters.tipoCliente && filters.tipoCliente !== 'all') {
+        const isAgendado = (cliente as any).status_cliente === 'agendado';
         const hasCanceladoTag = Array.isArray(cliente.tags) && cliente.tags.some(t => String(t).toLowerCase() === 'cancelado');
-        const isCancelado = cliente.cobranca_ativa === false && hasCanceladoTag;
-        const isRegistroPuro = cliente.cobranca_ativa === false && !hasCanceladoTag;
-        if (filters.tipoCliente === 'mensal' && cliente.cobranca_ativa === false) return false;
+        const isCancelado = !isAgendado && cliente.cobranca_ativa === false && hasCanceladoTag;
+        const isRegistroPuro = !isAgendado && cliente.cobranca_ativa === false && !hasCanceladoTag;
+        if (filters.tipoCliente === 'agendado' && !isAgendado) return false;
+        if (filters.tipoCliente === 'mensal' && (cliente.cobranca_ativa === false || isAgendado)) return false;
         if (filters.tipoCliente === 'registro' && !isRegistroPuro) return false;
         if (filters.tipoCliente === 'cancelado' && !isCancelado) return false;
       }
+
       
       // Date filter
       if (filters.dataInicio) {
