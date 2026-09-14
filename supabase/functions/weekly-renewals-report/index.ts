@@ -51,6 +51,7 @@ interface PaymentItem {
   paid_at: string;
   data_anterior: string | null;
   data_nova: string | null;
+  tipo: TipoCliente;
 }
 
 function fmtCurrency(value: number, moeda: string = "BRL") {
