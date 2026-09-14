@@ -255,8 +255,10 @@ function buildTextReport(opts: {
   previous: WeekData;
   includeRenewals: boolean;
   includePayments: boolean;
+  agendados?: AgendadoItem[];
 }): string {
   const { weekStart, weekEnd, current, previous, includeRenewals, includePayments } = opts;
+  const agendados = opts.agendados || [];
   const totals = buildTotals(current.renewals, current.payments);
   const totalsPrev = buildTotals(previous.renewals, previous.payments);
 
@@ -331,6 +333,34 @@ function buildTextReport(opts: {
       lines.push(`   Valor: ${fmtCurrency(Number(c.valor) || 0, c.moeda || "BRL")}`);
       lines.push(`   Venceu em: ${fmtDate(c.data_renovacao)}`);
       lines.push("");
+    }
+  }
+
+  // === AGENDADOS ===
+  {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const vencidos = agendados.filter((a) => a.data_agendamento && String(a.data_agendamento).slice(0, 10) < hoje).length;
+    const semData = agendados.filter((a) => !a.data_agendamento).length;
+    const previstoBRL = agendados.filter((a) => (a.moeda || "BRL") === "BRL").reduce((s, a) => s + (Number(a.valor) || 0), 0);
+    const previstoUSD = agendados.filter((a) => a.moeda === "USD").reduce((s, a) => s + (Number(a.valor) || 0), 0);
+
+    lines.push(`━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`*📅 Agendados (${agendados.length})*`);
+    lines.push(`_Serviço marcado que ainda não foi retirado/usado. Não é cliente ainda: não entra em receita, MRR, churn nem lucro — é só previsão._`);
+    lines.push(`Valor previsto: ${fmtCurrency(previstoBRL, "BRL")}${previstoUSD > 0 ? ` | ${fmtCurrency(previstoUSD, "USD")}` : ""}`);
+    if (vencidos > 0) lines.push(`⚠️ ${vencidos} com data já vencida`);
+    if (semData > 0) lines.push(`🕗 ${semData} com data indefinida`);
+    lines.push("");
+    if (agendados.length === 0) {
+      lines.push(`_Nenhum serviço agendado no momento._`);
+    } else {
+      for (const a of agendados) {
+        lines.push(`• *${a.nome}*`);
+        lines.push(`   Serviço: ${a.servico || "-"}`);
+        lines.push(`   Data: ${a.data_agendamento ? fmtDate(a.data_agendamento) : "Indefinida"}`);
+        lines.push(`   Previsto: ${fmtCurrency(Number(a.valor) || 0, a.moeda || "BRL")}`);
+        lines.push("");
+      }
     }
   }
 
