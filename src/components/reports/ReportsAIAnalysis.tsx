@@ -55,9 +55,10 @@ const AI_PROVIDERS = [
 
 const LOVABLE_MODELS = [
   { value: 'google/gemini-3-flash-preview', label: 'Gemini 3 Flash (Rápido)' },
-  { value: 'google/gemini-2.5-pro', label: 'Gemini 2.5 Pro (Avançado)' },
-  { value: 'openai/gpt-5', label: 'GPT-5 (Premium)' },
-  { value: 'openai/gpt-5-mini', label: 'GPT-5 Mini (Equilibrado)' },
+  { value: 'google/gemini-3.8-flash', label: 'Gemini 3.8 Flash (Equilibrado)' },
+  { value: 'google/gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Avançado)' },
+  { value: 'openai/gpt-5.4', label: 'GPT-5.4 (Premium)' },
+  { value: 'openai/gpt-5.4-mini', label: 'GPT-5.4 Mini (Econômico)' },
 ];
 
 const OPENAI_MODELS = [
