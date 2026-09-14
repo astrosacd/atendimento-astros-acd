@@ -29,7 +29,8 @@ export function FinancialSummaryCard({ stats }: FinancialSummaryCardProps) {
       const { data: clientes } = await supabase
         .from('clientes')
         .select('valor, moeda, cobranca_ativa, ciclo_cobranca, data_renovacao')
-        .or('excluir_metricas.is.null,excluir_metricas.eq.false');
+        .or('excluir_metricas.is.null,excluir_metricas.eq.false')
+        .or('status_cliente.is.null,status_cliente.neq.agendado');
 
       // Fetch purchases
       const { data: purchases } = await supabase

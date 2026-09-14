@@ -39,7 +39,8 @@ export function DespesasSummaryCard() {
       const { data: clientes } = await supabase
         .from('clientes')
         .select('valor, moeda, cobranca_ativa, ciclo_cobranca, data_renovacao')
-        .or('excluir_metricas.is.null,excluir_metricas.eq.false');
+        .or('excluir_metricas.is.null,excluir_metricas.eq.false')
+        .or('status_cliente.is.null,status_cliente.neq.agendado');
 
       if (!despesas || !clientes) {
         setIsLoading(false);
