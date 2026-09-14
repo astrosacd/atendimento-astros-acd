@@ -101,7 +101,7 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
     const ids = Array.from(new Set(histRows.map((r: any) => r.cliente_id).filter(Boolean)));
     const { data: clientes } = await supabase
       .from("clientes")
-      .select("id, nome, produto, plano, valor, moeda")
+      .select("id, nome, produto, plano, valor, moeda, cobranca_ativa, ciclo_cobranca, status_cliente")
       .in("id", ids);
     const clienteMap = new Map<string, any>((clientes || []).map((c: any) => [c.id, c]));
 
@@ -123,6 +123,7 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
         moeda: nxt?.moeda ?? c.moeda ?? "BRL",
         data_anterior: dataAnterior,
         data_nova: dataNova,
+        tipo: classificarCliente(c),
       });
     }
   }
@@ -140,7 +141,7 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
     const ids = Array.from(new Set(payRows.map((p: any) => p.cliente_id).filter(Boolean)));
     const { data: clientes } = await supabase
       .from("clientes")
-      .select("id, nome, produto, moeda, data_renovacao")
+      .select("id, nome, produto, moeda, data_renovacao, cobranca_ativa, ciclo_cobranca, status_cliente")
       .in("id", ids);
     const clienteMap = new Map<string, any>((clientes || []).map((c: any) => [c.id, c]));
     const renewalByCliente = new Map<string, RenewalItem>();
@@ -164,6 +165,7 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
         paid_at: p.paid_at,
         data_anterior: renewal?.data_anterior || p.billing_date || null,
         data_nova: renewal?.data_nova || c?.data_renovacao || null,
+        tipo: classificarCliente(c),
       });
     }
   }
