@@ -989,7 +989,7 @@ export default function CadastrarCliente() {
                       value={formData.produto} 
                       onChange={(value) => setFormData({ ...formData, produto: value })} 
                       placeholder={clienteType === 'agendado' ? 'Selecione o serviço agendado...' : 'Selecione o produto...'}
-                      category={clienteType === 'mensal' ? 'mensal' : 'registro'}
+                      category={clienteType === 'mensal' ? 'mensal' : clienteType === 'agendado' ? 'agendado' : 'registro'}
                     />
                   </div>
                 </div>

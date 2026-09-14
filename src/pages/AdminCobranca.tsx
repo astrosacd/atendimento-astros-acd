@@ -916,7 +916,8 @@ const AdminCobranca = () => {
       const { data: allClientes } = await supabase
         .from('clientes')
         .select('id, valor, data_renovacao, moeda, ciclo_cobranca, cobranca_ativa')
-        .or('excluir_metricas.is.null,excluir_metricas.eq.false');
+        .or('excluir_metricas.is.null,excluir_metricas.eq.false')
+        .or('status_cliente.is.null,status_cliente.neq.agendado');
 
       // Calculate metrics
       const currentSent = currentLogs?.filter(l => l.status === 'sent').length || 0;

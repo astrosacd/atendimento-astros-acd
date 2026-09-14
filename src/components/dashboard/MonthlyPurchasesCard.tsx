@@ -51,7 +51,8 @@ export function MonthlyPurchasesCard() {
         .select('valor, moeda, created_at')
         .eq('cobranca_ativa', false)
         .gt('valor', 0)
-        .or('excluir_metricas.is.null,excluir_metricas.eq.false');
+        .or('excluir_metricas.is.null,excluir_metricas.eq.false')
+        .or('status_cliente.is.null,status_cliente.neq.agendado');
       
       if (clientesError) throw clientesError;
 

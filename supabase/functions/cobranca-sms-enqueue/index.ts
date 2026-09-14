@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
     for (const d of dias) {
       const targetStr = addDays(hojeStr, -d);
 
-      let q = supabase.from("clientes").select("id, numero, cobranca_ativa, data_renovacao").not("numero", "is", null).neq("numero", "").eq("data_renovacao", targetStr);
+      let q = supabase.from("clientes").select("id, numero, cobranca_ativa, data_renovacao").not("numero", "is", null).neq("numero", "").eq("data_renovacao", targetStr).or("status_cliente.is.null,status_cliente.neq.agendado");
       if (cfg.apenas_cobranca_ativa) q = q.eq("cobranca_ativa", true);
       
       const { data: clientes, error } = await q;

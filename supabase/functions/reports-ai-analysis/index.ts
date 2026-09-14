@@ -64,10 +64,10 @@ SOBRE O CAMPO "plano":
     try {
       const { data: allClientesRaw } = await supabase
         .from("clientes")
-        .select("id, nome, cpf, email, numero, produto, valor, moeda, ciclo_cobranca, data_renovacao, cobranca_ativa, plano, excluir_metricas");
+        .select("id, nome, cpf, email, numero, produto, valor, moeda, ciclo_cobranca, data_renovacao, cobranca_ativa, plano, excluir_metricas, status_cliente");
 
       if (allClientesRaw && allClientesRaw.length > 0) {
-        const allClientes = allClientesRaw.filter((c: any) => !c.excluir_metricas);
+        const allClientes = allClientesRaw.filter((c: any) => !c.excluir_metricas && c.status_cliente !== 'agendado');
         const normalizeDigits = (v: any) => (v ? String(v).replace(/\D/g, "").trim() : "");
         const normalizeEmail = (v: any) => (v ? String(v).toLowerCase().trim() : "");
 
