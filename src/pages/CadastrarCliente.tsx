@@ -977,20 +977,75 @@ export default function CadastrarCliente() {
                   <DuplicateClientWarning matches={dupCheck.duplicates.email} compact />
                 </div>
 
-                <div className={clienteType === 'registro' ? 'space-y-2 col-span-2' : 'space-y-2 flex flex-col justify-end'}>
+                <div className={clienteType === 'mensal' ? 'space-y-2 flex flex-col justify-end' : 'space-y-2 col-span-2'}>
                   <div className="space-y-2 w-full">
                     <div className="flex items-center gap-2">
                       <Package className="w-4 h-4 text-muted-foreground" />
-                      <Label htmlFor="produto" className="text-foreground font-medium">Produto <span className="text-destructive">*</span></Label>
+                      <Label htmlFor="produto" className="text-foreground font-medium">
+                        {clienteType === 'agendado' ? 'Serviço Agendado' : 'Produto'} <span className="text-destructive">*</span>
+                      </Label>
                     </div>
                     <ProductSelector 
                       value={formData.produto} 
                       onChange={(value) => setFormData({ ...formData, produto: value })} 
-                      placeholder="Selecione o produto..."
-                      category={clienteType === 'registro' ? 'registro' : 'mensal'}
+                      placeholder={clienteType === 'agendado' ? 'Selecione o serviço agendado...' : 'Selecione o produto...'}
+                      category={clienteType === 'mensal' ? 'mensal' : 'registro'}
                     />
                   </div>
                 </div>
+
+                {clienteType === 'agendado' && (
+                  <>
+                    <div className="space-y-2 col-span-2">
+                      <div className="flex items-center gap-2">
+                        <CalendarClock className="w-4 h-4 text-sky-500" />
+                        <Label htmlFor="data_agendamento" className="text-foreground font-medium">
+                          Data do Agendamento <span className="text-destructive">*</span>
+                        </Label>
+                      </div>
+                      <Input
+                        id="data_agendamento"
+                        type="date"
+                        value={dataAgendamento}
+                        onChange={(e) => setDataAgendamento(e.target.value)}
+                        className="bg-secondary border-border text-foreground h-11"
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Dia combinado para o cliente retirar / usar o serviço.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 col-span-2">
+                      <Label className="text-foreground font-medium">Valor Previsto (opcional)</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="valor-agendado"
+                          placeholder={formData.moeda === 'USD' ? '$ 0.00' : 'R$ 0,00'}
+                          value={formData.valor ? formatCurrencyInput(Math.round(formData.valor * 100).toString(), formData.moeda || 'BRL') : ''}
+                          onChange={(e) => setFormData({ ...formData, valor: parseCurrency(e.target.value) })}
+                          className="bg-secondary border-border text-foreground h-11 flex-1"
+                        />
+                        <Select
+                          value={formData.moeda || 'BRL'}
+                          onValueChange={(value) => setFormData({ ...formData, moeda: value as Moeda })}
+                        >
+                          <SelectTrigger className="bg-secondary border-border text-foreground h-11 w-28">
+                            <SelectValue placeholder="Moeda" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border">
+                            <SelectItem value="BRL">R$ BRL</SelectItem>
+                            <SelectItem value="USD">$ USD</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Valor apenas previsto — não entra em faturamento, MRR nem churn enquanto estiver agendado.
+                      </p>
+                    </div>
+                  </>
+                )}
+
 
                 {clienteType === 'mensal' && (
                   <>
