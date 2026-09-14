@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
-import { TrendingUp, TrendingDown, Users, DollarSign, UserMinus, Target, Calendar, Info, ShoppingBag, Bot, Calculator, PiggyBank, Briefcase } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, DollarSign, UserMinus, Target, Calendar, Info, ShoppingBag, Bot, Calculator, PiggyBank, Briefcase, AlertTriangle } from 'lucide-react';
 import { ReportsAIAnalysis } from '@/components/reports/ReportsAIAnalysis';
 import { WeeklyRenewalsReportConfig } from '@/components/reports/WeeklyRenewalsReportConfig';
 import { format, subMonths, startOfMonth, endOfMonth, differenceInMonths, parseISO, getMonth, getYear } from 'date-fns';
@@ -36,6 +36,7 @@ interface ClienteData {
   moeda: string;
   plano: string | null;
   cobranca_ativa?: boolean;
+  cancelado_em?: string | null;
 }
 
 interface MarketingExpense {
@@ -106,7 +107,7 @@ export default function AdminRelatorios() {
     try {
       // Busca clientes recorrentes (ativos + inativos para churn/histórico), registro, compras e gastos
       const naoExcluido = 'excluir_metricas.is.null,excluir_metricas.eq.false';
-      const cols = 'id, nome, cpf, created_at, updated_at, data_renovacao, valor, ciclo_cobranca, moeda, plano, cobranca_ativa';
+      const cols = 'id, nome, cpf, created_at, updated_at, data_renovacao, valor, ciclo_cobranca, moeda, plano, cobranca_ativa, cancelado_em';
       const [clientesRecorrentesRes, clientesInativosRes, clientesRegistroRes, clientesSemValorRes, purchasesRes, ordersRes, eventsRes, marketingRes] = await Promise.all([
         supabase.from('clientes').select(cols).eq('cobranca_ativa', true).or(naoExcluido),
         // Inativos recorrentes: cobranca_ativa=false MAS com valor > 0 e ciclo recorrente (não vitalícios)
@@ -420,12 +421,33 @@ export default function AdminRelatorios() {
   }, [events, orders]);
 
 
-  // Métricas de Churn — usa ativos + inativos para incluir cancelamentos reais
+  // Separação: cancelado de verdade (tem cancelado_em) x em atraso (só parou de renovar)
+  const clientesCancelados = useMemo(
+    () => clientesInativos.filter(c => !!c.cancelado_em),
+    [clientesInativos]
+  );
+  const clientesEmAtraso = useMemo(
+    () => clientesInativos.filter(c => !c.cancelado_em),
+    [clientesInativos]
+  );
+
+  // Receita em risco: MRR dos clientes recorrentes em atraso (não cancelados)
+  const receitaEmRisco = useMemo(() => {
+    const brl = clientesEmAtraso
+      .filter(c => (c.moeda || 'BRL') === 'BRL')
+      .reduce((acc, c) => acc + (c.valor || 0) / (CICLO_MESES[c.ciclo_cobranca] || 1), 0);
+    const usd = clientesEmAtraso
+      .filter(c => c.moeda === 'USD')
+      .reduce((acc, c) => acc + (c.valor || 0) / (CICLO_MESES[c.ciclo_cobranca] || 1), 0);
+    return { brl, usd, count: clientesEmAtraso.length };
+  }, [clientesEmAtraso]);
+
+  // Métricas de Churn — só considera cancelamentos registrados (em atraso não é churn)
   const churnMetrics = useMemo(() => {
     const mesesAtras = parseInt(periodoMeses);
     const months: MonthlyMetric[] = [];
     const today = new Date();
-    const universo = [...clientes, ...clientesInativos];
+    const universo = [...clientes, ...clientesCancelados];
 
     for (let i = mesesAtras - 1; i >= 0; i--) {
       const monthDate = subMonths(today, i);
@@ -443,14 +465,16 @@ export default function AdminRelatorios() {
 
       const clientesAtivosInicioCount = ativosInicio.size;
 
-      const perdidosNoMes = Array.from(ativosInicio).filter(identificador => {
-        const assinaturasDoCliente = universo.filter(c => (c.cpf || c.nome) === identificador);
-        const temAssinaturaAtivaNoFim = assinaturasDoCliente.some(c => {
-          const renovacao = parseISO(c.data_renovacao);
-          return renovacao >= monthEnd;
-        });
-        return !temAssinaturaAtivaNoFim;
-      }).length;
+      // Perdidos = cancelamento registrado dentro do mês (agrupado por CPF/Nome)
+      const perdidosNoMes = new Set(
+        clientesCancelados
+          .filter(c => {
+            if (!c.cancelado_em) return false;
+            const cancelado = parseISO(c.cancelado_em);
+            return cancelado >= monthStart && cancelado <= monthEnd;
+          })
+          .map(c => c.cpf || c.nome)
+      ).size;
 
       const taxaChurn = clientesAtivosInicioCount > 0 ? (perdidosNoMes / clientesAtivosInicioCount) * 100 : 0;
 
@@ -463,7 +487,7 @@ export default function AdminRelatorios() {
     }
 
     return months;
-  }, [clientes, clientesInativos, periodoMeses]);
+  }, [clientes, clientesCancelados, periodoMeses]);
 
 
   // Churn médio
@@ -575,18 +599,19 @@ export default function AdminRelatorios() {
       })
       .reduce((acc, c) => acc + valorMensal(c), 0);
 
-    // Churn MRR: clientes inativos cuja data_renovacao caiu neste mês
-    const churnMRR = clientesInativos
+    // Churn MRR: apenas cancelamentos registrados neste mês (em atraso não conta)
+    const churnMRR = clientesCancelados
       .filter(isBRL)
       .filter(c => {
-        const renovacao = parseISO(c.data_renovacao);
-        return renovacao >= monthStart && renovacao <= monthEnd;
+        if (!c.cancelado_em) return false;
+        const cancelado = parseISO(c.cancelado_em);
+        return cancelado >= monthStart && cancelado <= monthEnd;
       })
       .reduce((acc, c) => acc + valorMensal(c), 0);
 
     const netNovo = novoMRR - churnMRR;
     return { novoMRR, churnMRR, netNovo };
-  }, [clientes, clientesInativos]);
+  }, [clientes, clientesCancelados, clientesInativos]);
 
   // Top 10 clientes por MRR (BRL + USD em colunas separadas)
   const topClientes = useMemo(() => {
@@ -789,7 +814,16 @@ export default function AdminRelatorios() {
             icon={UserMinus}
             trend={churnMedio > 5 ? 'down' : 'up'}
             trendValue={churnMedio > 5 ? 'Acima do ideal' : 'Saudável'}
-            info="Porcentagem de clientes que cancelam por mês. Ideal: abaixo de 5%"
+            info="Porcentagem de clientes que cancelam por mês. Só conta cancelamento registrado. Ideal: abaixo de 5%"
+          />
+          <MetricCard
+            title="Receita em Risco"
+            value={formatCurrency(receitaEmRisco.brl, 'BRL')}
+            subtitle={`${receitaEmRisco.count} cliente(s) em atraso${receitaEmRisco.usd > 0 ? ` • ${formatCurrency(receitaEmRisco.usd, 'USD')}` : ''}`}
+            icon={AlertTriangle}
+            trend={receitaEmRisco.brl > 0 ? 'down' : 'up'}
+            trendValue={receitaEmRisco.brl > 0 ? 'Requer contato' : 'Sem pendências'}
+            info="Clientes recorrentes que pararam de renovar mas nunca cancelaram formalmente. Não entram no churn nem no MRR."
           />
         </div>
 
@@ -1186,7 +1220,10 @@ export default function AdminRelatorios() {
                   <div className="p-4 bg-muted/50 rounded-lg space-y-2">
                     <h4 className="font-medium">Como é calculado:</h4>
                     <p className="text-sm text-muted-foreground">
-                      <strong>Taxa de Churn</strong> = (Clientes perdidos no mês ÷ Clientes ativos no início) × 100
+                      <strong>Taxa de Churn</strong> = (Cancelamentos registrados no mês ÷ Clientes ativos no início) × 100
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Só conta quem cancelou de verdade. Quem apenas parou de renovar entra em <strong>Receita em Risco</strong>, e vendas de registro (sem renovação) não contam como churn.
                     </p>
                   </div>
                   <div className="space-y-2">
