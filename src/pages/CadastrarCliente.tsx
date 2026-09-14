@@ -1540,18 +1540,24 @@ export default function CadastrarCliente() {
             </form>
           ) : (
             <div className="space-y-6">
-              <h2 className={`text-lg font-semibold text-center ${clienteType === 'registro' ? 'text-amber-500' : 'text-primary'}`}>
+              <h2 className={`text-lg font-semibold text-center ${clienteType === 'registro' ? 'text-amber-500' : clienteType === 'agendado' ? 'text-sky-500' : 'text-primary'}`}>
                 Confirme os dados abaixo:
               </h2>
               <div className={`border rounded-xl p-5 space-y-2 text-sm ${
                 clienteType === 'registro' 
                   ? 'bg-amber-500/5 border-amber-500/20' 
-                  : 'bg-primary/5 border-primary/20'
+                  : clienteType === 'agendado'
+                    ? 'bg-sky-500/5 border-sky-500/20'
+                    : 'bg-primary/5 border-primary/20'
               }`}>
                 <div className="flex items-center gap-2 pb-2 mb-2 border-b border-border">
                   {clienteType === 'registro' ? (
                     <span className="px-2 py-1 rounded-full bg-amber-500/10 text-amber-500 text-xs font-medium">
                       Registro
+                    </span>
+                  ) : clienteType === 'agendado' ? (
+                    <span className="px-2 py-1 rounded-full bg-sky-500/10 text-sky-500 text-xs font-medium">
+                      Agendado
                     </span>
                   ) : (
                     <span className="px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
@@ -1561,6 +1567,10 @@ export default function CadastrarCliente() {
                 </div>
                 <p className="text-muted-foreground">Nome: <span className="text-foreground font-medium">{formData.nome}</span></p>
                 <p className="text-muted-foreground">Número: <span className="text-foreground">+{formData.numero}</span></p>
+                {clienteType === 'agendado' && (
+                  <p className="text-muted-foreground">Data do agendamento: <span className="text-foreground">{dataAgendamento ? new Date(dataAgendamento + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}</span></p>
+                )}
+
                 <p className="text-muted-foreground">Produto: <span className="text-foreground">{formData.produto}</span></p>
                 <p className="text-muted-foreground">Email: <span className="text-foreground">{formData.email}</span></p>
                 <p className="text-muted-foreground">CPF/CNPJ: <span className="text-foreground">{formData.cpf}</span></p>
