@@ -107,7 +107,7 @@ export default function AdminRelatorios() {
     try {
       // Busca clientes recorrentes (ativos + inativos para churn/histórico), registro, compras e gastos
       const naoExcluido = 'excluir_metricas.is.null,excluir_metricas.eq.false';
-      const cols = 'id, nome, cpf, created_at, updated_at, data_renovacao, valor, ciclo_cobranca, moeda, plano, cobranca_ativa';
+      const cols = 'id, nome, cpf, created_at, updated_at, data_renovacao, valor, ciclo_cobranca, moeda, plano, cobranca_ativa, cancelado_em';
       const [clientesRecorrentesRes, clientesInativosRes, clientesRegistroRes, clientesSemValorRes, purchasesRes, ordersRes, eventsRes, marketingRes] = await Promise.all([
         supabase.from('clientes').select(cols).eq('cobranca_ativa', true).or(naoExcluido),
         // Inativos recorrentes: cobranca_ativa=false MAS com valor > 0 e ciclo recorrente (não vitalícios)
