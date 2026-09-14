@@ -21,6 +21,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
+// Status de pedidos do gateway considerados pagos
+const PAID_ORDER_STATUSES = ['paid', 'approved', 'completed'];
+
 interface ClienteData {
   id: string;
   nome: string;
