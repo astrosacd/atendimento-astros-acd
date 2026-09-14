@@ -532,7 +532,8 @@ export default function AdminRelatorios() {
   const ltvPorPlano = useMemo(() => {
     const planos: Record<string, { clientes: ClienteData[], valorTotal: number, count: number }> = {};
 
-    clientes.forEach(c => {
+    // Apenas BRL: misturar USD distorce ticket médio e MRR por plano
+    clientes.filter(c => (c.moeda || 'BRL') === 'BRL').forEach(c => {
       // Normalizar planos: null, undefined, 'Nenhum' ou 'Sem plano' viram 'Individual'
       let plano = c.plano;
       if (!plano || plano === 'Nenhum' || plano === 'Sem plano') {
@@ -561,7 +562,8 @@ export default function AdminRelatorios() {
   const mrrGrowth = useMemo(() => {
     const mesesAtras = parseInt(periodoMeses);
     const months: MonthlyMetric[] = [];
-    const universo = [...clientes, ...clientesInativos];
+    // Série em BRL: somar USD junto inflaria o MRR (1 USD ≠ 1 BRL)
+    const universo = [...clientes, ...clientesInativos].filter(c => (c.moeda || 'BRL') === 'BRL');
 
     for (let i = mesesAtras - 1; i >= 0; i--) {
       const monthDate = subMonths(new Date(), i);
