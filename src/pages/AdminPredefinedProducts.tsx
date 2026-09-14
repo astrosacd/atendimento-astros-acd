@@ -206,7 +206,7 @@ export default function AdminPredefinedProducts() {
           <CardHeader>
             <CardTitle>Produtos Cadastrados</CardTitle>
             <CardDescription>
-              Os produtos são separados por tipo (Mensal, Registro, Agendado e Pipeline / CRM).
+              Os produtos são separados por tipo (Mensal, Registro e Agendado).
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -221,7 +221,7 @@ export default function AdminPredefinedProducts() {
               </div>
             ) : (
               <div className="grid gap-6">
-                {['mensal', 'registro', 'agendado', 'pipeline'].map((cat) => {
+                {['mensal', 'registro', 'agendado'].map((cat) => {
                   const categoryProducts = filteredProducts.filter(p => p.category === cat);
                   if (categoryProducts.length === 0 && !search) return null;
                   
@@ -229,7 +229,7 @@ export default function AdminPredefinedProducts() {
                     <div key={cat} className="space-y-3">
                       <h3 className="text-sm font-semibold text-primary uppercase tracking-wider flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                        {cat === 'mensal' ? 'Clientes Mensais' : cat === 'registro' ? 'Clientes Registro' : cat === 'agendado' ? 'Clientes Agendados' : 'Pipeline / CRM'}
+                        {cat === 'mensal' ? 'Clientes Mensais' : cat === 'registro' ? 'Clientes Registro' : 'Clientes Agendados'}
                       </h3>
                       <div className="grid gap-3">
                         {categoryProducts.map((product) => (
@@ -297,7 +297,7 @@ export default function AdminPredefinedProducts() {
                     <SelectItem value="mensal">Clientes Mensais</SelectItem>
                     <SelectItem value="registro">Clientes Registro</SelectItem>
                     <SelectItem value="agendado">Clientes Agendados</SelectItem>
-                    <SelectItem value="pipeline">Pipeline / CRM</SelectItem>
+                    
                   </SelectContent>
                 </Select>
               </div>

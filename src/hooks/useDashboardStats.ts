@@ -505,6 +505,10 @@ export function useDashboardStats() {
         divulgadorErrors: divulgadorErrorsCount,
         clientesCancelados,
         canceladosUltimos30d,
+        clientesAgendados,
+        agendadosPrevistoBrl,
+        agendadosPrevistoUsd,
+        agendadosVencidos,
       });
     };
 
