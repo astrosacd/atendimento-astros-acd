@@ -877,21 +877,24 @@ export default function CadastrarCliente() {
         <CardHeader className="border-b border-border pb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-xl ${clienteType === 'registro' ? 'bg-amber-500/10' : 'bg-primary/10'}`}>
+              <div className={`p-2.5 rounded-xl ${clienteType === 'registro' ? 'bg-amber-500/10' : clienteType === 'agendado' ? 'bg-sky-500/10' : 'bg-primary/10'}`}>
                 {clienteType === 'registro' ? (
                   <Infinity className="w-6 h-6 text-amber-500" />
+                ) : clienteType === 'agendado' ? (
+                  <CalendarClock className="w-6 h-6 text-sky-500" />
                 ) : (
                   <UserPlus className="w-6 h-6 text-primary" />
                 )}
               </div>
               <div>
                 <CardTitle className="text-xl font-semibold text-foreground">
-                  {clienteType === 'registro' ? 'Cliente Registro' : 'Cliente Mensal'}
+                  {clienteType === 'registro' ? 'Cliente Registro' : clienteType === 'agendado' ? 'Cliente Agendado' : 'Cliente Mensal'}
                 </CardTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {clienteType === 'registro' ? 'Sem cobrança recorrente' : 'Com cobrança automática'}
+                  {clienteType === 'registro' ? 'Sem cobrança recorrente' : clienteType === 'agendado' ? 'Serviço agendado, ainda não retirado' : 'Com cobrança automática'}
                 </p>
               </div>
+
             </div>
             <Button
               variant="ghost"
