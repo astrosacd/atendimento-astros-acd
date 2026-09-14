@@ -1220,7 +1220,10 @@ export default function AdminRelatorios() {
                   <div className="p-4 bg-muted/50 rounded-lg space-y-2">
                     <h4 className="font-medium">Como é calculado:</h4>
                     <p className="text-sm text-muted-foreground">
-                      <strong>Taxa de Churn</strong> = (Clientes perdidos no mês ÷ Clientes ativos no início) × 100
+                      <strong>Taxa de Churn</strong> = (Cancelamentos registrados no mês ÷ Clientes ativos no início) × 100
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Só conta quem cancelou de verdade. Quem apenas parou de renovar entra em <strong>Receita em Risco</strong>, e vendas de registro (sem renovação) não contam como churn.
                     </p>
                   </div>
                   <div className="space-y-2">
