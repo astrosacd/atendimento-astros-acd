@@ -165,7 +165,8 @@ export function useDashboardStats() {
 
     const fetchStats = async () => {
       const { data: allClientes } = await supabase.from('clientes').select('*');
-      const clientes = allClientes?.filter(c => !c.excluir_metricas) || [];
+      // "Agendado" ainda não é cliente: fica fora de todas as métricas do dashboard
+      const clientes = allClientes?.filter(c => !c.excluir_metricas && (c as any).status_cliente !== 'agendado') || [];
 
       const { data: purchases } = await supabase
         .from('client_purchases')
