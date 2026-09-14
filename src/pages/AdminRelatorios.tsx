@@ -814,7 +814,16 @@ export default function AdminRelatorios() {
             icon={UserMinus}
             trend={churnMedio > 5 ? 'down' : 'up'}
             trendValue={churnMedio > 5 ? 'Acima do ideal' : 'Saudável'}
-            info="Porcentagem de clientes que cancelam por mês. Ideal: abaixo de 5%"
+            info="Porcentagem de clientes que cancelam por mês. Só conta cancelamento registrado. Ideal: abaixo de 5%"
+          />
+          <MetricCard
+            title="Receita em Risco"
+            value={formatCurrency(receitaEmRisco.brl, 'BRL')}
+            subtitle={`${receitaEmRisco.count} cliente(s) em atraso${receitaEmRisco.usd > 0 ? ` • ${formatCurrency(receitaEmRisco.usd, 'USD')}` : ''}`}
+            icon={AlertTriangle}
+            trend={receitaEmRisco.brl > 0 ? 'down' : 'up'}
+            trendValue={receitaEmRisco.brl > 0 ? 'Requer contato' : 'Sem pendências'}
+            info="Clientes recorrentes que pararam de renovar mas nunca cancelaram formalmente. Não entram no churn nem no MRR."
           />
         </div>
 
