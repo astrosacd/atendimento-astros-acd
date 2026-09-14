@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
-import { TrendingUp, TrendingDown, Users, DollarSign, UserMinus, Target, Calendar, Info, ShoppingBag, Bot, Calculator, PiggyBank, Briefcase } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, DollarSign, UserMinus, Target, Calendar, Info, ShoppingBag, Bot, Calculator, PiggyBank, Briefcase, AlertTriangle } from 'lucide-react';
 import { ReportsAIAnalysis } from '@/components/reports/ReportsAIAnalysis';
 import { WeeklyRenewalsReportConfig } from '@/components/reports/WeeklyRenewalsReportConfig';
 import { format, subMonths, startOfMonth, endOfMonth, differenceInMonths, parseISO, getMonth, getYear } from 'date-fns';
