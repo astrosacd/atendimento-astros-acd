@@ -1518,7 +1518,9 @@ export default function CadastrarCliente() {
                 className={`btn-3d w-full h-12 font-medium mt-6 ${
                   clienteType === 'registro' 
                     ? 'bg-amber-500 text-white hover:bg-amber-600' 
-                    : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                    : clienteType === 'agendado'
+                      ? 'bg-sky-600 text-white hover:bg-sky-700'
+                      : 'bg-primary text-primary-foreground hover:bg-primary/90'
                 }`}
                 disabled={isLoading}
               >
