@@ -421,12 +421,33 @@ export default function AdminRelatorios() {
   }, [events, orders]);
 
 
-  // Métricas de Churn — usa ativos + inativos para incluir cancelamentos reais
+  // Separação: cancelado de verdade (tem cancelado_em) x em atraso (só parou de renovar)
+  const clientesCancelados = useMemo(
+    () => clientesInativos.filter(c => !!c.cancelado_em),
+    [clientesInativos]
+  );
+  const clientesEmAtraso = useMemo(
+    () => clientesInativos.filter(c => !c.cancelado_em),
+    [clientesInativos]
+  );
+
+  // Receita em risco: MRR dos clientes recorrentes em atraso (não cancelados)
+  const receitaEmRisco = useMemo(() => {
+    const brl = clientesEmAtraso
+      .filter(c => (c.moeda || 'BRL') === 'BRL')
+      .reduce((acc, c) => acc + (c.valor || 0) / (CICLO_MESES[c.ciclo_cobranca] || 1), 0);
+    const usd = clientesEmAtraso
+      .filter(c => c.moeda === 'USD')
+      .reduce((acc, c) => acc + (c.valor || 0) / (CICLO_MESES[c.ciclo_cobranca] || 1), 0);
+    return { brl, usd, count: clientesEmAtraso.length };
+  }, [clientesEmAtraso]);
+
+  // Métricas de Churn — só considera cancelamentos registrados (em atraso não é churn)
   const churnMetrics = useMemo(() => {
     const mesesAtras = parseInt(periodoMeses);
     const months: MonthlyMetric[] = [];
     const today = new Date();
-    const universo = [...clientes, ...clientesInativos];
+    const universo = [...clientes, ...clientesCancelados];
 
     for (let i = mesesAtras - 1; i >= 0; i--) {
       const monthDate = subMonths(today, i);
