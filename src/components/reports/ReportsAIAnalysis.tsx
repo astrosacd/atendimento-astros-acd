@@ -55,9 +55,10 @@ const AI_PROVIDERS = [
 
 const LOVABLE_MODELS = [
   { value: 'google/gemini-3-flash-preview', label: 'Gemini 3 Flash (Rápido)' },
-  { value: 'google/gemini-2.5-pro', label: 'Gemini 2.5 Pro (Avançado)' },
-  { value: 'openai/gpt-5', label: 'GPT-5 (Premium)' },
-  { value: 'openai/gpt-5-mini', label: 'GPT-5 Mini (Equilibrado)' },
+  { value: 'google/gemini-3.8-flash', label: 'Gemini 3.8 Flash (Equilibrado)' },
+  { value: 'google/gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Avançado)' },
+  { value: 'openai/gpt-5.4', label: 'GPT-5.4 (Premium)' },
+  { value: 'openai/gpt-5.4-mini', label: 'GPT-5.4 Mini (Econômico)' },
 ];
 
 const OPENAI_MODELS = [
@@ -153,7 +154,13 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
       setWhatsappNumbers(scheduleConfig.whatsapp_recipients || []);
       setEmailAddresses(scheduleConfig.email_recipients || []);
       if (scheduleConfig.ai_provider) setProvider(scheduleConfig.ai_provider);
-      if (scheduleConfig.ai_model) setModel(scheduleConfig.ai_model);
+      if (scheduleConfig.ai_model) {
+        // Modelos antigos descontinuados caem para o padrão atual
+        const provId = scheduleConfig.ai_provider || 'lovable';
+        const validModels = provId === 'openai' ? OPENAI_MODELS : provId === 'grok' ? GROK_MODELS : LOVABLE_MODELS;
+        const isValid = validModels.some(m => m.value === scheduleConfig.ai_model);
+        setModel(isValid ? scheduleConfig.ai_model : validModels[0].value);
+      }
       if (scheduleConfig.openai_api_key) setOpenaiKey(scheduleConfig.openai_api_key);
       if (scheduleConfig.grok_api_key) setGrokKey(scheduleConfig.grok_api_key);
       if (scheduleConfig.gmail_user) setGmailUser(scheduleConfig.gmail_user);

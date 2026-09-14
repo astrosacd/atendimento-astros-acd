@@ -21,6 +21,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
+// Status de pedidos do gateway considerados pagos
+const PAID_ORDER_STATUSES = ['paid', 'approved', 'completed'];
+
 interface ClienteData {
   id: string;
   nome: string;
@@ -108,7 +111,8 @@ export default function AdminRelatorios() {
         supabase.from('clientes').select(cols).eq('cobranca_ativa', true).or(naoExcluido),
         // Inativos recorrentes: cobranca_ativa=false MAS com valor > 0 e ciclo recorrente (não vitalícios)
         supabase.from('clientes').select(cols).eq('cobranca_ativa', false).gt('valor', 0).neq('ciclo_cobranca', 'vitalicio').or(naoExcluido),
-        supabase.from('clientes').select(cols).eq('cobranca_ativa', false).gt('valor', 0).or(naoExcluido),
+        // Vendas únicas: cobranca_ativa=false, valor > 0 e SEM ciclo recorrente (vitalício / sem ciclo)
+        supabase.from('clientes').select(cols).eq('cobranca_ativa', false).gt('valor', 0).or('ciclo_cobranca.is.null,ciclo_cobranca.eq.,ciclo_cobranca.eq.vitalicio').or(naoExcluido),
         supabase.from('clientes').select('id', { count: 'exact', head: true }).eq('cobranca_ativa', false).or('valor.is.null,valor.eq.0').or(naoExcluido),
         supabase.from('client_purchases').select('valor, moeda, cliente_id'),
         supabase.from('gateway_orders').select('id, created_at, status, total, currency').gte('created_at', dataInicio),
@@ -378,9 +382,9 @@ export default function AdminRelatorios() {
         return orderDate >= monthStart && orderDate <= monthEnd;
       });
 
-      const pageViews = monthEvents.filter(e => e.event_type === 'page_view').length;
-      const checkoutStarts = monthEvents.filter(e => e.event_type === 'checkout_started').length;
-      const completedOrders = monthOrders.filter(o => o.status === 'completed').length;
+      const pageViews = monthEvents.filter(e => e.event_type === 'checkout_view').length;
+      const checkoutStarts = monthEvents.filter(e => e.event_type === 'checkout_submit').length;
+      const completedOrders = monthOrders.filter(o => PAID_ORDER_STATUSES.includes(o.status)).length;
 
       const taxaConversao = pageViews > 0 ? (completedOrders / pageViews) * 100 : 0;
 
@@ -395,18 +399,18 @@ export default function AdminRelatorios() {
     return months;
   }, [events, orders, periodoMeses]);
 
-  // Funnel de Conversão (dedupe page_views por slug+dia para evitar inflar)
+  // Funnel de Conversão (dedupe checkout_view por slug+dia para evitar inflar)
   const funnelData = useMemo(() => {
     const viewKeys = new Set<string>();
     events.forEach(e => {
-      if (e.event_type === 'page_view') {
+      if (e.event_type === 'checkout_view') {
         const dia = e.created_at.slice(0, 10);
         viewKeys.add(`${e.slug || 'unknown'}::${dia}`);
       }
     });
     const pageViews = viewKeys.size;
-    const checkoutStarts = events.filter(e => e.event_type === 'checkout_started').length;
-    const completedOrders = orders.filter(o => o.status === 'completed').length;
+    const checkoutStarts = events.filter(e => e.event_type === 'checkout_submit').length;
+    const completedOrders = orders.filter(o => PAID_ORDER_STATUSES.includes(o.status)).length;
 
     return [
       { name: 'Visualizações (únicas)', value: pageViews, percentage: 100 },
