@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server, ShieldCheck, MoreHorizontal, TrendingUp, Copy, PhoneCall, MessageSquare, Gift, XCircle, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server, ShieldCheck, MoreHorizontal, TrendingUp, Copy, PhoneCall, MessageSquare, Gift, XCircle, RotateCcw, CalendarClock } from 'lucide-react';
+import { ConverterAgendadoDialog } from '@/components/clientes/ConverterAgendadoDialog';
 import { CancelClientDialog, ReactivateClientDialog } from '@/components/ClientCancelReactivateDialogs';
 import {
   DropdownMenu,
