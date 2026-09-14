@@ -490,6 +490,7 @@ serve(async (req) => {
 
     const current = await fetchWeekData(supabase, weekStart, weekEnd);
     const previous = await fetchWeekData(supabase, prevStart, prevEnd);
+    const agendados = await fetchAgendados(supabase);
 
     const currentCount = current.renewals.length + current.payments.length;
     if (!preview_only && currentCount === 0 && !effective.send_when_empty && !test) {
@@ -505,6 +506,7 @@ serve(async (req) => {
       previous,
       includeRenewals: effective.include_renewals,
       includePayments: effective.include_payments,
+      agendados,
     });
     const chartSvg = buildChartSvg(current, weekStart);
     const htmlReport = buildHtmlReport(textReport, chartSvg);
