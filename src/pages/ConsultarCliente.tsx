@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server, ShieldCheck, MoreHorizontal, TrendingUp, Copy, PhoneCall, MessageSquare, Gift, XCircle, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server, ShieldCheck, MoreHorizontal, TrendingUp, Copy, PhoneCall, MessageSquare, Gift, XCircle, RotateCcw, CalendarClock } from 'lucide-react';
+import { ConverterAgendadoDialog } from '@/components/clientes/ConverterAgendadoDialog';
 import { CancelClientDialog, ReactivateClientDialog } from '@/components/ClientCancelReactivateDialogs';
 import {
   DropdownMenu,
@@ -123,6 +124,7 @@ export default function ConsultarCliente() {
   const [duplicateTarget, setDuplicateTarget] = useState<Cliente | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Cliente | null>(null);
   const [reactivateTarget, setReactivateTarget] = useState<Cliente | null>(null);
+  const [converterTarget, setConverterTarget] = useState<Cliente | null>(null);
   
   // Quick edit state
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
@@ -279,13 +281,16 @@ export default function ConsultarCliente() {
       
       // Client type filter
       if (filters.tipoCliente && filters.tipoCliente !== 'all') {
+        const isAgendado = (cliente as any).status_cliente === 'agendado';
         const hasCanceladoTag = Array.isArray(cliente.tags) && cliente.tags.some(t => String(t).toLowerCase() === 'cancelado');
-        const isCancelado = cliente.cobranca_ativa === false && hasCanceladoTag;
-        const isRegistroPuro = cliente.cobranca_ativa === false && !hasCanceladoTag;
-        if (filters.tipoCliente === 'mensal' && cliente.cobranca_ativa === false) return false;
+        const isCancelado = !isAgendado && cliente.cobranca_ativa === false && hasCanceladoTag;
+        const isRegistroPuro = !isAgendado && cliente.cobranca_ativa === false && !hasCanceladoTag;
+        if (filters.tipoCliente === 'agendado' && !isAgendado) return false;
+        if (filters.tipoCliente === 'mensal' && (cliente.cobranca_ativa === false || isAgendado)) return false;
         if (filters.tipoCliente === 'registro' && !isRegistroPuro) return false;
         if (filters.tipoCliente === 'cancelado' && !isCancelado) return false;
       }
+
       
       // Date filter
       if (filters.dataInicio) {
@@ -674,6 +679,7 @@ export default function ConsultarCliente() {
                             <SelectItem value="all">{t('clients.allTypes')}</SelectItem>
                             <SelectItem value="mensal">{t('clients.monthly')}</SelectItem>
                             <SelectItem value="registro">{t('clients.registrationOnly')}</SelectItem>
+                            <SelectItem value="agendado" className="text-sky-500">📅 Agendados</SelectItem>
                             <SelectItem value="cancelado" className="text-rose-500">🚫 Cancelados</SelectItem>
                             <SelectItem value="inadimplente" className="text-destructive">{t('dashboard.overduedClients')}</SelectItem>
                           </SelectContent>
@@ -796,22 +802,36 @@ export default function ConsultarCliente() {
                       const tagsLower = Array.isArray(cliente.tags)
                         ? cliente.tags.map(tag => String(tag).toLowerCase())
                         : [];
-                      const isReativacaoPendente = cliente.cobranca_ativa === false
+                      const isAgendado = (cliente as any).status_cliente === 'agendado';
+                      const dataAgendamento = (cliente as any).data_agendamento as string | null;
+                      const diasVencidoAgendamento = (() => {
+                        if (!isAgendado || !dataAgendamento) return 0;
+                        const hoje = new Date();
+                        const hojeStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+                        const alvo = String(dataAgendamento).slice(0, 10);
+                        if (alvo >= hojeStr) return 0;
+                        return Math.floor((new Date(hojeStr + 'T12:00:00').getTime() - new Date(alvo + 'T12:00:00').getTime()) / 86400000);
+                      })();
+                      const isReativacaoPendente = !isAgendado && cliente.cobranca_ativa === false
                         && tagsLower.includes('reativacao-pendente');
-                      const isCancelado = cliente.cobranca_ativa === false
+                      const isCancelado = !isAgendado && cliente.cobranca_ativa === false
                         && !isReativacaoPendente
                         && tagsLower.includes('cancelado');
-                      const isRegistroPuro = cliente.cobranca_ativa === false
+                      const isRegistroPuro = !isAgendado && cliente.cobranca_ativa === false
                         && !isCancelado
                         && !isReativacaoPendente;
-                      const rowClass = isReativacaoPendente
+                      const rowClass = isAgendado
+                        ? 'bg-sky-500/5 border-sky-500/25 hover:border-sky-500/50'
+                        : isReativacaoPendente
                         ? 'bg-violet-500/5 border-violet-500/25 hover:border-violet-500/50'
                         : isCancelado
                           ? 'bg-rose-500/5 border-rose-500/25 hover:border-rose-500/50'
                           : isRegistroPuro
                             ? 'bg-amber-500/5 border-amber-500/20 hover:border-amber-500/40'
                             : 'bg-info/5 border-info/20 hover:border-info/40';
-                      const nameClass = isReativacaoPendente
+                      const nameClass = isAgendado
+                        ? 'text-sky-400'
+                        : isReativacaoPendente
                         ? 'text-violet-400'
                         : isCancelado
                           ? 'text-rose-400'
@@ -834,6 +854,19 @@ export default function ConsultarCliente() {
                                 </Badge>
                               );
                             })()}
+                            {isAgendado && (
+                              <>
+                                <Badge variant="outline" className="bg-sky-500/10 text-sky-400 border-sky-500/30 text-xs gap-1">
+                                  📅 Agendado
+                                  {dataAgendamento ? ` · ${new Date(String(dataAgendamento).slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR')}` : ''}
+                                </Badge>
+                                {diasVencidoAgendamento > 0 && (
+                                  <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/30 text-[10px]">
+                                    ⚠️ Agendamento vencido há {diasVencidoAgendamento} dia{diasVencidoAgendamento > 1 ? 's' : ''}
+                                  </Badge>
+                                )}
+                              </>
+                            )}
                             {isReativacaoPendente && (
                               <Badge variant="outline" className="bg-violet-500/10 text-violet-400 border-violet-500/30 text-xs gap-1" title="Aguardando aprovação do pagamento em Segurança de Pagamento">
                                 ⏳ Reativação pendente
@@ -1016,7 +1049,16 @@ export default function ConsultarCliente() {
                                         <span>Histórico de compras</span>
                                       </DropdownMenuItem>
                                     )}
-                                    {cliente.cobranca_ativa === false && (
+                                    {isAgendado && (
+                                      <DropdownMenuItem
+                                        onClick={() => setConverterTarget(cliente)}
+                                        className="gap-2"
+                                      >
+                                        <CalendarClock className="h-4 w-4 text-sky-500" />
+                                        <span>Converter cliente</span>
+                                      </DropdownMenuItem>
+                                    )}
+                                    {cliente.cobranca_ativa === false && !isAgendado && (
                                       <DropdownMenuItem
                                         onClick={() => navigate(`/atualizar?id=${cliente.id}`)}
                                         className="gap-2"
@@ -1744,6 +1786,24 @@ export default function ConsultarCliente() {
           open={!!reactivateTarget}
           onOpenChange={(o) => !o && setReactivateTarget(null)}
           onSuccess={async () => {
+            const fresh = await fetchClientes();
+            setAllClientes(fresh);
+            const base = query.trim()
+              ? fresh.filter((c) =>
+                  [c.nome, c.numero, c.email, c.cpf]
+                    .filter(Boolean)
+                    .some((v) => String(v).toLowerCase().includes(query.toLowerCase())),
+                )
+              : fresh;
+            setResults(applyFilters(base));
+          }}
+        />
+
+        <ConverterAgendadoDialog
+          cliente={converterTarget}
+          open={!!converterTarget}
+          onOpenChange={(o) => !o && setConverterTarget(null)}
+          onConverted={async () => {
             const fresh = await fetchClientes();
             setAllClientes(fresh);
             const base = query.trim()

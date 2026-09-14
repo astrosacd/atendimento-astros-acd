@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
-import { TrendingUp, TrendingDown, Users, DollarSign, UserMinus, Target, Calendar, Info, ShoppingBag, Bot, Calculator, PiggyBank, Briefcase, AlertTriangle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, DollarSign, UserMinus, Target, Calendar, Info, ShoppingBag, Bot, Calculator, PiggyBank, Briefcase, AlertTriangle, CalendarClock } from 'lucide-react';
 import { ReportsAIAnalysis } from '@/components/reports/ReportsAIAnalysis';
 import { WeeklyRenewalsReportConfig } from '@/components/reports/WeeklyRenewalsReportConfig';
 import { format, subMonths, startOfMonth, endOfMonth, differenceInMonths, parseISO, getMonth, getYear } from 'date-fns';
@@ -37,7 +37,11 @@ interface ClienteData {
   plano: string | null;
   cobranca_ativa?: boolean;
   cancelado_em?: string | null;
+  status_cliente?: string | null;
+  servico_agendado?: string | null;
+  data_agendamento?: string | null;
 }
+
 
 interface MarketingExpense {
   id: string;
@@ -90,6 +94,7 @@ export default function AdminRelatorios() {
   const [marketingExpenses, setMarketingExpenses] = useState<MarketingExpense[]>([]);
   const [newExpenseValue, setNewExpenseValue] = useState('');
   const [clientesRegistroSemValor, setClientesRegistroSemValor] = useState(0);
+  const [clientesAgendados, setClientesAgendados] = useState<ClienteData[]>([]);
   const [orders, setOrders] = useState<GatewayOrder[]>([]);
   const [events, setEvents] = useState<GatewayEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,14 +112,18 @@ export default function AdminRelatorios() {
     try {
       // Busca clientes recorrentes (ativos + inativos para churn/histórico), registro, compras e gastos
       const naoExcluido = 'excluir_metricas.is.null,excluir_metricas.eq.false';
-      const cols = 'id, nome, cpf, created_at, updated_at, data_renovacao, valor, ciclo_cobranca, moeda, plano, cobranca_ativa, cancelado_em';
-      const [clientesRecorrentesRes, clientesInativosRes, clientesRegistroRes, clientesSemValorRes, purchasesRes, ordersRes, eventsRes, marketingRes] = await Promise.all([
-        supabase.from('clientes').select(cols).eq('cobranca_ativa', true).or(naoExcluido),
+      // Clientes "Agendado" ficam fora de TODAS as métricas (não é cliente ainda)
+      const naoAgendado = 'status_cliente.is.null,status_cliente.neq.agendado';
+      const cols = 'id, nome, cpf, created_at, updated_at, data_renovacao, valor, ciclo_cobranca, moeda, plano, cobranca_ativa, cancelado_em, status_cliente, servico_agendado, data_agendamento';
+      const [clientesRecorrentesRes, clientesInativosRes, clientesRegistroRes, clientesSemValorRes, agendadosRes, purchasesRes, ordersRes, eventsRes, marketingRes] = await Promise.all([
+        supabase.from('clientes').select(cols).eq('cobranca_ativa', true).or(naoExcluido).or(naoAgendado),
         // Inativos recorrentes: cobranca_ativa=false MAS com valor > 0 e ciclo recorrente (não vitalícios)
-        supabase.from('clientes').select(cols).eq('cobranca_ativa', false).gt('valor', 0).neq('ciclo_cobranca', 'vitalicio').or(naoExcluido),
+        supabase.from('clientes').select(cols).eq('cobranca_ativa', false).gt('valor', 0).neq('ciclo_cobranca', 'vitalicio').or(naoExcluido).or(naoAgendado),
         // Vendas únicas: cobranca_ativa=false, valor > 0 e SEM ciclo recorrente (vitalício / sem ciclo)
-        supabase.from('clientes').select(cols).eq('cobranca_ativa', false).gt('valor', 0).or('ciclo_cobranca.is.null,ciclo_cobranca.eq.,ciclo_cobranca.eq.vitalicio').or(naoExcluido),
-        supabase.from('clientes').select('id', { count: 'exact', head: true }).eq('cobranca_ativa', false).or('valor.is.null,valor.eq.0').or(naoExcluido),
+        supabase.from('clientes').select(cols).eq('cobranca_ativa', false).gt('valor', 0).or('ciclo_cobranca.is.null,ciclo_cobranca.eq.,ciclo_cobranca.eq.vitalicio').or(naoExcluido).or(naoAgendado),
+        supabase.from('clientes').select('id', { count: 'exact', head: true }).eq('cobranca_ativa', false).or('valor.is.null,valor.eq.0').or(naoExcluido).or(naoAgendado),
+        // Agendados: fora das métricas, exibidos em card próprio
+        supabase.from('clientes').select(cols).eq('status_cliente', 'agendado'),
         supabase.from('client_purchases').select('valor, moeda, cliente_id'),
         supabase.from('gateway_orders').select('id, created_at, status, total, currency').gte('created_at', dataInicio),
         supabase.from('gateway_events').select('id, event_type, created_at, slug').gte('created_at', dataInicio),
@@ -125,10 +134,12 @@ export default function AdminRelatorios() {
       if (clientesInativosRes.data) setClientesInativos(clientesInativosRes.data);
       if (clientesRegistroRes.data) setClientesRegistro(clientesRegistroRes.data);
       setClientesRegistroSemValor(clientesSemValorRes.count || 0);
+      if (agendadosRes.data) setClientesAgendados(agendadosRes.data as ClienteData[]);
       if (purchasesRes.data) setPurchases(purchasesRes.data);
       if (ordersRes.data) setOrders(ordersRes.data);
       if (eventsRes.data) setEvents(eventsRes.data);
       if (marketingRes.data) setMarketingExpenses(marketingRes.data);
+
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
     } finally {
@@ -430,6 +441,23 @@ export default function AdminRelatorios() {
     () => clientesInativos.filter(c => !c.cancelado_em),
     [clientesInativos]
   );
+
+  // Agendados: fora de todas as métricas, exibidos em card próprio
+  const agendadosPrevisto = useMemo(() => {
+    const brl = clientesAgendados
+      .filter(c => (c.moeda || 'BRL') === 'BRL')
+      .reduce((acc, c) => acc + (c.valor || 0), 0);
+    const usd = clientesAgendados
+      .filter(c => c.moeda === 'USD')
+      .reduce((acc, c) => acc + (c.valor || 0), 0);
+    return { brl, usd };
+  }, [clientesAgendados]);
+
+  const agendadosVencidos = useMemo(() => {
+    const hoje = new Date();
+    const hojeStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+    return clientesAgendados.filter(c => c.data_agendamento && String(c.data_agendamento).slice(0, 10) < hojeStr).length;
+  }, [clientesAgendados]);
 
   // Receita em risco: MRR dos clientes recorrentes em atraso (não cancelados)
   const receitaEmRisco = useMemo(() => {
@@ -824,6 +852,15 @@ export default function AdminRelatorios() {
             trend={receitaEmRisco.brl > 0 ? 'down' : 'up'}
             trendValue={receitaEmRisco.brl > 0 ? 'Requer contato' : 'Sem pendências'}
             info="Clientes recorrentes que pararam de renovar mas nunca cancelaram formalmente. Não entram no churn nem no MRR."
+          />
+          <MetricCard
+            title="Agendados"
+            value={`${clientesAgendados.length}`}
+            subtitle={`Valor previsto: ${formatCurrency(agendadosPrevisto.brl, 'BRL')}${agendadosPrevisto.usd > 0 ? ` • ${formatCurrency(agendadosPrevisto.usd, 'USD')}` : ''}${agendadosVencidos > 0 ? ` • ${agendadosVencidos} vencido(s)` : ''}`}
+            icon={CalendarClock}
+            trend="up"
+            trendValue={agendadosVencidos > 0 ? 'Tem vencido' : 'Em dia'}
+            info="Cadastros que agendaram um serviço e ainda não fecharam. Não entram em MRR, churn, receita nem receita em risco."
           />
         </div>
 

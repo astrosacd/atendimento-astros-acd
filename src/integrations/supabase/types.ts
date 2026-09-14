@@ -2107,9 +2107,12 @@ export type Database = {
           cancelado_em: string | null
           ciclo_cobranca: string
           cobranca_ativa: boolean
+          convertido_de: string | null
+          convertido_em: string | null
           cpf: string | null
           created_at: string
           created_by: string | null
+          data_agendamento: string | null
           data_d_mais_1: string | null
           data_d_mais_15: string | null
           data_d_mais_2: string | null
@@ -2125,6 +2128,8 @@ export type Database = {
           observacao: string | null
           plano: string | null
           produto: string
+          servico_agendado: string | null
+          status_cliente: string
           tags: string[] | null
           tipo: string | null
           updated_at: string
@@ -2134,9 +2139,12 @@ export type Database = {
           cancelado_em?: string | null
           ciclo_cobranca?: string
           cobranca_ativa?: boolean
+          convertido_de?: string | null
+          convertido_em?: string | null
           cpf?: string | null
           created_at?: string
           created_by?: string | null
+          data_agendamento?: string | null
           data_d_mais_1?: string | null
           data_d_mais_15?: string | null
           data_d_mais_2?: string | null
@@ -2152,6 +2160,8 @@ export type Database = {
           observacao?: string | null
           plano?: string | null
           produto: string
+          servico_agendado?: string | null
+          status_cliente?: string
           tags?: string[] | null
           tipo?: string | null
           updated_at?: string
@@ -2161,9 +2171,12 @@ export type Database = {
           cancelado_em?: string | null
           ciclo_cobranca?: string
           cobranca_ativa?: boolean
+          convertido_de?: string | null
+          convertido_em?: string | null
           cpf?: string | null
           created_at?: string
           created_by?: string | null
+          data_agendamento?: string | null
           data_d_mais_1?: string | null
           data_d_mais_15?: string | null
           data_d_mais_2?: string | null
@@ -2179,6 +2192,8 @@ export type Database = {
           observacao?: string | null
           plano?: string | null
           produto?: string
+          servico_agendado?: string | null
+          status_cliente?: string
           tags?: string[] | null
           tipo?: string | null
           updated_at?: string

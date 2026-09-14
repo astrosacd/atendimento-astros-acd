@@ -38,6 +38,12 @@ export interface Cliente {
   updated_at: string;
   tipo?: string;
   excluir_metricas?: boolean;
+  cancelado_em?: string | null;
+  status_cliente?: string | null;
+  servico_agendado?: string | null;
+  data_agendamento?: string | null;
+  convertido_em?: string | null;
+  convertido_de?: string | null;
 }
 
 export interface ClienteInput {
@@ -56,6 +62,11 @@ export interface ClienteInput {
   ciclo_cobranca?: CicloCobranca;
   tipo?: string;
   excluir_metricas?: boolean;
+  status_cliente?: string;
+  servico_agendado?: string | null;
+  data_agendamento?: string | null;
+  convertido_em?: string | null;
+  convertido_de?: string | null;
 }
 
 export const useClientes = () => {

@@ -23,7 +23,7 @@ import { useTranslation } from 'react-i18next';
 import { useDuplicateCheck } from '@/hooks/useDuplicateCheck';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { DuplicateClientWarning } from '@/components/DuplicateClientWarning';
-import { AlertTriangle, Package } from 'lucide-react';
+import { AlertTriangle, Package, CalendarClock } from 'lucide-react';
 import { ProductSelector } from '@/components/products/ProductSelector';
 import { ClientLicensesManager } from "@/components/ClientLicensesManager";
 import { isInternationalPhoneNumber } from '@/utils/phoneInternational';
@@ -49,7 +49,17 @@ const clienteVitalicioSchema = z.object({
   moeda: z.enum(['BRL', 'USD']).optional(),
 });
 
-type ClienteType = 'mensal' | 'registro' | null;
+const clienteAgendadoSchema = z.object({
+  nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+  numero: z.string().min(10, 'Número deve ter pelo menos 10 dígitos'),
+  produto: z.string().min(1, 'Serviço agendado é obrigatório'),
+  email: z.string().email('Email inválido').optional().or(z.literal('')),
+  cpf: z.string().optional().or(z.literal('')),
+  valor: z.number().min(0, 'Valor deve ser zero ou maior'),
+  moeda: z.enum(['BRL', 'USD']).optional(),
+});
+
+type ClienteType = 'mensal' | 'registro' | 'agendado' | null;
 
 interface UploadedFile {
   file: File;
@@ -68,6 +78,7 @@ export default function CadastrarCliente() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [clienteType, setClienteType] = useState<ClienteType>(null);
+  const [dataAgendamento, setDataAgendamento] = useState<string>('');
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [countryCode, setCountryCode] = useState('BR');
@@ -220,6 +231,16 @@ export default function CadastrarCliente() {
         data_renovacao: new Date().toISOString().split('T')[0],
         plano: 'Nenhum',
         moeda: 'BRL'
+      }));
+    } else if (clienteType === 'agendado') {
+      setFormData(prev => ({
+        ...prev,
+        cobranca_ativa: false,
+        data_renovacao: new Date().toISOString().split('T')[0],
+        plano: 'Nenhum',
+        moeda: 'BRL',
+        tipo: prev.tipo || 'cliente',
+        excluir_metricas: false,
       }));
     }
   }, [clienteType]);
@@ -489,8 +510,18 @@ export default function CadastrarCliente() {
       return;
     }
 
-    // Validação: Meio de Pagamento é obrigatório
-    if (!paymentMethod) {
+    // Validação: data do agendamento é obrigatória para cliente agendado
+    if (clienteType === 'agendado' && !dataAgendamento) {
+      toast({
+        title: 'Data do agendamento obrigatória',
+        description: 'Informe para qual dia o serviço foi agendado.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validação: Meio de Pagamento é obrigatório (não se aplica a agendado)
+    if (clienteType !== 'agendado' && !paymentMethod) {
       toast({
         title: 'Meio de Pagamento obrigatório',
         description: 'Selecione como o cliente pagou para continuar.',
@@ -545,9 +576,13 @@ export default function CadastrarCliente() {
       return;
     }
     
-    const schema = clienteType === 'registro' ? clienteVitalicioSchema : clienteSchema;
-    
-    const dataToValidate = clienteType === 'registro'
+    const schema = clienteType === 'registro'
+      ? clienteVitalicioSchema
+      : clienteType === 'agendado'
+        ? clienteAgendadoSchema
+        : clienteSchema;
+
+    const dataToValidate = (clienteType === 'registro' || clienteType === 'agendado')
       ? {
           nome: formData.nome,
           numero: formData.numero,
@@ -593,6 +628,9 @@ export default function CadastrarCliente() {
         ...formData,
         valor: Number(formData.valor),
         moeda: formData.moeda || 'BRL',
+        status_cliente: clienteType === 'agendado' ? 'agendado' : 'ativo',
+        servico_agendado: clienteType === 'agendado' ? formData.produto : null,
+        data_agendamento: clienteType === 'agendado' ? dataAgendamento : null,
       });
       
       if (cliente) {
@@ -629,7 +667,7 @@ export default function CadastrarCliente() {
         
         setShowConfirmation(false);
         setShowSuccess(true);
-        logActivity(`Cadastrou novo cliente: ${formData.nome}`, 'cliente', `Tipo: ${clienteType === 'registro' ? 'Registro' : 'Mensal'}`);
+        logActivity(`Cadastrou novo cliente: ${formData.nome}`, 'cliente', `Tipo: ${clienteType === 'registro' ? 'Registro' : clienteType === 'agendado' ? 'Agendado' : 'Mensal'}`);
       }
     } finally {
       setIsSaving(false);
@@ -657,6 +695,7 @@ export default function CadastrarCliente() {
       ciclo_cobranca: '' as any,
     });
     setUploadedFiles([]);
+    setDataAgendamento('');
     setPixProof(null);
     setPaymentMethod('');
     setPaymentLinkUrl('');
@@ -728,7 +767,7 @@ export default function CadastrarCliente() {
               </p>
             </CardHeader>
             <CardContent className="pt-8 pb-8">
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-3 gap-6">
                 {/* Mensal Option */}
                 <button
                   onClick={() => setClienteType('mensal')}
@@ -784,7 +823,36 @@ export default function CadastrarCliente() {
                     </div>
                   </div>
                 </button>
+
+                {/* Agendado Option */}
+                <button
+                  onClick={() => setClienteType('agendado')}
+                  className="group relative p-6 rounded-2xl border-2 border-border bg-secondary/30 hover:border-sky-500 hover:bg-sky-500/5 transition-all duration-300 text-left"
+                >
+                  <div className="flex flex-col items-center text-center gap-4">
+                    <div className="p-4 rounded-2xl bg-sky-500/10 group-hover:bg-sky-500/20 transition-colors">
+                      <CalendarClock className="w-10 h-10 text-sky-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground mb-2">
+                        Agendado
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Cliente agendou um serviço e ainda não pegou
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 justify-center mt-2">
+                      <span className="text-xs px-2 py-1 rounded-full bg-sky-500/10 text-sky-500">
+                        Sem cobrança
+                      </span>
+                      <span className="text-xs px-2 py-1 rounded-full bg-sky-500/10 text-sky-500">
+                        Fora das métricas
+                      </span>
+                    </div>
+                  </div>
+                </button>
               </div>
+
 
               <Button 
                 type="button"
@@ -809,21 +877,24 @@ export default function CadastrarCliente() {
         <CardHeader className="border-b border-border pb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-xl ${clienteType === 'registro' ? 'bg-amber-500/10' : 'bg-primary/10'}`}>
+              <div className={`p-2.5 rounded-xl ${clienteType === 'registro' ? 'bg-amber-500/10' : clienteType === 'agendado' ? 'bg-sky-500/10' : 'bg-primary/10'}`}>
                 {clienteType === 'registro' ? (
                   <Infinity className="w-6 h-6 text-amber-500" />
+                ) : clienteType === 'agendado' ? (
+                  <CalendarClock className="w-6 h-6 text-sky-500" />
                 ) : (
                   <UserPlus className="w-6 h-6 text-primary" />
                 )}
               </div>
               <div>
                 <CardTitle className="text-xl font-semibold text-foreground">
-                  {clienteType === 'registro' ? 'Cliente Registro' : 'Cliente Mensal'}
+                  {clienteType === 'registro' ? 'Cliente Registro' : clienteType === 'agendado' ? 'Cliente Agendado' : 'Cliente Mensal'}
                 </CardTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {clienteType === 'registro' ? 'Sem cobrança recorrente' : 'Com cobrança automática'}
+                  {clienteType === 'registro' ? 'Sem cobrança recorrente' : clienteType === 'agendado' ? 'Serviço agendado, ainda não retirado' : 'Com cobrança automática'}
                 </p>
               </div>
+
             </div>
             <Button
               variant="ghost"
@@ -906,20 +977,75 @@ export default function CadastrarCliente() {
                   <DuplicateClientWarning matches={dupCheck.duplicates.email} compact />
                 </div>
 
-                <div className={clienteType === 'registro' ? 'space-y-2 col-span-2' : 'space-y-2 flex flex-col justify-end'}>
+                <div className={clienteType === 'mensal' ? 'space-y-2 flex flex-col justify-end' : 'space-y-2 col-span-2'}>
                   <div className="space-y-2 w-full">
                     <div className="flex items-center gap-2">
                       <Package className="w-4 h-4 text-muted-foreground" />
-                      <Label htmlFor="produto" className="text-foreground font-medium">Produto <span className="text-destructive">*</span></Label>
+                      <Label htmlFor="produto" className="text-foreground font-medium">
+                        {clienteType === 'agendado' ? 'Serviço Agendado' : 'Produto'} <span className="text-destructive">*</span>
+                      </Label>
                     </div>
                     <ProductSelector 
                       value={formData.produto} 
                       onChange={(value) => setFormData({ ...formData, produto: value })} 
-                      placeholder="Selecione o produto..."
-                      category={clienteType === 'registro' ? 'registro' : 'mensal'}
+                      placeholder={clienteType === 'agendado' ? 'Selecione o serviço agendado...' : 'Selecione o produto...'}
+                      category={clienteType === 'mensal' ? 'mensal' : 'registro'}
                     />
                   </div>
                 </div>
+
+                {clienteType === 'agendado' && (
+                  <>
+                    <div className="space-y-2 col-span-2">
+                      <div className="flex items-center gap-2">
+                        <CalendarClock className="w-4 h-4 text-sky-500" />
+                        <Label htmlFor="data_agendamento" className="text-foreground font-medium">
+                          Data do Agendamento <span className="text-destructive">*</span>
+                        </Label>
+                      </div>
+                      <Input
+                        id="data_agendamento"
+                        type="date"
+                        value={dataAgendamento}
+                        onChange={(e) => setDataAgendamento(e.target.value)}
+                        className="bg-secondary border-border text-foreground h-11"
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Dia combinado para o cliente retirar / usar o serviço.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 col-span-2">
+                      <Label className="text-foreground font-medium">Valor Previsto (opcional)</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="valor-agendado"
+                          placeholder={formData.moeda === 'USD' ? '$ 0.00' : 'R$ 0,00'}
+                          value={formData.valor ? formatCurrencyInput(Math.round(formData.valor * 100).toString(), formData.moeda || 'BRL') : ''}
+                          onChange={(e) => setFormData({ ...formData, valor: parseCurrency(e.target.value) })}
+                          className="bg-secondary border-border text-foreground h-11 flex-1"
+                        />
+                        <Select
+                          value={formData.moeda || 'BRL'}
+                          onValueChange={(value) => setFormData({ ...formData, moeda: value as Moeda })}
+                        >
+                          <SelectTrigger className="bg-secondary border-border text-foreground h-11 w-28">
+                            <SelectValue placeholder="Moeda" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border">
+                            <SelectItem value="BRL">R$ BRL</SelectItem>
+                            <SelectItem value="USD">$ USD</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Valor apenas previsto — não entra em faturamento, MRR nem churn enquanto estiver agendado.
+                      </p>
+                    </div>
+                  </>
+                )}
+
 
                 {clienteType === 'mensal' && (
                   <>
@@ -1014,6 +1140,7 @@ export default function CadastrarCliente() {
 
 
               {/* Meio de Pagamento */}
+              {clienteType !== 'agendado' && (
               <div className="space-y-4 pt-4 border-t border-border">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-primary" />
@@ -1199,6 +1326,8 @@ export default function CadastrarCliente() {
                   )}
                 </div>
               </div>
+              )}
+
 
               {clienteType === 'registro' && (
                 <div className="space-y-3 mt-4">
@@ -1389,7 +1518,9 @@ export default function CadastrarCliente() {
                 className={`btn-3d w-full h-12 font-medium mt-6 ${
                   clienteType === 'registro' 
                     ? 'bg-amber-500 text-white hover:bg-amber-600' 
-                    : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                    : clienteType === 'agendado'
+                      ? 'bg-sky-600 text-white hover:bg-sky-700'
+                      : 'bg-primary text-primary-foreground hover:bg-primary/90'
                 }`}
                 disabled={isLoading}
               >
@@ -1409,18 +1540,24 @@ export default function CadastrarCliente() {
             </form>
           ) : (
             <div className="space-y-6">
-              <h2 className={`text-lg font-semibold text-center ${clienteType === 'registro' ? 'text-amber-500' : 'text-primary'}`}>
+              <h2 className={`text-lg font-semibold text-center ${clienteType === 'registro' ? 'text-amber-500' : clienteType === 'agendado' ? 'text-sky-500' : 'text-primary'}`}>
                 Confirme os dados abaixo:
               </h2>
               <div className={`border rounded-xl p-5 space-y-2 text-sm ${
                 clienteType === 'registro' 
                   ? 'bg-amber-500/5 border-amber-500/20' 
-                  : 'bg-primary/5 border-primary/20'
+                  : clienteType === 'agendado'
+                    ? 'bg-sky-500/5 border-sky-500/20'
+                    : 'bg-primary/5 border-primary/20'
               }`}>
                 <div className="flex items-center gap-2 pb-2 mb-2 border-b border-border">
                   {clienteType === 'registro' ? (
                     <span className="px-2 py-1 rounded-full bg-amber-500/10 text-amber-500 text-xs font-medium">
                       Registro
+                    </span>
+                  ) : clienteType === 'agendado' ? (
+                    <span className="px-2 py-1 rounded-full bg-sky-500/10 text-sky-500 text-xs font-medium">
+                      Agendado
                     </span>
                   ) : (
                     <span className="px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
@@ -1430,6 +1567,10 @@ export default function CadastrarCliente() {
                 </div>
                 <p className="text-muted-foreground">Nome: <span className="text-foreground font-medium">{formData.nome}</span></p>
                 <p className="text-muted-foreground">Número: <span className="text-foreground">+{formData.numero}</span></p>
+                {clienteType === 'agendado' && (
+                  <p className="text-muted-foreground">Data do agendamento: <span className="text-foreground">{dataAgendamento ? new Date(dataAgendamento + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}</span></p>
+                )}
+
                 <p className="text-muted-foreground">Produto: <span className="text-foreground">{formData.produto}</span></p>
                 <p className="text-muted-foreground">Email: <span className="text-foreground">{formData.email}</span></p>
                 <p className="text-muted-foreground">CPF/CNPJ: <span className="text-foreground">{formData.cpf}</span></p>
