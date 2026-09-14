@@ -33,52 +33,7 @@ export default function LeadHunterConfig() {
   const [serpApiKey, setSerpApiKey] = useState('');
   const [openaiKey, setOpenaiKey] = useState('');
   const [groqKey, setGroqKey] = useState('');
-  const [whatsappProvider, setWhatsappProvider] = useState('evolution');
-  const [metaAccessToken, setMetaAccessToken] = useState('');
-  const [metaPhoneNumberId, setMetaPhoneNumberId] = useState('');
-  const [metaWabaId, setMetaWabaId] = useState('');
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
-  const [isSyncingMeta, setIsSyncingMeta] = useState(false);
-  const [metaTemplates, setMetaTemplates] = useState<any[]>([]);
-  const [webhookInfo, setWebhookInfo] = useState<{ url: string, token: string } | null>(null);
-
-  const syncMetaTemplates = async () => {
-    if (!metaAccessToken || !metaWabaId) {
-      toast.error("Informe Access Token e WABA ID primeiro");
-      return;
-    }
-    
-    setIsSyncingMeta(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('whatsapp-meta-api', {
-        body: { 
-          action: 'fetch-templates',
-          accessToken: metaAccessToken,
-          wabaId: metaWabaId
-        }
-      });
-      
-      if (error) throw error;
-      setMetaTemplates(data.templates || []);
-      toast.success(`Conectado com sucesso! ${data.templates?.length || 0} templates sincronizados.`);
-    } catch (err: any) {
-      toast.error("Erro de conexão: Verifique se o Token e WABA ID estão corretos. Detalhe: " + err.message);
-    } finally {
-      setIsSyncingMeta(false);
-    }
-  };
-
-  const getWebhookInfo = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('whatsapp-meta-api', {
-        body: { action: 'get-webhook-info' }
-      });
-      if (error) throw error;
-      setWebhookInfo({ url: data.webhookUrl, token: data.verifyToken });
-    } catch (err: any) {
-      console.error("Erro ao buscar info do webhook", err);
-    }
-  };
 
   // Scraping skip domains
   const DEFAULT_SKIP_DOMAINS = [
@@ -102,10 +57,6 @@ export default function LeadHunterConfig() {
       setSerpApiKey(config.serp_api_key || '');
       setOpenaiKey(config.openai_api_key || '');
       setGroqKey(config.groq_api_key || '');
-      setWhatsappProvider(config.whatsapp_provider || 'evolution');
-      setMetaAccessToken(config.meta_access_token || '');
-      setMetaPhoneNumberId(config.meta_phone_number_id || '');
-      setMetaWabaId(config.meta_waba_id || '');
       if (config.scrape_skip_domains) {
         try {
           setSkipDomains(JSON.parse(config.scrape_skip_domains));
@@ -131,10 +82,7 @@ export default function LeadHunterConfig() {
       openai_api_key: openaiKey,
       groq_api_key: groqKey,
       scrape_skip_domains: JSON.stringify(skipDomains),
-      whatsapp_provider: whatsappProvider,
-      meta_access_token: metaAccessToken,
-      meta_phone_number_id: metaPhoneNumberId,
-      meta_waba_id: metaWabaId,
+      whatsapp_provider: 'evolution',
     });
   };
 
@@ -218,242 +166,7 @@ export default function LeadHunterConfig() {
 
       {/* WhatsApp Tab */}
       <TabsContent value="whatsapp">
-        <Card className="border-border/40 mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><MessageSquare className="h-5 w-5" /> Provedor WhatsApp</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-4">
-              <Label>Selecione o Provedor de Disparo</Label>
-              <Select value={whatsappProvider} onValueChange={setWhatsappProvider}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o provedor" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="evolution">Evolution API (Instâncias)</SelectItem>
-                  <SelectItem value="official">WhatsApp API Oficial (Meta)</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Escolha se as mensagens da campanha serão enviadas via Evolution ou API Oficial.
-              </p>
-              <Button onClick={handleSaveApis} disabled={updateConfig.isPending}>
-                <Save className="h-4 w-4 mr-2" /> Salvar Provedor
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {whatsappProvider === 'official' ? (
-          <Card className="border-border/40">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" /> WhatsApp API Oficial (Meta)</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Access Token</Label>
-                  <Input 
-                    type="password" 
-                    value={metaAccessToken} 
-                    onChange={e => setMetaAccessToken(e.target.value)} 
-                    placeholder="EAAB..." 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Phone Number ID</Label>
-                  <Input 
-                    value={metaPhoneNumberId} 
-                    onChange={e => setMetaPhoneNumberId(e.target.value)} 
-                    placeholder="1234567890..." 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>WABA ID</Label>
-                  <Input 
-                    value={metaWabaId} 
-                    onChange={e => setMetaWabaId(e.target.value)} 
-                    placeholder="1234567890..." 
-                  />
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-3 pt-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={syncMetaTemplates} 
-                  disabled={isSyncingMeta}
-                  className="gap-2"
-                >
-                  {isSyncingMeta ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                  Sincronizar Templates
-                </Button>
-                
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={getWebhookInfo}
-                  className="gap-2 text-xs"
-                >
-                  <Globe className="w-3 h-3" /> Configurar Webhook (Opcional)
-                </Button>
-              </div>
-
-              {webhookInfo && (
-                <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs space-y-2">
-                  <p className="font-semibold text-blue-400">Configuração de Webhook na Meta:</p>
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground">URL de Retorno:</p>
-                    <code className="block p-1 bg-background border rounded truncate">{webhookInfo.url}</code>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground">Token de Verificação:</p>
-                    <code className="block p-1 bg-background border rounded">{webhookInfo.token}</code>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-6 pt-6 border-t border-border/40">
-                <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                  <Info className="w-4 h-4 text-primary" />
-                  Mapeamento de Variáveis (Meta)
-                </h4>
-                <p className="text-xs text-muted-foreground mb-4">
-                  Escolha o que enviar em cada variável {"{{1}}, {{2}}"}, etc. do template.
-                  <strong>Dica:</strong> Para não enviar nada em uma variável, selecione "Vazio (Remover)".
-                </p>
-                
-                <div className="space-y-4 mb-6">
-                  <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-[11px] text-blue-400 mb-4">
-                    <p><strong>Configuração:</strong> Mapeie abaixo quais dados do lead devem preencher as variáveis do seu template da Meta.</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[1, 2, 3, 4, 5, 6].map((num) => (
-                      <div key={num} className="space-y-2 p-3 bg-background/50 rounded-md border border-border/30">
-                        <Label className="text-xs flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <code className="bg-muted px-1.5 py-0.5 rounded text-primary">{"{{"}{num}{"}}"}</code>
-                            Variável {num}
-                          </div>
-                          <Select 
-                            value={config[`meta_var_${num}_target`] || 'body'}
-                            onValueChange={(val) => updateConfig.mutate({ [`meta_var_${num}_target`]: val })}
-                          >
-                            <SelectTrigger className="h-6 w-[100px] text-[10px] bg-transparent border-none">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="body">Corpo</SelectItem>
-                              <SelectItem value="header">Cabeçalho</SelectItem>
-                              <SelectItem value="button_1">Botão 1</SelectItem>
-                              <SelectItem value="button_2">Botão 2</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </Label>
-                        <Select 
-                          value={config[`meta_var_${num}_field`] || 'none'}
-                          onValueChange={(val) => updateConfig.mutate({ [`meta_var_${num}_field`]: val })}
-                        >
-                          <SelectTrigger className="h-8 text-[11px]">
-                            <SelectValue placeholder="Selecione o dado" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="nome">Nome do Lead</SelectItem>
-                            <SelectItem value="empresa">Nome da Empresa</SelectItem>
-                            <SelectItem value="categoria">Categoria/Setor</SelectItem>
-                            <SelectItem value="cidade">Cidade</SelectItem>
-                            <SelectItem value="telefone">Telefone</SelectItem>
-                            <SelectItem value="website">Website</SelectItem>
-                            <SelectItem value="website">Website</SelectItem>
-                            <SelectItem value="none">Vazio (Remover)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
-                  <Send className="w-4 h-4 text-primary" />
-                  Envio de Teste (Oficial)
-                </h4>
-                <div className="flex flex-col md:flex-row gap-3">
-                  <div className="flex-1">
-                    <Input 
-                      placeholder="Número (Ex: 5511999999999)"
-                      id="test_phone_hunter"
-                      className="h-10"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <Select onValueChange={(v) => {
-                      const el = document.getElementById('test_template_hunter_val') as HTMLInputElement;
-                      if (el) el.value = v;
-                    }}>
-                      <SelectTrigger className="h-10">
-                        <SelectValue placeholder="Selecione o template" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {metaTemplates.length > 0 ? (
-                          metaTemplates.map(tmpl => (
-                            <SelectItem key={tmpl.id} value={tmpl.name}>
-                              {tmpl.name} ({tmpl.language})
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="none" disabled>Sincronize primeiro</SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <input type="hidden" id="test_template_hunter_val" />
-                  </div>
-                  <Button 
-                    variant="secondary"
-                    onClick={async () => {
-                      const phone = (document.getElementById('test_phone_hunter') as HTMLInputElement)?.value;
-                      const template = (document.getElementById('test_template_hunter_val') as HTMLInputElement)?.value;
-                      
-                      if (!phone || !template || template === 'none') {
-                        toast.error("Informe número e selecione um template");
-                        return;
-                      }
-
-                      try {
-                        const { data, error } = await supabase.functions.invoke('lead-hunter-send', {
-                          body: { 
-                            leadIds: [], 
-                            testMode: true,
-                            phone,
-                            templateName: template,
-                            leadData: {
-                              nome: "Lead Teste",
-                              empresa: "Empresa Teste",
-                              categoria: "Categoria Teste"
-                            }
-                          }
-                        });
-                        if (error) throw error;
-                        toast.success("Mensagem de teste enviada!");
-                      } catch (err: any) {
-                        toast.error("Erro ao enviar teste: " + err.message);
-                      }
-                    }}
-                    className="gap-2"
-                  >
-                    <Send className="w-4 h-4" /> Enviar Teste
-                  </Button>
-                </div>
-              </div>
-
-              <div className="bg-muted/30 p-4 rounded-md border border-dashed text-xs text-muted-foreground mt-4">
-                <p className="font-semibold mb-1">Aviso:</p>
-                <p>Ao usar a API Oficial no Lead Hunter, certifique-se de usar templates aprovados pela Meta para o primeiro contato (opt-in).</p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="border-border/40">
+        <Card className="border-border/40">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2"><MessageSquare className="h-5 w-5" /> Instâncias WhatsApp (Evolution API)</CardTitle>
               <Button size="sm" onClick={() => setShowInstanceDialog(true)}>
@@ -497,7 +210,6 @@ export default function LeadHunterConfig() {
             )}
           </CardContent>
         </Card>
-      )}
 
         <Dialog open={showInstanceDialog} onOpenChange={setShowInstanceDialog}>
           <DialogContent>

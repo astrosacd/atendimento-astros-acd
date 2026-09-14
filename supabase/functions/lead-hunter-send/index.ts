@@ -117,110 +117,26 @@ serve(async (req) => {
         const formattedPhone = phone.startsWith("55") ? phone : `55${phone}`;
         
         let sendResult: any;
-        let providerUsed = "evolution";
 
-        if (campanha?.whatsapp_provider === "official") {
-          providerUsed = "official";
-          const metaCreds = {
-            access_token: config.meta_access_token,
-            phone_number_id: config.meta_phone_number_id
-          };
+        // Send via Evolution API
+        const sendUrl = `${instance.api_url}/message/sendText/${instance.instance_name}`;
+        const sendResponse = await fetch(sendUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: instance.api_key,
+          },
+          body: JSON.stringify({
+            number: formattedPhone,
+            text: message,
+          }),
+        });
 
-          if (!metaCreds.access_token || !metaCreds.phone_number_id) {
-            throw new Error("Credenciais da Meta não configuradas no Lead Hunter");
-          }
+        sendResult = await sendResponse.json();
 
-          if (!campanha.meta_template_name) {
-            throw new Error("Template da Meta não selecionado para esta campanha");
-          }
-
-          // Dynamic variable mapping
-          const getFieldValue = (field: string) => {
-            switch (field) {
-              case 'nome': return lead.nome || lead.empresa || "Cliente";
-              case 'empresa': return lead.empresa || "Sua Empresa";
-              case 'categoria': return lead.categoria || "Seu Setor";
-              case 'cidade': return lead.cidade || "";
-              case 'telefone': return lead.telefone || "";
-              case 'website': return lead.website || "";
-              case 'whatsapp_support': return config.lead_hunter_support_link || "";
-              case 'custom_link': return config.lead_hunter_custom_link || "";
-              case 'none': return "";
-              default: return "";
-            }
-          };
-
-          const components: any[] = [];
-          const bodyParams: any[] = [];
-          const headerParams: any[] = [];
-          const button1Params: any[] = [];
-          const button2Params: any[] = [];
-
-          [1, 2, 3, 4, 5, 6].forEach(num => {
-            const field = config[`meta_var_${num}_field`];
-            const target = config[`meta_var_${num}_target`] || 'body';
-            if (!field || field === 'none') return;
-
-            const val = getFieldValue(field);
-            const param = { type: "text", text: val };
-
-            if (target === 'body') bodyParams.push(param);
-            else if (target === 'header') headerParams.push(param);
-            else if (target === 'button_1') button1Params.push(param);
-            else if (target === 'button_2') button2Params.push(param);
-          });
-
-          if (headerParams.length > 0) components.push({ type: "header", parameters: headerParams });
-          if (bodyParams.length > 0) components.push({ type: "body", parameters: bodyParams });
-          if (button1Params.length > 0) components.push({ type: "button", sub_type: "url", index: "0", parameters: button1Params });
-          if (button2Params.length > 0) components.push({ type: "button", sub_type: "url", index: "1", parameters: button2Params });
-
-          // Meta Official API Send
-          const response = await fetch(`https://graph.facebook.com/v21.0/${metaCreds.phone_number_id}/messages`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${metaCreds.access_token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              messaging_product: "whatsapp",
-              to: formattedPhone,
-              type: "template",
-              template: {
-                name: campanha.meta_template_name,
-                language: {
-                  code: campanha.meta_language_code || 'pt_BR'
-                },
-                components: components
-              }
-            }),
-          });
-
-          sendResult = await response.json();
-          if (!response.ok) {
-            throw new Error(`Meta API error: ${JSON.stringify(sendResult)}`);
-          }
-        } else {
-          // Send via Evolution API
-          const sendUrl = `${instance.api_url}/message/sendText/${instance.instance_name}`;
-          const sendResponse = await fetch(sendUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              apikey: instance.api_key,
-            },
-            body: JSON.stringify({
-              number: formattedPhone,
-              text: message,
-            }),
-          });
-
-          sendResult = await sendResponse.json();
-
-          if (!sendResponse.ok || sendResult?.error) {
-            const errorMsg = sendResult?.error?.message || sendResult?.message || JSON.stringify(sendResult);
-            throw new Error(errorMsg);
-          }
+        if (!sendResponse.ok || sendResult?.error) {
+          const errorMsg = sendResult?.error?.message || sendResult?.message || JSON.stringify(sendResult);
+          throw new Error(errorMsg);
         }
 
         // Update lead status
