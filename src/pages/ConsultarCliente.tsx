@@ -1798,6 +1798,24 @@ export default function ConsultarCliente() {
             setResults(applyFilters(base));
           }}
         />
+
+        <ConverterAgendadoDialog
+          cliente={converterTarget}
+          open={!!converterTarget}
+          onOpenChange={(o) => !o && setConverterTarget(null)}
+          onConverted={async () => {
+            const fresh = await fetchClientes();
+            setAllClientes(fresh);
+            const base = query.trim()
+              ? fresh.filter((c) =>
+                  [c.nome, c.numero, c.email, c.cpf]
+                    .filter(Boolean)
+                    .some((v) => String(v).toLowerCase().includes(query.toLowerCase())),
+                )
+              : fresh;
+            setResults(applyFilters(base));
+          }}
+        />
       </div>
     </DashboardLayout>
   );
