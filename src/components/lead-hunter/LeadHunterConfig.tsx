@@ -102,10 +102,6 @@ export default function LeadHunterConfig() {
       setSerpApiKey(config.serp_api_key || '');
       setOpenaiKey(config.openai_api_key || '');
       setGroqKey(config.groq_api_key || '');
-      setWhatsappProvider(config.whatsapp_provider || 'evolution');
-      setMetaAccessToken(config.meta_access_token || '');
-      setMetaPhoneNumberId(config.meta_phone_number_id || '');
-      setMetaWabaId(config.meta_waba_id || '');
       if (config.scrape_skip_domains) {
         try {
           setSkipDomains(JSON.parse(config.scrape_skip_domains));
