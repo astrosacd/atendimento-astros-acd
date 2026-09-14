@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
-import { TrendingUp, TrendingDown, Users, DollarSign, UserMinus, Target, Calendar, Info, ShoppingBag, Bot, Calculator, PiggyBank, Briefcase, AlertTriangle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, DollarSign, UserMinus, Target, Calendar, Info, ShoppingBag, Bot, Calculator, PiggyBank, Briefcase, AlertTriangle, CalendarClock } from 'lucide-react';
 import { ReportsAIAnalysis } from '@/components/reports/ReportsAIAnalysis';
 import { WeeklyRenewalsReportConfig } from '@/components/reports/WeeklyRenewalsReportConfig';
 import { format, subMonths, startOfMonth, endOfMonth, differenceInMonths, parseISO, getMonth, getYear } from 'date-fns';
@@ -441,6 +441,23 @@ export default function AdminRelatorios() {
     () => clientesInativos.filter(c => !c.cancelado_em),
     [clientesInativos]
   );
+
+  // Agendados: fora de todas as métricas, exibidos em card próprio
+  const agendadosPrevisto = useMemo(() => {
+    const brl = clientesAgendados
+      .filter(c => (c.moeda || 'BRL') === 'BRL')
+      .reduce((acc, c) => acc + (c.valor || 0), 0);
+    const usd = clientesAgendados
+      .filter(c => c.moeda === 'USD')
+      .reduce((acc, c) => acc + (c.valor || 0), 0);
+    return { brl, usd };
+  }, [clientesAgendados]);
+
+  const agendadosVencidos = useMemo(() => {
+    const hoje = new Date();
+    const hojeStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+    return clientesAgendados.filter(c => c.data_agendamento && String(c.data_agendamento).slice(0, 10) < hojeStr).length;
+  }, [clientesAgendados]);
 
   // Receita em risco: MRR dos clientes recorrentes em atraso (não cancelados)
   const receitaEmRisco = useMemo(() => {
