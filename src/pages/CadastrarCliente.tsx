@@ -49,7 +49,17 @@ const clienteVitalicioSchema = z.object({
   moeda: z.enum(['BRL', 'USD']).optional(),
 });
 
-type ClienteType = 'mensal' | 'registro' | null;
+const clienteAgendadoSchema = z.object({
+  nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+  numero: z.string().min(10, 'Número deve ter pelo menos 10 dígitos'),
+  produto: z.string().min(1, 'Serviço agendado é obrigatório'),
+  email: z.string().email('Email inválido').optional().or(z.literal('')),
+  cpf: z.string().optional().or(z.literal('')),
+  valor: z.number().min(0, 'Valor deve ser zero ou maior'),
+  moeda: z.enum(['BRL', 'USD']).optional(),
+});
+
+type ClienteType = 'mensal' | 'registro' | 'agendado' | null;
 
 interface UploadedFile {
   file: File;
