@@ -53,6 +53,10 @@ export interface DashboardStats {
   divulgadorErrors: number;
   clientesCancelados: number;
   canceladosUltimos30d: number;
+  clientesAgendados: number;
+  agendadosPrevistoBrl: number;
+  agendadosPrevistoUsd: number;
+  agendadosVencidos: number;
 }
 
 export interface UrgentTasksState {
@@ -99,6 +103,10 @@ const INITIAL_STATS: DashboardStats = {
   divulgadorErrors: 0,
   clientesCancelados: 0,
   canceladosUltimos30d: 0,
+  clientesAgendados: 0,
+  agendadosPrevistoBrl: 0,
+  agendadosPrevistoUsd: 0,
+  agendadosVencidos: 0,
 };
 
 function getClientesPorMes(clientes: any[]) {
