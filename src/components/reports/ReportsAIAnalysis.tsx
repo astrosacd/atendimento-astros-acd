@@ -154,7 +154,13 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
       setWhatsappNumbers(scheduleConfig.whatsapp_recipients || []);
       setEmailAddresses(scheduleConfig.email_recipients || []);
       if (scheduleConfig.ai_provider) setProvider(scheduleConfig.ai_provider);
-      if (scheduleConfig.ai_model) setModel(scheduleConfig.ai_model);
+      if (scheduleConfig.ai_model) {
+        // Modelos antigos descontinuados caem para o padrão atual
+        const provId = scheduleConfig.ai_provider || 'lovable';
+        const validModels = provId === 'openai' ? OPENAI_MODELS : provId === 'grok' ? GROK_MODELS : LOVABLE_MODELS;
+        const isValid = validModels.some(m => m.value === scheduleConfig.ai_model);
+        setModel(isValid ? scheduleConfig.ai_model : validModels[0].value);
+      }
       if (scheduleConfig.openai_api_key) setOpenaiKey(scheduleConfig.openai_api_key);
       if (scheduleConfig.grok_api_key) setGrokKey(scheduleConfig.grok_api_key);
       if (scheduleConfig.gmail_user) setGmailUser(scheduleConfig.gmail_user);
