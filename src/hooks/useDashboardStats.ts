@@ -195,7 +195,7 @@ export function useDashboardStats() {
       const nextWeekStr = `${nextWeekDate.getFullYear()}-${String(nextWeekDate.getMonth() + 1).padStart(2, '0')}-${String(nextWeekDate.getDate()).padStart(2, '0')}`;
       const renovacoesProximas = clientes?.filter(c => {
         if (!c.data_renovacao) return false;
-        if (c.cobranca_ativa !== true) return false;
+        if (!isActiveRecurringClient(c)) return false;
         const renovacaoStr = String(c.data_renovacao).slice(0, 10);
         return renovacaoStr >= todayStr && renovacaoStr <= nextWeekStr;
       }).length || 0;

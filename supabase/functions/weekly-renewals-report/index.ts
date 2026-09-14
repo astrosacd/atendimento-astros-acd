@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { classifyReportClient, confirmedPaymentTotals, isConfirmedPaymentStatus, RECURRING_CYCLES, type ReportClientType } from "../_shared/report-financial.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,18 +14,7 @@ const corsHeaders = {
  * - registro: venda única, sem renovação (não tem "próxima renovação")
  * - agendado: serviço marcado, ainda não é cliente (só previsão)
  */
-type TipoCliente = "mensal" | "registro" | "agendado" | "inconsistente";
-
-const CICLOS_RECORRENTES = new Set(["mensal", "bimestral", "trimestral", "semestral", "anual"]);
-
-function classificarCliente(c: any): TipoCliente {
-  if (!c) return "inconsistente";
-  if (c.status_cliente === "agendado") return "agendado";
-  const ciclo = String(c.ciclo_cobranca || "").trim().toLowerCase();
-  if (CICLOS_RECORRENTES.has(ciclo)) return "mensal";
-  if (c.cobranca_ativa === false && (!ciclo || ciclo === "vitalicio")) return "registro";
-  return "inconsistente";
-}
+type TipoCliente = ReportClientType;
 
 const TIPO_LABEL: Record<TipoCliente, string> = {
   mensal: "🔁 Mensal",
@@ -119,7 +109,7 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
       const dataNova = nxt?.data_renovacao || null;
       // só conta se realmente mudou
       if (dataAnterior === dataNova) continue;
-      const tipo = classificarCliente(c);
+      const tipo = classifyReportClient(c);
       // Agendados e cadastros incoerentes não podem produzir renovação financeira.
       if (tipo !== "mensal") continue;
       renewals.push({
@@ -158,9 +148,9 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
     }
 
     for (const p of payRows) {
-      if (!["paid", "approved", "success", "completed"].includes((p.status || "").toLowerCase())) continue;
+      if (!isConfirmedPaymentStatus(p.status)) continue;
       const c = p.cliente_id ? clienteMap.get(p.cliente_id) : null;
-      const tipo = classificarCliente(c);
+      const tipo = classifyReportClient(c);
       // Nunca transformar cliente ausente/incoerente em venda única; agendado não é receita.
       if (tipo === "agendado" || tipo === "inconsistente") continue;
       const renewal = p.cliente_id ? renewalByCliente.get(p.cliente_id) : null;
@@ -194,7 +184,7 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
     .lte("data_renovacao", weekEndDate)
     // Só cobrança ativa: cancelados e agendados não são "risco de churn"
     .eq("cobranca_ativa", true)
-    .in("ciclo_cobranca", Array.from(CICLOS_RECORRENTES))
+    .in("ciclo_cobranca", [...RECURRING_CYCLES])
     .or("excluir_metricas.is.null,excluir_metricas.eq.false")
     .or("status_cliente.is.null,status_cliente.neq.agendado");
 
@@ -251,8 +241,9 @@ async function fetchAgendados(supabase: any): Promise<AgendadoItem[]> {
 function buildTotals(renewals: RenewalItem[], payments: PaymentItem[]) {
   const renewalsBRL = renewals.filter((r) => (r.moeda || "BRL") === "BRL").reduce((a, r) => a + (Number(r.valor) || 0), 0);
   const renewalsUSD = renewals.filter((r) => r.moeda === "USD").reduce((a, r) => a + (Number(r.valor) || 0), 0);
-  const paymentsBRL = payments.filter((p) => (p.moeda || "BRL") === "BRL").reduce((a, p) => a + p.amount, 0);
-  const paymentsUSD = payments.filter((p) => p.moeda === "USD").reduce((a, p) => a + p.amount, 0);
+  const paymentTotals = confirmedPaymentTotals(payments);
+  const paymentsBRL = paymentTotals.brl;
+  const paymentsUSD = paymentTotals.usd;
   return {
     renewalsBRL,
     renewalsUSD,
@@ -327,7 +318,7 @@ function buildTextReport(opts: {
     lines.push(`━━━━━━━━━━━━━━━━━━━`);
     lines.push(`*🔄 Renovações de Clientes Mensais (${current.renewals.length})*`);
     lines.push(`_Só clientes recorrentes têm renovação. Registro (venda única) e Agendado não renovam._`);
-    lines.push(`Total BRL: ${fmtCurrency(totals.renewalsBRL, "BRL")}${totals.renewalsUSD > 0 ? ` | USD: ${fmtCurrency(totals.renewalsUSD, "USD")}` : ""}`);
+    lines.push(`Valor contratual renovado (não somado novamente ao faturamento): ${fmtCurrency(totals.renewalsBRL, "BRL")}${totals.renewalsUSD > 0 ? ` | USD: ${fmtCurrency(totals.renewalsUSD, "USD")}` : ""}`);
     lines.push("");
     if (current.renewals.length === 0) {
       lines.push(`_Nenhuma renovação registrada nesta semana._`);

@@ -180,12 +180,13 @@ ${JSON.stringify(consolidatedGroups, null, 2)}
         .or("status_cliente.is.null,status_cliente.neq.agendado");
 
       if (clientes) {
+        const recurringClientes = clientes.filter((c: any) => !c.excluir_metricas);
         const mrrLimit = new Date();
         mrrLimit.setDate(mrrLimit.getDate() - 7);
         mrrLimit.setHours(0, 0, 0, 0);
-        const activeClientes = clientes.filter((c: any) => !c.excluir_metricas && new Date(`${c.data_renovacao}T12:00:00`) >= mrrLimit);
+        const activeClientes = recurringClientes.filter((c: any) => new Date(`${c.data_renovacao}T12:00:00`) >= mrrLimit);
         const now = new Date();
-        const atRisk = activeClientes.filter((c: any) => {
+        const atRisk = recurringClientes.filter((c: any) => {
           const renovacao = new Date(c.data_renovacao);
           const daysUntil = Math.ceil((renovacao.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
           return daysUntil <= 15 && daysUntil >= -30;

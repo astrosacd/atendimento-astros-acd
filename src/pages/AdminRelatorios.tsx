@@ -336,7 +336,7 @@ export default function AdminRelatorios() {
 
     const currentMarketingSpend = monthlyNormalSpend + proratedSpend;
     
-    // Novos clientes do mês atual (ativos + inativos + registro) — evita subnotificar quem entrou e cancelou
+    // Novas assinaturas do mês atual (registro é venda única e não entra no CAC recorrente)
     const startOfThisMonth = startOfMonth(today);
     const endOfThisMonth = endOfMonth(today);
     const noMesAtual = (c: ClienteData) => {
@@ -345,8 +345,7 @@ export default function AdminRelatorios() {
     };
     const newClientsThisMonth =
       clientes.filter(noMesAtual).length +
-      clientesInativos.filter(noMesAtual).length +
-      0;
+      clientesInativos.filter(noMesAtual).length;
 
     // CAC de assinatura: gasto / novos clientes recorrentes. Registro é venda única, não aquisição SaaS.
     const cac = newClientsThisMonth > 0 ? currentMarketingSpend / newClientsThisMonth : 0;
@@ -370,7 +369,7 @@ export default function AdminRelatorios() {
       newClientsThisMonth,
       currentMarketingSpend
     };
-  }, [marketingExpenses, clientes, clientesInativos, clientesRegistro, ltvMetrics]);
+  }, [marketingExpenses, clientes, clientesInativos, ltvMetrics]);
 
 
   // Métricas de Conversão (Gateway)
@@ -481,7 +480,7 @@ export default function AdminRelatorios() {
     const mesesAtras = parseInt(periodoMeses);
     const months: MonthlyMetric[] = [];
     const today = new Date();
-    const universo = [...clientes, ...clientesCancelados];
+    const universo = [...clientes, ...clientesInativos];
 
     for (let i = mesesAtras - 1; i >= 0; i--) {
       const monthDate = subMonths(today, i);
@@ -494,7 +493,8 @@ export default function AdminRelatorios() {
       const ativosInicio = new Set(universo.filter(c => {
         const createdAt = parseISO(c.created_at);
         const renovacao = parseISO(c.data_renovacao);
-        return createdAt < monthStart && renovacao >= monthStart;
+        const cancelado = c.cancelado_em ? parseISO(c.cancelado_em) : null;
+        return createdAt < monthStart && renovacao >= monthStart && (!cancelado || cancelado >= monthStart);
       }).map(c => c.cpf || c.nome));
 
       const clientesAtivosInicioCount = ativosInicio.size;
@@ -521,7 +521,7 @@ export default function AdminRelatorios() {
     }
 
     return months;
-  }, [clientes, clientesCancelados, periodoMeses]);
+  }, [clientes, clientesInativos, clientesCancelados, periodoMeses]);
 
 
   // Churn médio
@@ -574,6 +574,9 @@ export default function AdminRelatorios() {
     for (let i = mesesAtras - 1; i >= 0; i--) {
       const monthDate = subMonths(new Date(), i);
       const monthEnd = endOfMonth(monthDate);
+      const referenceDate = monthEnd > new Date() ? new Date() : monthEnd;
+      const renewalLimit = new Date(referenceDate);
+      renewalLimit.setDate(renewalLimit.getDate() - 7);
       const monthKey = format(monthDate, 'yyyy-MM');
       const monthLabel = format(monthDate, 'MMM/yy', { locale: ptBR });
 
@@ -582,7 +585,7 @@ export default function AdminRelatorios() {
         const createdAt = parseISO(c.created_at);
         const renovacao = parseISO(c.data_renovacao);
         const cancelado = c.cancelado_em ? parseISO(c.cancelado_em) : null;
-        return createdAt <= monthEnd && renovacao >= monthEnd && (!cancelado || cancelado > monthEnd);
+        return createdAt <= referenceDate && renovacao >= renewalLimit && (!cancelado || cancelado > referenceDate);
       });
 
       const mrr = clientesAtivos.reduce((acc, c) => {
@@ -596,11 +599,11 @@ export default function AdminRelatorios() {
     return months;
   }, [clientes, clientesInativos, periodoMeses]);
 
-  // Novos clientes por mês (ativos + inativos + registro — incluir quem entrou mesmo que tenha cancelado)
+  // Aquisição por mês: somente assinaturas recorrentes; registro é venda única e agendado é previsão.
   const novosClientesMes = useMemo(() => {
     const mesesAtras = parseInt(periodoMeses);
     const months: MonthlyMetric[] = [];
-    const universo = [...clientes, ...clientesInativos, ...clientesRegistro];
+    const universo = [...clientes, ...clientesInativos];
 
     for (let i = mesesAtras - 1; i >= 0; i--) {
       const monthDate = subMonths(new Date(), i);
@@ -618,7 +621,7 @@ export default function AdminRelatorios() {
     }
 
     return months;
-  }, [clientes, clientesInativos, clientesRegistro, periodoMeses]);
+  }, [clientes, clientesInativos, periodoMeses]);
 
   // MRR Waterfall — Novo MRR e Churn MRR do mês corrente (BRL)
   const mrrWaterfall = useMemo(() => {
@@ -1412,7 +1415,7 @@ export default function AdminRelatorios() {
                     Aquisição de Clientes
                   </CardTitle>
                   <CardDescription>
-                    Novos clientes por mês
+                    Novas assinaturas recorrentes por mês
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
