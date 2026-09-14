@@ -79,6 +79,7 @@ export default function CadastrarCliente() {
   
   const [clienteType, setClienteType] = useState<ClienteType>(null);
   const [dataAgendamento, setDataAgendamento] = useState<string>('');
+  const [agendamentoIndefinido, setAgendamentoIndefinido] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [countryCode, setCountryCode] = useState('BR');
@@ -511,7 +512,7 @@ export default function CadastrarCliente() {
     }
 
     // Validação: data do agendamento é obrigatória para cliente agendado
-    if (clienteType === 'agendado' && !dataAgendamento) {
+    if (clienteType === 'agendado' && !agendamentoIndefinido && !dataAgendamento) {
       toast({
         title: 'Data do agendamento obrigatória',
         description: 'Informe para qual dia o serviço foi agendado.',
@@ -630,7 +631,7 @@ export default function CadastrarCliente() {
         moeda: formData.moeda || 'BRL',
         status_cliente: clienteType === 'agendado' ? 'agendado' : 'ativo',
         servico_agendado: clienteType === 'agendado' ? formData.produto : null,
-        data_agendamento: clienteType === 'agendado' ? dataAgendamento : null,
+        data_agendamento: clienteType === 'agendado' && !agendamentoIndefinido ? dataAgendamento : null,
       });
       
       if (cliente) {
@@ -696,6 +697,7 @@ export default function CadastrarCliente() {
     });
     setUploadedFiles([]);
     setDataAgendamento('');
+    setAgendamentoIndefinido(false);
     setPixProof(null);
     setPaymentMethod('');
     setPaymentLinkUrl('');
@@ -1000,19 +1002,32 @@ export default function CadastrarCliente() {
                       <div className="flex items-center gap-2">
                         <CalendarClock className="w-4 h-4 text-sky-500" />
                         <Label htmlFor="data_agendamento" className="text-foreground font-medium">
-                          Data do Agendamento <span className="text-destructive">*</span>
+                          Data do Agendamento {!agendamentoIndefinido && <span className="text-destructive">*</span>}
                         </Label>
                       </div>
                       <Input
                         id="data_agendamento"
                         type="date"
-                        value={dataAgendamento}
+                        value={agendamentoIndefinido ? '' : dataAgendamento}
                         onChange={(e) => setDataAgendamento(e.target.value)}
-                        className="bg-secondary border-border text-foreground h-11"
-                        required
+                        className="bg-secondary border-border text-foreground h-11 disabled:opacity-50"
+                        disabled={agendamentoIndefinido}
+                        required={!agendamentoIndefinido}
                       />
+                      <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={agendamentoIndefinido}
+                          onChange={(e) => {
+                            setAgendamentoIndefinido(e.target.checked);
+                            if (e.target.checked) setDataAgendamento('');
+                          }}
+                          className="h-4 w-4 accent-sky-500"
+                        />
+                        Data indefinida (sem dia marcado ainda)
+                      </label>
                       <p className="text-xs text-muted-foreground">
-                        Dia combinado para o cliente retirar / usar o serviço.
+                        Dia combinado para o cliente retirar / usar o serviço. Marque "Data indefinida" se ainda não houver dia certo.
                       </p>
                     </div>
 
@@ -1568,7 +1583,7 @@ export default function CadastrarCliente() {
                 <p className="text-muted-foreground">Nome: <span className="text-foreground font-medium">{formData.nome}</span></p>
                 <p className="text-muted-foreground">Número: <span className="text-foreground">+{formData.numero}</span></p>
                 {clienteType === 'agendado' && (
-                  <p className="text-muted-foreground">Data do agendamento: <span className="text-foreground">{dataAgendamento ? new Date(dataAgendamento + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}</span></p>
+                  <p className="text-muted-foreground">Data do agendamento: <span className="text-foreground">{agendamentoIndefinido || !dataAgendamento ? 'Indefinida' : new Date(dataAgendamento + 'T12:00:00').toLocaleDateString('pt-BR')}</span></p>
                 )}
 
                 <p className="text-muted-foreground">Produto: <span className="text-foreground">{formData.produto}</span></p>

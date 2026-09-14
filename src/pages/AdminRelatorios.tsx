@@ -459,6 +459,11 @@ export default function AdminRelatorios() {
     return clientesAgendados.filter(c => c.data_agendamento && String(c.data_agendamento).slice(0, 10) < hojeStr).length;
   }, [clientesAgendados]);
 
+  const agendadosSemData = useMemo(
+    () => clientesAgendados.filter(c => !c.data_agendamento).length,
+    [clientesAgendados]
+  );
+
   // Receita em risco: MRR dos clientes recorrentes em atraso (não cancelados)
   const receitaEmRisco = useMemo(() => {
     const brl = clientesEmAtraso
@@ -858,7 +863,7 @@ export default function AdminRelatorios() {
           <MetricCard
             title="Agendados"
             value={`${clientesAgendados.length}`}
-            subtitle={`Valor previsto: ${formatCurrency(agendadosPrevisto.brl, 'BRL')}${agendadosPrevisto.usd > 0 ? ` • ${formatCurrency(agendadosPrevisto.usd, 'USD')}` : ''}${agendadosVencidos > 0 ? ` • ${agendadosVencidos} vencido(s)` : ''}`}
+            subtitle={`Valor previsto: ${formatCurrency(agendadosPrevisto.brl, 'BRL')}${agendadosPrevisto.usd > 0 ? ` • ${formatCurrency(agendadosPrevisto.usd, 'USD')}` : ''}${agendadosVencidos > 0 ? ` • ${agendadosVencidos} vencido(s)` : ''}${agendadosSemData > 0 ? ` • ${agendadosSemData} sem data` : ''}`}
             icon={CalendarClock}
             trend="up"
             trendValue={agendadosVencidos > 0 ? 'Tem vencido' : 'Em dia'}
