@@ -9,7 +9,7 @@ import { useSearchParams } from 'react-router-dom';
 
 export default function GrafoClientes() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [clientes, setClientes] = useState<{ id: string; nome: string; cpf: string | null }[]>([]);
+  const [clientes, setClientes] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string>(searchParams.get('cliente') || '');
   const [loading, setLoading] = useState(true);
 
@@ -17,8 +17,7 @@ export default function GrafoClientes() {
     (async () => {
       const { data } = await supabase
         .from('clientes')
-        .select('id, nome, cpf, excluir_metricas')
-        .eq('excluir_metricas', false)
+        .select('id, nome, cpf, status_cliente, cobranca_ativa, ciclo_cobranca, cancelado_em, data_renovacao')
         .order('nome', { ascending: true });
       setClientes(data || []);
       setLoading(false);
@@ -31,10 +30,14 @@ export default function GrafoClientes() {
     else setSearchParams({});
   };
 
-  const options = clientes.map((c) => ({
-    value: c.id,
-    label: c.cpf ? `${c.nome} • ${c.cpf}` : c.nome,
-  }));
+  const options = clientes.map((c) => {
+    const situacao = resolveClienteSituacao(c);
+    const base = c.cpf ? `${c.nome} • ${c.cpf}` : c.nome;
+    return {
+      value: c.id,
+      label: `${base} • ${SITUACAO_LABEL[situacao]}`,
+    };
+  });
 
   return (
     <DashboardLayout>
