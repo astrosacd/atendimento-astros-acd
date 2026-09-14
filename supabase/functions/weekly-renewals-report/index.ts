@@ -7,6 +7,27 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-temp-access-token",
 };
 
+/**
+ * Tipo de cliente — usado para separar o relatório:
+ * - mensal:   cobrança recorrente (entra em MRR/renovação)
+ * - registro: venda única, sem renovação (não tem "próxima renovação")
+ * - agendado: serviço marcado, ainda não é cliente (só previsão)
+ */
+type TipoCliente = "mensal" | "registro" | "agendado";
+
+function classificarCliente(c: any): TipoCliente {
+  if (!c) return "registro";
+  if (c.status_cliente === "agendado") return "agendado";
+  if (c.cobranca_ativa === true || (c.ciclo_cobranca && String(c.ciclo_cobranca).trim() !== "")) return "mensal";
+  return "registro";
+}
+
+const TIPO_LABEL: Record<TipoCliente, string> = {
+  mensal: "🔁 Mensal",
+  registro: "🧾 Registro (venda única)",
+  agendado: "📅 Agendado",
+};
+
 interface RenewalItem {
   cliente_id: string | null;
   nome: string;
@@ -16,7 +37,9 @@ interface RenewalItem {
   moeda: string | null;
   data_anterior: string | null;
   data_nova: string | null;
+  tipo: TipoCliente;
 }
+
 
 interface PaymentItem {
   cliente_id: string | null;
