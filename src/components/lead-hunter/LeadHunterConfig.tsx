@@ -497,7 +497,6 @@ export default function LeadHunterConfig() {
             )}
           </CardContent>
         </Card>
-      )}
 
         <Dialog open={showInstanceDialog} onOpenChange={setShowInstanceDialog}>
           <DialogContent>
