@@ -37,7 +37,11 @@ interface ClienteData {
   plano: string | null;
   cobranca_ativa?: boolean;
   cancelado_em?: string | null;
+  status_cliente?: string | null;
+  servico_agendado?: string | null;
+  data_agendamento?: string | null;
 }
+
 
 interface MarketingExpense {
   id: string;
