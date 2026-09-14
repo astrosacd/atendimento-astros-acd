@@ -57,6 +57,7 @@ export interface DashboardStats {
   agendadosPrevistoBrl: number;
   agendadosPrevistoUsd: number;
   agendadosVencidos: number;
+  agendadosSemData: number;
 }
 
 export interface UrgentTasksState {
@@ -107,6 +108,7 @@ const INITIAL_STATS: DashboardStats = {
   agendadosPrevistoBrl: 0,
   agendadosPrevistoUsd: 0,
   agendadosVencidos: 0,
+  agendadosSemData: 0,
 };
 
 function getClientesPorMes(clientes: any[]) {
@@ -232,6 +234,7 @@ export function useDashboardStats() {
         if (!c.data_agendamento) return false;
         return String(c.data_agendamento).slice(0, 10) < `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       }).length;
+      const agendadosSemData = agendadosLista.filter((c: any) => !c.data_agendamento).length;
 
 
 
@@ -509,6 +512,7 @@ export function useDashboardStats() {
         agendadosPrevistoBrl,
         agendadosPrevistoUsd,
         agendadosVencidos,
+        agendadosSemData,
       });
     };
 
