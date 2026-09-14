@@ -194,18 +194,23 @@ export function useClientConnectionGraph(clienteId: string | null) {
           eventos = eventosData || [];
         }
 
+        const situacao = resolveClienteSituacao(cliente);
         const center: GraphNode = {
           id: cliente.id,
           label: cliente.nome,
           sublabel: cliente.cpf || cliente.email || cliente.numero || undefined,
           category: 'center',
-          status: resolveClienteSituacao(cliente),
-          date: cliente.cancelado_em
-            ? fmt(cliente.cancelado_em)
-            : cliente.status_cliente === 'agendado'
-              ? fmt(cliente.data_agendamento)
-              : fmt(cliente.data_renovacao),
+          status: situacao,
+          date:
+            situacao === 'cancelado'
+              ? fmt(cliente.cancelado_em) // sem data formal quando o cancelamento veio só por tag
+              : situacao === 'agendado'
+                ? fmt(cliente.data_agendamento)
+                : situacao === 'registro'
+                  ? undefined
+                  : fmt(cliente.data_renovacao),
         };
+
 
         const compras: GraphNode[] = (comprasRes.data || []).map((c: any) => ({
           id: `compra-${c.id}`,
