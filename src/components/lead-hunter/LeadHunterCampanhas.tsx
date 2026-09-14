@@ -85,7 +85,7 @@ export default function LeadHunterCampanhas() {
     setForm({
       nome: '', descricao: '', tipo_mensagem: 'personalizada', mensagem_modelo: '',
       prompt_ia: form.prompt_ia, provedor_ia: 'lovable', modelo_ia: '', delay_entre_mensagens: 10,
-      whatsapp_provider: 'evolution', meta_template_name: '',
+      whatsapp_provider: 'evolution',
     });
   };
 
