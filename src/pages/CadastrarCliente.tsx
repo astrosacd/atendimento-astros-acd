@@ -1140,6 +1140,7 @@ export default function CadastrarCliente() {
 
 
               {/* Meio de Pagamento */}
+              {clienteType !== 'agendado' && (
               <div className="space-y-4 pt-4 border-t border-border">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-primary" />
