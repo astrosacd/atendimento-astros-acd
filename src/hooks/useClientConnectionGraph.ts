@@ -71,14 +71,26 @@ export type ClienteSituacao = 'cancelado' | 'inadimplente' | 'agendado' | 'regis
 
 const RECURRING_CYCLES = ['mensal', 'bimestral', 'trimestral', 'semestral', 'anual'];
 
+export function hasCanceladoTag(cliente: any): boolean {
+  return Array.isArray(cliente?.tags)
+    && cliente.tags.some((t: any) => String(t || '').toLowerCase() === 'cancelado');
+}
+
 export function resolveClienteSituacao(cliente: any): ClienteSituacao {
-  if (cliente?.cancelado_em) return 'cancelado';
+  // 1) Agendado: serviço marcado, ainda não retirado
   if (cliente?.status_cliente === 'agendado') return 'agendado';
 
-  const ciclo = String(cliente?.ciclo_cobranca || '').trim().toLowerCase();
-  const recorrente = RECURRING_CYCLES.includes(ciclo);
-  if (!recorrente) return 'registro';
+  // 2) Cancelado: data formal de cancelamento OU tag 'cancelado' + cobrança desligada
+  if (cliente?.cancelado_em) return 'cancelado';
+  if (cliente?.cobranca_ativa === false && hasCanceladoTag(cliente)) return 'cancelado';
 
+  // 3) Registro / venda única: cobrança desligada e sem cancelamento
+  if (cliente?.cobranca_ativa === false) return 'registro';
+
+  const ciclo = String(cliente?.ciclo_cobranca || '').trim().toLowerCase();
+  if (!RECURRING_CYCLES.includes(ciclo)) return 'registro';
+
+  // 4) Inadimplente: recorrente ativo com renovação vencida
   if (cliente?.data_renovacao) {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
@@ -89,8 +101,9 @@ export function resolveClienteSituacao(cliente: any): ClienteSituacao {
     }
   }
 
-  return cliente?.cobranca_ativa === false ? 'inadimplente' : 'ativo';
+  return 'ativo';
 }
+
 
 export function useClientConnectionGraph(clienteId: string | null) {
   const [data, setData] = useState<GraphData | null>(null);
