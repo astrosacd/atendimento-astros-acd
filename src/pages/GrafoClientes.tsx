@@ -26,7 +26,7 @@ export default function GrafoClientes() {
     (async () => {
       const { data } = await supabase
         .from('clientes')
-        .select('id, nome, cpf, status_cliente, cobranca_ativa, ciclo_cobranca, cancelado_em, data_renovacao')
+        .select('id, nome, cpf, tags, status_cliente, cobranca_ativa, ciclo_cobranca, cancelado_em, data_renovacao')
         .order('nome', { ascending: true });
       setClientes(data || []);
       setLoading(false);

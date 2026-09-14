@@ -71,14 +71,26 @@ export type ClienteSituacao = 'cancelado' | 'inadimplente' | 'agendado' | 'regis
 
 const RECURRING_CYCLES = ['mensal', 'bimestral', 'trimestral', 'semestral', 'anual'];
 
+export function hasCanceladoTag(cliente: any): boolean {
+  return Array.isArray(cliente?.tags)
+    && cliente.tags.some((t: any) => String(t || '').toLowerCase() === 'cancelado');
+}
+
 export function resolveClienteSituacao(cliente: any): ClienteSituacao {
-  if (cliente?.cancelado_em) return 'cancelado';
+  // 1) Agendado: serviço marcado, ainda não retirado
   if (cliente?.status_cliente === 'agendado') return 'agendado';
 
-  const ciclo = String(cliente?.ciclo_cobranca || '').trim().toLowerCase();
-  const recorrente = RECURRING_CYCLES.includes(ciclo);
-  if (!recorrente) return 'registro';
+  // 2) Cancelado: data formal de cancelamento OU tag 'cancelado' + cobrança desligada
+  if (cliente?.cancelado_em) return 'cancelado';
+  if (cliente?.cobranca_ativa === false && hasCanceladoTag(cliente)) return 'cancelado';
 
+  // 3) Registro / venda única: cobrança desligada e sem cancelamento
+  if (cliente?.cobranca_ativa === false) return 'registro';
+
+  const ciclo = String(cliente?.ciclo_cobranca || '').trim().toLowerCase();
+  if (!RECURRING_CYCLES.includes(ciclo)) return 'registro';
+
+  // 4) Inadimplente: recorrente ativo com renovação vencida
   if (cliente?.data_renovacao) {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
@@ -89,8 +101,9 @@ export function resolveClienteSituacao(cliente: any): ClienteSituacao {
     }
   }
 
-  return cliente?.cobranca_ativa === false ? 'inadimplente' : 'ativo';
+  return 'ativo';
 }
+
 
 export function useClientConnectionGraph(clienteId: string | null) {
   const [data, setData] = useState<GraphData | null>(null);
@@ -128,7 +141,7 @@ export function useClientConnectionGraph(clienteId: string | null) {
           iaRes,
           gruposRes,
         ] = await Promise.all([
-          sb.from('clientes').select('id, nome, cpf, email, numero, produto, valor, moeda, status_cliente, cobranca_ativa, ciclo_cobranca, cancelado_em, data_renovacao, data_agendamento').eq('id', clienteId).maybeSingle(),
+          sb.from('clientes').select('id, nome, cpf, email, numero, produto, valor, moeda, tags, status_cliente, cobranca_ativa, ciclo_cobranca, cancelado_em, data_renovacao, data_agendamento').eq('id', clienteId).maybeSingle(),
           sb.from('client_purchases').select('id, produto, valor, moeda, data_compra').eq('cliente_id', clienteId).order('data_compra', { ascending: false }).limit(30),
           sb.from('proposals').select('id, title, status, total_value, created_at').eq('client_id', clienteId).order('created_at', { ascending: false }).limit(30),
           sb.from('client_payments').select('id, amount, status, payment_type, paid_at, billing_date').eq('cliente_id', clienteId).order('billing_date', { ascending: false }).limit(30),
@@ -181,18 +194,23 @@ export function useClientConnectionGraph(clienteId: string | null) {
           eventos = eventosData || [];
         }
 
+        const situacao = resolveClienteSituacao(cliente);
         const center: GraphNode = {
           id: cliente.id,
           label: cliente.nome,
           sublabel: cliente.cpf || cliente.email || cliente.numero || undefined,
           category: 'center',
-          status: resolveClienteSituacao(cliente),
-          date: cliente.cancelado_em
-            ? fmt(cliente.cancelado_em)
-            : cliente.status_cliente === 'agendado'
-              ? fmt(cliente.data_agendamento)
-              : fmt(cliente.data_renovacao),
+          status: situacao,
+          date:
+            situacao === 'cancelado'
+              ? fmt(cliente.cancelado_em) // sem data formal quando o cancelamento veio só por tag
+              : situacao === 'agendado'
+                ? fmt(cliente.data_agendamento)
+                : situacao === 'registro'
+                  ? undefined
+                  : fmt(cliente.data_renovacao),
         };
+
 
         const compras: GraphNode[] = (comprasRes.data || []).map((c: any) => ({
           id: `compra-${c.id}`,
