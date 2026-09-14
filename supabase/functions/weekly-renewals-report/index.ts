@@ -302,6 +302,11 @@ function buildTextReport(opts: {
   if (totals.totalUSD > 0 || totalsPrev.totalUSD > 0) {
     lines.push(`• Valor USD: ${fmtCurrency(totals.totalUSD, "USD")} (anterior: ${fmtCurrency(totals.totalUSD, "USD")}, ${pctChange(totals.totalUSD, totalsPrev.totalUSD)})`);
   }
+  {
+    const recBRL = current.payments.filter((p) => p.tipo === "mensal" && (p.moeda || "BRL") === "BRL").reduce((s, p) => s + p.amount, 0);
+    const uniBRL = current.payments.filter((p) => p.tipo !== "mensal" && (p.moeda || "BRL") === "BRL").reduce((s, p) => s + p.amount, 0);
+    lines.push(`• Recorrente (mensal): ${fmtCurrency(recBRL, "BRL")} | Venda única (registro): ${fmtCurrency(uniBRL, "BRL")}`);
+  }
   if (current.churnRisk.length > 0) {
     lines.push(`⚠️ *Em atraso na semana:* ${current.churnRisk.length} cliente(s) venceram sem renovação/pagamento (receita em risco — ainda não é churn).`);
   }
