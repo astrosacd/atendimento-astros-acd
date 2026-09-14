@@ -335,102 +335,40 @@ export default function LeadHunterCampanhas() {
                   </SelectContent>
                 </Select>
               </div>
-              {form.whatsapp_provider !== 'official' && (
-                <div>
-                  <Label>Delay entre mensagens (seg)</Label>
-                  <Input type="number" value={form.delay_entre_mensagens} onChange={e => setForm(p => ({ ...p, delay_entre_mensagens: parseInt(e.target.value) || 10 }))} />
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Provedor WhatsApp</Label>
-                <Select value={form.whatsapp_provider} onValueChange={v => setForm(p => ({ ...p, whatsapp_provider: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="evolution">Evolution API (Instâncias)</SelectItem>
-                    <SelectItem value="official">API Oficial (Meta)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Delay entre mensagens (seg)</Label>
+                <Input type="number" value={form.delay_entre_mensagens} onChange={e => setForm(p => ({ ...p, delay_entre_mensagens: parseInt(e.target.value) || 10 }))} />
               </div>
-              {form.whatsapp_provider === 'official' && (
-                <div>
-                  <Label>Template da Meta</Label>
-                  <Select value={form.meta_template_name} onValueChange={v => setForm(p => ({ ...p, meta_template_name: v }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um template" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {metaTemplates.map(t => (
-                        <SelectItem key={t.id} value={t.template_name}>
-                          {t.template_name}
-                        </SelectItem>
-                      ))}
-                      {metaTemplates.length === 0 && (
-                        <div className="p-2 text-xs text-muted-foreground text-center">Nenhum template mapeado</div>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
             </div>
 
-            {form.whatsapp_provider === 'official' && (
-              <div className="p-3 bg-primary/5 rounded-lg border border-primary/10 mb-4">
-                <h4 className="text-xs font-semibold mb-2 flex items-center gap-2 text-primary">
-                  <Info className="w-3 h-3" />
-                  Variáveis do Template Meta
-                </h4>
-                <div className="grid grid-cols-1 gap-1.5 text-[11px]">
-                  <div className="flex items-center gap-2">
-                    <code className="bg-muted px-1 py-0.5 rounded text-primary font-bold">{"{{1}}"}</code>
-                    <span>Nome do Lead (ou Empresa se vazio)</span>
+            {form.tipo_mensagem === 'modelo_unico' ? (
+              <div>
+                <Label>Mensagem Modelo</Label>
+                <Textarea value={form.mensagem_modelo} onChange={e => setForm(p => ({ ...p, mensagem_modelo: e.target.value }))} rows={4} placeholder="Use {nome}, {empresa} para variáveis" />
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Provedor IA</Label>
+                    <Select value={form.provedor_ia} onValueChange={v => setForm(p => ({ ...p, provedor_ia: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="lovable">Lovable AI (padrão)</SelectItem>
+                        <SelectItem value="openai">OpenAI</SelectItem>
+                        <SelectItem value="groq">Groq</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <code className="bg-muted px-1 py-0.5 rounded text-primary font-bold">{"{{2}}"}</code>
-                    <span>Nome da Empresa</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <code className="bg-muted px-1 py-0.5 rounded text-primary font-bold">{"{{3}}"}</code>
-                    <span>Categoria / Setor</span>
+                  <div>
+                    <Label>Modelo IA (opcional)</Label>
+                    <Input value={form.modelo_ia} onChange={e => setForm(p => ({ ...p, modelo_ia: e.target.value }))} placeholder="Ex: gpt-4o-mini" />
                   </div>
                 </div>
-              </div>
-            )}
-
-            {form.whatsapp_provider !== 'official' && (
-              <>
-                {form.tipo_mensagem === 'modelo_unico' ? (
-                  <div>
-                    <Label>Mensagem Modelo</Label>
-                    <Textarea value={form.mensagem_modelo} onChange={e => setForm(p => ({ ...p, mensagem_modelo: e.target.value }))} rows={4} placeholder="Use {nome}, {empresa} para variáveis" />
-                  </div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>Provedor IA</Label>
-                        <Select value={form.provedor_ia} onValueChange={v => setForm(p => ({ ...p, provedor_ia: v }))}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="lovable">Lovable AI (padrão)</SelectItem>
-                            <SelectItem value="openai">OpenAI</SelectItem>
-                            <SelectItem value="groq">Groq</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Modelo IA (opcional)</Label>
-                        <Input value={form.modelo_ia} onChange={e => setForm(p => ({ ...p, modelo_ia: e.target.value }))} placeholder="Ex: gpt-4o-mini" />
-                      </div>
-                    </div>
-                    <div>
-                      <Label>Prompt da IA</Label>
-                      <Textarea value={form.prompt_ia} onChange={e => setForm(p => ({ ...p, prompt_ia: e.target.value }))} rows={5} />
-                    </div>
-                  </>
-                )}
+                <div>
+                  <Label>Prompt da IA</Label>
+                  <Textarea value={form.prompt_ia} onChange={e => setForm(p => ({ ...p, prompt_ia: e.target.value }))} rows={5} />
+                </div>
               </>
             )}
           </div>
