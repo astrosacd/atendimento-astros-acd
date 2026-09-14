@@ -189,6 +189,29 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
   return { renewals, payments, churnRisk };
 }
 
+type AgendadoItem = {
+  nome: string;
+  servico: string | null;
+  valor: number | null;
+  moeda: string;
+  data_agendamento: string | null;
+};
+
+/** Agendados: serviço marcado que ainda não virou cliente. Nunca entra em receita/MRR/churn. */
+async function fetchAgendados(supabase: any): Promise<AgendadoItem[]> {
+  const { data } = await supabase
+    .from("clientes")
+    .select("nome, produto, servico_agendado, valor, moeda, data_agendamento")
+    .eq("status_cliente", "agendado");
+  return (data || []).map((c: any) => ({
+    nome: c.nome,
+    servico: c.servico_agendado || c.produto || null,
+    valor: c.valor,
+    moeda: c.moeda || "BRL",
+    data_agendamento: c.data_agendamento,
+  }));
+}
+
 function buildTotals(renewals: RenewalItem[], payments: PaymentItem[]) {
   const renewalsBRL = renewals.filter((r) => (r.moeda || "BRL") === "BRL").reduce((a, r) => a + (Number(r.valor) || 0), 0);
   const renewalsUSD = renewals.filter((r) => r.moeda === "USD").reduce((a, r) => a + (Number(r.valor) || 0), 0);
@@ -232,8 +255,10 @@ function buildTextReport(opts: {
   previous: WeekData;
   includeRenewals: boolean;
   includePayments: boolean;
+  agendados?: AgendadoItem[];
 }): string {
   const { weekStart, weekEnd, current, previous, includeRenewals, includePayments } = opts;
+  const agendados = opts.agendados || [];
   const totals = buildTotals(current.renewals, current.payments);
   const totalsPrev = buildTotals(previous.renewals, previous.payments);
 
@@ -308,6 +333,34 @@ function buildTextReport(opts: {
       lines.push(`   Valor: ${fmtCurrency(Number(c.valor) || 0, c.moeda || "BRL")}`);
       lines.push(`   Venceu em: ${fmtDate(c.data_renovacao)}`);
       lines.push("");
+    }
+  }
+
+  // === AGENDADOS ===
+  {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const vencidos = agendados.filter((a) => a.data_agendamento && String(a.data_agendamento).slice(0, 10) < hoje).length;
+    const semData = agendados.filter((a) => !a.data_agendamento).length;
+    const previstoBRL = agendados.filter((a) => (a.moeda || "BRL") === "BRL").reduce((s, a) => s + (Number(a.valor) || 0), 0);
+    const previstoUSD = agendados.filter((a) => a.moeda === "USD").reduce((s, a) => s + (Number(a.valor) || 0), 0);
+
+    lines.push(`━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`*📅 Agendados (${agendados.length})*`);
+    lines.push(`_Serviço marcado que ainda não foi retirado/usado. Não é cliente ainda: não entra em receita, MRR, churn nem lucro — é só previsão._`);
+    lines.push(`Valor previsto: ${fmtCurrency(previstoBRL, "BRL")}${previstoUSD > 0 ? ` | ${fmtCurrency(previstoUSD, "USD")}` : ""}`);
+    if (vencidos > 0) lines.push(`⚠️ ${vencidos} com data já vencida`);
+    if (semData > 0) lines.push(`🕗 ${semData} com data indefinida`);
+    lines.push("");
+    if (agendados.length === 0) {
+      lines.push(`_Nenhum serviço agendado no momento._`);
+    } else {
+      for (const a of agendados) {
+        lines.push(`• *${a.nome}*`);
+        lines.push(`   Serviço: ${a.servico || "-"}`);
+        lines.push(`   Data: ${a.data_agendamento ? fmtDate(a.data_agendamento) : "Indefinida"}`);
+        lines.push(`   Previsto: ${fmtCurrency(Number(a.valor) || 0, a.moeda || "BRL")}`);
+        lines.push("");
+      }
     }
   }
 
@@ -437,6 +490,7 @@ serve(async (req) => {
 
     const current = await fetchWeekData(supabase, weekStart, weekEnd);
     const previous = await fetchWeekData(supabase, prevStart, prevEnd);
+    const agendados = await fetchAgendados(supabase);
 
     const currentCount = current.renewals.length + current.payments.length;
     if (!preview_only && currentCount === 0 && !effective.send_when_empty && !test) {
@@ -452,6 +506,7 @@ serve(async (req) => {
       previous,
       includeRenewals: effective.include_renewals,
       includePayments: effective.include_payments,
+      agendados,
     });
     const chartSvg = buildChartSvg(current, weekStart);
     const htmlReport = buildHtmlReport(textReport, chartSvg);

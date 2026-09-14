@@ -47,6 +47,13 @@ SOBRE O CAMPO "plano":
 - Por isso é NORMAL e ESPERADO que clientes "Individual" tenham preços muito diferentes (de R$19 a R$450+): cada um adquiriu produtos/ferramentas distintos.
 - NÃO sugira "padronizar tiers", "renomear Individual para Starter/Pro/Enterprise" nem trate a variação de preço dentro de "Individual" como problema de organização. Isso reflete a realidade do negócio.
 - Se for analisar segmentação de receita, use PRODUTO + VALOR, não o campo "plano".
+
+SOBRE CLIENTES "AGENDADO" (status_cliente = 'agendado'):
+- É um serviço marcado que o cliente AINDA NÃO retirou/usou. Não é cliente ainda.
+- NUNCA entra em receita, MRR, ARR, LTV, churn, receita em risco ou lucro. O valor dele é apenas PREVISÃO.
+- Pode ter data de agendamento definida ou indefinida (sem dia marcado).
+- Quando o cliente efetiva, ele é convertido para Mensal (recorrente) ou Registro (venda única) e o pagamento vai para aprovação.
+- Por isso os dados abaixo já EXCLUEM os agendados. Não os trate como clientes perdidos, inadimplentes nem churn.
 ============================================================
 `;
 
