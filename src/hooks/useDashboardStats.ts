@@ -217,6 +217,22 @@ export function useDashboardStats() {
       // Cancelados nos últimos 30 dias: mantido como 0 (métrica removida do card a pedido do usuário).
       const canceladosUltimos30d = 0;
 
+      // Agendados: ainda não são clientes — previsão, nunca receita.
+      const agendadosLista = (allClientes || []).filter(
+        (c: any) => c.status_cliente === 'agendado'
+      );
+      const clientesAgendados = agendadosLista.length;
+      const agendadosPrevistoBrl = agendadosLista
+        .filter((c: any) => (c.moeda || 'BRL') === 'BRL')
+        .reduce((acc: number, c: any) => acc + (c.valor || 0), 0);
+      const agendadosPrevistoUsd = agendadosLista
+        .filter((c: any) => c.moeda === 'USD')
+        .reduce((acc: number, c: any) => acc + (c.valor || 0), 0);
+      const agendadosVencidos = agendadosLista.filter((c: any) => {
+        if (!c.data_agendamento) return false;
+        return String(c.data_agendamento).slice(0, 10) < `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      }).length;
+
 
 
 
