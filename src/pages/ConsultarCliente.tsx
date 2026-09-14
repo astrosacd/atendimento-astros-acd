@@ -224,7 +224,10 @@ export default function ConsultarCliente() {
         return cliente.cobranca_ativa === false && tags.some((t: string) => t?.toLowerCase() === 'cancelado');
       });
       setResults(filtered);
+    } else if (filter === 'agendados') {
+      setResults(data.filter(cliente => (cliente as any).status_cliente === 'agendado'));
     }
+
 
   };
 
