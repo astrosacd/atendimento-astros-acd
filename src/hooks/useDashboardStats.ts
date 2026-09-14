@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useClientTasks, ClientTask } from '@/hooks/useClientTasks';
 import { usePermissions } from '@/hooks/usePermissions';
+import { isActiveRecurringClient, isSingleSaleClient } from '@/lib/clientFinancialClassification';
 
 // Mapping of billing cycles to months
 const CICLO_MESES: Record<string, number> = {
@@ -194,14 +195,14 @@ export function useDashboardStats() {
       const nextWeekStr = `${nextWeekDate.getFullYear()}-${String(nextWeekDate.getMonth() + 1).padStart(2, '0')}-${String(nextWeekDate.getDate()).padStart(2, '0')}`;
       const renovacoesProximas = clientes?.filter(c => {
         if (!c.data_renovacao) return false;
-        if (c.cobranca_ativa !== true) return false;
+        if (!isActiveRecurringClient(c)) return false;
         const renovacaoStr = String(c.data_renovacao).slice(0, 10);
         return renovacaoStr >= todayStr && renovacaoStr <= nextWeekStr;
       }).length || 0;
 
-      const clientesRecorrentes = clientes?.filter(c => c.cobranca_ativa === true).length || 0;
-      const clientesRegistroComValor = clientes?.filter(c => c.cobranca_ativa === false && (c.valor || 0) > 0) || [];
-      const clientesRegistroSemValor = clientes?.filter(c => c.cobranca_ativa === false && (c.valor || 0) === 0).length || 0;
+      const clientesRecorrentes = clientes?.filter(isActiveRecurringClient).length || 0;
+      const clientesRegistroComValor = clientes?.filter(c => isSingleSaleClient(c) && (c.valor || 0) > 0) || [];
+      const clientesRegistroSemValor = clientes?.filter(c => isSingleSaleClient(c) && (c.valor || 0) === 0).length || 0;
       const clientesRegistro = clientesRegistroComValor.length;
 
       // Cancelados: regra única e determinística — tag 'cancelado' + cobranca_ativa=false.
@@ -258,7 +259,7 @@ export function useDashboardStats() {
       const vendasUnicasUsd = vendasClientesUsd + purchasesUsd;
 
       const inadimplentes = clientes?.filter(c => {
-        if (!c.cobranca_ativa || !c.data_renovacao) return false;
+        if (!isActiveRecurringClient(c) || !c.data_renovacao) return false;
         const renovacaoStr = String(c.data_renovacao).slice(0, 10);
         return renovacaoStr < todayStr;
       }).length || 0;
@@ -271,7 +272,7 @@ export function useDashboardStats() {
       dataLimiteMrr.setDate(dataLimiteMrr.getDate() - toleranciaDias);
 
       const clientesAtivosMRR = clientes?.filter(c => {
-        if (!c.cobranca_ativa) return false;
+        if (!isActiveRecurringClient(c)) return false;
         const renovacao = new Date(c.data_renovacao);
         return renovacao >= dataLimiteMrr;
       }) || [];
@@ -294,7 +295,7 @@ export function useDashboardStats() {
       const nextMonthStr = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}-${String(nextMonthDate.getDate()).padStart(2, '0')}`;
 
       const clientesRenovando30d = clientes?.filter(c => {
-        if (!c.data_renovacao) return false;
+        if (!isActiveRecurringClient(c) || !c.data_renovacao) return false;
         const renovacaoStr = String(c.data_renovacao).slice(0, 10);
         return renovacaoStr >= todayStr && renovacaoStr <= nextMonthStr;
       }) || [];
@@ -356,28 +357,22 @@ export function useDashboardStats() {
           }
         }
 
-        const { data: allHistory } = await supabase
-          .from('client_history')
-          .select('cliente_id, created_at')
-          .eq('action', 'update')
-          .contains('changed_fields', ['cobranca_ativa'])
-          .gte('created_at', thirtyDaysAgo.toISOString());
-
-        const uniqueCanceledIds = new Set(allHistory?.map(h => h.cliente_id));
-
-        let lostCustomersCount = 0;
-        for (const clientId of uniqueCanceledIds) {
-          const clientData = clientes?.find(c => c.id === clientId);
-          if (clientData) {
-            const identifier = clientData.cpf || clientData.nome;
-            const hasOtherActive = clientes?.some(c => (c.cpf || c.nome) === identifier && c.cobranca_ativa === true);
-            if (!hasOtherActive) {
-              lostCustomersCount++;
-            }
-          }
-        }
-
-        const uniqueActiveCount = new Set(clientes?.filter(c => c.cobranca_ativa === true).map(c => c.cpf || c.nome)).size;
+        // Churn: somente cancelamentos formais de clientes recorrentes nos últimos 30 dias.
+        // Desativação sem cancelado_em é atraso, não churn; registro e agendado nunca entram.
+        const canceledIdentifiers = new Set(
+          (allClientes || [])
+            .filter((c: any) =>
+              !c.excluir_metricas &&
+              c.status_cliente !== 'agendado' &&
+              c.cancelado_em &&
+              new Date(c.cancelado_em) >= thirtyDaysAgo &&
+              c.ciclo_cobranca &&
+              CICLO_MESES[c.ciclo_cobranca]
+            )
+            .map((c: any) => c.cpf || c.nome)
+        );
+        const lostCustomersCount = canceledIdentifiers.size;
+        const uniqueActiveCount = new Set(clientes.filter(isActiveRecurringClient).map(c => c.cpf || c.nome)).size;
         churnRate = uniqueActiveCount > 0 ? (lostCustomersCount / (uniqueActiveCount + lostCustomersCount)) * 100 : 0;
 
         const { count: pending } = await supabase
