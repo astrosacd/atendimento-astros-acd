@@ -510,8 +510,18 @@ export default function CadastrarCliente() {
       return;
     }
 
-    // Validação: Meio de Pagamento é obrigatório
-    if (!paymentMethod) {
+    // Validação: data do agendamento é obrigatória para cliente agendado
+    if (clienteType === 'agendado' && !dataAgendamento) {
+      toast({
+        title: 'Data do agendamento obrigatória',
+        description: 'Informe para qual dia o serviço foi agendado.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validação: Meio de Pagamento é obrigatório (não se aplica a agendado)
+    if (clienteType !== 'agendado' && !paymentMethod) {
       toast({
         title: 'Meio de Pagamento obrigatório',
         description: 'Selecione como o cliente pagou para continuar.',
