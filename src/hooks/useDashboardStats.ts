@@ -357,28 +357,22 @@ export function useDashboardStats() {
           }
         }
 
-        const { data: allHistory } = await supabase
-          .from('client_history')
-          .select('cliente_id, created_at')
-          .eq('action', 'update')
-          .contains('changed_fields', ['cobranca_ativa'])
-          .gte('created_at', thirtyDaysAgo.toISOString());
-
-        const uniqueCanceledIds = new Set(allHistory?.map(h => h.cliente_id));
-
-        let lostCustomersCount = 0;
-        for (const clientId of uniqueCanceledIds) {
-          const clientData = clientes?.find(c => c.id === clientId);
-          if (clientData) {
-            const identifier = clientData.cpf || clientData.nome;
-            const hasOtherActive = clientes?.some(c => (c.cpf || c.nome) === identifier && c.cobranca_ativa === true);
-            if (!hasOtherActive) {
-              lostCustomersCount++;
-            }
-          }
-        }
-
-        const uniqueActiveCount = new Set(clientes?.filter(c => c.cobranca_ativa === true).map(c => c.cpf || c.nome)).size;
+        // Churn: somente cancelamentos formais de clientes recorrentes nos últimos 30 dias.
+        // Desativação sem cancelado_em é atraso, não churn; registro e agendado nunca entram.
+        const canceledIdentifiers = new Set(
+          (allClientes || [])
+            .filter((c: any) =>
+              !c.excluir_metricas &&
+              c.status_cliente !== 'agendado' &&
+              c.cancelado_em &&
+              new Date(c.cancelado_em) >= thirtyDaysAgo &&
+              c.ciclo_cobranca &&
+              CICLO_MESES[c.ciclo_cobranca]
+            )
+            .map((c: any) => c.cpf || c.nome)
+        );
+        const lostCustomersCount = canceledIdentifiers.size;
+        const uniqueActiveCount = new Set(clientes.filter(isActiveRecurringClient).map(c => c.cpf || c.nome)).size;
         churnRate = uniqueActiveCount > 0 ? (lostCustomersCount / (uniqueActiveCount + lostCustomersCount)) * 100 : 0;
 
         const { count: pending } = await supabase

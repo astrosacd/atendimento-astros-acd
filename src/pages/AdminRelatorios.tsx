@@ -843,11 +843,11 @@ export default function AdminRelatorios() {
             </CardContent>
           </Card>
           <MetricCard
-            title="Tempo Médio"
+                title="Tempo Médio Estimado"
             value={`${ltvMetrics.tempoMedioMeses.toFixed(1)} meses`}
             subtitle="Permanência média dos clientes"
             icon={Calendar}
-            info="Tempo médio que um cliente permanece ativo desde o cadastro"
+                info="Estimativa de permanência desde o cadastro até hoje ou até a última atualização disponível."
           />
           <MetricCard
             title="Churn Médio"
@@ -1385,10 +1385,10 @@ export default function AdminRelatorios() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
-                    Evolução do MRR
+                    Evolução Estimada do MRR
                   </CardTitle>
                   <CardDescription>
-                    Receita Recorrente Mensal ao longo do tempo (somente BRL)
+                    Reconstrução com os dados atuais de cadastro e cancelamento (somente BRL)
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
