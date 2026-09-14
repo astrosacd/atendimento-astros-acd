@@ -90,6 +90,7 @@ export default function AdminRelatorios() {
   const [marketingExpenses, setMarketingExpenses] = useState<MarketingExpense[]>([]);
   const [newExpenseValue, setNewExpenseValue] = useState('');
   const [clientesRegistroSemValor, setClientesRegistroSemValor] = useState(0);
+  const [clientesAgendados, setClientesAgendados] = useState<ClienteData[]>([]);
   const [orders, setOrders] = useState<GatewayOrder[]>([]);
   const [events, setEvents] = useState<GatewayEvent[]>([]);
   const [loading, setLoading] = useState(true);
