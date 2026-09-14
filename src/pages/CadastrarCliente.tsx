@@ -767,7 +767,7 @@ export default function CadastrarCliente() {
               </p>
             </CardHeader>
             <CardContent className="pt-8 pb-8">
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-3 gap-6">
                 {/* Mensal Option */}
                 <button
                   onClick={() => setClienteType('mensal')}
@@ -823,7 +823,36 @@ export default function CadastrarCliente() {
                     </div>
                   </div>
                 </button>
+
+                {/* Agendado Option */}
+                <button
+                  onClick={() => setClienteType('agendado')}
+                  className="group relative p-6 rounded-2xl border-2 border-border bg-secondary/30 hover:border-sky-500 hover:bg-sky-500/5 transition-all duration-300 text-left"
+                >
+                  <div className="flex flex-col items-center text-center gap-4">
+                    <div className="p-4 rounded-2xl bg-sky-500/10 group-hover:bg-sky-500/20 transition-colors">
+                      <CalendarClock className="w-10 h-10 text-sky-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground mb-2">
+                        Agendado
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Cliente agendou um serviço e ainda não pegou
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 justify-center mt-2">
+                      <span className="text-xs px-2 py-1 rounded-full bg-sky-500/10 text-sky-500">
+                        Sem cobrança
+                      </span>
+                      <span className="text-xs px-2 py-1 rounded-full bg-sky-500/10 text-sky-500">
+                        Fora das métricas
+                      </span>
+                    </div>
+                  </div>
+                </button>
               </div>
+
 
               <Button 
                 type="button"
