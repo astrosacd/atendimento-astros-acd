@@ -801,22 +801,36 @@ export default function ConsultarCliente() {
                       const tagsLower = Array.isArray(cliente.tags)
                         ? cliente.tags.map(tag => String(tag).toLowerCase())
                         : [];
-                      const isReativacaoPendente = cliente.cobranca_ativa === false
+                      const isAgendado = (cliente as any).status_cliente === 'agendado';
+                      const dataAgendamento = (cliente as any).data_agendamento as string | null;
+                      const diasVencidoAgendamento = (() => {
+                        if (!isAgendado || !dataAgendamento) return 0;
+                        const hoje = new Date();
+                        const hojeStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+                        const alvo = String(dataAgendamento).slice(0, 10);
+                        if (alvo >= hojeStr) return 0;
+                        return Math.floor((new Date(hojeStr + 'T12:00:00').getTime() - new Date(alvo + 'T12:00:00').getTime()) / 86400000);
+                      })();
+                      const isReativacaoPendente = !isAgendado && cliente.cobranca_ativa === false
                         && tagsLower.includes('reativacao-pendente');
-                      const isCancelado = cliente.cobranca_ativa === false
+                      const isCancelado = !isAgendado && cliente.cobranca_ativa === false
                         && !isReativacaoPendente
                         && tagsLower.includes('cancelado');
-                      const isRegistroPuro = cliente.cobranca_ativa === false
+                      const isRegistroPuro = !isAgendado && cliente.cobranca_ativa === false
                         && !isCancelado
                         && !isReativacaoPendente;
-                      const rowClass = isReativacaoPendente
+                      const rowClass = isAgendado
+                        ? 'bg-sky-500/5 border-sky-500/25 hover:border-sky-500/50'
+                        : isReativacaoPendente
                         ? 'bg-violet-500/5 border-violet-500/25 hover:border-violet-500/50'
                         : isCancelado
                           ? 'bg-rose-500/5 border-rose-500/25 hover:border-rose-500/50'
                           : isRegistroPuro
                             ? 'bg-amber-500/5 border-amber-500/20 hover:border-amber-500/40'
                             : 'bg-info/5 border-info/20 hover:border-info/40';
-                      const nameClass = isReativacaoPendente
+                      const nameClass = isAgendado
+                        ? 'text-sky-400'
+                        : isReativacaoPendente
                         ? 'text-violet-400'
                         : isCancelado
                           ? 'text-rose-400'
