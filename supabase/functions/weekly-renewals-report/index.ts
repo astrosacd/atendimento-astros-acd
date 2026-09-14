@@ -189,6 +189,29 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
   return { renewals, payments, churnRisk };
 }
 
+type AgendadoItem = {
+  nome: string;
+  servico: string | null;
+  valor: number | null;
+  moeda: string;
+  data_agendamento: string | null;
+};
+
+/** Agendados: serviço marcado que ainda não virou cliente. Nunca entra em receita/MRR/churn. */
+async function fetchAgendados(supabase: any): Promise<AgendadoItem[]> {
+  const { data } = await supabase
+    .from("clientes")
+    .select("nome, produto, servico_agendado, valor, moeda, data_agendamento")
+    .eq("status_cliente", "agendado");
+  return (data || []).map((c: any) => ({
+    nome: c.nome,
+    servico: c.servico_agendado || c.produto || null,
+    valor: c.valor,
+    moeda: c.moeda || "BRL",
+    data_agendamento: c.data_agendamento,
+  }));
+}
+
 function buildTotals(renewals: RenewalItem[], payments: PaymentItem[]) {
   const renewalsBRL = renewals.filter((r) => (r.moeda || "BRL") === "BRL").reduce((a, r) => a + (Number(r.valor) || 0), 0);
   const renewalsUSD = renewals.filter((r) => r.moeda === "USD").reduce((a, r) => a + (Number(r.valor) || 0), 0);
