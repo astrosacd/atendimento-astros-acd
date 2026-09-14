@@ -141,7 +141,7 @@ export function useClientConnectionGraph(clienteId: string | null) {
           iaRes,
           gruposRes,
         ] = await Promise.all([
-          sb.from('clientes').select('id, nome, cpf, email, numero, produto, valor, moeda, status_cliente, cobranca_ativa, ciclo_cobranca, cancelado_em, data_renovacao, data_agendamento').eq('id', clienteId).maybeSingle(),
+          sb.from('clientes').select('id, nome, cpf, email, numero, produto, valor, moeda, tags, status_cliente, cobranca_ativa, ciclo_cobranca, cancelado_em, data_renovacao, data_agendamento').eq('id', clienteId).maybeSingle(),
           sb.from('client_purchases').select('id, produto, valor, moeda, data_compra').eq('cliente_id', clienteId).order('data_compra', { ascending: false }).limit(30),
           sb.from('proposals').select('id, title, status, total_value, created_at').eq('client_id', clienteId).order('created_at', { ascending: false }).limit(30),
           sb.from('client_payments').select('id, amount, status, payment_type, paid_at, billing_date').eq('cliente_id', clienteId).order('billing_date', { ascending: false }).limit(30),
