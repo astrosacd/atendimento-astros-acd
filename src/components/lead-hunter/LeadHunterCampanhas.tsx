@@ -72,7 +72,6 @@ export default function LeadHunterCampanhas() {
     modelo_ia: '',
     delay_entre_mensagens: 10,
     whatsapp_provider: 'evolution',
-    meta_template_name: '',
   });
 
   const unlinkedLeads = allLeads.filter(l => !l.campanha_id && l.status === 'novo');
