@@ -1303,7 +1303,7 @@ export default function AdminRelatorios() {
                     Receita por Plano
                   </CardTitle>
                   <CardDescription>
-                    Ticket médio e MRR por plano
+                    Ticket médio e MRR por plano (somente BRL)
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -1376,7 +1376,7 @@ export default function AdminRelatorios() {
                     Evolução do MRR
                   </CardTitle>
                   <CardDescription>
-                    Receita Recorrente Mensal ao longo do tempo
+                    Receita Recorrente Mensal ao longo do tempo (somente BRL)
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
