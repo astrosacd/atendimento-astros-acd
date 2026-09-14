@@ -36,6 +36,7 @@ interface ClienteData {
   moeda: string;
   plano: string | null;
   cobranca_ativa?: boolean;
+  cancelado_em?: string | null;
 }
 
 interface MarketingExpense {
