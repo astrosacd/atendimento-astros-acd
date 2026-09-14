@@ -628,6 +628,9 @@ export default function CadastrarCliente() {
         ...formData,
         valor: Number(formData.valor),
         moeda: formData.moeda || 'BRL',
+        status_cliente: clienteType === 'agendado' ? 'agendado' : 'ativo',
+        servico_agendado: clienteType === 'agendado' ? formData.produto : null,
+        data_agendamento: clienteType === 'agendado' ? dataAgendamento : null,
       });
       
       if (cliente) {
