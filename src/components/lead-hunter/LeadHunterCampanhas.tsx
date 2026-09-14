@@ -41,15 +41,6 @@ export default function LeadHunterCampanhas() {
   const { data: campanhas = [], isLoading } = useLeadHunterCampanhas();
   const { data: allLeads = [] } = useLeadHunterLeads();
   const { data: config = {} } = useLeadHunterConfig();
-  const [metaTemplates, setMetaTemplates] = useState<{ id: string; template_name: string }[]>([]);
-
-  useEffect(() => {
-    const loadTemplates = async () => {
-      const { data } = await supabase.from('meta_template_mapping').select('id, template_name');
-      if (data) setMetaTemplates(data);
-    };
-    loadTemplates();
-  }, []);
 
   const skipDomains: string[] = (() => {
     try { return config.scrape_skip_domains ? JSON.parse(config.scrape_skip_domains) : DEFAULT_SKIP_DOMAINS; } catch { return DEFAULT_SKIP_DOMAINS; }
