@@ -831,6 +831,15 @@ export default function AdminRelatorios() {
             trendValue={receitaEmRisco.brl > 0 ? 'Requer contato' : 'Sem pendências'}
             info="Clientes recorrentes que pararam de renovar mas nunca cancelaram formalmente. Não entram no churn nem no MRR."
           />
+          <MetricCard
+            title="Agendados"
+            value={`${clientesAgendados.length}`}
+            subtitle={`Valor previsto: ${formatCurrency(agendadosPrevisto.brl, 'BRL')}${agendadosPrevisto.usd > 0 ? ` • ${formatCurrency(agendadosPrevisto.usd, 'USD')}` : ''}${agendadosVencidos > 0 ? ` • ${agendadosVencidos} vencido(s)` : ''}`}
+            icon={CalendarClock}
+            trend="up"
+            trendValue={agendadosVencidos > 0 ? 'Tem vencido' : 'Em dia'}
+            info="Cadastros que agendaram um serviço e ainda não fecharam. Não entram em MRR, churn, receita nem receita em risco."
+          />
         </div>
 
         <Tabs defaultValue="conversao" className="space-y-4">
