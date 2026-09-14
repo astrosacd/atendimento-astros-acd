@@ -599,18 +599,19 @@ export default function AdminRelatorios() {
       })
       .reduce((acc, c) => acc + valorMensal(c), 0);
 
-    // Churn MRR: clientes inativos cuja data_renovacao caiu neste mês
-    const churnMRR = clientesInativos
+    // Churn MRR: apenas cancelamentos registrados neste mês (em atraso não conta)
+    const churnMRR = clientesCancelados
       .filter(isBRL)
       .filter(c => {
-        const renovacao = parseISO(c.data_renovacao);
-        return renovacao >= monthStart && renovacao <= monthEnd;
+        if (!c.cancelado_em) return false;
+        const cancelado = parseISO(c.cancelado_em);
+        return cancelado >= monthStart && cancelado <= monthEnd;
       })
       .reduce((acc, c) => acc + valorMensal(c), 0);
 
     const netNovo = novoMRR - churnMRR;
     return { novoMRR, churnMRR, netNovo };
-  }, [clientes, clientesInativos]);
+  }, [clientes, clientesCancelados, clientesInativos]);
 
   // Top 10 clientes por MRR (BRL + USD em colunas separadas)
   const topClientes = useMemo(() => {
