@@ -131,10 +131,7 @@ export default function LeadHunterConfig() {
       openai_api_key: openaiKey,
       groq_api_key: groqKey,
       scrape_skip_domains: JSON.stringify(skipDomains),
-      whatsapp_provider: whatsappProvider,
-      meta_access_token: metaAccessToken,
-      meta_phone_number_id: metaPhoneNumberId,
-      meta_waba_id: metaWabaId,
+      whatsapp_provider: 'evolution',
     });
   };
 
