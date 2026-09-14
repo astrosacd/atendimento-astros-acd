@@ -23,7 +23,7 @@ import { useTranslation } from 'react-i18next';
 import { useDuplicateCheck } from '@/hooks/useDuplicateCheck';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { DuplicateClientWarning } from '@/components/DuplicateClientWarning';
-import { AlertTriangle, Package } from 'lucide-react';
+import { AlertTriangle, Package, CalendarClock } from 'lucide-react';
 import { ProductSelector } from '@/components/products/ProductSelector';
 import { ClientLicensesManager } from "@/components/ClientLicensesManager";
 import { isInternationalPhoneNumber } from '@/utils/phoneInternational';
