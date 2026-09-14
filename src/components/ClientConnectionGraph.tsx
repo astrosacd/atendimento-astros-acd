@@ -41,6 +41,14 @@ const TOTAL_KEY: Record<Exclude<GraphCategory, 'center'>, keyof import('@/hooks/
   recuperacao: 'recuperacoes', historico: 'historicos', ia: 'ias', grupo: 'grupos',
 };
 
+const SITUACAO_META = {
+  cancelado:    { label: 'Cancelado',    className: 'bg-destructive/10 text-destructive border-destructive/30' },
+  inadimplente: { label: 'Inadimplente', className: 'bg-amber-500/10 text-amber-600 border-amber-500/30' },
+  agendado:     { label: 'Agendado',     className: 'bg-sky-500/10 text-sky-600 border-sky-500/30' },
+  registro:     { label: 'Registro',     className: 'bg-muted text-muted-foreground border-border' },
+  ativo:        { label: 'Ativo',        className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' },
+} as const;
+
 interface PositionedNode extends GraphNode {
   x: number;
   y: number;
@@ -148,9 +156,19 @@ export function ClientConnectionGraph({ clienteId, height = 700, className }: Cl
         {/* Header com totais */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/30 px-4 py-3">
           <div className="min-w-0">
-            <h3 className="font-semibold text-base flex items-center gap-2">
+            <h3 className="font-semibold text-base flex items-center gap-2 flex-wrap">
               <span className="h-2 w-2 rounded-full bg-primary animate-pulse shrink-0" />
               <span className="truncate">{data.center.label}</span>
+              {data.center.status && (() => {
+                const s = SITUACAO_META[data.center.status as keyof typeof SITUACAO_META];
+                if (!s) return null;
+                return (
+                  <Badge className={cn('text-[10px] font-semibold border', s.className)} variant="outline">
+                    {s.label}
+                    {data.center.date ? ` • ${data.center.date}` : ''}
+                  </Badge>
+                );
+              })()}
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               {totalConnections} conexões mapeadas {data.totals.valorTotal > 0 && `• Movimentação: R$ ${data.totals.valorTotal.toFixed(2)}`}
