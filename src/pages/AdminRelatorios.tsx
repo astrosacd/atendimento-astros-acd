@@ -487,7 +487,7 @@ export default function AdminRelatorios() {
     }
 
     return months;
-  }, [clientes, clientesInativos, periodoMeses]);
+  }, [clientes, clientesCancelados, periodoMeses]);
 
 
   // Churn médio
