@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { RECURRING_BILLING_CYCLES } from '@/lib/clientFinancialClassification';
 
 // Status de pedidos do gateway considerados pagos
 const PAID_ORDER_STATUSES = ['paid', 'approved', 'completed'];
@@ -116,9 +117,9 @@ export default function AdminRelatorios() {
       const naoAgendado = 'status_cliente.is.null,status_cliente.neq.agendado';
       const cols = 'id, nome, cpf, created_at, updated_at, data_renovacao, valor, ciclo_cobranca, moeda, plano, cobranca_ativa, cancelado_em, status_cliente, servico_agendado, data_agendamento';
       const [clientesRecorrentesRes, clientesInativosRes, clientesRegistroRes, clientesSemValorRes, agendadosRes, purchasesRes, ordersRes, eventsRes, marketingRes] = await Promise.all([
-        supabase.from('clientes').select(cols).eq('cobranca_ativa', true).or(naoExcluido).or(naoAgendado),
+        supabase.from('clientes').select(cols).eq('cobranca_ativa', true).in('ciclo_cobranca', [...RECURRING_BILLING_CYCLES]).or(naoExcluido).or(naoAgendado),
         // Inativos recorrentes: cobranca_ativa=false MAS com valor > 0 e ciclo recorrente (não vitalícios)
-        supabase.from('clientes').select(cols).eq('cobranca_ativa', false).gt('valor', 0).neq('ciclo_cobranca', 'vitalicio').or(naoExcluido).or(naoAgendado),
+        supabase.from('clientes').select(cols).eq('cobranca_ativa', false).gt('valor', 0).in('ciclo_cobranca', [...RECURRING_BILLING_CYCLES]).or(naoExcluido).or(naoAgendado),
         // Vendas únicas: cobranca_ativa=false, valor > 0 e SEM ciclo recorrente (vitalício / sem ciclo)
         supabase.from('clientes').select(cols).eq('cobranca_ativa', false).gt('valor', 0).or('ciclo_cobranca.is.null,ciclo_cobranca.eq.,ciclo_cobranca.eq.vitalicio').or(naoExcluido).or(naoAgendado),
         supabase.from('clientes').select('id', { count: 'exact', head: true }).eq('cobranca_ativa', false).or('valor.is.null,valor.eq.0').or(naoExcluido).or(naoAgendado),
@@ -345,9 +346,9 @@ export default function AdminRelatorios() {
     const newClientsThisMonth =
       clientes.filter(noMesAtual).length +
       clientesInativos.filter(noMesAtual).length +
-      clientesRegistro.filter(noMesAtual).length;
+      0;
 
-    // CAC = Gasto / Novos Clientes
+    // CAC de assinatura: gasto / novos clientes recorrentes. Registro é venda única, não aquisição SaaS.
     const cac = newClientsThisMonth > 0 ? currentMarketingSpend / newClientsThisMonth : 0;
 
     // ARPU BRL: somente clientes BRL ativos (não dilui com USD)
@@ -576,11 +577,12 @@ export default function AdminRelatorios() {
       const monthKey = format(monthDate, 'yyyy-MM');
       const monthLabel = format(monthDate, 'MMM/yy', { locale: ptBR });
 
-      // Cliente estava ativo no fim do mês se foi criado antes e renovação >= fim do mês
+      // Cliente estava ativo no fim do mês se já existia, ainda não havia cancelado e a renovação cobria o período.
       const clientesAtivos = universo.filter(c => {
         const createdAt = parseISO(c.created_at);
         const renovacao = parseISO(c.data_renovacao);
-        return createdAt <= monthEnd && renovacao >= monthEnd;
+        const cancelado = c.cancelado_em ? parseISO(c.cancelado_em) : null;
+        return createdAt <= monthEnd && renovacao >= monthEnd && (!cancelado || cancelado > monthEnd);
       });
 
       const mrr = clientesAtivos.reduce((acc, c) => {
@@ -630,7 +632,8 @@ export default function AdminRelatorios() {
       .filter(isBRL)
       .filter(c => {
         const createdAt = parseISO(c.created_at);
-        return createdAt >= monthStart && createdAt <= monthEnd;
+        const cancelado = c.cancelado_em ? parseISO(c.cancelado_em) : null;
+        return createdAt >= monthStart && createdAt <= monthEnd && (!cancelado || cancelado > monthEnd);
       })
       .reduce((acc, c) => acc + valorMensal(c), 0);
 
@@ -668,13 +671,14 @@ export default function AdminRelatorios() {
       .slice(0, 10);
   }, [clientes]);
 
-  // NRR (Net Revenue Retention) — aproximação: MRR atual / MRR de 1 mês atrás
+  // Retenção baseada na série histórica disponível. Sem eventos de upgrade/downgrade,
+  // não é possível separar NRR e GRR contábeis com precisão.
   const nrrMetrics = useMemo(() => {
     if (mrrGrowth.length < 2) return { nrrBRL: 0, grrBRL: 0 };
     const mrrAtual = mrrGrowth[mrrGrowth.length - 1].value;
     const mrrAnterior = mrrGrowth[mrrGrowth.length - 2].value;
     const nrrBRL = mrrAnterior > 0 ? (mrrAtual / mrrAnterior) * 100 : 0;
-    // GRR aproximado: (MRR anterior - churn) / MRR anterior
+      // Retenção bruta estimada somente a partir de cancelamentos registrados.
     const grrBRL = mrrAnterior > 0 ? ((mrrAnterior - mrrWaterfall.churnMRR) / mrrAnterior) * 100 : 0;
     return { nrrBRL, grrBRL };
   }, [mrrGrowth, mrrWaterfall]);
@@ -863,7 +867,7 @@ export default function AdminRelatorios() {
           <MetricCard
             title="Agendados"
             value={`${clientesAgendados.length}`}
-            subtitle={`Valor previsto: ${formatCurrency(agendadosPrevisto.brl, 'BRL')}${agendadosPrevisto.usd > 0 ? ` • ${formatCurrency(agendadosPrevisto.usd, 'USD')}` : ''}${agendadosVencidos > 0 ? ` • ${agendadosVencidos} vencido(s)` : ''}${agendadosSemData > 0 ? ` • ${agendadosSemData} sem data` : ''}`}
+            subtitle={`Previsão não confirmada: ${formatCurrency(agendadosPrevisto.brl, 'BRL')}${agendadosPrevisto.usd > 0 ? ` • ${formatCurrency(agendadosPrevisto.usd, 'USD')}` : ''}${agendadosVencidos > 0 ? ` • ${agendadosVencidos} vencido(s)` : ''}${agendadosSemData > 0 ? ` • ${agendadosSemData} sem data` : ''}`}
             icon={CalendarClock}
             trend="up"
             trendValue={agendadosVencidos > 0 ? 'Tem vencido' : 'Em dia'}
@@ -942,22 +946,22 @@ export default function AdminRelatorios() {
                 info="ARR (Annual Recurring Revenue) = MRR × 12. Mostra a receita recorrente projetada para os próximos 12 meses se nada mudar."
               />
               <MetricCard
-                title="NRR (Retenção de Receita)"
+                title="Retenção Líquida Estimada"
                 value={`${nrrMetrics.nrrBRL.toFixed(1)}%`}
-                subtitle="MRR atual / MRR mês anterior"
+                subtitle="Estimativa pelo MRR mensal"
                 icon={TrendingUp}
                 trend={nrrMetrics.nrrBRL >= 100 ? 'up' : 'down'}
                 trendValue={nrrMetrics.nrrBRL >= 100 ? 'Crescendo' : 'Encolhendo'}
-                info="NRR > 100% significa que a base existente está crescendo (mais upgrades/renovações que cancelamentos). Ideal: > 110% para SaaS."
+                info="Estimativa de MRR atual ÷ MRR anterior. Não é NRR contábil exato porque o sistema ainda não registra expansões e reduções separadamente."
               />
               <MetricCard
-                title="GRR (Retenção Bruta)"
+                title="Retenção Bruta Estimada"
                 value={`${nrrMetrics.grrBRL.toFixed(1)}%`}
                 subtitle="Sem contar expansões"
                 icon={TrendingDown}
                 trend={nrrMetrics.grrBRL >= 90 ? 'up' : 'down'}
                 trendValue={nrrMetrics.grrBRL >= 90 ? 'Saudável' : 'Alto churn'}
-                info="GRR (Gross Revenue Retention) ignora upgrades — mede só quanto da receita você manteve dos clientes que já tinha. Ideal: > 90%."
+                info="Estimativa baseada no MRR anterior menos cancelamentos registrados. Não inclui reduções de plano sem histórico financeiro próprio."
               />
               <MetricCard
                 title="Novo MRR (este mês)"

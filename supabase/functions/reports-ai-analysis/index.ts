@@ -54,6 +54,11 @@ SOBRE CLIENTES "AGENDADO" (status_cliente = 'agendado'):
 - Pode ter data de agendamento definida ou indefinida (sem dia marcado).
 - Quando o cliente efetiva, ele é convertido para Mensal (recorrente) ou Registro (venda única) e o pagamento vai para aprovação.
 - Por isso os dados abaixo já EXCLUEM os agendados. Não os trate como clientes perdidos, inadimplentes nem churn.
+
+SOBRE OS TRÊS TIPOS FINANCEIROS:
+- Mensal/Recorrente: possui ciclo mensal, bimestral, trimestral, semestral ou anual. Só entra no MRR quando a cobrança está ativa e a renovação está em dia, com tolerância de 7 dias.
+- Registro/Venda Única: cobrança inativa e sem ciclo recorrente (sem ciclo ou vitalício). Entra em receita/vendas únicas, nunca em MRR, ARR, churn ou receita em risco.
+- Agendado: somente previsão, nunca faturamento.
 ============================================================
 `;
 
@@ -96,14 +101,19 @@ SOBRE CLIENTES "AGENDADO" (status_cliente = 'agendado'):
         for (const [, cadastros] of groupsMap) {
           if (cadastros.length < 2) continue;
           const principal = cadastros[0];
+          const ciclosRecorrentes = new Set(["mensal", "bimestral", "trimestral", "semestral", "anual"]);
+          const limiteMrr = new Date();
+          limiteMrr.setDate(limiteMrr.getDate() - 7);
+          limiteMrr.setHours(0, 0, 0, 0);
+          const elegivelMrr = (c: any) => c.cobranca_ativa === true && ciclosRecorrentes.has(String(c.ciclo_cobranca || "").toLowerCase()) && new Date(`${c.data_renovacao}T12:00:00`) >= limiteMrr;
           const mrrConsolidado = cadastros
-            .filter((c: any) => c.cobranca_ativa)
+            .filter(elegivelMrr)
             .reduce((acc: number, c: any) => {
               const meses = CICLO_MESES[c.ciclo_cobranca] || 1;
               return acc + (Number(c.valor) || 0) / meses;
             }, 0);
           const valorTotalAtivo = cadastros
-            .filter((c: any) => c.cobranca_ativa)
+            .filter(elegivelMrr)
             .reduce((acc: number, c: any) => acc + (Number(c.valor) || 0), 0);
 
           consolidatedGroups.push({
@@ -164,11 +174,16 @@ ${JSON.stringify(consolidatedGroups, null, 2)}
     if (scheduled) {
       const { data: clientes } = await supabase
         .from("clientes")
-        .select("id, nome, data_renovacao, valor, moeda, ciclo_cobranca, plano, excluir_metricas")
-        .eq("cobranca_ativa", true);
+        .select("id, nome, data_renovacao, valor, moeda, ciclo_cobranca, plano, excluir_metricas, status_cliente")
+        .eq("cobranca_ativa", true)
+        .in("ciclo_cobranca", ["mensal", "bimestral", "trimestral", "semestral", "anual"])
+        .or("status_cliente.is.null,status_cliente.neq.agendado");
 
       if (clientes) {
-        const activeClientes = clientes.filter((c: any) => !c.excluir_metricas);
+        const mrrLimit = new Date();
+        mrrLimit.setDate(mrrLimit.getDate() - 7);
+        mrrLimit.setHours(0, 0, 0, 0);
+        const activeClientes = clientes.filter((c: any) => !c.excluir_metricas && new Date(`${c.data_renovacao}T12:00:00`) >= mrrLimit);
         const now = new Date();
         const atRisk = activeClientes.filter((c: any) => {
           const renovacao = new Date(c.data_renovacao);

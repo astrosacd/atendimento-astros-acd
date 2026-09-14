@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useClientTasks, ClientTask } from '@/hooks/useClientTasks';
 import { usePermissions } from '@/hooks/usePermissions';
+import { isActiveRecurringClient, isSingleSaleClient } from '@/lib/clientFinancialClassification';
 
 // Mapping of billing cycles to months
 const CICLO_MESES: Record<string, number> = {
@@ -199,9 +200,9 @@ export function useDashboardStats() {
         return renovacaoStr >= todayStr && renovacaoStr <= nextWeekStr;
       }).length || 0;
 
-      const clientesRecorrentes = clientes?.filter(c => c.cobranca_ativa === true).length || 0;
-      const clientesRegistroComValor = clientes?.filter(c => c.cobranca_ativa === false && (c.valor || 0) > 0) || [];
-      const clientesRegistroSemValor = clientes?.filter(c => c.cobranca_ativa === false && (c.valor || 0) === 0).length || 0;
+      const clientesRecorrentes = clientes?.filter(isActiveRecurringClient).length || 0;
+      const clientesRegistroComValor = clientes?.filter(c => isSingleSaleClient(c) && (c.valor || 0) > 0) || [];
+      const clientesRegistroSemValor = clientes?.filter(c => isSingleSaleClient(c) && (c.valor || 0) === 0).length || 0;
       const clientesRegistro = clientesRegistroComValor.length;
 
       // Cancelados: regra única e determinística — tag 'cancelado' + cobranca_ativa=false.
@@ -258,7 +259,7 @@ export function useDashboardStats() {
       const vendasUnicasUsd = vendasClientesUsd + purchasesUsd;
 
       const inadimplentes = clientes?.filter(c => {
-        if (!c.cobranca_ativa || !c.data_renovacao) return false;
+        if (!isActiveRecurringClient(c) || !c.data_renovacao) return false;
         const renovacaoStr = String(c.data_renovacao).slice(0, 10);
         return renovacaoStr < todayStr;
       }).length || 0;
@@ -271,7 +272,7 @@ export function useDashboardStats() {
       dataLimiteMrr.setDate(dataLimiteMrr.getDate() - toleranciaDias);
 
       const clientesAtivosMRR = clientes?.filter(c => {
-        if (!c.cobranca_ativa) return false;
+        if (!isActiveRecurringClient(c)) return false;
         const renovacao = new Date(c.data_renovacao);
         return renovacao >= dataLimiteMrr;
       }) || [];
@@ -294,7 +295,7 @@ export function useDashboardStats() {
       const nextMonthStr = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}-${String(nextMonthDate.getDate()).padStart(2, '0')}`;
 
       const clientesRenovando30d = clientes?.filter(c => {
-        if (!c.data_renovacao) return false;
+        if (!isActiveRecurringClient(c) || !c.data_renovacao) return false;
         const renovacaoStr = String(c.data_renovacao).slice(0, 10);
         return renovacaoStr >= todayStr && renovacaoStr <= nextMonthStr;
       }) || [];
