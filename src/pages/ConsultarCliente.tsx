@@ -866,7 +866,7 @@ export default function ConsultarCliente() {
                               <>
                                 <Badge variant="outline" className="bg-sky-500/10 text-sky-400 border-sky-500/30 text-xs gap-1">
                                   📅 Agendado
-                                  {dataAgendamento ? ` · ${new Date(String(dataAgendamento).slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR')}` : ''}
+                                  {dataAgendamento ? ` · ${new Date(String(dataAgendamento).slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR')}` : ' · Data indefinida'}
                                 </Badge>
                                 {diasVencidoAgendamento > 0 && (
                                   <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/30 text-[10px]">

@@ -443,6 +443,7 @@ export default function Dashboard() {
                     <p className="text-[11px] text-muted-foreground/80 mt-0.5">
                       Previsto {formatCurrency(stats.agendadosPrevistoBrl)}
                       {stats.agendadosVencidos > 0 && ` · ${stats.agendadosVencidos} vencido(s)`}
+                      {stats.agendadosSemData > 0 && ` · ${stats.agendadosSemData} sem data`}
                     </p>
                   </div>
                 </div>
