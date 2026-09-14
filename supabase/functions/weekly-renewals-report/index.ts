@@ -156,7 +156,11 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
     .from("clientes")
     .select("id, nome, produto, plano, valor, moeda, data_renovacao, status")
     .gte("data_renovacao", weekStartDate)
-    .lte("data_renovacao", weekEndDate);
+    .lte("data_renovacao", weekEndDate)
+    // Só cobrança ativa: cancelados e agendados não são "risco de churn"
+    .eq("cobranca_ativa", true)
+    .or("excluir_metricas.is.null,excluir_metricas.eq.false")
+    .or("status_cliente.is.null,status_cliente.neq.agendado");
 
   const churnRisk: Array<{
     cliente_id: string;

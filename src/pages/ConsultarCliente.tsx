@@ -166,6 +166,8 @@ export default function ConsultarCliente() {
       setFilters(prev => ({ ...prev, tipoCliente: 'renovacao-proxima' }));
     } else if (filter === 'cancelados') {
       setFilters(prev => ({ ...prev, tipoCliente: 'cancelado' }));
+    } else if (filter === 'agendados') {
+      setFilters(prev => ({ ...prev, tipoCliente: 'agendado' }));
     }
 
     // Auto-search from ?q=
@@ -182,7 +184,10 @@ export default function ConsultarCliente() {
 
     // Filtros vindos do Dashboard usam o MESMO escopo das métricas:
     // cadastros marcados como "excluir das métricas" ficam de fora.
-    const metricScope = data.filter(c => !(c as any).excluir_metricas);
+    // Agendados também ficam fora: ainda não são clientes.
+    const metricScope = data.filter(
+      c => !(c as any).excluir_metricas && (c as any).status_cliente !== 'agendado'
+    );
 
     const filter = searchParams.get('filter');
     if (filter === 'inadimplente') {
@@ -219,7 +224,10 @@ export default function ConsultarCliente() {
         return cliente.cobranca_ativa === false && tags.some((t: string) => t?.toLowerCase() === 'cancelado');
       });
       setResults(filtered);
+    } else if (filter === 'agendados') {
+      setResults(data.filter(cliente => (cliente as any).status_cliente === 'agendado'));
     }
+
 
   };
 

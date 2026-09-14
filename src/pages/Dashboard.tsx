@@ -46,7 +46,7 @@ import { BackupDialog } from '@/components/dashboard/BackupDialog';
 import { QuickNumberSearch } from '@/components/dashboard/QuickNumberSearch';
 import { ElevenLabsCreditsCard } from '@/components/dashboard/ElevenLabsCreditsCard';
 import { useElevenLabsCreditsMulti } from '@/hooks/useElevenLabsCreditsMulti';
-import { Mic, XCircle } from 'lucide-react';
+import { Mic, XCircle, CalendarClock } from 'lucide-react';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -422,6 +422,28 @@ export default function Dashboard() {
                   <div className="flex-1">
                     <p className="text-3xl font-bold text-foreground font-display">{stats.clientesCancelados}</p>
                     <p className="text-xs text-muted-foreground">Cancelados</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card
+              className="bg-gradient-to-br from-sky-500/10 to-sky-500/5 border-sky-500/20 hover:border-sky-500/40 transition-colors cursor-pointer group"
+              onClick={() => navigate('/consultar?filter=agendados')}
+              title="Serviços agendados que ainda não viraram cliente. Não entram em receita, MRR nem churn."
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-xl bg-sky-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <CalendarClock className="h-6 w-6 text-sky-500" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-3xl font-bold text-foreground font-display">{stats.clientesAgendados}</p>
+                    <p className="text-xs text-muted-foreground">Agendados</p>
+                    <p className="text-[11px] text-muted-foreground/80 mt-0.5">
+                      Previsto {formatCurrency(stats.agendadosPrevistoBrl)}
+                      {stats.agendadosVencidos > 0 && ` · ${stats.agendadosVencidos} vencido(s)`}
+                    </p>
                   </div>
                 </div>
               </CardContent>
