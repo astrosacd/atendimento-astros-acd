@@ -1326,6 +1326,8 @@ export default function CadastrarCliente() {
                   )}
                 </div>
               </div>
+              )}
+
 
               {clienteType === 'registro' && (
                 <div className="space-y-3 mt-4">
