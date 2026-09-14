@@ -576,9 +576,13 @@ export default function CadastrarCliente() {
       return;
     }
     
-    const schema = clienteType === 'registro' ? clienteVitalicioSchema : clienteSchema;
-    
-    const dataToValidate = clienteType === 'registro'
+    const schema = clienteType === 'registro'
+      ? clienteVitalicioSchema
+      : clienteType === 'agendado'
+        ? clienteAgendadoSchema
+        : clienteSchema;
+
+    const dataToValidate = (clienteType === 'registro' || clienteType === 'agendado')
       ? {
           nome: formData.nome,
           numero: formData.numero,
