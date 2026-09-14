@@ -21,7 +21,7 @@ interface ProductSelectorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  category?: 'mensal' | 'registro' | 'pipeline';
+  category?: 'mensal' | 'registro' | 'agendado' | 'pipeline';
 }
 
 export function ProductSelector({ value, onChange, placeholder = "Selecione um produto...", category }: ProductSelectorProps) {
