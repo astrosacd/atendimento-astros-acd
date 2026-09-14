@@ -33,52 +33,7 @@ export default function LeadHunterConfig() {
   const [serpApiKey, setSerpApiKey] = useState('');
   const [openaiKey, setOpenaiKey] = useState('');
   const [groqKey, setGroqKey] = useState('');
-  const [whatsappProvider, setWhatsappProvider] = useState('evolution');
-  const [metaAccessToken, setMetaAccessToken] = useState('');
-  const [metaPhoneNumberId, setMetaPhoneNumberId] = useState('');
-  const [metaWabaId, setMetaWabaId] = useState('');
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
-  const [isSyncingMeta, setIsSyncingMeta] = useState(false);
-  const [metaTemplates, setMetaTemplates] = useState<any[]>([]);
-  const [webhookInfo, setWebhookInfo] = useState<{ url: string, token: string } | null>(null);
-
-  const syncMetaTemplates = async () => {
-    if (!metaAccessToken || !metaWabaId) {
-      toast.error("Informe Access Token e WABA ID primeiro");
-      return;
-    }
-    
-    setIsSyncingMeta(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('whatsapp-meta-api', {
-        body: { 
-          action: 'fetch-templates',
-          accessToken: metaAccessToken,
-          wabaId: metaWabaId
-        }
-      });
-      
-      if (error) throw error;
-      setMetaTemplates(data.templates || []);
-      toast.success(`Conectado com sucesso! ${data.templates?.length || 0} templates sincronizados.`);
-    } catch (err: any) {
-      toast.error("Erro de conexão: Verifique se o Token e WABA ID estão corretos. Detalhe: " + err.message);
-    } finally {
-      setIsSyncingMeta(false);
-    }
-  };
-
-  const getWebhookInfo = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('whatsapp-meta-api', {
-        body: { action: 'get-webhook-info' }
-      });
-      if (error) throw error;
-      setWebhookInfo({ url: data.webhookUrl, token: data.verifyToken });
-    } catch (err: any) {
-      console.error("Erro ao buscar info do webhook", err);
-    }
-  };
 
   // Scraping skip domains
   const DEFAULT_SKIP_DOMAINS = [
