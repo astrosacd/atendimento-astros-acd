@@ -277,7 +277,7 @@ function buildTextReport(opts: {
     lines.push(`• Valor USD: ${fmtCurrency(totals.totalUSD, "USD")} (anterior: ${fmtCurrency(totals.totalUSD, "USD")}, ${pctChange(totals.totalUSD, totalsPrev.totalUSD)})`);
   }
   if (current.churnRisk.length > 0) {
-    lines.push(`⚠️ *Churn imediato:* ${current.churnRisk.length} cliente(s) com vencimento na semana sem renovação/pagamento.`);
+    lines.push(`⚠️ *Em atraso na semana:* ${current.churnRisk.length} cliente(s) venceram sem renovação/pagamento (receita em risco — ainda não é churn).`);
   }
   lines.push("");
 
@@ -322,7 +322,7 @@ function buildTextReport(opts: {
   // === CHURN IMEDIATO ===
   lines.push(`━━━━━━━━━━━━━━━━━━━`);
   lines.push(`*⚠️ Clientes que NÃO renovaram (${current.churnRisk.length})*`);
-  lines.push(`_Vencimento dentro da semana e sem renovação/pagamento confirmado — risco de churn imediato._`);
+  lines.push(`_Venceram na semana sem renovação/pagamento confirmado. Entram em Receita em Risco — só viram churn quando o cancelamento for registrado._`);
   lines.push("");
   if (current.churnRisk.length === 0) {
     lines.push(`_Nenhum cliente em risco nesta semana. 👏_`);
