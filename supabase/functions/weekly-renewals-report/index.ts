@@ -179,7 +179,7 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
 
   const { data: vencidos } = await supabase
     .from("clientes")
-    .select("id, nome, produto, plano, valor, moeda, data_renovacao, status")
+    .select("id, nome, produto, plano, valor, moeda, data_renovacao, status_cliente")
     .gte("data_renovacao", weekStartDate)
     .lte("data_renovacao", weekEndDate)
     // Só cobrança ativa: cancelados e agendados não são "risco de churn"
@@ -208,7 +208,7 @@ async function fetchWeekData(supabase: any, weekStart: Date, weekEnd: Date) {
       valor: c.valor,
       moeda: c.moeda || "BRL",
       data_renovacao: c.data_renovacao,
-      status: c.status,
+      status: c.status_cliente ?? null,
     });
   }
 
