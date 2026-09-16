@@ -499,13 +499,15 @@ export default function AdminRelatorios() {
 
       const clientesAtivosInicioCount = ativosInicio.size;
 
-      // Perdidos = cancelamento registrado dentro do mês (agrupado por CPF/Nome)
+      // Perdidos = cancelamento registrado dentro do mês, mas apenas de quem
+      // realmente estava ativo no início do mês (evita churn acima de 100%).
       const perdidosNoMes = new Set(
         clientesCancelados
           .filter(c => {
             if (!c.cancelado_em) return false;
             const cancelado = parseISO(c.cancelado_em);
-            return cancelado >= monthStart && cancelado <= monthEnd;
+            if (cancelado < monthStart || cancelado > monthEnd) return false;
+            return ativosInicio.has(c.cpf || c.nome);
           })
           .map(c => c.cpf || c.nome)
       ).size;
