@@ -148,7 +148,7 @@ export function useClientConnectionGraph(clienteId: string | null) {
           sb.from('billing_logs').select('id, message_type, status, channel, sent_at').eq('cliente_id', clienteId).order('sent_at', { ascending: false }).limit(30),
           sb.from('client_tasks').select('id, title, status, priority, due_date, codigo').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(30),
           sb.from('client_followups').select('id, produto, status, channel, scheduled_at').eq('cliente_id', clienteId).order('scheduled_at', { ascending: false }).limit(30),
-          sb.from('licencas_entregues').select('id, produto, chave_licenca, status, created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20),
+          sb.from('licencas_entregues').select('id, ferramenta, codigo_licenca, origem, data_entrega, created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20),
           sb.from('client_files').select('id, file_name, file_type, file_size, created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20),
           sb.from('client_logos').select('id, file_name, description, created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(15),
           sb.from('client_social_credentials').select('id, platform, login, created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20),
@@ -270,11 +270,11 @@ export function useClientConnectionGraph(clienteId: string | null) {
 
         const licencas: GraphNode[] = (licencasRes.data || []).map((l: any) => ({
           id: `licenca-${l.id}`,
-          label: cap(l.produto || 'Licença'),
-          sublabel: l.chave_licenca ? cap(l.chave_licenca, 16) : l.status,
+          label: cap(l.ferramenta || 'Licença'),
+          sublabel: l.codigo_licenca ? cap(l.codigo_licenca, 16) : l.origem,
           category: 'licenca',
-          status: l.status,
-          date: fmt(l.created_at),
+          status: l.origem,
+          date: fmt(l.data_entrega || l.created_at),
         }));
 
         const arquivos: GraphNode[] = (arquivosRes.data || []).map((a: any) => ({
