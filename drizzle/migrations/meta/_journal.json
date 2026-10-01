@@ -8,6 +8,13 @@
       "when": 1789418199063,
       "tag": "0000_add_cliente_agendado",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790884052367,
+      "tag": "0001_fix_cancelado_em_trigger",
+      "breakpoints": true
     }
   ]
 }
