@@ -15,6 +15,20 @@
       "when": 1790884052367,
       "tag": "0001_fix_cancelado_em_trigger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790956472584,
+      "tag": "0002_tighten_staff_policies_and_temp_posts",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790956492174,
+      "tag": "0003_staff_select_public_buckets",
+      "breakpoints": true
     }
   ]
 }

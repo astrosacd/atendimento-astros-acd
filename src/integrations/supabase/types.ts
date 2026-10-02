@@ -9303,6 +9303,7 @@ export type Database = {
       is_approved: { Args: { _user_id: string }; Returns: boolean }
       is_gerente: { Args: never; Returns: boolean }
       is_operador: { Args: never; Returns: boolean }
+      is_staff: { Args: never; Returns: boolean }
       mark_password_reset_token_used: {
         Args: { p_token: string }
         Returns: boolean
@@ -9367,6 +9368,78 @@ export type Database = {
           p_status: string
         }
         Returns: boolean
+      }
+      temp_create_post: {
+        Args: {
+          p_caption: string
+          p_media_urls: string[]
+          p_scheduled_for: string
+          p_status: Database["public"]["Enums"]["post_status"]
+          p_token: string
+          p_type: Database["public"]["Enums"]["post_type"]
+        }
+        Returns: {
+          caption: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          ig_media_id: string | null
+          media_urls: string[]
+          permalink: string | null
+          published_at: string | null
+          scheduled_for: string | null
+          status: Database["public"]["Enums"]["post_status"]
+          type: Database["public"]["Enums"]["post_type"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "posts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      temp_list_post_logs: {
+        Args: { p_post_id: string; p_token: string }
+        Returns: {
+          created_at: string
+          id: string
+          level: Database["public"]["Enums"]["log_level"]
+          message: string
+          post_id: string | null
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "post_logs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      temp_list_posts: {
+        Args: { p_token: string }
+        Returns: {
+          caption: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          ig_media_id: string | null
+          media_urls: string[]
+          permalink: string | null
+          published_at: string | null
+          scheduled_for: string | null
+          status: Database["public"]["Enums"]["post_status"]
+          type: Database["public"]["Enums"]["post_type"]
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "posts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       trigger_auto_sync_consulta_numeros: { Args: never; Returns: undefined }
       update_automations_cron_schedule: {

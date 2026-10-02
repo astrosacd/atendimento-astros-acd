@@ -356,14 +356,24 @@ const InstagramCreate = () => {
 
     setLoading(true);
     try {
-      const { data: post, error } = await supabase.from("posts").insert({
-        user_id: user?.id,
-        type: postType,
-        caption,
-        media_urls: mediaUrls,
-        status: publishNow ? 'publishing' : 'scheduled',
-        scheduled_for: publishNow ? null : scheduledFor?.toISOString(),
-      }).select().single();
+      const tempToken = !user?.id ? localStorage.getItem("temp_access_token") : null;
+      const { data: post, error } = tempToken
+        ? await supabase.rpc("temp_create_post", {
+            p_token: tempToken,
+            p_type: postType,
+            p_caption: caption,
+            p_media_urls: mediaUrls,
+            p_status: publishNow ? 'publishing' : 'scheduled',
+            p_scheduled_for: publishNow ? null : scheduledFor?.toISOString(),
+          } as any)
+        : await supabase.from("posts").insert({
+            user_id: user?.id,
+            type: postType,
+            caption,
+            media_urls: mediaUrls,
+            status: publishNow ? 'publishing' : 'scheduled',
+            scheduled_for: publishNow ? null : scheduledFor?.toISOString(),
+          }).select().single();
 
       if (error) throw error;
 
