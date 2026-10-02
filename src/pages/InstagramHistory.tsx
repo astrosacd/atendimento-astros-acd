@@ -41,18 +41,19 @@ const InstagramHistory = () => {
 
   const fetchPosts = async () => {
     setLoading(true);
-    let query = supabase
-      .from("posts")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    // Temp access vê histórico de todos os usuários do módulo;
-    // usuário autenticado vê somente o próprio histórico.
-    if (!isTempAccess && user?.id) {
-      query = query.eq("user_id", user.id);
+    const tempToken = isTempAccess && !user?.id ? localStorage.getItem("temp_access_token") : null;
+    let result: { data: any[] | null; error: any };
+    if (tempToken) {
+      result = await supabase.rpc("temp_list_posts", { p_token: tempToken } as any) as any;
+    } else {
+      let query = supabase
+        .from("posts")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (user?.id) query = query.eq("user_id", user.id);
+      result = await query;
     }
-
-    const { data, error } = await query;
+    const { data, error } = result;
 
     if (error) {
       toast({ title: "Erro", description: "Falha ao carregar histórico.", variant: "destructive" });
@@ -63,11 +64,14 @@ const InstagramHistory = () => {
   };
 
   const fetchLogs = async (postId: string) => {
-    const { data, error } = await supabase
-      .from("post_logs")
-      .select("*")
-      .eq("post_id", postId)
-      .order("created_at", { ascending: true });
+    const tempToken = isTempAccess && !user?.id ? localStorage.getItem("temp_access_token") : null;
+    const { data, error } = tempToken
+      ? await supabase.rpc("temp_list_post_logs", { p_token: tempToken, p_post_id: postId } as any) as any
+      : await supabase
+          .from("post_logs")
+          .select("*")
+          .eq("post_id", postId)
+          .order("created_at", { ascending: true });
 
     if (!error) {
       setLogs(data || []);
