@@ -22,6 +22,7 @@ import { MonitoredStatusDisplay } from '@/components/consulta-numeros/MonitoredS
 import { QrScansTab } from '@/components/consulta-numeros/QrScansTab';
 import { useInsurancePaymentStatusHybrid } from '@/hooks/useInsurance';
 import { useConsultaNumerosCacheRows } from '@/hooks/useConsultaNumerosCacheRows';
+import { isProtectedConsultaNumerosField, omitProtectedConsultaNumerosFields } from '@/lib/consultaNumerosProtectedFields';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -634,7 +635,7 @@ export default function ConsultaNumeros() {
           },
           body: JSON.stringify({
             row_id: rowId.toString(),
-            ...data,
+            ...omitProtectedConsultaNumerosFields(data),
           }),
         }
       );
@@ -675,7 +676,7 @@ export default function ConsultaNumeros() {
             'Authorization': `Bearer ${session.access_token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(data),
+          body: JSON.stringify(omitProtectedConsultaNumerosFields(data)),
         }
       );
 
@@ -2029,7 +2030,7 @@ export default function ConsultaNumeros() {
                 return null;
               }
               
-              const isNonEditable = nonEditableFields.has(field.name.toLowerCase());
+              const isNonEditable = nonEditableFields.has(field.name.toLowerCase()) || isProtectedConsultaNumerosField(field.name);
               const isMaskedField = maskedFieldsConfig.includes(field.name);
               const isObservacoes = field.name.toLowerCase() === 'observacoes';
               
@@ -2318,7 +2319,7 @@ export default function ConsultaNumeros() {
           </DialogHeader>
           <div className="space-y-4">
             {visibleFields
-              .filter((field) => !hiddenCreateFields.has(field.name.toLowerCase()))
+              .filter((field) => !hiddenCreateFields.has(field.name.toLowerCase()) && !isProtectedConsultaNumerosField(field.name))
               .map((field) => {
                 const isNumeroField = field.name.toLowerCase().includes('numero');
                 const isEmailField = field.name.toLowerCase() === 'email';
