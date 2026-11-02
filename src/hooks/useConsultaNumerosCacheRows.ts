@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchAllPages } from '@/lib/fetchAllPages';
 
 export interface ConsultaNumerosCacheRow {
   baserow_row_id: number;
@@ -22,13 +23,13 @@ export interface ConsultaNumerosCacheRow {
 export function useConsultaNumerosCacheRows(enabled: boolean = true) {
   return useQuery({
     queryKey: ['consulta-numeros', 'cache-all'],
-    queryFn: async () => {
-      const { data, error } = await supabase
+    queryFn: async ({ signal }) => {
+      return fetchAllPages<ConsultaNumerosCacheRow>((from, to) => supabase
         .from('consulta_numeros_cache')
         .select('baserow_row_id, row_data, auto_hospedado')
-        .order('baserow_row_id');
-      if (error) throw error;
-      return (data ?? []) as ConsultaNumerosCacheRow[];
+        .order('baserow_row_id')
+        .range(from, to)
+        .abortSignal(signal));
     },
     enabled,
     staleTime: 2 * 60 * 1000,
