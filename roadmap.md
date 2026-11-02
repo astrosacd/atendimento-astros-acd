@@ -5,3 +5,4 @@
 - [x] Auditar e corrigir Relatórios Avançados, relatório semanal e análise de IA por tipo financeiro
 - [ ] Limpar logs técnicos com mais de 90 dias — bloqueado: consultas ao Lovable Cloud excedem o tempo limite; nenhuma exclusão executada nesta tentativa.
 - [x] Verificar limite de 1.000 números na Consulta de Números — consulta compartilhada sem paginação, sujeita ao limite padrão da API.
+- [x] Aplicar paginação exaustiva à consulta compartilhada e testar 1.001 registros, múltiplos exatos e falha em lote posterior.
