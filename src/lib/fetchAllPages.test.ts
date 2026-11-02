@@ -1,4 +1,5 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, test } from 'node:test';
+import assert from 'node:assert/strict';
 import { fetchAllPages } from './fetchAllPages';
 
 describe('complete synchronized number loading', () => {
@@ -9,9 +10,9 @@ describe('complete synchronized number loading', () => {
       ranges.push([from, to]);
       return Promise.resolve({ data: source.slice(from, to + 1), error: null });
     });
-    expect(rows).toEqual(source);
-    expect(rows[1000]).toEqual({ id: 1000 });
-    expect(ranges).toEqual([[0, 999], [1000, 1999]]);
+    assert.deepEqual(rows, source);
+    assert.deepEqual(rows[1000], { id: 1000 });
+    assert.deepEqual(ranges, [[0, 999], [1000, 1999]]);
   });
 
   test('loads exact multiples without duplicates and stops on the empty final page', async () => {
@@ -21,14 +22,14 @@ describe('complete synchronized number loading', () => {
       calls++;
       return Promise.resolve({ data: source.slice(from, to + 1), error: null });
     });
-    expect(rows).toEqual(source);
-    expect(calls).toBe(3);
+    assert.deepEqual(rows, source);
+    assert.equal(calls, 3);
   });
 
   test('rejects a failed later page instead of returning incomplete numbers', async () => {
     const failure = new Error('page unavailable');
-    await expect(fetchAllPages((from) => Promise.resolve(from === 0
+    await assert.rejects(fetchAllPages((from) => Promise.resolve(from === 0
       ? { data: Array.from({ length: 1000 }, (_, id) => id), error: null }
-      : { data: null, error: failure }))).rejects.toThrow('page unavailable');
+      : { data: null, error: failure })), /page unavailable/);
   });
 });
