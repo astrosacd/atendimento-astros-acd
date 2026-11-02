@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchAllPages } from './fetchAllPages';
+import { fetchAllPages } from '../src/lib/fetchAllPages';
 
 describe('complete synchronized number loading', () => {
   test('returns all 1001 numbers, including the number beyond the API limit', async () => {
